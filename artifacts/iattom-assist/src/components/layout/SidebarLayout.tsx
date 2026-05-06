@@ -14,10 +14,12 @@ import {
   X,
   LogOut,
   ChevronDown,
+  ShieldCheck,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { useUser, useClerk } from "@clerk/react";
 import {
   DropdownMenu,
@@ -26,6 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useSyncUser, useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 
 const navItems = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
@@ -45,8 +48,21 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded, isSignedIn } = useUser();
   const { signOut } = useClerk();
+  const syncUser = useSyncUser();
+  const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), retry: false, enabled: !!isSignedIn } });
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn && user) {
+      const email = user.primaryEmailAddress?.emailAddress;
+      const name = user.fullName ?? user.firstName ?? undefined;
+      if (email) {
+        syncUser.mutate({ data: { email, name } });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, isSignedIn]);
 
   const currentPage = navItems.find((item) => item.href === location)?.label || "Dashboard";
   const closeSidebar = () => setIsMobileOpen(false);
@@ -63,6 +79,8 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const handleSignOut = () => {
     signOut({ redirectUrl: `${window.location.origin}${basePath}/` });
   };
+
+  const isAdmin = me?.role === "admin";
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
@@ -108,6 +126,26 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                 </Link>
               );
             })}
+
+            {isAdmin && (
+              <div className="pt-2 mt-2 border-t border-white/5">
+                <Link
+                  href="/admin"
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-sm font-medium ${
+                    location.startsWith("/admin")
+                      ? "bg-primary/10 text-primary border border-primary/20"
+                      : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                  }`}
+                  onClick={closeSidebar}
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  Admin Panel
+                  <Badge className="ml-auto text-[9px] px-1 py-0 bg-primary/20 text-primary border-primary/30 font-semibold">
+                    ADMIN
+                  </Badge>
+                </Link>
+              </div>
+            )}
           </div>
 
           <div className="p-4 border-t border-sidebar-border shrink-0">
@@ -140,6 +178,18 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                     Settings
                   </Link>
                 </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/admin"
+                      className="flex items-center gap-2 cursor-pointer text-primary focus:text-primary focus:bg-primary/10"
+                      onClick={closeSidebar}
+                    >
+                      <ShieldCheck className="w-4 h-4" />
+                      Admin Panel
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator className="bg-white/10" />
                 <DropdownMenuItem
                   onClick={handleSignOut}

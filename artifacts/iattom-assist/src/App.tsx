@@ -9,6 +9,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 
 import { SidebarLayout } from "@/components/layout/SidebarLayout";
+import { AdminLayout } from "@/components/layout/AdminLayout";
+import { AdminGuard } from "@/pages/admin/AdminGuard";
 import { LandingPage } from "@/pages/LandingPage";
 import { DashboardHome } from "@/pages/dashboard/DashboardHome";
 import { FindProducts } from "@/pages/dashboard/FindProducts";
@@ -20,6 +22,10 @@ import { VideoScripts } from "@/pages/dashboard/VideoScripts";
 import { Projects } from "@/pages/dashboard/Projects";
 import { History } from "@/pages/dashboard/History";
 import { Settings } from "@/pages/dashboard/Settings";
+import { AdminOverview } from "@/pages/admin/AdminOverview";
+import { AdminUsers } from "@/pages/admin/AdminUsers";
+import { AdminAnalytics } from "@/pages/admin/AdminAnalytics";
+import { AdminActivity } from "@/pages/admin/AdminActivity";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -162,6 +168,29 @@ function ProtectedDashboard() {
   );
 }
 
+function ProtectedAdmin() {
+  return (
+    <>
+      <Show when="signed-in">
+        <AdminGuard>
+          <AdminLayout>
+            <Switch>
+              <Route path="/admin" component={AdminOverview} />
+              <Route path="/admin/users" component={AdminUsers} />
+              <Route path="/admin/analytics" component={AdminAnalytics} />
+              <Route path="/admin/activity" component={AdminActivity} />
+              <Route component={NotFound} />
+            </Switch>
+          </AdminLayout>
+        </AdminGuard>
+      </Show>
+      <Show when="signed-out">
+        <Redirect to="/" />
+      </Show>
+    </>
+  );
+}
+
 function ClerkQueryInvalidator() {
   const { addListener } = useClerk();
   const qc = useQueryClient();
@@ -217,6 +246,8 @@ function ClerkProviderWithRoutes() {
             <Route path="/sign-up/*?" component={SignUpPage} />
             <Route path="/dashboard/*?" component={ProtectedDashboard} />
             <Route path="/dashboard" component={ProtectedDashboard} />
+            <Route path="/admin/*?" component={ProtectedAdmin} />
+            <Route path="/admin" component={ProtectedAdmin} />
             <Route component={NotFound} />
           </Switch>
           <Toaster />

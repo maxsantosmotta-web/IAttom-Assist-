@@ -85,6 +85,174 @@ export interface DashboardSummary {
   recentProjects: Project[];
 }
 
+export interface SyncUserBody {
+  name?: string;
+  email: string;
+}
+
+export type UserProfileRole =
+  (typeof UserProfileRole)[keyof typeof UserProfileRole];
+
+export const UserProfileRole = {
+  user: "user",
+  admin: "admin",
+} as const;
+
+export type UserProfilePlan =
+  (typeof UserProfilePlan)[keyof typeof UserProfilePlan];
+
+export const UserProfilePlan = {
+  free: "free",
+  pro: "pro",
+  business: "business",
+} as const;
+
+export interface UserProfile {
+  id: number;
+  clerkId: string;
+  email: string;
+  name?: string;
+  role: UserProfileRole;
+  plan: UserProfilePlan;
+  credits: number;
+  createdAt: string;
+}
+
+export type AdminUserRole = (typeof AdminUserRole)[keyof typeof AdminUserRole];
+
+export const AdminUserRole = {
+  user: "user",
+  admin: "admin",
+} as const;
+
+export type AdminUserPlan = (typeof AdminUserPlan)[keyof typeof AdminUserPlan];
+
+export const AdminUserPlan = {
+  free: "free",
+  pro: "pro",
+  business: "business",
+} as const;
+
+export interface AdminUser {
+  id: number;
+  clerkId: string;
+  email: string;
+  name?: string;
+  role: AdminUserRole;
+  plan: AdminUserPlan;
+  credits: number;
+  projectCount: number;
+  actionCount: number;
+  createdAt: string;
+}
+
+export interface AdminUserList {
+  users: AdminUser[];
+  total: number;
+}
+
+export type UpdateAdminUserBodyRole =
+  (typeof UpdateAdminUserBodyRole)[keyof typeof UpdateAdminUserBodyRole];
+
+export const UpdateAdminUserBodyRole = {
+  user: "user",
+  admin: "admin",
+} as const;
+
+export type UpdateAdminUserBodyPlan =
+  (typeof UpdateAdminUserBodyPlan)[keyof typeof UpdateAdminUserBodyPlan];
+
+export const UpdateAdminUserBodyPlan = {
+  free: "free",
+  pro: "pro",
+  business: "business",
+} as const;
+
+export interface UpdateAdminUserBody {
+  role?: UpdateAdminUserBodyRole;
+  plan?: UpdateAdminUserBodyPlan;
+  credits?: number;
+}
+
+export type AdminStatsPlanBreakdown = {
+  free: number;
+  pro: number;
+  business: number;
+};
+
+export interface AdminStats {
+  totalUsers: number;
+  totalProjects: number;
+  totalActions: number;
+  adminCount: number;
+  planBreakdown: AdminStatsPlanBreakdown;
+  newUsersThisMonth: number;
+  newProjectsThisMonth: number;
+}
+
+export interface AdminActivityItem {
+  id: number;
+  action: string;
+  module: string;
+  projectName?: string;
+  userEmail?: string;
+  userName?: string;
+  createdAt: string;
+}
+
+export type AdminAnalyticsUserGrowthItem = {
+  month: string;
+  users: number;
+  projects: number;
+};
+
+export type AdminAnalyticsFeatureUsageItem = {
+  name: string;
+  count: number;
+  percentage: number;
+};
+
+export type AdminAnalyticsPlanRevenueItem = {
+  plan: string;
+  users: number;
+  mrr: number;
+};
+
+export interface AdminAnalytics {
+  userGrowth: AdminAnalyticsUserGrowthItem[];
+  featureUsage: AdminAnalyticsFeatureUsageItem[];
+  planRevenue: AdminAnalyticsPlanRevenueItem[];
+}
+
 export type ListHistoryParams = {
+  limit?: number;
+};
+
+export type ListAdminUsersParams = {
+  search?: string;
+  plan?: ListAdminUsersPlan;
+  role?: ListAdminUsersRole;
+  limit?: number;
+  offset?: number;
+};
+
+export type ListAdminUsersPlan =
+  (typeof ListAdminUsersPlan)[keyof typeof ListAdminUsersPlan];
+
+export const ListAdminUsersPlan = {
+  free: "free",
+  pro: "pro",
+  business: "business",
+} as const;
+
+export type ListAdminUsersRole =
+  (typeof ListAdminUsersRole)[keyof typeof ListAdminUsersRole];
+
+export const ListAdminUsersRole = {
+  user: "user",
+  admin: "admin",
+} as const;
+
+export type ListAdminActivityParams = {
   limit?: number;
 };

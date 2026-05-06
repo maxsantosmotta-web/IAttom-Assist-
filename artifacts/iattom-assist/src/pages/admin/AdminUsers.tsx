@@ -1,0 +1,295 @@
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Search, ChevronDown, Loader2, Users, Edit2, Check, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  useListAdminUsers,
+  useUpdateAdminUser,
+  getListAdminUsersQueryKey,
+} from "@workspace/api-client-react";
+
+const planColors: Record<string, string> = {
+  free: "text-zinc-400 bg-zinc-400/10 border-zinc-400/20",
+  pro: "text-primary bg-primary/10 border-primary/20",
+  business: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+};
+
+const roleColors: Record<string, string> = {
+  user: "text-muted-foreground bg-white/5 border-white/10",
+  admin: "text-red-400 bg-red-400/10 border-red-400/20",
+};
+
+type AdminUser = {
+  id: number;
+  clerkId: string;
+  email: string;
+  name?: string | null;
+  role: "user" | "admin";
+  plan: "free" | "pro" | "business";
+  credits: number;
+  projectCount: number;
+  actionCount: number;
+  createdAt: string;
+};
+
+type EditState = {
+  role: "user" | "admin";
+  plan: "free" | "pro" | "business";
+  credits: number;
+};
+
+export function AdminUsers() {
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [planFilter, setPlanFilter] = useState<string>("all");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+  const [editState, setEditState] = useState<EditState>({ role: "user", plan: "free", credits: 0 });
+
+  const updateUser = useUpdateAdminUser();
+
+  const params = {
+    ...(search ? { search } : {}),
+    ...(planFilter !== "all" ? { plan: planFilter as "free" | "pro" | "business" } : {}),
+    ...(roleFilter !== "all" ? { role: roleFilter as "user" | "admin" } : {}),
+    limit: 50,
+  };
+
+  const { data, isLoading } = useListAdminUsers(params, {
+    query: { queryKey: getListAdminUsersQueryKey(params) },
+  });
+
+  const openEdit = (user: AdminUser) => {
+    setEditingUser(user);
+    setEditState({ role: user.role, plan: user.plan, credits: user.credits });
+  };
+
+  const handleSave = () => {
+    if (!editingUser) return;
+    updateUser.mutate(
+      { id: editingUser.id, data: editState },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListAdminUsersQueryKey() });
+          setEditingUser(null);
+        },
+      },
+    );
+  };
+
+  return (
+    <div className="space-y-8">
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+        <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Management</p>
+        <h2 className="text-2xl font-bold text-white mb-1">Users</h2>
+        <p className="text-muted-foreground text-sm">Manage all registered users, plans, roles, and credits.</p>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
+        className="flex flex-wrap gap-3"
+      >
+        <div className="relative flex-1 min-w-48">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name or email..."
+            className="pl-10 bg-[#111111] border-white/5 focus-visible:ring-primary/50"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Select value={planFilter} onValueChange={setPlanFilter}>
+          <SelectTrigger className="w-36 bg-[#111111] border-white/5">
+            <SelectValue placeholder="All Plans" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#111111] border-white/10">
+            <SelectItem value="all">All Plans</SelectItem>
+            <SelectItem value="free">Free</SelectItem>
+            <SelectItem value="pro">Pro</SelectItem>
+            <SelectItem value="business">Business</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={roleFilter} onValueChange={setRoleFilter}>
+          <SelectTrigger className="w-32 bg-[#111111] border-white/5">
+            <SelectValue placeholder="All Roles" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#111111] border-white/10">
+            <SelectItem value="all">All Roles</SelectItem>
+            <SelectItem value="user">User</SelectItem>
+            <SelectItem value="admin">Admin</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground ml-auto">
+          <Users className="w-4 h-4" />
+          <span>{isLoading ? "..." : data?.total ?? 0} users</span>
+        </div>
+      </motion.div>
+
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.15 }}>
+        <Card className="bg-[#111111] border-white/5 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/5">
+                  <th className="text-left px-5 py-3 text-xs text-muted-foreground font-medium">User</th>
+                  <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Role</th>
+                  <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Plan</th>
+                  <th className="text-right px-4 py-3 text-xs text-muted-foreground font-medium">Credits</th>
+                  <th className="text-right px-4 py-3 text-xs text-muted-foreground font-medium">Projects</th>
+                  <th className="text-right px-4 py-3 text-xs text-muted-foreground font-medium">Actions</th>
+                  <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Joined</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i} className="border-b border-white/5">
+                      <td className="px-5 py-3"><Skeleton className="h-8 w-48 bg-white/5" /></td>
+                      <td className="px-4 py-3"><Skeleton className="h-5 w-16 bg-white/5" /></td>
+                      <td className="px-4 py-3"><Skeleton className="h-5 w-16 bg-white/5" /></td>
+                      <td className="px-4 py-3"><Skeleton className="h-5 w-10 bg-white/5 ml-auto" /></td>
+                      <td className="px-4 py-3"><Skeleton className="h-5 w-8 bg-white/5 ml-auto" /></td>
+                      <td className="px-4 py-3"><Skeleton className="h-5 w-8 bg-white/5 ml-auto" /></td>
+                      <td className="px-4 py-3"><Skeleton className="h-5 w-20 bg-white/5" /></td>
+                      <td className="px-4 py-3"></td>
+                    </tr>
+                  ))
+                ) : !data?.users?.length ? (
+                  <tr>
+                    <td colSpan={8} className="text-center py-12 text-muted-foreground text-sm">
+                      No users found.
+                    </td>
+                  </tr>
+                ) : (
+                  data.users.map((user: AdminUser) => {
+                    const initials = (user.name ?? user.email)
+                      .split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+                    return (
+                      <tr key={user.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="w-8 h-8 border border-primary/20">
+                              <AvatarFallback className="bg-primary/10 text-primary text-xs">{initials}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium text-white text-sm">{user.name ?? "—"}</p>
+                              <p className="text-xs text-muted-foreground">{user.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant="outline" className={`text-xs capitalize ${roleColors[user.role]}`}>
+                            {user.role}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant="outline" className={`text-xs capitalize ${planColors[user.plan]}`}>
+                            {user.plan}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-right text-white font-mono text-sm">{user.credits}</td>
+                        <td className="px-4 py-3 text-right text-muted-foreground text-sm">{user.projectCount}</td>
+                        <td className="px-4 py-3 text-right text-muted-foreground text-sm">{user.actionCount}</td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                          {new Date(user.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => openEdit(user)}
+                            className="text-muted-foreground hover:text-primary transition-colors p-1"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </motion.div>
+
+      <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+        <DialogContent className="bg-[#111111] border-white/10 text-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-white">Edit User</DialogTitle>
+            {editingUser && (
+              <p className="text-xs text-muted-foreground">{editingUser.email}</p>
+            )}
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Role</Label>
+              <Select
+                value={editState.role}
+                onValueChange={(v) => setEditState((s) => ({ ...s, role: v as "user" | "admin" }))}
+              >
+                <SelectTrigger className="bg-[#0a0a0a] border-white/10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#111111] border-white/10">
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Plan</Label>
+              <Select
+                value={editState.plan}
+                onValueChange={(v) => setEditState((s) => ({ ...s, plan: v as "free" | "pro" | "business" }))}
+              >
+                <SelectTrigger className="bg-[#0a0a0a] border-white/10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#111111] border-white/10">
+                  <SelectItem value="free">Free</SelectItem>
+                  <SelectItem value="pro">Pro — $79/mo</SelectItem>
+                  <SelectItem value="business">Business — $199/mo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Credits</Label>
+              <Input
+                type="number"
+                value={editState.credits}
+                onChange={(e) => setEditState((s) => ({ ...s, credits: parseInt(e.target.value) || 0 }))}
+                className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50"
+                min={0}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditingUser(null)} className="text-muted-foreground">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={updateUser.isPending}
+              className="bg-primary text-black hover:bg-primary/90 font-semibold"
+            >
+              {updateUser.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

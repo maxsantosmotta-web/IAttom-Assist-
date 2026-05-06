@@ -174,3 +174,174 @@ export const GetDashboardSummaryResponse = zod.object({
     }),
   ),
 });
+
+/**
+ * @summary Sync authenticated Clerk user to database
+ */
+export const SyncUserBody = zod.object({
+  name: zod.string().optional(),
+  email: zod.string(),
+});
+
+export const SyncUserResponse = zod.object({
+  id: zod.number(),
+  clerkId: zod.string(),
+  email: zod.string(),
+  name: zod.string().optional(),
+  role: zod.enum(["user", "admin"]),
+  plan: zod.enum(["free", "pro", "business"]),
+  credits: zod.number(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Get current authenticated user profile
+ */
+export const GetMeResponse = zod.object({
+  id: zod.number(),
+  clerkId: zod.string(),
+  email: zod.string(),
+  name: zod.string().optional(),
+  role: zod.enum(["user", "admin"]),
+  plan: zod.enum(["free", "pro", "business"]),
+  credits: zod.number(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Get platform-wide statistics
+ */
+export const GetAdminStatsResponse = zod.object({
+  totalUsers: zod.number(),
+  totalProjects: zod.number(),
+  totalActions: zod.number(),
+  adminCount: zod.number(),
+  planBreakdown: zod.object({
+    free: zod.number(),
+    pro: zod.number(),
+    business: zod.number(),
+  }),
+  newUsersThisMonth: zod.number(),
+  newProjectsThisMonth: zod.number(),
+});
+
+/**
+ * @summary List all users with optional filters
+ */
+export const listAdminUsersQueryLimitDefault = 50;
+export const listAdminUsersQueryOffsetDefault = 0;
+
+export const ListAdminUsersQueryParams = zod.object({
+  search: zod.coerce.string().optional(),
+  plan: zod.enum(["free", "pro", "business"]).optional(),
+  role: zod.enum(["user", "admin"]).optional(),
+  limit: zod.coerce.number().default(listAdminUsersQueryLimitDefault),
+  offset: zod.coerce.number().default(listAdminUsersQueryOffsetDefault),
+});
+
+export const ListAdminUsersResponse = zod.object({
+  users: zod.array(
+    zod.object({
+      id: zod.number(),
+      clerkId: zod.string(),
+      email: zod.string(),
+      name: zod.string().optional(),
+      role: zod.enum(["user", "admin"]),
+      plan: zod.enum(["free", "pro", "business"]),
+      credits: zod.number(),
+      projectCount: zod.number(),
+      actionCount: zod.number(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+  total: zod.number(),
+});
+
+/**
+ * @summary Update a user's plan, role, or credits
+ */
+export const UpdateAdminUserParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAdminUserBody = zod.object({
+  role: zod.enum(["user", "admin"]).optional(),
+  plan: zod.enum(["free", "pro", "business"]).optional(),
+  credits: zod.number().optional(),
+});
+
+export const UpdateAdminUserResponse = zod.object({
+  id: zod.number(),
+  clerkId: zod.string(),
+  email: zod.string(),
+  name: zod.string().optional(),
+  role: zod.enum(["user", "admin"]),
+  plan: zod.enum(["free", "pro", "business"]),
+  credits: zod.number(),
+  projectCount: zod.number(),
+  actionCount: zod.number(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Platform-wide activity feed
+ */
+export const listAdminActivityQueryLimitDefault = 50;
+
+export const ListAdminActivityQueryParams = zod.object({
+  limit: zod.coerce.number().default(listAdminActivityQueryLimitDefault),
+});
+
+export const ListAdminActivityResponseItem = zod.object({
+  id: zod.number(),
+  action: zod.string(),
+  module: zod.string(),
+  projectName: zod.string().optional(),
+  userEmail: zod.string().optional(),
+  userName: zod.string().optional(),
+  createdAt: zod.coerce.date(),
+});
+export const ListAdminActivityResponse = zod.array(
+  ListAdminActivityResponseItem,
+);
+
+/**
+ * @summary Analytics data for charts
+ */
+export const GetAdminAnalyticsResponse = zod.object({
+  userGrowth: zod.array(
+    zod.object({
+      month: zod.string(),
+      users: zod.number(),
+      projects: zod.number(),
+    }),
+  ),
+  featureUsage: zod.array(
+    zod.object({
+      name: zod.string(),
+      count: zod.number(),
+      percentage: zod.number(),
+    }),
+  ),
+  planRevenue: zod.array(
+    zod.object({
+      plan: zod.string(),
+      users: zod.number(),
+      mrr: zod.number(),
+    }),
+  ),
+});
+
+/**
+ * @summary Make current user an admin (only if no admins exist)
+ */
+export const BootstrapAdminResponse = zod.object({
+  id: zod.number(),
+  clerkId: zod.string(),
+  email: zod.string(),
+  name: zod.string().optional(),
+  role: zod.enum(["user", "admin"]),
+  plan: zod.enum(["free", "pro", "business"]),
+  credits: zod.number(),
+  createdAt: zod.coerce.date(),
+});

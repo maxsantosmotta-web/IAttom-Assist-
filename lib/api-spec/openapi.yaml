@@ -16,6 +16,10 @@ tags:
     description: Activity history
   - name: dashboard
     description: Dashboard summary
+  - name: auth
+    description: Authentication helpers
+  - name: admin
+    description: Admin operations
 paths:
   /healthz:
     get:
@@ -154,6 +158,165 @@ paths:
               schema:
                 $ref: "#/components/schemas/DashboardSummary"
 
+  /auth/sync:
+    post:
+      operationId: syncUser
+      tags: [auth]
+      summary: Sync authenticated Clerk user to database
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SyncUserBody"
+      responses:
+        "200":
+          description: Synced user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current authenticated user profile
+      responses:
+        "200":
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "404":
+          description: User not synced yet
+
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Get platform-wide statistics
+      responses:
+        "200":
+          description: Admin statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin]
+      summary: List all users with optional filters
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: plan
+          in: query
+          schema:
+            type: string
+            enum: [free, pro, business]
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [user, admin]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Paginated user list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserList"
+
+  /admin/users/{id}:
+    patch:
+      operationId: updateAdminUser
+      tags: [admin]
+      summary: Update a user's plan, role, or credits
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAdminUserBody"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+
+  /admin/activity:
+    get:
+      operationId: listAdminActivity
+      tags: [admin]
+      summary: Platform-wide activity feed
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Platform activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminActivityItem"
+
+  /admin/analytics:
+    get:
+      operationId: getAdminAnalytics
+      tags: [admin]
+      summary: Analytics data for charts
+      responses:
+        "200":
+          description: Analytics data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAnalytics"
+
+  /admin/bootstrap:
+    post:
+      operationId: bootstrapAdmin
+      tags: [admin]
+      summary: Make current user an admin (only if no admins exist)
+      responses:
+        "200":
+          description: User is now admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "409":
+          description: Admins already exist
+
 components:
   schemas:
     HealthStatus:
@@ -253,3 +416,208 @@ components:
         - completedProjects
         - totalActions
         - recentProjects
+
+    SyncUserBody:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+      required:
+        - email
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        clerkId:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [user, admin]
+        plan:
+          type: string
+          enum: [free, pro, business]
+        credits:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - clerkId
+        - email
+        - role
+        - plan
+        - credits
+        - createdAt
+
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        clerkId:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [user, admin]
+        plan:
+          type: string
+          enum: [free, pro, business]
+        credits:
+          type: integer
+        projectCount:
+          type: integer
+        actionCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - clerkId
+        - email
+        - role
+        - plan
+        - credits
+        - projectCount
+        - actionCount
+        - createdAt
+
+    AdminUserList:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminUser"
+        total:
+          type: integer
+      required:
+        - users
+        - total
+
+    UpdateAdminUserBody:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [user, admin]
+        plan:
+          type: string
+          enum: [free, pro, business]
+        credits:
+          type: integer
+
+    AdminStats:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        totalProjects:
+          type: integer
+        totalActions:
+          type: integer
+        adminCount:
+          type: integer
+        planBreakdown:
+          type: object
+          properties:
+            free:
+              type: integer
+            pro:
+              type: integer
+            business:
+              type: integer
+          required: [free, pro, business]
+        newUsersThisMonth:
+          type: integer
+        newProjectsThisMonth:
+          type: integer
+      required:
+        - totalUsers
+        - totalProjects
+        - totalActions
+        - adminCount
+        - planBreakdown
+        - newUsersThisMonth
+        - newProjectsThisMonth
+
+    AdminActivityItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        action:
+          type: string
+        module:
+          type: string
+        projectName:
+          type: string
+        userEmail:
+          type: string
+        userName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - action
+        - module
+        - createdAt
+
+    AdminAnalytics:
+      type: object
+      properties:
+        userGrowth:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              users:
+                type: integer
+              projects:
+                type: integer
+            required: [month, users, projects]
+        featureUsage:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              count:
+                type: integer
+              percentage:
+                type: number
+            required: [name, count, percentage]
+        planRevenue:
+          type: array
+          items:
+            type: object
+            properties:
+              plan:
+                type: string
+              users:
+                type: integer
+              mrr:
+                type: number
+            required: [plan, users, mrr]
+      required:
+        - userGrowth
+        - featureUsage
+        - planRevenue

@@ -1,0 +1,49 @@
+import { Router, type IRouter } from "express";
+import { getAuth } from "@clerk/express";
+import { eq } from "drizzle-orm";
+import { db, users } from "@workspace/db";
+import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
+import { getOrSyncUser, getAdminCount } from "../lib/userSync";
+import { SyncUserBody, SyncUserResponse, GetMeResponse, BootstrapAdminResponse } from "@workspace/api-zod";
+
+const router: IRouter = Router();
+
+router.post("/auth/sync", requireAuth, async (req, res): Promise<void> => {
+  const { clerkUserId } = req as AuthenticatedRequest;
+  const parsed = SyncUserBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+
+  const user = await getOrSyncUser(clerkUserId, parsed.data.email, parsed.data.name);
+  if (!user) { res.status(500).json({ error: "Failed to sync user" }); return; }
+
+  res.json(SyncUserResponse.parse(user));
+});
+
+router.get("/auth/me", requireAuth, async (req, res): Promise<void> => {
+  const { clerkUserId } = req as AuthenticatedRequest;
+  const [user] = await db.select().from(users).where(eq(users.clerkId, clerkUserId));
+  if (!user) { res.status(404).json({ error: "User not found. Call /auth/sync first." }); return; }
+  res.json(GetMeResponse.parse(user));
+});
+
+router.post("/admin/bootstrap", requireAuth, async (req, res): Promise<void> => {
+  const auth = getAuth(req);
+  const clerkUserId = auth?.userId;
+  if (!clerkUserId) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const adminCount = await getAdminCount();
+  if (adminCount > 0) { res.status(409).json({ error: "Admins already exist." }); return; }
+
+  const [existing] = await db.select().from(users).where(eq(users.clerkId, clerkUserId));
+  if (!existing) { res.status(404).json({ error: "Sync first." }); return; }
+
+  const [updated] = await db
+    .update(users)
+    .set({ role: "admin", updatedAt: new Date() })
+    .where(eq(users.clerkId, clerkUserId))
+    .returning();
+
+  res.json(BootstrapAdminResponse.parse(updated));
+});
+
+export default router;
