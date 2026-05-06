@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, LayoutDashboard, Sparkles, FileText, CheckCircle,
   Megaphone, Video, FolderOpen, Clock, Zap, CreditCard, Settings,
-  ArrowRight, Command, BookMarked, BarChart2, Bell,
+  ArrowRight, Command, BookMarked, BarChart2, Bell, Gift,
 } from "lucide-react";
 
 const ALL_PAGES = [
@@ -22,6 +22,7 @@ const ALL_PAGES = [
   { href: "/dashboard/settings", label: "Settings", icon: Settings, desc: "Account preferences", keywords: "settings account profile" },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart2, desc: "Your usage insights", keywords: "analytics insights stats" },
   { href: "/dashboard/prompts", label: "Saved Prompts", icon: BookMarked, desc: "Your prompt library", keywords: "prompts saved library" },
+  { href: "/dashboard/referral", label: "Referrals", icon: Gift, desc: "Invite friends and earn credits", keywords: "referral invite earn rewards" },
 ];
 
 function score(item: typeof ALL_PAGES[0], q: string): number {

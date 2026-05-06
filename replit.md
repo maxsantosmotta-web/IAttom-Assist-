@@ -1,6 +1,6 @@
 # IAttom Assist
 
-A premium dark-themed AI business assistant SaaS platform for product discovery, validation, campaign creation, content generation, creative generation, video scripts, and marketing automation. Full Clerk authentication, private user workspaces, a full admin dashboard, private beta mode with waitlist, and feedback collection.
+A premium dark-themed AI business assistant SaaS platform for product discovery, validation, campaign creation, content generation, creative generation, video scripts, and marketing automation. Full Clerk authentication, private user workspaces, full admin dashboard, private beta mode with waitlist, feedback collection, referral system, and smart upgrade/monetization layer.
 
 ## Run & Operate
 
@@ -28,42 +28,31 @@ A premium dark-themed AI business assistant SaaS platform for product discovery,
 
 ## Brand Identity
 
-- Logo mark: `artifacts/iattom-assist/public/logo.svg` — "iA" lettermark (A with dot above), gold gradient, dark background. Same design as favicon.svg (32px version).
-- React logo component: `artifacts/iattom-assist/src/components/ui/Logo.tsx` — exports `<LogoMark size>` and `<Logo size showWordmark>`. Use in all layouts instead of Sparkles icon.
-- Loading screen: `artifacts/iattom-assist/src/components/LoadingScreen.tsx` — animated brand splash. Rendered via `AnimatePresence` in App.tsx, auto-dismisses after 1.6s.
+- Logo mark: `artifacts/iattom-assist/public/logo.svg` — "iA" lettermark (A with dot above), gold gradient, dark background.
+- React logo component: `artifacts/iattom-assist/src/components/ui/Logo.tsx` — `<LogoMark size>` and `<Logo size showWordmark>`
+- Loading screen: `artifacts/iattom-assist/src/components/LoadingScreen.tsx` — animated brand splash, auto-dismisses after 1.2s
 
 ## Where things live
 
-- `artifacts/iattom-assist/src/App.tsx` — ClerkProvider, routing (lazy-loaded AI + admin pages), BetaGate wrapper, PageLoader fallback
-- `artifacts/iattom-assist/src/pages/` — dashboard pages + admin pages (admin/)
-- `artifacts/iattom-assist/src/components/layout/SidebarLayout.tsx` — user dashboard shell (Cmd+K palette, NotificationsPanel, Beta badge, FeedbackModal)
-- `artifacts/iattom-assist/src/components/layout/AdminLayout.tsx` — admin dashboard shell (7 nav items incl. Waitlist, Feedback, Launch Checklist)
-- `artifacts/iattom-assist/src/components/BetaGate.tsx` — invite-only access gate (reads betaAccess from useGetMe; bypassed for admins; activated by VITE_BETA_MODE=true)
-- `artifacts/iattom-assist/src/components/CommandPalette.tsx` — global Cmd+K palette (fuzzy search, keyboard navigation, all 14 pages)
-- `artifacts/iattom-assist/src/components/NotificationsPanel.tsx` — bell icon + dropdown (DB-backed, mark read/all, auto-poll 60s)
-- `artifacts/iattom-assist/src/components/FeedbackModal.tsx` — floating feedback button + modal (bottom-right, all dashboard pages)
-- `artifacts/iattom-assist/src/pages/dashboard/Analytics.tsx` — user usage analytics (module charts, credits over time, day picker)
-- `artifacts/iattom-assist/src/pages/dashboard/SavedPrompts.tsx` — prompt library (save/copy/delete, filter by module)
-- `artifacts/iattom-assist/src/pages/admin/AdminWaitlist.tsx` — waitlist management (approve/deny, grant direct access, stats)
-- `artifacts/iattom-assist/src/pages/admin/AdminFeedback.tsx` — feedback management (filter by status/category, update status)
-- `artifacts/iattom-assist/src/pages/admin/AdminLaunchChecklist.tsx` — 12-check system status + 8-step guided test flow
-- `lib/db/src/schema/users.ts` — users table (+betaAccess boolean)
-- `lib/db/src/schema/waitlist.ts` — waitlist table (email, name, message, status, adminNotes, reviewedAt)
-- `lib/db/src/schema/feedback.ts` — feedback table (clerkUserId, message, category, rating, status, adminNotes)
-- `artifacts/api-server/src/routes/waitlist.ts` — POST /waitlist (public), GET /waitlist/check
-- `artifacts/api-server/src/routes/feedback.ts` — POST /feedback (auth), GET /feedback/mine (auth)
-- `artifacts/api-server/src/routes/notifications.ts` — GET/PATCH/DELETE /notifications, POST /notifications/read-all
-- `artifacts/api-server/src/routes/prompts.ts` — GET/POST/DELETE /prompts (auth, filter by module)
-- `artifacts/api-server/src/routes/userAnalytics.ts` — GET /analytics/user?days=N (module usage, credits chart, project stats)
-- `lib/db/src/schema/notifications.ts` — notifications table (clerkUserId, type, title, message, read, link)
-- `lib/db/src/schema/savedPrompts.ts` — saved_prompts table (clerkUserId, title, prompt, module)
-- `artifacts/api-server/src/routes/admin.ts` — all admin API routes (incl. waitlist + feedback CRUD + launch-status)
+- `artifacts/iattom-assist/src/App.tsx` — routing (lazy-loaded AI + admin + Referral pages), BetaGate wrapper
+- `artifacts/iattom-assist/src/components/layout/SidebarLayout.tsx` — glass topbar, spring-animated nav pill, 15 nav items, Referral added
+- `artifacts/iattom-assist/src/components/layout/AdminLayout.tsx` — admin shell (7 nav items)
+- `artifacts/iattom-assist/src/components/PlanComparisonModal.tsx` — side-by-side plan comparison modal (openable from anywhere)
+- `artifacts/iattom-assist/src/components/UpgradeNudge.tsx` — smart upgrade banner (triggers at <35% credits or power user; dismissible)
+- `artifacts/iattom-assist/src/hooks/useMilestones.ts` — milestone celebration toasts (1/5/10/25/50 AI runs, 1/5 projects; localStorage-persisted)
+- `artifacts/iattom-assist/src/pages/dashboard/Referral.tsx` — referral dashboard (code display, copy link, stats, apply code form)
+- `artifacts/iattom-assist/src/pages/dashboard/Billing.tsx` — conversion-focused billing (upgrade nudge for free users, plan comparison CTA, referral CTA)
+- `artifacts/iattom-assist/src/pages/dashboard/DashboardHome.tsx` — home with UpgradeNudge + useMilestones + achievements + onboarding
+- `artifacts/iattom-assist/src/pages/admin/AdminAnalytics.tsx` — full analytics: growth KPIs, churn risk, plan distribution, feature adoption
+- `artifacts/iattom-assist/src/components/CommandPalette.tsx` — Cmd+K palette (15 pages incl. Referrals)
+- `lib/db/src/schema/referrals.ts` — referrals table (clerkUserId, code unique, totalUses, creditsEarned)
+- `lib/db/src/schema/referralUses.ts` — referral_uses table (referralCode, referrerUserId, referredUserId unique, creditsAwarded)
+- `artifacts/api-server/src/routes/referral.ts` — GET /referral/my, POST /referral/use (credit awards via DB transaction)
+- `artifacts/api-server/src/routes/adminGrowth.ts` — GET /admin/growth-stats (MRR, conversion, activation, churn risk, referral stats)
+- `artifacts/api-server/src/routes/admin.ts` — all other admin API routes (waitlist + feedback CRUD + launch-status)
 - `artifacts/iattom-assist/src/lib/credits.ts` — FEATURE_COSTS, PLAN_CREDITS, PLAN_PRICES
-- `artifacts/iattom-assist/src/components/CreditsGate.tsx` — wraps AI action buttons; deducts credits, shows 402 upgrade modal
-- `lib/api-spec/openapi.yaml` — OpenAPI contract (source of truth); UserProfile now includes betaAccess
-- `artifacts/api-server/src/lib/stripeClient.ts` — getUncachableStripeClient(), getStripeSync() via Replit connector
-- `artifacts/api-server/src/lib/stripeStorage.ts` — queries against stripe.* schema (subscriptions, products, prices)
-- `artifacts/api-server/src/lib/webhookHandlers.ts` — webhook: stripe-replit-sync sync + business logic (plan+credits update)
+- `artifacts/iattom-assist/src/components/CreditsGate.tsx` — feature gating; deducts credits, shows 402 upgrade modal
+- `lib/api-spec/openapi.yaml` — OpenAPI contract (source of truth)
 - `artifacts/api-server/src/routes/stripe.ts` — GET /stripe/plans, GET /stripe/subscription, POST /stripe/checkout, POST /stripe/portal
 
 ## Architecture decisions
@@ -71,32 +60,28 @@ A premium dark-themed AI business assistant SaaS platform for product discovery,
 - App is always dark mode; "dark" class applied globally to `<html>` — no theme toggle needed
 - `lib/api-zod/src/index.ts` only exports from `./generated/api` (not `./generated/types`) to avoid naming conflicts from Orval split mode
 - AI SSE protocol: `{type:"start"}` → `{type:"chunk",content:"..."}` → `{type:"result",data:{...}}` → `{type:"done"}` (or `{type:"error",message:"..."}`)
-- AI modules use `response_format:{type:"json_object"}` with `gpt-5-mini`; JSON is accumulated from stream chunks, parsed at end, sent as "result" event
 - Credits flow: CreditsGate deducts credits first (POST /api/credits/use), then onSuccess fires the AI fetch — AI routes do NOT deduct credits, only log to history
-- Auth: Clerk (Replit-managed). Routes: `/sign-in/*?` and `/sign-up/*?` with `routing="path"` + full `path` props
-- Beta gate: `BetaGate` component wraps `SidebarLayout`; checks `me.betaAccess === true`; bypassed when `VITE_BETA_MODE !== 'true'` or user is admin; waitlist entry status is synced to user.betaAccess on approve/deny
-- Admin waitlist approve also sets `users.betaAccess = true`; deny sets it to false
-- Feedback/waitlist routes use direct fetch (not codegen) since they're utility endpoints not in the OpenAPI spec
-- All projects and history records are scoped by `clerkUserId` — full private workspace per user
+- Referral credits flow: POST /referral/use runs a DB transaction — referrer +50 credits, referred user +25 credits, both logged to creditsTransactions
+- UpgradeNudge: client-side only, reads credits balance + summary stats; renders nothing if plan is paid and credits > 15%; dismissed state is per-mount (not persisted)
+- useMilestones: localStorage-persisted via `iattom_milestones_v1` key; fires once per milestone, detects 7 action + project thresholds
+- Referral/feedback/waitlist/notifications/prompts routes use direct fetch (not codegen) — not in the OpenAPI spec
+- Growth stats (/admin/growth-stats): computed live from DB — MRR from plan×price table, churn = paid users with <15% credits left
 - Stripe webhook at `POST /api/stripe/webhook` registered BEFORE `express.json()` in app.ts (needs raw Buffer)
 
 ## Product
 
-- Landing page: hero, features, pricing, FAQ, **waitlist section** (email + name + message form → POST /api/waitlist), final CTA
-- Private beta mode: set `VITE_BETA_MODE=true` to gate dashboard access; signed-in users without betaAccess see a "You're on the waitlist" holding page
-- User dashboard with sidebar (14 sections + **Beta badge** + **Cmd+K search bar** in sidebar header)
-- **Command Palette** (Cmd+K / Ctrl+K): global fuzzy search across all 14 pages, keyboard nav (↑↓↵), instant navigation
-- **Notifications center**: bell icon in topbar with unread dot badge, dropdown panel (read/dismiss/mark-all-read), DB-backed, polls every 60s
-- **Analytics page** (`/dashboard/analytics`): bar chart (module usage), area chart (credits spent over time), day-range picker (7/14/30/90d)
-- **Saved Prompts** (`/dashboard/prompts`): save/copy/delete prompts, filter by module, full-page library view
-- **Dashboard Home** enhancements: Recently Used Tools (from history), Quick Resume (last in-progress project), Achievement badges (6 milestone badges from summary stats), footer shortcut links
-- **Onboarding checklist**: shown to beta users on first login (5 steps, localStorage-persisted, dismissible)
-- **Feedback button**: floating bottom-right button on all dashboard pages; modal with category selector, message textarea, star rating
-- Admin dashboard at `/admin/*` — 7 nav items: Overview, Users, Analytics, Activity, **Waitlist**, **Feedback**, Launch Checklist
-- **Admin Waitlist** (`/admin/waitlist`): stat cards, approve/deny buttons, "Grant Direct Access" form by email, search/filter
-- **Admin Feedback** (`/admin/feedback`): filter by status + category, expand entries, update review status
-- All 6 AI feature modules use real OpenAI GPT-5-mini via SSE streaming with structured JSON output
-- Lazy loading: all 6 AI module pages + all 7 admin pages loaded via React.lazy + Suspense (PageLoader fallback)
+- Landing page: hero, features, pricing, FAQ, waitlist section, final CTA
+- Private beta mode: `VITE_BETA_MODE=true` gates dashboard; signed-in users without betaAccess see waitlist holding page
+- User dashboard with sidebar (15 sections incl. Referrals + Cmd+K + Beta badge)
+- **Referral system** (`/dashboard/referral`): unique 8-char code (XXXX-XXXX), shareable link, stats, apply-a-code form, recent referrals list
+- **UpgradeNudge**: auto-shown banner on DashboardHome when credits < 35% OR totalActions ≥ 15 (power user). Three variants: low/critical/power
+- **PlanComparisonModal**: beautiful side-by-side plan comparison; triggered from Billing, UpgradeNudge, CreditsGate
+- **Milestone celebrations**: `useMilestones` fires toast on first run, 5/10/25/50 runs, first/5 projects
+- **Billing page** (conversion-focused): free-user upgrade banner, "what Pro unlocks" grid, referral CTA section, plan comparison shortcut
+- **Admin Analytics**: Revenue KPIs (MRR, subscribers, conversion rate, activation rate), churn risk list, plan distribution chart, referral stats, feature adoption
+- **Command Palette** (Cmd+K): 15 pages including Referrals
+- All 6 AI feature modules use real OpenAI GPT-5-mini via SSE streaming
+- Lazy loading: all AI module pages + admin pages + Referral page via React.lazy + Suspense
 
 ## User preferences
 
@@ -117,9 +102,8 @@ A premium dark-themed AI business assistant SaaS platform for product discovery,
 - `useGetMe` hook requires explicit `queryKey: getGetMeQueryKey()` in its options object
 - Generated query hooks require `queryKey` using `getGet*QueryKey()` helpers
 - Stripe webhook MUST be registered before `express.json()` in app.ts — `express.raw({ type: 'application/json' })` is applied only to that route
-- `stripe-replit-sync` is excluded from `minimumReleaseAge` in pnpm-workspace.yaml
 - Stripe products need `metadata: { plan: 'pro' }` etc. — run seed-products once after connecting Stripe
-- Waitlist/feedback admin routes use direct fetch (not generated hooks) — no codegen needed for these
+- Referral/feedback/waitlist/admin-growth routes use direct fetch (not generated hooks) — no codegen needed
 
 ## Pointers
 

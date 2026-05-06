@@ -33,6 +33,7 @@ const CreativeGenerator = lazy(() => import("@/pages/dashboard/CreativeGenerator
 const VideoScripts = lazy(() => import("@/pages/dashboard/VideoScripts").then((m) => ({ default: m.VideoScripts })));
 const Analytics = lazy(() => import("@/pages/dashboard/Analytics").then((m) => ({ default: m.Analytics })));
 const SavedPrompts = lazy(() => import("@/pages/dashboard/SavedPrompts").then((m) => ({ default: m.SavedPrompts })));
+const Referral = lazy(() => import("@/pages/dashboard/Referral").then((m) => ({ default: m.Referral })));
 
 // Lazy load admin pages
 const AdminOverview = lazy(() => import("@/pages/admin/AdminOverview").then((m) => ({ default: m.AdminOverview })));
@@ -211,6 +212,7 @@ function ProtectedDashboard() {
                 <Route path="/dashboard/settings" component={Settings} />
                 <Route path="/dashboard/analytics" component={Analytics} />
                 <Route path="/dashboard/prompts" component={SavedPrompts} />
+                <Route path="/dashboard/referral" component={Referral} />
                 <Route component={NotFound} />
               </Switch>
             </Suspense>

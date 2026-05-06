@@ -13,6 +13,8 @@ import feedbackRouter from "./feedback.js";
 import notificationsRouter from "./notifications.js";
 import promptsRouter from "./prompts.js";
 import userAnalyticsRouter from "./userAnalytics.js";
+import referralRouter from "./referral.js";
+import adminGrowthRouter from "./adminGrowth.js";
 
 const router: IRouter = Router();
 
@@ -22,6 +24,7 @@ router.use(historyRouter);
 router.use(dashboardRouter);
 router.use(authRouter);
 router.use(adminRouter);
+router.use(adminGrowthRouter);
 router.use(creditsRouter);
 router.use(aiRouter);
 router.use(stripeRouter);
@@ -30,5 +33,6 @@ router.use(feedbackRouter);
 router.use(notificationsRouter);
 router.use(promptsRouter);
 router.use(userAnalyticsRouter);
+router.use(referralRouter);
 
 export default router;

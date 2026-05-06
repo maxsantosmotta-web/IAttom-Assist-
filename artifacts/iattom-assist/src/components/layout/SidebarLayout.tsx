@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Search, CheckCircle, Megaphone, FileText,
   Sparkles, Video, FolderOpen, Clock, Settings, Menu, X,
   LogOut, ChevronDown, ShieldCheck, Zap, CreditCard,
-  Command, BarChart2, BookMarked,
+  Command, BarChart2, BookMarked, Gift,
 } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
 import { useState, useEffect, useCallback } from "react";
@@ -38,6 +38,7 @@ const navItems = [
   { href: "/dashboard/history", label: "History", icon: Clock },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart2 },
   { href: "/dashboard/prompts", label: "Saved Prompts", icon: BookMarked },
+  { href: "/dashboard/referral", label: "Referrals", icon: Gift },
   { href: "/dashboard/credits", label: "Credits", icon: Zap },
   { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },

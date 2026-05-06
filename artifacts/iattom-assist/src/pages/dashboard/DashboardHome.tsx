@@ -15,6 +15,8 @@ import {
 } from "@workspace/api-client-react";
 import { useUser } from "@clerk/react";
 import { useState } from "react";
+import { useMilestones } from "@/hooks/useMilestones";
+import { UpgradeNudge } from "@/components/UpgradeNudge";
 
 const quickActions = [
   { href: "/dashboard/find-products", label: "Find Products", icon: Search, desc: "Discover winning products", color: "text-primary", bg: "bg-primary/10 border-primary/20", glow: "hover:shadow-[0_0_30px_-6px_rgba(201,168,76,0.2)]", module: "product_discovery" },
@@ -135,6 +137,11 @@ export function DashboardHome() {
   };
   const onboardingDoneCount = ONBOARDING_STEPS.filter((s) => onboardingDone[s.id]).length;
 
+  useMilestones({
+    totalActions: summary?.totalActions ?? 0,
+    totalProjects: summary?.totalProjects ?? 0,
+  });
+
   const firstName = user?.firstName || user?.fullName?.split(" ")[0] || "there";
   const plan = creditsData ? (creditsData as { plan?: string }).plan as string | undefined : undefined;
   const isBetaUser = me?.betaAccess === true;
@@ -170,6 +177,8 @@ export function DashboardHome() {
 
   return (
     <div className="space-y-10 pb-2">
+
+      <UpgradeNudge totalActions={summary?.totalActions ?? 0} />
 
       {/* Beta Onboarding Checklist */}
       {isBetaUser && !onboardingDismissed && (
