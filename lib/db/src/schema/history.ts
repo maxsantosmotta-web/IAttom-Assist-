@@ -1,0 +1,23 @@
+import { pgTable, text, serial, timestamp, integer } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod/v4";
+import { projectsTable } from "./projects";
+
+export const historyTable = pgTable("history", {
+  id: serial("id").primaryKey(),
+  action: text("action").notNull(),
+  module: text("module").notNull(),
+  projectId: integer("project_id").references(() => projectsTable.id, {
+    onDelete: "set null",
+  }),
+  projectName: text("project_name"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertHistorySchema = createInsertSchema(historyTable).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertHistory = z.infer<typeof insertHistorySchema>;
+export type History = typeof historyTable.$inferSelect;
