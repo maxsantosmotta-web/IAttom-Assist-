@@ -81,42 +81,63 @@ export function History() {
       {isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full bg-white/5 rounded-lg" />
+            <Skeleton key={i} className="h-16 w-full rounded-xl" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Clock className="w-12 h-12 text-white/10 mb-4" />
-          <p className="text-muted-foreground text-sm">No activity found.</p>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.38 }}
+          className="flex flex-col items-center justify-center py-24 text-center"
+        >
+          <div className="relative mb-6">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-white/[0.04] to-transparent border border-white/[0.07] flex items-center justify-center">
+              <Clock className="w-8 h-8 text-white/[0.12]" />
+            </div>
+            <div className="absolute inset-[-6px] rounded-full border border-white/[0.04] animate-ping" style={{ animationDuration: "3s" }} />
+          </div>
+          <p className="text-base font-semibold text-zinc-300 mb-1.5">
+            {search ? "No matching activity" : "No activity yet"}
+          </p>
+          <p className="text-sm text-zinc-600 max-w-[220px] leading-relaxed">
+            {search
+              ? "Try a different search term."
+              : "Your AI actions will appear here as you use the platform."}
+          </p>
+        </motion.div>
       ) : (
-        <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-2">
-          {filtered.map((item) => {
-            const Icon = moduleIcons[item.module] ?? Clock;
-            const colorClass = moduleColors[item.module] ?? "text-muted-foreground bg-white/5 border-white/10";
-            return (
-              <motion.div key={item.id} variants={itemVariants}>
-                <div
-                  data-testid={`history-item-${item.id}`}
-                  className="flex items-center gap-4 p-4 rounded-lg bg-[#111111] border border-white/5 hover:border-white/10 transition-colors"
-                >
-                  <div className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 ${colorClass}`}>
-                    <Icon className="w-4 h-4" />
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="relative">
+          {/* Timeline line */}
+          <div className="absolute left-[18px] top-5 bottom-5 w-px bg-gradient-to-b from-transparent via-white/[0.05] to-transparent pointer-events-none" />
+          <div className="space-y-2">
+            {filtered.map((item) => {
+              const Icon = moduleIcons[item.module] ?? Clock;
+              const colorClass = moduleColors[item.module] ?? "text-zinc-500 bg-white/[0.05] border-white/[0.08]";
+              return (
+                <motion.div key={item.id} variants={itemVariants}>
+                  <div
+                    data-testid={`history-item-${item.id}`}
+                    className="flex items-center gap-4 p-4 rounded-xl bg-[#0f0f0f] border border-white/[0.055] hover:border-white/[0.09] hover:bg-[#111111] transition-all duration-200 group"
+                  >
+                    <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105 ${colorClass}`}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium text-zinc-200 group-hover:text-white transition-colors">{item.action}</p>
+                      {item.projectName && (
+                        <p className="text-xs text-zinc-600 truncate mt-0.5">{item.projectName}</p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs text-zinc-500">{timeAgo(item.createdAt)}</p>
+                      <p className="text-[10px] text-zinc-700 capitalize mt-0.5">{item.module.replace(/_/g, " ")}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white">{item.action}</p>
-                    {item.projectName && (
-                      <p className="text-xs text-muted-foreground truncate">{item.projectName}</p>
-                    )}
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-xs text-muted-foreground">{timeAgo(item.createdAt)}</p>
-                    <p className="text-xs text-muted-foreground/60 capitalize mt-0.5">{item.module.replace("_", " ")}</p>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
+                </motion.div>
+              );
+            })}
+          </div>
         </motion.div>
       )}
     </div>

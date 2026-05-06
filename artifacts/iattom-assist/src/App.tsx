@@ -46,14 +46,24 @@ const AdminLaunchChecklist = lazy(() => import("@/pages/admin/AdminLaunchCheckli
 function PageLoader() {
   return (
     <div className="flex items-center justify-center min-h-[40vh]">
-      <div className="flex gap-1.5">
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse"
-            style={{ animationDelay: `${i * 0.15}s` }}
+      <div className="relative w-9 h-9">
+        <svg
+          className="animate-spin-slow w-9 h-9"
+          viewBox="0 0 36 36"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <circle cx="18" cy="18" r="15" stroke="rgba(201,168,76,0.12)" strokeWidth="2.5" />
+          <path
+            d="M18 3 A15 15 0 0 1 33 18"
+            stroke="#C9A84C"
+            strokeWidth="2.5"
+            strokeLinecap="round"
           />
-        ))}
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+        </div>
       </div>
     </div>
   );

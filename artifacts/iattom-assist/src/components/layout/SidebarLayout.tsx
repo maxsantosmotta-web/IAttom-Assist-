@@ -5,6 +5,7 @@ import {
   LogOut, ChevronDown, ShieldCheck, Zap, CreditCard,
   Command, BarChart2, BookMarked,
 } from "lucide-react";
+import { PageTransition } from "@/components/PageTransition";
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -152,19 +153,29 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
             <Link
               key={item.href}
               href={item.href}
-              className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 text-sm font-medium group ${
+              className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium group overflow-hidden transition-colors duration-150 ${
                 isActive
-                  ? "bg-primary/[0.12] text-primary"
+                  ? "text-primary"
                   : "text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200"
               }`}
             >
               {isActive && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r-full" />
+                <motion.div
+                  layoutId="nav-active-pill"
+                  className="absolute inset-0 rounded-xl bg-primary/[0.10]"
+                  transition={{ type: "spring", stiffness: 420, damping: 38 }}
+                />
               )}
-              <Icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? "text-primary" : ""}`} />
-              <span className="flex-1 text-[13px]">{item.label}</span>
+              <motion.div
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 rounded-r-full bg-primary origin-center"
+                initial={false}
+                animate={{ height: isActive ? 20 : 0, opacity: isActive ? 1 : 0 }}
+                transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+              />
+              <Icon className={`w-4 h-4 shrink-0 relative z-10 transition-colors duration-150 ${isActive ? "text-primary" : ""}`} />
+              <span className="flex-1 text-[13px] relative z-10">{item.label}</span>
               {item.href === "/dashboard/credits" && isLowCredit && (
-                <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0 animate-pulse relative z-10" />
               )}
             </Link>
           );
@@ -177,18 +188,28 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
             </p>
             <Link
               href="/admin"
-              className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 text-[13px] font-medium ${
+              className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-150 text-[13px] font-medium overflow-hidden ${
                 location.startsWith("/admin")
-                  ? "bg-primary/[0.12] text-primary"
+                  ? "text-primary"
                   : "text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200"
               }`}
             >
               {location.startsWith("/admin") && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r-full" />
+                <motion.div
+                  layoutId="nav-active-pill"
+                  className="absolute inset-0 rounded-xl bg-primary/[0.10]"
+                  transition={{ type: "spring", stiffness: 420, damping: 38 }}
+                />
               )}
-              <ShieldCheck className="w-4 h-4 shrink-0" />
-              <span className="flex-1">Admin Panel</span>
-              <Badge className="text-[9px] px-1.5 py-0 h-4 bg-primary/20 text-primary border-primary/30 font-black leading-4">
+              <motion.div
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 rounded-r-full bg-primary origin-center"
+                initial={false}
+                animate={{ height: location.startsWith("/admin") ? 20 : 0, opacity: location.startsWith("/admin") ? 1 : 0 }}
+                transition={{ duration: 0.18 }}
+              />
+              <ShieldCheck className="w-4 h-4 shrink-0 relative z-10" />
+              <span className="flex-1 relative z-10">Admin Panel</span>
+              <Badge className="text-[9px] px-1.5 py-0 h-4 bg-primary/20 text-primary border-primary/30 font-black leading-4 relative z-10">
                 ADMIN
               </Badge>
             </Link>
@@ -323,7 +344,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
         {/* Top bar */}
-        <header className="h-14 flex items-center justify-between px-4 md:px-6 border-b border-white/[0.06] bg-[#080808] shrink-0">
+        <header className="h-14 flex items-center justify-between px-4 md:px-6 border-b border-white/[0.06] glass shrink-0 sticky top-0 z-10">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -368,8 +389,11 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto bg-[#0a0a0a] p-5 md:p-6 lg:p-8">
-          <div className="max-w-5xl mx-auto">{children}</div>
+        <main className="flex-1 overflow-y-auto bg-[#0a0a0a] relative p-5 md:p-6 lg:p-8">
+          <div className="absolute top-0 inset-x-0 h-56 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(201,168,76,0.055) 0%, transparent 70%)" }} />
+          <div className="max-w-5xl mx-auto relative">
+            <PageTransition>{children}</PageTransition>
+          </div>
         </main>
       </div>
 

@@ -137,41 +137,67 @@ export function Projects() {
       {isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 w-full bg-white/5 rounded-lg" />
+            <Skeleton key={i} className="h-[76px] w-full rounded-xl" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <FolderOpen className="w-12 h-12 text-white/10 mb-4" />
-          <p className="text-muted-foreground text-sm">No projects found.</p>
-          <Button onClick={() => setIsDialogOpen(true)} variant="ghost" className="mt-3 text-primary hover:text-primary/80">
-            Create your first project
-          </Button>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.38 }}
+          className="flex flex-col items-center justify-center py-24 text-center"
+        >
+          <div className="relative mb-6">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-white/[0.04] to-transparent border border-white/[0.07] flex items-center justify-center shadow-depth">
+              <FolderOpen className="w-8 h-8 text-white/[0.15]" />
+            </div>
+            <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl bg-primary/[0.12] border border-primary/25 flex items-center justify-center glow-gold-sm">
+              <Plus className="w-4 h-4 text-primary" />
+            </div>
+            <div className="absolute -top-2 -left-2 w-2 h-2 rounded-full bg-primary/30 animate-ambient-float" />
+            <div className="absolute top-1 right-0 w-1.5 h-1.5 rounded-full bg-white/[0.08] animate-ambient-float" style={{ animationDelay: "1.2s" }} />
+          </div>
+          <p className="text-base font-semibold text-zinc-300 mb-1.5">
+            {search ? "No projects match your search" : "No projects yet"}
+          </p>
+          <p className="text-sm text-zinc-600 max-w-[240px] leading-relaxed mb-5">
+            {search
+              ? "Try a different search term or clear the filter."
+              : "Organize your AI work into projects to track progress and resume where you left off."}
+          </p>
+          {!search && (
+            <Button
+              onClick={() => setIsDialogOpen(true)}
+              className="bg-primary/[0.10] text-primary border border-primary/25 hover:bg-primary/[0.16] hover:border-primary/35 transition-all duration-200 press-effect"
+            >
+              <Plus className="w-4 h-4 mr-2" /> Create first project
+            </Button>
+          )}
+        </motion.div>
       ) : (
-        <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-3">
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-2.5">
           {filtered.map((project) => (
             <motion.div key={project.id} variants={itemVariants}>
               <Card
                 data-testid={`card-project-${project.id}`}
-                className="bg-[#111111] border-white/5 hover:border-white/10 transition-colors"
+                className="bg-[#0f0f0f] border-white/[0.055] hover:border-white/[0.10] hover:bg-[#111111] transition-all duration-200 group overflow-hidden shadow-depth-sm"
               >
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-                        <h4 className="font-semibold text-white text-sm">{project.name}</h4>
-                        <Badge variant="outline" className="text-xs border-white/10 text-muted-foreground shrink-0">
+                      <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+                        <h4 className="font-semibold text-zinc-100 text-sm group-hover:text-white transition-colors">{project.name}</h4>
+                        <Badge variant="outline" className="text-[10px] border-white/[0.08] text-zinc-500 shrink-0 px-2 py-0">
                           {typeLabels[project.type] ?? project.type}
                         </Badge>
-                        <Badge variant="outline" className={`text-xs capitalize shrink-0 ${statusColors[project.status] ?? ""}`}>
+                        <Badge variant="outline" className={`text-[10px] capitalize shrink-0 px-2 py-0 ${statusColors[project.status] ?? ""}`}>
                           {project.status.replace("_", " ")}
                         </Badge>
                       </div>
                       {project.description && (
-                        <p className="text-xs text-muted-foreground truncate">{project.description}</p>
+                        <p className="text-xs text-zinc-600 truncate mb-1">{project.description}</p>
                       )}
-                      <p className="text-xs text-muted-foreground mt-1.5">
+                      <p className="text-[11px] text-zinc-700 mt-1">
                         Updated {new Date(project.updatedAt).toLocaleDateString()}
                       </p>
                     </div>
@@ -179,7 +205,7 @@ export function Projects() {
                       data-testid={`button-delete-project-${project.id}`}
                       onClick={() => handleDelete(project.id)}
                       disabled={deletingId === project.id}
-                      className="text-muted-foreground hover:text-red-400 transition-colors shrink-0 p-1"
+                      className="text-zinc-700 hover:text-red-400 transition-colors shrink-0 p-1.5 rounded-lg hover:bg-red-400/[0.08] opacity-0 group-hover:opacity-100"
                     >
                       {deletingId === project.id ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -196,7 +222,7 @@ export function Projects() {
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-[#111111] border-white/10 text-white max-w-md">
+        <DialogContent className="bg-[#0f0f0f] border-white/[0.10] text-white max-w-md shadow-depth-lg animate-scale-in">
           <DialogHeader>
             <DialogTitle className="text-white">New Project</DialogTitle>
           </DialogHeader>
