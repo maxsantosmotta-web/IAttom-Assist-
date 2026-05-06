@@ -5,6 +5,7 @@ import { projectsTable } from "./projects";
 
 export const historyTable = pgTable("history", {
   id: serial("id").primaryKey(),
+  clerkUserId: text("clerk_user_id"),
   action: text("action").notNull(),
   module: text("module").notNull(),
   projectId: integer("project_id").references(() => projectsTable.id, {
@@ -16,6 +17,7 @@ export const historyTable = pgTable("history", {
 
 export const insertHistorySchema = createInsertSchema(historyTable).omit({
   id: true,
+  clerkUserId: true,
   createdAt: true,
 });
 

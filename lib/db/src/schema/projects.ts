@@ -20,6 +20,7 @@ export const projectStatusEnum = pgEnum("project_status", [
 
 export const projectsTable = pgTable("projects", {
   id: serial("id").primaryKey(),
+  clerkUserId: text("clerk_user_id"),
   name: text("name").notNull(),
   type: projectTypeEnum("type").notNull(),
   status: projectStatusEnum("status").notNull().default("draft"),
@@ -30,6 +31,7 @@ export const projectsTable = pgTable("projects", {
 
 export const insertProjectSchema = createInsertSchema(projectsTable).omit({
   id: true,
+  clerkUserId: true,
   createdAt: true,
   updatedAt: true,
 });

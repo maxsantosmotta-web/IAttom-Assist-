@@ -14,10 +14,10 @@ export function LandingPage() {
             <span className="font-bold text-xl tracking-tight text-white">IAttom Assist</span>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/login" className="text-sm font-medium text-muted-foreground hover:text-white transition-colors">
+            <Link href="/sign-in" className="text-sm font-medium text-muted-foreground hover:text-white transition-colors">
               Sign In
             </Link>
-            <Link href="/register">
+            <Link href="/sign-up">
               <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-medium">
                 Get Started
               </Button>
@@ -68,7 +68,7 @@ export function LandingPage() {
                 transition={{ duration: 0.5, delay: 0.3 }}
                 className="flex items-center justify-center gap-4 pt-4"
               >
-                <Link href="/register">
+                <Link href="/sign-up">
                   <Button size="lg" className="h-14 px-8 text-base bg-primary text-primary-foreground hover:bg-primary/90 rounded-none">
                     Start Your Trial <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>

@@ -1,32 +1,38 @@
 import { Router, type IRouter } from "express";
-import { eq, desc, count } from "drizzle-orm";
+import { and, eq, desc, count } from "drizzle-orm";
 import { db, projectsTable, historyTable } from "@workspace/db";
 import { GetDashboardSummaryResponse } from "@workspace/api-zod";
+import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
 
-router.get("/dashboard/summary", async (_req, res): Promise<void> => {
+router.get("/dashboard/summary", requireAuth, async (req, res): Promise<void> => {
+  const { clerkUserId } = req as AuthenticatedRequest;
+
   const [totalResult] = await db
     .select({ count: count() })
-    .from(projectsTable);
+    .from(projectsTable)
+    .where(eq(projectsTable.clerkUserId, clerkUserId));
 
   const [activeResult] = await db
     .select({ count: count() })
     .from(projectsTable)
-    .where(eq(projectsTable.status, "in_progress"));
+    .where(and(eq(projectsTable.clerkUserId, clerkUserId), eq(projectsTable.status, "in_progress")));
 
   const [completedResult] = await db
     .select({ count: count() })
     .from(projectsTable)
-    .where(eq(projectsTable.status, "completed"));
+    .where(and(eq(projectsTable.clerkUserId, clerkUserId), eq(projectsTable.status, "completed")));
 
   const [totalActionsResult] = await db
     .select({ count: count() })
-    .from(historyTable);
+    .from(historyTable)
+    .where(eq(historyTable.clerkUserId, clerkUserId));
 
   const recentProjects = await db
     .select()
     .from(projectsTable)
+    .where(eq(projectsTable.clerkUserId, clerkUserId))
     .orderBy(desc(projectsTable.updatedAt))
     .limit(5);
 
