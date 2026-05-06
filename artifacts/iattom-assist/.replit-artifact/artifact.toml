@@ -18,9 +18,17 @@ localPort = 25638
 run = "pnpm --filter @workspace/iattom-assist run dev"
 
 [services.production]
-build = [ "pnpm", "--filter", "@workspace/iattom-assist", "run", "build" ]
 publicDir = "artifacts/iattom-assist/dist/public"
 serve = "static"
+
+[services.production.build]
+args = ["pnpm", "--filter", "@workspace/iattom-assist", "run", "build"]
+
+[services.production.build.env]
+NODE_ENV = "production"
+PORT = "25638"
+BASE_PATH = "/"
+VITE_BETA_MODE = "true"
 
 [[services.production.rewrites]]
 from = "/*"
