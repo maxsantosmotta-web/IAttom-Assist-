@@ -60,7 +60,8 @@ async function getStripeCredentials(): Promise<{
 export async function getUncachableStripeClient(): Promise<Stripe> {
   const { secretKey } = await getStripeCredentials();
   return new Stripe(secretKey, {
-    apiVersion: "2025-08-27.basil" as Stripe.LatestApiVersion,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    apiVersion: "2025-08-27.basil" as any,
   });
 }
 
