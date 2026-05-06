@@ -271,6 +271,7 @@ export type AdminStatsPlanBreakdown = {
   free: number;
   pro: number;
   business: number;
+  agency: number;
 };
 
 export interface AdminStats {

@@ -940,7 +940,9 @@ components:
               type: integer
             business:
               type: integer
-          required: [free, pro, business]
+            agency:
+              type: integer
+          required: [free, pro, business, agency]
         newUsersThisMonth:
           type: integer
         newProjectsThisMonth:

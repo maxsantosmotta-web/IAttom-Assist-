@@ -350,6 +350,7 @@ export const GetAdminStatsResponse = zod.object({
     free: zod.number(),
     pro: zod.number(),
     business: zod.number(),
+    agency: zod.number(),
   }),
   newUsersThisMonth: zod.number(),
   newProjectsThisMonth: zod.number(),

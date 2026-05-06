@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useUser, useClerk } from "@clerk/react";
+import { useLocation } from "wouter";
 import { useGetMe } from "@workspace/api-client-react";
 import { getGetMeQueryKey } from "@workspace/api-client-react";
 import { PLAN_CREDITS, PLAN_PRICES } from "@/lib/credits";
@@ -29,6 +30,8 @@ export function Settings() {
   const { user, isLoaded } = useUser();
   const { openUserProfile } = useClerk();
   const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey() } });
+
+  const [, navigate] = useLocation();
 
   const firstName = user?.firstName ?? "";
   const lastName = user?.lastName ?? "";
@@ -220,7 +223,10 @@ export function Settings() {
                     </div>
                   </div>
                   {plan !== "agency" && (
-                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90 w-full">
+                    <Button
+                      onClick={() => navigate("/dashboard/billing")}
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
+                    >
                       Upgrade Plan
                     </Button>
                   )}

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  AreaChart, Area, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { useGetAdminStats, useGetAdminAnalytics, useListAdminActivity } from "@workspace/api-client-react";
@@ -59,7 +59,7 @@ export function AdminOverview() {
   const { data: analytics, isLoading: analyticsLoading } = useGetAdminAnalytics();
   const { data: activity, isLoading: activityLoading } = useListAdminActivity({ limit: 6 });
 
-  const mrr = ((stats?.planBreakdown.pro ?? 0) * 79) + ((stats?.planBreakdown.business ?? 0) * 199);
+  const mrr = ((stats?.planBreakdown.pro ?? 0) * 79) + ((stats?.planBreakdown.business ?? 0) * 199) + ((stats?.planBreakdown.agency ?? 0) * 499);
 
   const statCards = [
     {
@@ -100,6 +100,7 @@ export function AdminOverview() {
     { name: "Free", users: analytics.planRevenue.find(p => p.plan === "Free")?.users ?? 0, fill: MUTED },
     { name: "Pro", users: analytics.planRevenue.find(p => p.plan === "Pro")?.users ?? 0, fill: GOLD },
     { name: "Business", users: analytics.planRevenue.find(p => p.plan === "Business")?.users ?? 0, fill: GOLD_LIGHT },
+    { name: "Agency", users: analytics.planRevenue.find(p => p.plan === "Agency")?.users ?? 0, fill: "#a78bfa" },
   ] : [];
 
   return (
@@ -201,7 +202,7 @@ export function AdminOverview() {
                     <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="users" name="Users" radius={[4, 4, 0, 0]}>
                       {planBar.map((entry, i) => (
-                        <rect key={i} fill={entry.fill} />
+                        <Cell key={i} fill={entry.fill} />
                       ))}
                     </Bar>
                   </BarChart>

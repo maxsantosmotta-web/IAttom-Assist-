@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Zap, TrendingUp } from "lucide-react";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,6 +37,7 @@ const planColors: Record<string, string> = {
 };
 
 export function Credits() {
+  const [, navigate] = useLocation();
   const { data: balance, isLoading: balanceLoading } = useGetCreditsBalance({
     query: { queryKey: getGetCreditsBalanceQueryKey() },
   });
@@ -162,6 +164,7 @@ export function Credits() {
                 {upgradePlans.slice(0, 2).map((plan) => (
                   <button
                     key={plan}
+                    onClick={() => navigate("/dashboard/billing")}
                     className="text-xs px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors capitalize font-medium"
                   >
                     {plan} — ${PLAN_PRICES[plan].monthly}/mo

@@ -24,10 +24,11 @@ router.get("/admin/stats", requireAdmin, async (_req, res): Promise<void> => {
     db.select({ count: count() }).from(users).where(eq(users.role, "admin")),
   ]);
 
-  const [[freeRes], [proRes], [businessRes]] = await Promise.all([
+  const [[freeRes], [proRes], [businessRes], [agencyRes]] = await Promise.all([
     db.select({ count: count() }).from(users).where(eq(users.plan, "free")),
     db.select({ count: count() }).from(users).where(eq(users.plan, "pro")),
     db.select({ count: count() }).from(users).where(eq(users.plan, "business")),
+    db.select({ count: count() }).from(users).where(eq(users.plan, "agency")),
   ]);
 
   const monthStart = new Date();
@@ -43,7 +44,7 @@ router.get("/admin/stats", requireAdmin, async (_req, res): Promise<void> => {
     totalProjects: totalProjectsRes.count,
     totalActions: totalActionsRes.count,
     adminCount: adminCountRes.count,
-    planBreakdown: { free: freeRes.count, pro: proRes.count, business: businessRes.count },
+    planBreakdown: { free: freeRes.count, pro: proRes.count, business: businessRes.count, agency: agencyRes.count },
     newUsersThisMonth: newUsersRes.count,
     newProjectsThisMonth: newProjectsRes.count,
   }));
