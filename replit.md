@@ -10,7 +10,7 @@ A premium dark-themed AI business assistant SaaS platform for product discovery,
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec (always fix `lib/api-zod/src/index.ts` after — must only export `./generated/api`)
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL`, `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `VITE_CLERK_PUBLISHABLE_KEY`
+- Required env: `DATABASE_URL`, `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `VITE_CLERK_PUBLISHABLE_KEY`, `AI_INTEGRATIONS_OPENAI_BASE_URL`, `AI_INTEGRATIONS_OPENAI_API_KEY`
 
 ## Stack
 
@@ -47,11 +47,19 @@ A premium dark-themed AI business assistant SaaS platform for product discovery,
 - `artifacts/api-server/src/lib/userSync.ts` — getOrSyncUser(), getAdminCount() helpers
 - `artifacts/api-server/src/routes/authRoutes.ts` — POST /auth/sync, GET /auth/me, POST /admin/bootstrap
 - `artifacts/api-server/src/routes/admin.ts` — all admin API routes
+- `artifacts/api-server/src/routes/ai.ts` — 6 AI SSE endpoints (POST /ai/find-products, /ai/validate-product, /ai/create-campaign, /ai/create-content, /ai/creative-ideas, /ai/video-script)
+- `artifacts/api-server/src/lib/ai/` — AI module files (findProducts, validateProduct, createCampaign, createContent, creativeIdeas, videoScript, stream, logger)
+- `artifacts/iattom-assist/src/hooks/useAiStream.ts` — SSE streaming hook (fetch-based, handles chunk/result/done/error events)
+- `artifacts/iattom-assist/src/types/ai.ts` — shared TypeScript interfaces for all AI result shapes
+- `lib/integrations-openai-ai-server/` — OpenAI client wrapper (uses AI_INTEGRATIONS_OPENAI_BASE_URL + API_KEY)
 
 ## Architecture decisions
 
 - App is always dark mode; "dark" class applied globally to `<html>` — no theme toggle needed
 - `lib/api-zod/src/index.ts` only exports from `./generated/api` (not `./generated/types`) to avoid naming conflicts from Orval split mode
+- AI SSE protocol: `{type:"start"}` → `{type:"chunk",content:"..."}` → `{type:"result",data:{...}}` → `{type:"done"}` (or `{type:"error",message:"..."}`)
+- AI modules use `response_format:{type:"json_object"}` with `gpt-5-mini`; JSON is accumulated from stream chunks, parsed at end, sent as "result" event
+- Credits flow: CreditsGate deducts credits first (POST /api/credits/use), then onSuccess fires the AI fetch — AI routes do NOT deduct credits, only log to history
 - Auth: Clerk (Replit-managed). Routes: `/sign-in/*?` and `/sign-up/*?` with `routing="path"` + full `path` props
 - Dashboard routes protected with `<Show when="signed-in">` + `requireAuth` middleware on all API routes
 - Admin routes protected with `AdminGuard` (frontend role check via `GET /api/auth/me`) + `requireAdmin` middleware (backend DB check)
@@ -75,12 +83,13 @@ A premium dark-themed AI business assistant SaaS platform for product discovery,
 - Admin Users: searchable/filterable table, inline edit dialog (role/plan/credits), separate credit adjustment dialog (amount + reason) with `useAdminAdjustCredits`; agency plan color added
 - Admin Analytics: user growth area chart, feature usage bar chart, plan revenue pie chart + adoption progress bars
 - Admin Activity: full platform activity feed with search, module badges, user info
+- All 6 AI feature modules use real OpenAI GPT-5-mini via SSE streaming with structured JSON output, animated "generating" state, result reveal, and retry on error
 
 ## User preferences
 
 - Dark premium design with gold accents (#C9A84C range)
 - No emojis in UI
-- No real AI APIs in v1 — mock data and placeholder functionality only
+- Real AI via Replit-managed OpenAI integration (AI_INTEGRATIONS_OPENAI_BASE_URL + AI_INTEGRATIONS_OPENAI_API_KEY); model: gpt-5-mini
 
 ## Gotchas
 

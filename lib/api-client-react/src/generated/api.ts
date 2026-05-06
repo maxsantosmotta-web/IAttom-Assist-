@@ -23,6 +23,12 @@ import type {
   AdminStats,
   AdminUser,
   AdminUserList,
+  AiCreateCampaignBody,
+  AiCreateContentBody,
+  AiCreativeIdeasBody,
+  AiFindProductsBody,
+  AiValidateProductBody,
+  AiVideoScriptBody,
   CreateProjectBody,
   CreditTransactionList,
   CreditsBalance,
@@ -1126,6 +1132,522 @@ export const useUseCredits = <
   TContext
 > => {
   return useMutation(getUseCreditsMutationOptions(options));
+};
+
+/**
+ * @summary Discover products via AI (SSE stream)
+ */
+export const getAiFindProductsUrl = () => {
+  return `/api/ai/find-products`;
+};
+
+export const aiFindProducts = async (
+  aiFindProductsBody: AiFindProductsBody,
+  options?: RequestInit,
+): Promise<unknown> => {
+  return customFetch<unknown>(getAiFindProductsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(aiFindProductsBody),
+  });
+};
+
+export const getAiFindProductsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof aiFindProducts>>,
+    TError,
+    { data: BodyType<AiFindProductsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof aiFindProducts>>,
+  TError,
+  { data: BodyType<AiFindProductsBody> },
+  TContext
+> => {
+  const mutationKey = ["aiFindProducts"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof aiFindProducts>>,
+    { data: BodyType<AiFindProductsBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return aiFindProducts(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AiFindProductsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof aiFindProducts>>
+>;
+export type AiFindProductsMutationBody = BodyType<AiFindProductsBody>;
+export type AiFindProductsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Discover products via AI (SSE stream)
+ */
+export const useAiFindProducts = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof aiFindProducts>>,
+    TError,
+    { data: BodyType<AiFindProductsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof aiFindProducts>>,
+  TError,
+  { data: BodyType<AiFindProductsBody> },
+  TContext
+> => {
+  return useMutation(getAiFindProductsMutationOptions(options));
+};
+
+/**
+ * @summary Validate a product idea via AI (SSE stream)
+ */
+export const getAiValidateProductUrl = () => {
+  return `/api/ai/validate-product`;
+};
+
+export const aiValidateProduct = async (
+  aiValidateProductBody: AiValidateProductBody,
+  options?: RequestInit,
+): Promise<unknown> => {
+  return customFetch<unknown>(getAiValidateProductUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(aiValidateProductBody),
+  });
+};
+
+export const getAiValidateProductMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof aiValidateProduct>>,
+    TError,
+    { data: BodyType<AiValidateProductBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof aiValidateProduct>>,
+  TError,
+  { data: BodyType<AiValidateProductBody> },
+  TContext
+> => {
+  const mutationKey = ["aiValidateProduct"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof aiValidateProduct>>,
+    { data: BodyType<AiValidateProductBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return aiValidateProduct(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AiValidateProductMutationResult = NonNullable<
+  Awaited<ReturnType<typeof aiValidateProduct>>
+>;
+export type AiValidateProductMutationBody = BodyType<AiValidateProductBody>;
+export type AiValidateProductMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Validate a product idea via AI (SSE stream)
+ */
+export const useAiValidateProduct = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof aiValidateProduct>>,
+    TError,
+    { data: BodyType<AiValidateProductBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof aiValidateProduct>>,
+  TError,
+  { data: BodyType<AiValidateProductBody> },
+  TContext
+> => {
+  return useMutation(getAiValidateProductMutationOptions(options));
+};
+
+/**
+ * @summary Generate a full marketing campaign via AI (SSE stream)
+ */
+export const getAiCreateCampaignUrl = () => {
+  return `/api/ai/create-campaign`;
+};
+
+export const aiCreateCampaign = async (
+  aiCreateCampaignBody: AiCreateCampaignBody,
+  options?: RequestInit,
+): Promise<unknown> => {
+  return customFetch<unknown>(getAiCreateCampaignUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(aiCreateCampaignBody),
+  });
+};
+
+export const getAiCreateCampaignMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof aiCreateCampaign>>,
+    TError,
+    { data: BodyType<AiCreateCampaignBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof aiCreateCampaign>>,
+  TError,
+  { data: BodyType<AiCreateCampaignBody> },
+  TContext
+> => {
+  const mutationKey = ["aiCreateCampaign"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof aiCreateCampaign>>,
+    { data: BodyType<AiCreateCampaignBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return aiCreateCampaign(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AiCreateCampaignMutationResult = NonNullable<
+  Awaited<ReturnType<typeof aiCreateCampaign>>
+>;
+export type AiCreateCampaignMutationBody = BodyType<AiCreateCampaignBody>;
+export type AiCreateCampaignMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate a full marketing campaign via AI (SSE stream)
+ */
+export const useAiCreateCampaign = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof aiCreateCampaign>>,
+    TError,
+    { data: BodyType<AiCreateCampaignBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof aiCreateCampaign>>,
+  TError,
+  { data: BodyType<AiCreateCampaignBody> },
+  TContext
+> => {
+  return useMutation(getAiCreateCampaignMutationOptions(options));
+};
+
+/**
+ * @summary Generate marketing content via AI (SSE stream)
+ */
+export const getAiCreateContentUrl = () => {
+  return `/api/ai/create-content`;
+};
+
+export const aiCreateContent = async (
+  aiCreateContentBody: AiCreateContentBody,
+  options?: RequestInit,
+): Promise<unknown> => {
+  return customFetch<unknown>(getAiCreateContentUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(aiCreateContentBody),
+  });
+};
+
+export const getAiCreateContentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof aiCreateContent>>,
+    TError,
+    { data: BodyType<AiCreateContentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof aiCreateContent>>,
+  TError,
+  { data: BodyType<AiCreateContentBody> },
+  TContext
+> => {
+  const mutationKey = ["aiCreateContent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof aiCreateContent>>,
+    { data: BodyType<AiCreateContentBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return aiCreateContent(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AiCreateContentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof aiCreateContent>>
+>;
+export type AiCreateContentMutationBody = BodyType<AiCreateContentBody>;
+export type AiCreateContentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate marketing content via AI (SSE stream)
+ */
+export const useAiCreateContent = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof aiCreateContent>>,
+    TError,
+    { data: BodyType<AiCreateContentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof aiCreateContent>>,
+  TError,
+  { data: BodyType<AiCreateContentBody> },
+  TContext
+> => {
+  return useMutation(getAiCreateContentMutationOptions(options));
+};
+
+/**
+ * @summary Generate creative ad concepts via AI (SSE stream)
+ */
+export const getAiCreativeIdeasUrl = () => {
+  return `/api/ai/creative-ideas`;
+};
+
+export const aiCreativeIdeas = async (
+  aiCreativeIdeasBody: AiCreativeIdeasBody,
+  options?: RequestInit,
+): Promise<unknown> => {
+  return customFetch<unknown>(getAiCreativeIdeasUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(aiCreativeIdeasBody),
+  });
+};
+
+export const getAiCreativeIdeasMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof aiCreativeIdeas>>,
+    TError,
+    { data: BodyType<AiCreativeIdeasBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof aiCreativeIdeas>>,
+  TError,
+  { data: BodyType<AiCreativeIdeasBody> },
+  TContext
+> => {
+  const mutationKey = ["aiCreativeIdeas"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof aiCreativeIdeas>>,
+    { data: BodyType<AiCreativeIdeasBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return aiCreativeIdeas(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AiCreativeIdeasMutationResult = NonNullable<
+  Awaited<ReturnType<typeof aiCreativeIdeas>>
+>;
+export type AiCreativeIdeasMutationBody = BodyType<AiCreativeIdeasBody>;
+export type AiCreativeIdeasMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate creative ad concepts via AI (SSE stream)
+ */
+export const useAiCreativeIdeas = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof aiCreativeIdeas>>,
+    TError,
+    { data: BodyType<AiCreativeIdeasBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof aiCreativeIdeas>>,
+  TError,
+  { data: BodyType<AiCreativeIdeasBody> },
+  TContext
+> => {
+  return useMutation(getAiCreativeIdeasMutationOptions(options));
+};
+
+/**
+ * @summary Generate a video script via AI (SSE stream)
+ */
+export const getAiVideoScriptUrl = () => {
+  return `/api/ai/video-script`;
+};
+
+export const aiVideoScript = async (
+  aiVideoScriptBody: AiVideoScriptBody,
+  options?: RequestInit,
+): Promise<unknown> => {
+  return customFetch<unknown>(getAiVideoScriptUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(aiVideoScriptBody),
+  });
+};
+
+export const getAiVideoScriptMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof aiVideoScript>>,
+    TError,
+    { data: BodyType<AiVideoScriptBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof aiVideoScript>>,
+  TError,
+  { data: BodyType<AiVideoScriptBody> },
+  TContext
+> => {
+  const mutationKey = ["aiVideoScript"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof aiVideoScript>>,
+    { data: BodyType<AiVideoScriptBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return aiVideoScript(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AiVideoScriptMutationResult = NonNullable<
+  Awaited<ReturnType<typeof aiVideoScript>>
+>;
+export type AiVideoScriptMutationBody = BodyType<AiVideoScriptBody>;
+export type AiVideoScriptMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate a video script via AI (SSE stream)
+ */
+export const useAiVideoScript = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof aiVideoScript>>,
+    TError,
+    { data: BodyType<AiVideoScriptBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof aiVideoScript>>,
+  TError,
+  { data: BodyType<AiVideoScriptBody> },
+  TContext
+> => {
+  return useMutation(getAiVideoScriptMutationOptions(options));
 };
 
 /**

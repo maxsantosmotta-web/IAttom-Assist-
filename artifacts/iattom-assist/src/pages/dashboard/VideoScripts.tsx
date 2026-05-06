@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Video, Loader2, Copy, Clock } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Video, Loader2, Copy, AlertCircle, RefreshCw, Clock, Music, Zap, Film, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,43 +9,34 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { CreditsGate } from "@/components/CreditsGate";
-
-const mockScript = {
-  title: "HydroElite — 30 Second Hook Ad",
-  duration: "30s",
-  hooks: [
-    "This bottle kept my coffee hot for 10 hours. I tested it so you don't have to.",
-    "Every serious athlete I know switched to this. Here's why.",
-    "I was embarrassed by my old water bottle until I found this.",
-  ],
-  scenes: [
-    { time: "0-3s", visual: "Close-up of condensation-free bottle on a sweaty gym bag", script: "You're losing performance. And you don't even know it." },
-    { time: "3-8s", visual: "Split screen: regular bottle vs HydroElite in ice water test", script: "Most bottles can't hold temperature past 12 hours. HydroElite holds for 48." },
-    { time: "8-20s", visual: "Athlete montage — trail running, gym, cycling, office", script: "Whether you're pushing limits at 6AM or grinding through back-to-back meetings — HydroElite is the only bottle built for both." },
-    { time: "20-27s", visual: "Product rotating on clean background, gold light", script: "Triple-wall vacuum insulation. 18/8 stainless steel. Lifetime guarantee." },
-    { time: "27-30s", visual: "CTA screen with product and link", script: "HydroElite. Upgrade your standard. Link in bio." },
-  ]
-};
+import { useAiStream } from "@/hooks/useAiStream";
+import type { VideoScriptResult, ScriptScene } from "@/types/ai";
 
 export function VideoScripts() {
   const [product, setProduct] = useState("");
   const [format, setFormat] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [script, setScript] = useState<typeof mockScript | null>(null);
+  const [duration, setDuration] = useState("");
+  const [style, setStyle] = useState("");
+  const { status, result, error, generate, reset } = useAiStream<VideoScriptResult>();
   const { toast } = useToast();
 
+  const isGenerating = status === "generating";
+  const isDone = status === "done";
+  const isError = status === "error";
+
   const runGenerate = () => {
-    setIsGenerating(true);
-    setScript(null);
-    setTimeout(() => {
-      setIsGenerating(false);
-      setScript(mockScript);
-    }, 2200);
+    generate("/api/ai/video-script", { product, format: format || undefined, duration: duration || undefined, style: style || undefined });
   };
 
-  const copyScene = (text: string) => {
+  const copyFull = () => {
+    if (!result) return;
+    const scenes = result.scenes?.map((s, i) =>
+      `SCENE ${i + 1} (${s.time})\nVisual: ${s.visual}\nScript: ${s.script}\nEmotion: ${s.emotion}`
+    ).join("\n\n");
+    const hooks = result.hooks?.join("\n");
+    const text = `${result.title}\n\nHOOKS:\n${hooks}\n\nSCENES:\n${scenes}`;
     navigator.clipboard.writeText(text);
-    toast({ description: "Copied to clipboard" });
+    toast({ description: "Full script copied" });
   };
 
   return (
@@ -53,7 +44,7 @@ export function VideoScripts() {
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Script Intelligence</p>
         <h2 className="text-2xl font-bold text-white mb-1">Video Scripts</h2>
-        <p className="text-muted-foreground text-sm">Generate viral-ready video scripts with scene breakdowns and hook variations.</p>
+        <p className="text-muted-foreground text-sm">Generate production-ready video scripts with hooks, scenes, and direction notes.</p>
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
@@ -62,43 +53,51 @@ export function VideoScripts() {
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-sm text-muted-foreground">Product / Brand</Label>
-                <Input
-                  data-testid="input-script-product"
-                  placeholder="e.g. HydroElite Water Bottle"
-                  className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50"
-                  value={product}
-                  onChange={(e) => setProduct(e.target.value)}
-                />
+                <Input placeholder="e.g. HydroElite Water Bottle" className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50" value={product} onChange={(e) => setProduct(e.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm text-muted-foreground">Video Format</Label>
                 <Select onValueChange={setFormat}>
-                  <SelectTrigger data-testid="select-script-format" className="bg-[#0a0a0a] border-white/10">
-                    <SelectValue placeholder="Select format" />
-                  </SelectTrigger>
+                  <SelectTrigger className="bg-[#0a0a0a] border-white/10"><SelectValue placeholder="Select format" /></SelectTrigger>
+                  <SelectContent className="bg-[#111111] border-white/10">
+                    <SelectItem value="TikTok / Reels hook ad">TikTok / Reels Hook Ad</SelectItem>
+                    <SelectItem value="Facebook / Instagram ad">Facebook / Instagram Ad</SelectItem>
+                    <SelectItem value="YouTube pre-roll ad">YouTube Pre-roll Ad</SelectItem>
+                    <SelectItem value="UGC authentic review">UGC Authentic Review</SelectItem>
+                    <SelectItem value="Brand story video">Brand Story Video</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm text-muted-foreground">Duration</Label>
+                <Select onValueChange={setDuration}>
+                  <SelectTrigger className="bg-[#0a0a0a] border-white/10"><SelectValue placeholder="Select duration" /></SelectTrigger>
                   <SelectContent className="bg-[#111111] border-white/10">
                     <SelectItem value="15s">15s — Quick Hook</SelectItem>
                     <SelectItem value="30s">30s — Standard Ad</SelectItem>
                     <SelectItem value="60s">60s — Story Format</SelectItem>
-                    <SelectItem value="ugc">UGC Style</SelectItem>
-                    <SelectItem value="explainer">Explainer Video</SelectItem>
+                    <SelectItem value="90s">90s — Extended</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm text-muted-foreground">Style (optional)</Label>
+                <Select onValueChange={setStyle}>
+                  <SelectTrigger className="bg-[#0a0a0a] border-white/10"><SelectValue placeholder="Select style" /></SelectTrigger>
+                  <SelectContent className="bg-[#111111] border-white/10">
+                    <SelectItem value="High energy fast-paced">High Energy Fast-Paced</SelectItem>
+                    <SelectItem value="Cinematic storytelling">Cinematic Storytelling</SelectItem>
+                    <SelectItem value="Conversational authentic">Conversational Authentic</SelectItem>
+                    <SelectItem value="Problem-solution">Problem → Solution</SelectItem>
+                    <SelectItem value="Testimonial social proof">Testimonial / Social Proof</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <CreditsGate feature="video_script" onSuccess={runGenerate} disabled={!product.trim() || isGenerating}>
               {({ trigger, isLoading }) => (
-                <Button
-                  data-testid="button-generate-script"
-                  onClick={trigger}
-                  disabled={isLoading || isGenerating || !product.trim()}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
-                >
-                  {isLoading || isGenerating ? (
-                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Writing your script...</>
-                  ) : (
-                    <><Video className="w-4 h-4 mr-2" /> Generate Script</>
-                  )}
+                <Button onClick={trigger} disabled={isLoading || isGenerating || !product.trim()} className="bg-primary text-primary-foreground hover:bg-primary/90 w-full">
+                  {isLoading || isGenerating ? (<><Loader2 className="w-4 h-4 animate-spin mr-2" /> Writing your script...</>) : (<><Video className="w-4 h-4 mr-2" /> Generate Script</>)}
                 </Button>
               )}
             </CreditsGate>
@@ -106,63 +105,154 @@ export function VideoScripts() {
         </Card>
       </motion.div>
 
-      {script && (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="space-y-4">
-          <Card className="bg-[#111111] border-primary/20">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base text-white flex items-center gap-2">
-                  <Video className="w-4 h-4 text-primary" />
-                  {script.title}
-                </CardTitle>
-                <Badge variant="outline" className="border-primary/30 text-primary flex items-center gap-1">
-                  <Clock className="w-3 h-3" />{script.duration}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3">Hook Variations</p>
-                <div className="space-y-2">
-                  {script.hooks.map((hook, i) => (
-                    <div key={i} className="flex items-start gap-3 p-3 bg-white/5 border border-white/5 rounded-lg">
-                      <span className="text-xs font-bold text-primary shrink-0 mt-0.5">H{i + 1}</span>
-                      <p className="text-sm text-white flex-1">{hook}</p>
-                      <button onClick={() => copyScene(hook)} className="text-muted-foreground hover:text-white transition-colors shrink-0">
-                        <Copy className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
+      <AnimatePresence mode="wait">
+        {isGenerating && (
+          <motion.div key="generating" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="flex items-center gap-3 text-muted-foreground mb-5">
+              <div className="flex gap-1">{[0, 1, 2].map((i) => (<span key={i} className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />))}</div>
+              <span className="text-sm">Writing a high-converting script for <span className="text-white">"{product}"</span>...</span>
+            </div>
+            <div className="space-y-3">{Array.from({ length: 4 }).map((_, i) => (<div key={i} className="h-28 rounded-lg bg-white/5 border border-white/5 animate-pulse" style={{ animationDelay: `${i * 0.1}s` }} />))}</div>
+          </motion.div>
+        )}
 
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3">Scene Breakdown</p>
-                <div className="space-y-3">
-                  {script.scenes.map((scene, i) => (
-                    <div key={i} className="border border-white/5 rounded-lg overflow-hidden">
-                      <div className="flex items-center gap-3 px-4 py-2 bg-white/5 border-b border-white/5">
-                        <span className="text-xs font-bold text-primary">Scene {i + 1}</span>
-                        <Badge variant="outline" className="text-xs border-white/10 text-muted-foreground">{scene.time}</Badge>
-                      </div>
-                      <div className="p-4 grid md:grid-cols-2 gap-3">
-                        <div>
-                          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Visual</p>
-                          <p className="text-sm text-muted-foreground italic">{scene.visual}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Voiceover</p>
-                          <p className="text-sm text-white">{scene.script}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+        {isError && (
+          <motion.div key="error" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <Card className="bg-red-950/20 border-red-500/20">
+              <CardContent className="p-5 flex items-center gap-4">
+                <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+                <div className="flex-1"><p className="text-sm font-semibold text-red-400">Generation failed</p><p className="text-xs text-muted-foreground">{error}</p></div>
+                <Button size="sm" variant="outline" onClick={() => { reset(); runGenerate(); }} className="border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0"><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry</Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {isDone && result && (
+          <motion.div key="result" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="space-y-4">
+            <Card className="bg-[#111111] border-primary/20">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base text-white flex items-center gap-2">
+                    <Video className="w-4 h-4 text-primary" />{result.title}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="border-primary/30 text-primary flex items-center gap-1 text-xs"><Clock className="w-3 h-3" />{result.duration}</Badge>
+                    <button onClick={copyFull} className="text-muted-foreground hover:text-white transition-colors p-1"><Copy className="w-3.5 h-3.5" /></button>
+                    <button onClick={reset} className="text-muted-foreground hover:text-white transition-colors text-xs flex items-center gap-1"><RefreshCw className="w-3 h-3" /></button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {/* Production notes */}
+                {(result.voiceoverStyle || result.musicMood || result.editingPace) && (
+                  <div className="grid grid-cols-3 gap-3">
+                    {result.voiceoverStyle && (
+                      <div className="p-3 rounded-lg bg-white/5 border border-white/5">
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Voiceover</p>
+                        <p className="text-xs text-white">{result.voiceoverStyle}</p>
+                      </div>
+                    )}
+                    {result.musicMood && (
+                      <div className="p-3 rounded-lg bg-white/5 border border-white/5">
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-1"><Music className="w-3 h-3" />Music</p>
+                        <p className="text-xs text-white">{result.musicMood}</p>
+                      </div>
+                    )}
+                    {result.editingPace && (
+                      <div className="p-3 rounded-lg bg-white/5 border border-white/5">
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-1"><Film className="w-3 h-3" />Editing</p>
+                        <p className="text-xs text-white">{result.editingPace}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Hooks */}
+                {result.hooks?.length > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3 font-medium">Hook Variations</p>
+                    <div className="space-y-2">
+                      {result.hooks.map((hook, i) => (
+                        <div key={i} className="flex items-start gap-3 p-3 bg-white/5 border border-white/5 rounded-lg group">
+                          <span className="text-xs font-bold text-primary shrink-0 mt-0.5">H{i + 1}</span>
+                          <p className="text-sm text-white flex-1 leading-snug">{hook}</p>
+                          <button
+                            onClick={() => { navigator.clipboard.writeText(hook); toast({ description: "Hook copied" }); }}
+                            className="text-muted-foreground hover:text-white transition-colors shrink-0 opacity-0 group-hover:opacity-100"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Viral trigger */}
+                {result.viralTrigger && (
+                  <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/15">
+                    <Zap className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs text-primary font-medium mb-0.5">Viral Trigger</p>
+                      <p className="text-xs text-muted-foreground">{result.viralTrigger}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Scenes */}
+                {result.scenes?.length > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3 font-medium">Scene Breakdown</p>
+                    <div className="space-y-3">
+                      {result.scenes.map((scene: ScriptScene, i: number) => (
+                        <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} className="border border-white/5 rounded-lg overflow-hidden">
+                          <div className="flex items-center gap-3 px-4 py-2.5 bg-white/5 border-b border-white/5">
+                            <span className="text-xs font-bold text-primary">Scene {i + 1}</span>
+                            <Badge variant="outline" className="text-xs border-white/10 text-muted-foreground">{scene.time}</Badge>
+                            {scene.emotion && <span className="text-xs text-amber-400 ml-auto">{scene.emotion}</span>}
+                          </div>
+                          <div className="p-4 grid md:grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1.5">Visual</p>
+                              <p className="text-sm text-muted-foreground italic leading-relaxed">{scene.visual}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1.5">Voiceover / Text</p>
+                              <p className="text-sm text-white leading-relaxed">{scene.script}</p>
+                            </div>
+                          </div>
+                          {scene.direction && (
+                            <div className="px-4 pb-3">
+                              <p className="text-xs text-white/40 uppercase tracking-wider mb-0.5">Direction</p>
+                              <p className="text-xs text-muted-foreground/70">{scene.direction}</p>
+                            </div>
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Distribution tips */}
+                {result.distributionTips?.length > 0 && (
+                  <div className="border-t border-white/5 pt-4">
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3 font-medium flex items-center gap-1.5"><Share2 className="w-3.5 h-3.5" /> Distribution Tips</p>
+                    <div className="space-y-1.5">
+                      {result.distributionTips.map((tip, i) => (
+                        <div key={i} className="flex items-start gap-2">
+                          <span className="text-primary font-bold text-xs shrink-0 mt-0.5">{i + 1}.</span>
+                          <p className="text-xs text-muted-foreground">{tip}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

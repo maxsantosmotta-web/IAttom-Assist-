@@ -317,6 +317,50 @@ export interface AdminAnalytics {
   planRevenue: AdminAnalyticsPlanRevenueItem[];
 }
 
+export interface AiFindProductsBody {
+  query: string;
+  niche?: string;
+  priceRange?: string;
+  targetMarket?: string;
+}
+
+export interface AiValidateProductBody {
+  productName: string;
+  description?: string;
+  targetMarket?: string;
+  pricePoint?: string;
+}
+
+export interface AiCreateCampaignBody {
+  product: string;
+  audience?: string;
+  goal?: string;
+  platforms?: string[];
+  budget?: string;
+}
+
+export interface AiCreateContentBody {
+  topic: string;
+  tone?: string;
+  contentTypes?: string[];
+  additionalContext?: string;
+}
+
+export interface AiCreativeIdeasBody {
+  prompt: string;
+  style?: string;
+  product?: string;
+  targetAudience?: string;
+}
+
+export interface AiVideoScriptBody {
+  product: string;
+  format?: string;
+  duration?: string;
+  hook?: string;
+  style?: string;
+}
+
 export type ListHistoryParams = {
   limit?: number;
 };

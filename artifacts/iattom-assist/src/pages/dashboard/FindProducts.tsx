@@ -1,84 +1,84 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Search, TrendingUp, Star, DollarSign, BarChart2, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, TrendingUp, Star, DollarSign, BarChart2, Loader2, AlertCircle, RefreshCw, Zap, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CreditsGate } from "@/components/CreditsGate";
+import { useAiStream } from "@/hooks/useAiStream";
+import type { FindProductsResult, FoundProduct } from "@/types/ai";
 
-const mockProducts = [
-  { id: 1, name: "Portable Air Purifier", category: "Home & Living", score: 94, demand: "High", margin: "68%", trend: "+34%" },
-  { id: 2, name: "Resistance Band Set", category: "Fitness", score: 88, demand: "Very High", margin: "72%", trend: "+21%" },
-  { id: 3, name: "Bamboo Desk Organizer", category: "Office", score: 82, demand: "Medium", margin: "61%", trend: "+15%" },
-  { id: 4, name: "LED Grow Light", category: "Garden", score: 79, demand: "High", margin: "65%", trend: "+28%" },
-  { id: 5, name: "Silicone Food Bags", category: "Kitchen", score: 76, demand: "High", margin: "70%", trend: "+19%" },
-];
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.07 } },
+const demandColors: Record<string, string> = {
+  "Very High": "text-emerald-400",
+  "High": "text-primary",
+  "Medium": "text-amber-400",
+  "Low": "text-red-400",
 };
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
+const competitionColors: Record<string, string> = {
+  "Very High": "text-red-400",
+  "High": "text-amber-400",
+  "Medium": "text-primary",
+  "Low": "text-emerald-400",
 };
+
+const quickSearches = ["Trending now", "High margin", "Low competition", "Home & Living", "Fitness", "Tech accessories"];
 
 export function FindProducts() {
   const [query, setQuery] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [searched, setSearched] = useState(false);
+  const [niche, setNiche] = useState("");
+  const { status, result, error, generate, reset } = useAiStream<FindProductsResult>();
+
+  const isGenerating = status === "generating";
+  const isDone = status === "done";
+  const isError = status === "error";
 
   const runSearch = () => {
-    setIsSearching(true);
-    setTimeout(() => {
-      setIsSearching(false);
-      setSearched(true);
-    }, 1800);
+    generate("/api/ai/find-products", { query, niche: niche || undefined });
   };
 
-  const displayProducts = searched ? mockProducts : mockProducts.slice(0, 3);
+  const handleRetry = () => {
+    reset();
+    runSearch();
+  };
 
   return (
     <div className="space-y-8">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">AI Product Research</p>
         <h2 className="text-2xl font-bold text-white mb-1">Find Products</h2>
-        <p className="text-muted-foreground text-sm">Discover high-margin, trending products vetted by AI market intelligence.</p>
+        <p className="text-muted-foreground text-sm">Discover high-margin, trending products powered by real AI market intelligence.</p>
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
         <Card className="bg-[#111111] border-white/5">
-          <CardContent className="p-6">
+          <CardContent className="p-6 space-y-4">
             <div className="flex gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  data-testid="input-product-search"
                   placeholder="Search for products, niches, or categories..."
                   className="pl-10 bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50 text-white"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && !isSearching && query.trim() && runSearch()}
+                  onKeyDown={(e) => e.key === "Enter" && !isGenerating && query.trim() && runSearch()}
                 />
               </div>
-              <CreditsGate feature="product_discovery" onSuccess={runSearch} disabled={!query.trim() || isSearching}>
+              <CreditsGate feature="product_discovery" onSuccess={runSearch} disabled={!query.trim() || isGenerating}>
                 {({ trigger, isLoading }) => (
                   <Button
-                    data-testid="button-search"
                     onClick={trigger}
-                    disabled={isLoading || isSearching || !query.trim()}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 px-6"
+                    disabled={isLoading || isGenerating || !query.trim()}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 shrink-0"
                   >
-                    {isLoading || isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
+                    {isLoading || isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
                   </Button>
                 )}
               </CreditsGate>
             </div>
-
-            <div className="flex flex-wrap gap-2 mt-4">
-              {["Trending now", "High margin", "Low competition", "Home & Living", "Fitness", "Tech accessories"].map((tag) => (
+            <div className="flex flex-wrap gap-2">
+              {quickSearches.map((tag) => (
                 <button
                   key={tag}
                   onClick={() => setQuery(tag)}
@@ -92,51 +92,120 @@ export function FindProducts() {
         </Card>
       </motion.div>
 
-      {isSearching ? (
-        <div className="flex items-center justify-center py-16 text-muted-foreground gap-3">
-          <Loader2 className="w-5 h-5 animate-spin text-primary" />
-          <span className="text-sm">Analyzing market data...</span>
-        </div>
-      ) : (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
-              {searched ? `Results for "${query}"` : "Trending Opportunities"}
-            </h3>
-            <span className="text-xs text-muted-foreground">{displayProducts.length} found</span>
-          </div>
-          <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid gap-3">
-            {displayProducts.map((product) => (
-              <motion.div key={product.id} variants={itemVariants}>
-                <Card
-                  data-testid={`card-product-${product.id}`}
-                  className="bg-[#111111] border-white/5 hover:border-primary/20 transition-colors cursor-pointer"
-                >
-                  <CardContent className="p-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h4 className="font-semibold text-white text-sm">{product.name}</h4>
-                          <Badge variant="outline" className="text-xs border-white/10 text-muted-foreground">{product.category}</Badge>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1"><BarChart2 className="w-3 h-3" /> Demand: <span className="text-white font-medium ml-0.5">{product.demand}</span></span>
-                          <span className="flex items-center gap-1"><DollarSign className="w-3 h-3" /> Margin: <span className="text-emerald-400 font-medium ml-0.5">{product.margin}</span></span>
-                          <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Trend: <span className="text-primary font-medium ml-0.5">{product.trend}</span></span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <Star className="w-4 h-4 text-primary fill-primary" />
-                        <span className="text-lg font-bold text-white">{product.score}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+      <AnimatePresence mode="wait">
+        {isGenerating && (
+          <motion.div key="generating" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="flex items-center gap-3 text-muted-foreground mb-4">
+              <div className="flex gap-1">
+                {[0, 1, 2].map((i) => (
+                  <span key={i} className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                ))}
+              </div>
+              <span className="text-sm">AI is analyzing markets for <span className="text-white">"{query}"</span>...</span>
+            </div>
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-24 rounded-lg bg-white/5 border border-white/5 animate-pulse" style={{ animationDelay: `${i * 0.1}s` }} />
+              ))}
+            </div>
           </motion.div>
-        </div>
-      )}
+        )}
+
+        {isError && (
+          <motion.div key="error" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <Card className="bg-red-950/20 border-red-500/20">
+              <CardContent className="p-5 flex items-center gap-4">
+                <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-red-400">Generation failed</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{error}</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={handleRetry} className="border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0">
+                  <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {isDone && result && (
+          <motion.div key="results" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}>
+            {result.marketInsight && (
+              <div className="mb-5 p-4 rounded-lg bg-primary/5 border border-primary/15">
+                <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1.5">Market Insight</p>
+                <p className="text-sm text-white/80 leading-relaxed">{result.marketInsight}</p>
+              </div>
+            )}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
+                Results for "{query}"
+              </h3>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">{result.products?.length ?? 0} found</span>
+                <button onClick={() => reset()} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
+                  <RefreshCw className="w-3 h-3" /> New search
+                </button>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {result.products?.map((product: FoundProduct, i: number) => (
+                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
+                  <Card className="bg-[#111111] border-white/5 hover:border-primary/20 transition-colors">
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-3 mb-2 flex-wrap">
+                            <h4 className="font-semibold text-white text-sm">{product.name}</h4>
+                            <Badge variant="outline" className="text-xs border-white/10 text-muted-foreground">{product.category}</Badge>
+                            {result.topPick === product.name && (
+                              <Badge className="text-xs bg-primary/20 text-primary border-primary/30">Top Pick</Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mb-3 leading-relaxed">{product.whyNow}</p>
+                          <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <BarChart2 className="w-3 h-3" /> Demand:{" "}
+                              <span className={`font-medium ml-0.5 ${demandColors[product.demand] ?? "text-white"}`}>{product.demand}</span>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <DollarSign className="w-3 h-3" /> Margin:{" "}
+                              <span className="text-emerald-400 font-medium ml-0.5">{product.margin}</span>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <TrendingUp className="w-3 h-3" /> Trend:{" "}
+                              <span className="text-primary font-medium ml-0.5">{product.trend}</span>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Users className="w-3 h-3" /> Competition:{" "}
+                              <span className={`font-medium ml-0.5 ${competitionColors[product.competition] ?? "text-white"}`}>{product.competition}</span>
+                            </span>
+                          </div>
+                          {product.keySellingPoints?.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-3">
+                              {product.keySellingPoints.map((ksp, j) => (
+                                <span key={j} className="text-xs px-2 py-0.5 rounded bg-white/5 border border-white/5 text-muted-foreground">{ksp}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <div className="flex items-center gap-1 justify-end mb-1">
+                            <Star className="w-4 h-4 text-primary fill-primary" />
+                            <span className="text-2xl font-bold text-white tabular-nums">{product.score}</span>
+                          </div>
+                          {product.estimatedMonthlyRevenue && (
+                            <p className="text-xs text-emerald-400 font-medium">{product.estimatedMonthlyRevenue}</p>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -277,6 +277,68 @@ export const UseCreditsResponse = zod.object({
 });
 
 /**
+ * @summary Discover products via AI (SSE stream)
+ */
+export const AiFindProductsBody = zod.object({
+  query: zod.string(),
+  niche: zod.string().optional(),
+  priceRange: zod.string().optional(),
+  targetMarket: zod.string().optional(),
+});
+
+/**
+ * @summary Validate a product idea via AI (SSE stream)
+ */
+export const AiValidateProductBody = zod.object({
+  productName: zod.string(),
+  description: zod.string().optional(),
+  targetMarket: zod.string().optional(),
+  pricePoint: zod.string().optional(),
+});
+
+/**
+ * @summary Generate a full marketing campaign via AI (SSE stream)
+ */
+export const AiCreateCampaignBody = zod.object({
+  product: zod.string(),
+  audience: zod.string().optional(),
+  goal: zod.string().optional(),
+  platforms: zod.array(zod.string()).optional(),
+  budget: zod.string().optional(),
+});
+
+/**
+ * @summary Generate marketing content via AI (SSE stream)
+ */
+export const AiCreateContentBody = zod.object({
+  topic: zod.string(),
+  tone: zod.string().optional(),
+  contentTypes: zod.array(zod.string()).optional(),
+  additionalContext: zod.string().optional(),
+});
+
+/**
+ * @summary Generate creative ad concepts via AI (SSE stream)
+ */
+export const AiCreativeIdeasBody = zod.object({
+  prompt: zod.string(),
+  style: zod.string().optional(),
+  product: zod.string().optional(),
+  targetAudience: zod.string().optional(),
+});
+
+/**
+ * @summary Generate a video script via AI (SSE stream)
+ */
+export const AiVideoScriptBody = zod.object({
+  product: zod.string(),
+  format: zod.string().optional(),
+  duration: zod.string().optional(),
+  hook: zod.string().optional(),
+  style: zod.string().optional(),
+});
+
+/**
  * @summary Get platform-wide statistics
  */
 export const GetAdminStatsResponse = zod.object({

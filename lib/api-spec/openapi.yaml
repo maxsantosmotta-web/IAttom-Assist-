@@ -22,6 +22,8 @@ tags:
     description: Admin operations
   - name: credits
     description: Credits management
+  - name: ai
+    description: AI generation modules
 paths:
   /healthz:
     get:
@@ -255,6 +257,108 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/InsufficientCreditsError"
+
+  /ai/find-products:
+    post:
+      operationId: aiFindProducts
+      tags: [ai]
+      summary: Discover products via AI (SSE stream)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiFindProductsBody"
+      responses:
+        "200":
+          description: SSE stream of AI product recommendations
+          content:
+            text/event-stream: {}
+
+  /ai/validate-product:
+    post:
+      operationId: aiValidateProduct
+      tags: [ai]
+      summary: Validate a product idea via AI (SSE stream)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiValidateProductBody"
+      responses:
+        "200":
+          description: SSE stream of AI product validation
+          content:
+            text/event-stream: {}
+
+  /ai/create-campaign:
+    post:
+      operationId: aiCreateCampaign
+      tags: [ai]
+      summary: Generate a full marketing campaign via AI (SSE stream)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiCreateCampaignBody"
+      responses:
+        "200":
+          description: SSE stream of AI campaign strategy
+          content:
+            text/event-stream: {}
+
+  /ai/create-content:
+    post:
+      operationId: aiCreateContent
+      tags: [ai]
+      summary: Generate marketing content via AI (SSE stream)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiCreateContentBody"
+      responses:
+        "200":
+          description: SSE stream of AI content
+          content:
+            text/event-stream: {}
+
+  /ai/creative-ideas:
+    post:
+      operationId: aiCreativeIdeas
+      tags: [ai]
+      summary: Generate creative ad concepts via AI (SSE stream)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiCreativeIdeasBody"
+      responses:
+        "200":
+          description: SSE stream of creative concepts
+          content:
+            text/event-stream: {}
+
+  /ai/video-script:
+    post:
+      operationId: aiVideoScript
+      tags: [ai]
+      summary: Generate a video script via AI (SSE stream)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiVideoScriptBody"
+      responses:
+        "200":
+          description: SSE stream of video script
+          content:
+            text/event-stream: {}
 
   /admin/stats:
     get:
@@ -851,3 +955,95 @@ components:
         - userGrowth
         - featureUsage
         - planRevenue
+
+    AiFindProductsBody:
+      type: object
+      properties:
+        query:
+          type: string
+        niche:
+          type: string
+        priceRange:
+          type: string
+        targetMarket:
+          type: string
+      required:
+        - query
+
+    AiValidateProductBody:
+      type: object
+      properties:
+        productName:
+          type: string
+        description:
+          type: string
+        targetMarket:
+          type: string
+        pricePoint:
+          type: string
+      required:
+        - productName
+
+    AiCreateCampaignBody:
+      type: object
+      properties:
+        product:
+          type: string
+        audience:
+          type: string
+        goal:
+          type: string
+        platforms:
+          type: array
+          items:
+            type: string
+        budget:
+          type: string
+      required:
+        - product
+
+    AiCreateContentBody:
+      type: object
+      properties:
+        topic:
+          type: string
+        tone:
+          type: string
+        contentTypes:
+          type: array
+          items:
+            type: string
+        additionalContext:
+          type: string
+      required:
+        - topic
+
+    AiCreativeIdeasBody:
+      type: object
+      properties:
+        prompt:
+          type: string
+        style:
+          type: string
+        product:
+          type: string
+        targetAudience:
+          type: string
+      required:
+        - prompt
+
+    AiVideoScriptBody:
+      type: object
+      properties:
+        product:
+          type: string
+        format:
+          type: string
+        duration:
+          type: string
+        hook:
+          type: string
+        style:
+          type: string
+      required:
+        - product
