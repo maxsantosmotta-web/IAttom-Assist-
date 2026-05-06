@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { CreditsGate } from "@/components/CreditsGate";
 
 const mockContent = {
   blog: `# 7 Reasons Why Serious Athletes Are Switching to HydroElite in 2025
@@ -57,13 +58,11 @@ The HydroElite Team`,
 export function CreateContent() {
   const [topic, setTopic] = useState("");
   const [tone, setTone] = useState("");
-  const [contentType, setContentType] = useState("blog");
   const [isGenerating, setIsGenerating] = useState(false);
   const [content, setContent] = useState<typeof mockContent | null>(null);
   const { toast } = useToast();
 
-  const handleGenerate = () => {
-    if (!topic.trim()) return;
+  const runGenerate = () => {
     setIsGenerating(true);
     setTimeout(() => {
       setIsGenerating(false);
@@ -120,16 +119,20 @@ export function CreateContent() {
                 </Select>
               </div>
             </div>
-            <Button
-              data-testid="button-generate-content"
-              onClick={handleGenerate}
-              disabled={isGenerating || !topic.trim()}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
-            >
-              {isGenerating ? (
-                <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Generating content...</>
-              ) : "Generate Content Suite"}
-            </Button>
+            <CreditsGate feature="content" onSuccess={runGenerate} disabled={!topic.trim() || isGenerating}>
+              {({ trigger, isLoading }) => (
+                <Button
+                  data-testid="button-generate-content"
+                  onClick={trigger}
+                  disabled={isLoading || isGenerating || !topic.trim()}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
+                >
+                  {isLoading || isGenerating ? (
+                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Generating content...</>
+                  ) : "Generate Content Suite"}
+                </Button>
+              )}
+            </CreditsGate>
           </CardContent>
         </Card>
       </motion.div>
@@ -143,11 +146,9 @@ export function CreateContent() {
                 <TabsTrigger value="social" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">Social</TabsTrigger>
                 <TabsTrigger value="email" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">Email</TabsTrigger>
               </TabsList>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={handleGenerate} className="text-muted-foreground hover:text-white">
-                  <RefreshCw className="w-3.5 h-3.5 mr-1" /> Regenerate
-                </Button>
-              </div>
+              <Button variant="ghost" size="sm" onClick={runGenerate} className="text-muted-foreground hover:text-white">
+                <RefreshCw className="w-3.5 h-3.5 mr-1" /> Regenerate
+              </Button>
             </div>
 
             {(["blog", "social", "email"] as const).map((tab) => (

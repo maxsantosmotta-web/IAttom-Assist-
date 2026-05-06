@@ -18,20 +18,27 @@ import type {
 
 import type {
   AdminActivityItem,
+  AdminAdjustCreditsBody,
   AdminAnalytics,
   AdminStats,
   AdminUser,
   AdminUserList,
   CreateProjectBody,
+  CreditTransactionList,
+  CreditsBalance,
   DashboardSummary,
   HealthStatus,
   HistoryItem,
+  InsufficientCreditsError,
   ListAdminActivityParams,
   ListAdminUsersParams,
+  ListCreditTransactionsParams,
   ListHistoryParams,
   Project,
   SyncUserBody,
   UpdateAdminUserBody,
+  UseCreditsBody,
+  UseCreditsResult,
   UserProfile,
 } from "./api.schemas";
 
@@ -858,6 +865,270 @@ export function useGetMe<
 }
 
 /**
+ * @summary Get current user credits balance and plan info
+ */
+export const getGetCreditsBalanceUrl = () => {
+  return `/api/credits/balance`;
+};
+
+export const getCreditsBalance = async (
+  options?: RequestInit,
+): Promise<CreditsBalance> => {
+  return customFetch<CreditsBalance>(getGetCreditsBalanceUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCreditsBalanceQueryKey = () => {
+  return [`/api/credits/balance`] as const;
+};
+
+export const getGetCreditsBalanceQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCreditsBalance>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCreditsBalance>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetCreditsBalanceQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCreditsBalance>>
+  > = ({ signal }) => getCreditsBalance({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCreditsBalance>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCreditsBalanceQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCreditsBalance>>
+>;
+export type GetCreditsBalanceQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get current user credits balance and plan info
+ */
+
+export function useGetCreditsBalance<
+  TData = Awaited<ReturnType<typeof getCreditsBalance>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getCreditsBalance>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCreditsBalanceQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List credit transactions for current user
+ */
+export const getListCreditTransactionsUrl = (
+  params?: ListCreditTransactionsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/credits/transactions?${stringifiedParams}`
+    : `/api/credits/transactions`;
+};
+
+export const listCreditTransactions = async (
+  params?: ListCreditTransactionsParams,
+  options?: RequestInit,
+): Promise<CreditTransactionList> => {
+  return customFetch<CreditTransactionList>(
+    getListCreditTransactionsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListCreditTransactionsQueryKey = (
+  params?: ListCreditTransactionsParams,
+) => {
+  return [`/api/credits/transactions`, ...(params ? [params] : [])] as const;
+};
+
+export const getListCreditTransactionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCreditTransactions>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListCreditTransactionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCreditTransactions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListCreditTransactionsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listCreditTransactions>>
+  > = ({ signal }) =>
+    listCreditTransactions(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCreditTransactions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCreditTransactionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCreditTransactions>>
+>;
+export type ListCreditTransactionsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List credit transactions for current user
+ */
+
+export function useListCreditTransactions<
+  TData = Awaited<ReturnType<typeof listCreditTransactions>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListCreditTransactionsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCreditTransactions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCreditTransactionsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Deduct credits for an AI feature use
+ */
+export const getUseCreditsUrl = () => {
+  return `/api/credits/use`;
+};
+
+export const useCredits = async (
+  useCreditsBody: UseCreditsBody,
+  options?: RequestInit,
+): Promise<UseCreditsResult> => {
+  return customFetch<UseCreditsResult>(getUseCreditsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(useCreditsBody),
+  });
+};
+
+export const getUseCreditsMutationOptions = <
+  TError = ErrorType<InsufficientCreditsError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof useCredits>>,
+    TError,
+    { data: BodyType<UseCreditsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof useCredits>>,
+  TError,
+  { data: BodyType<UseCreditsBody> },
+  TContext
+> => {
+  const mutationKey = ["useCredits"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof useCredits>>,
+    { data: BodyType<UseCreditsBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return useCredits(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UseCreditsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof useCredits>>
+>;
+export type UseCreditsMutationBody = BodyType<UseCreditsBody>;
+export type UseCreditsMutationError = ErrorType<InsufficientCreditsError>;
+
+/**
+ * @summary Deduct credits for an AI feature use
+ */
+export const useUseCredits = <
+  TError = ErrorType<InsufficientCreditsError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof useCredits>>,
+    TError,
+    { data: BodyType<UseCreditsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof useCredits>>,
+  TError,
+  { data: BodyType<UseCreditsBody> },
+  TContext
+> => {
+  return useMutation(getUseCreditsMutationOptions(options));
+};
+
+/**
  * @summary Get platform-wide statistics
  */
 export const getGetAdminStatsUrl = () => {
@@ -1111,6 +1382,93 @@ export const useUpdateAdminUser = <
   TContext
 > => {
   return useMutation(getUpdateAdminUserMutationOptions(options));
+};
+
+/**
+ * @summary Adjust a user's credits with a transaction record
+ */
+export const getAdminAdjustCreditsUrl = (id: number) => {
+  return `/api/admin/users/${id}/credits`;
+};
+
+export const adminAdjustCredits = async (
+  id: number,
+  adminAdjustCreditsBody: AdminAdjustCreditsBody,
+  options?: RequestInit,
+): Promise<AdminUser> => {
+  return customFetch<AdminUser>(getAdminAdjustCreditsUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adminAdjustCreditsBody),
+  });
+};
+
+export const getAdminAdjustCreditsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminAdjustCredits>>,
+    TError,
+    { id: number; data: BodyType<AdminAdjustCreditsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminAdjustCredits>>,
+  TError,
+  { id: number; data: BodyType<AdminAdjustCreditsBody> },
+  TContext
+> => {
+  const mutationKey = ["adminAdjustCredits"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminAdjustCredits>>,
+    { id: number; data: BodyType<AdminAdjustCreditsBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return adminAdjustCredits(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminAdjustCreditsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminAdjustCredits>>
+>;
+export type AdminAdjustCreditsMutationBody = BodyType<AdminAdjustCreditsBody>;
+export type AdminAdjustCreditsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Adjust a user's credits with a transaction record
+ */
+export const useAdminAdjustCredits = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminAdjustCredits>>,
+    TError,
+    { id: number; data: BodyType<AdminAdjustCreditsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminAdjustCredits>>,
+  TError,
+  { id: number; data: BodyType<AdminAdjustCreditsBody> },
+  TContext
+> => {
+  return useMutation(getAdminAdjustCreditsMutationOptions(options));
 };
 
 /**

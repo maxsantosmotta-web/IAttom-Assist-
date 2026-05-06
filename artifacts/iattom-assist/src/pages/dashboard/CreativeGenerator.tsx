@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CreditsGate } from "@/components/CreditsGate";
 
 const mockCreatives = [
   { id: 1, label: "Hero Banner", color: "from-primary/30 to-amber-900/20" },
@@ -20,8 +21,7 @@ export function CreativeGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);
 
-  const handleGenerate = () => {
-    if (!prompt.trim()) return;
+  const runGenerate = () => {
     setIsGenerating(true);
     setGenerated(false);
     setTimeout(() => {
@@ -68,18 +68,22 @@ export function CreativeGenerator() {
                 </Select>
               </div>
             </div>
-            <Button
-              data-testid="button-generate-creative"
-              onClick={handleGenerate}
-              disabled={isGenerating || !prompt.trim()}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
-            >
-              {isGenerating ? (
-                <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Generating creatives...</>
-              ) : (
-                <><Sparkles className="w-4 h-4 mr-2" /> Generate Creatives</>
+            <CreditsGate feature="creative" onSuccess={runGenerate} disabled={!prompt.trim() || isGenerating}>
+              {({ trigger, isLoading }) => (
+                <Button
+                  data-testid="button-generate-creative"
+                  onClick={trigger}
+                  disabled={isLoading || isGenerating || !prompt.trim()}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
+                >
+                  {isLoading || isGenerating ? (
+                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Generating creatives...</>
+                  ) : (
+                    <><Sparkles className="w-4 h-4 mr-2" /> Generate Creatives</>
+                  )}
+                </Button>
               )}
-            </Button>
+            </CreditsGate>
           </CardContent>
         </Card>
       </motion.div>
@@ -96,7 +100,7 @@ export function CreativeGenerator() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Generated Creatives</h3>
-            <Button variant="ghost" size="sm" onClick={handleGenerate} className="text-muted-foreground hover:text-white">
+            <Button variant="ghost" size="sm" onClick={runGenerate} className="text-muted-foreground hover:text-white">
               <RefreshCw className="w-3.5 h-3.5 mr-1" /> Regenerate
             </Button>
           </div>

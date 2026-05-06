@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { CreditsGate } from "@/components/CreditsGate";
 
 const mockScript = {
   title: "HydroElite — 30 Second Hook Ad",
@@ -33,8 +34,7 @@ export function VideoScripts() {
   const [script, setScript] = useState<typeof mockScript | null>(null);
   const { toast } = useToast();
 
-  const handleGenerate = () => {
-    if (!product.trim()) return;
+  const runGenerate = () => {
     setIsGenerating(true);
     setScript(null);
     setTimeout(() => {
@@ -86,18 +86,22 @@ export function VideoScripts() {
                 </Select>
               </div>
             </div>
-            <Button
-              data-testid="button-generate-script"
-              onClick={handleGenerate}
-              disabled={isGenerating || !product.trim()}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
-            >
-              {isGenerating ? (
-                <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Writing your script...</>
-              ) : (
-                <><Video className="w-4 h-4 mr-2" /> Generate Script</>
+            <CreditsGate feature="video_script" onSuccess={runGenerate} disabled={!product.trim() || isGenerating}>
+              {({ trigger, isLoading }) => (
+                <Button
+                  data-testid="button-generate-script"
+                  onClick={trigger}
+                  disabled={isLoading || isGenerating || !product.trim()}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
+                >
+                  {isLoading || isGenerating ? (
+                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Writing your script...</>
+                  ) : (
+                    <><Video className="w-4 h-4 mr-2" /> Generate Script</>
+                  )}
+                </Button>
               )}
-            </Button>
+            </CreditsGate>
           </CardContent>
         </Card>
       </motion.div>

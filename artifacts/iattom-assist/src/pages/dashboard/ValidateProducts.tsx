@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { CreditsGate } from "@/components/CreditsGate";
 
 const mockAnalysis = {
   score: 81,
@@ -24,8 +25,7 @@ export function ValidateProducts() {
   const [isValidating, setIsValidating] = useState(false);
   const [result, setResult] = useState<typeof mockAnalysis | null>(null);
 
-  const handleValidate = () => {
-    if (!productName.trim()) return;
+  const runValidation = () => {
     setIsValidating(true);
     setResult(null);
     setTimeout(() => {
@@ -73,18 +73,24 @@ export function ValidateProducts() {
                 onChange={(e) => setDescription(e.target.value)}
               />
             </div>
-            <Button
-              data-testid="button-validate"
-              onClick={handleValidate}
-              disabled={isValidating || !productName.trim()}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
+            <CreditsGate
+              feature="product_validation"
+              onSuccess={runValidation}
+              disabled={!productName.trim() || isValidating}
             >
-              {isValidating ? (
-                <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Analyzing market data...</>
-              ) : (
-                "Run Validation"
+              {({ trigger, isLoading }) => (
+                <Button
+                  data-testid="button-validate"
+                  onClick={trigger}
+                  disabled={isLoading || isValidating || !productName.trim()}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
+                >
+                  {isLoading || isValidating ? (
+                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Analyzing market data...</>
+                  ) : "Run Validation"}
+                </Button>
               )}
-            </Button>
+            </CreditsGate>
           </CardContent>
         </Card>
       </motion.div>

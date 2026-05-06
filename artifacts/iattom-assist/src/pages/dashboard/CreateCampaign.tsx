@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Megaphone, Target, Users, Globe, Loader2, Copy } from "lucide-react";
+import { Megaphone, Target, Globe, Loader2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { CreditsGate } from "@/components/CreditsGate";
 
 const mockCampaign = {
   headline: "Finally — A Water Bottle That Actually Keeps Your Drinks Cold for 48 Hours",
@@ -30,8 +31,7 @@ export function CreateCampaign() {
   const [campaign, setCampaign] = useState<typeof mockCampaign | null>(null);
   const { toast } = useToast();
 
-  const handleGenerate = () => {
-    if (!product.trim()) return;
+  const runGenerate = () => {
     setIsGenerating(true);
     setCampaign(null);
     setTimeout(() => {
@@ -96,16 +96,24 @@ export function CreateCampaign() {
                 onChange={(e) => setAudience(e.target.value)}
               />
             </div>
-            <Button
-              data-testid="button-generate-campaign"
-              onClick={handleGenerate}
-              disabled={isGenerating || !product.trim()}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
+            <CreditsGate
+              feature="campaign"
+              onSuccess={runGenerate}
+              disabled={!product.trim() || isGenerating}
             >
-              {isGenerating ? (
-                <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Building your campaign...</>
-              ) : "Generate Campaign"}
-            </Button>
+              {({ trigger, isLoading }) => (
+                <Button
+                  data-testid="button-generate-campaign"
+                  onClick={trigger}
+                  disabled={isLoading || isGenerating || !product.trim()}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
+                >
+                  {isLoading || isGenerating ? (
+                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Building your campaign...</>
+                  ) : "Generate Campaign"}
+                </Button>
+              )}
+            </CreditsGate>
           </CardContent>
         </Card>
       </motion.div>

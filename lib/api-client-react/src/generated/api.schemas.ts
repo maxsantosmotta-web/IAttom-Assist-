@@ -105,6 +105,7 @@ export const UserProfilePlan = {
   free: "free",
   pro: "pro",
   business: "business",
+  agency: "agency",
 } as const;
 
 export interface UserProfile {
@@ -116,6 +117,96 @@ export interface UserProfile {
   plan: UserProfilePlan;
   credits: number;
   createdAt: string;
+}
+
+export type CreditsBalancePlan =
+  (typeof CreditsBalancePlan)[keyof typeof CreditsBalancePlan];
+
+export const CreditsBalancePlan = {
+  free: "free",
+  pro: "pro",
+  business: "business",
+  agency: "agency",
+} as const;
+
+export type CreditsBalanceFeatureCosts = {
+  product_discovery: number;
+  product_validation: number;
+  campaign: number;
+  content: number;
+  creative: number;
+  video_script: number;
+};
+
+export interface CreditsBalance {
+  balance: number;
+  plan: CreditsBalancePlan;
+  planLimit: number;
+  percentage: number;
+  lowCredit: boolean;
+  featureCosts: CreditsBalanceFeatureCosts;
+}
+
+export type CreditTransactionType =
+  (typeof CreditTransactionType)[keyof typeof CreditTransactionType];
+
+export const CreditTransactionType = {
+  initial: "initial",
+  credit: "credit",
+  debit: "debit",
+  adjustment: "adjustment",
+  refund: "refund",
+} as const;
+
+export interface CreditTransaction {
+  id: number;
+  clerkUserId: string;
+  amount: number;
+  type: CreditTransactionType;
+  feature?: string;
+  description: string;
+  balanceBefore: number;
+  balanceAfter: number;
+  createdAt: string;
+}
+
+export interface CreditTransactionList {
+  transactions: CreditTransaction[];
+  total: number;
+  balance: number;
+}
+
+export type UseCreditsBodyFeature =
+  (typeof UseCreditsBodyFeature)[keyof typeof UseCreditsBodyFeature];
+
+export const UseCreditsBodyFeature = {
+  product_discovery: "product_discovery",
+  product_validation: "product_validation",
+  campaign: "campaign",
+  content: "content",
+  creative: "creative",
+  video_script: "video_script",
+} as const;
+
+export interface UseCreditsBody {
+  feature: UseCreditsBodyFeature;
+}
+
+export interface UseCreditsResult {
+  creditsUsed: number;
+  newBalance: number;
+  transactionId: number;
+}
+
+export interface InsufficientCreditsError {
+  error: string;
+  balance: number;
+  required: number;
+}
+
+export interface AdminAdjustCreditsBody {
+  amount: number;
+  description: string;
 }
 
 export type AdminUserRole = (typeof AdminUserRole)[keyof typeof AdminUserRole];
@@ -131,6 +222,7 @@ export const AdminUserPlan = {
   free: "free",
   pro: "pro",
   business: "business",
+  agency: "agency",
 } as const;
 
 export interface AdminUser {
@@ -166,6 +258,7 @@ export const UpdateAdminUserBodyPlan = {
   free: "free",
   pro: "pro",
   business: "business",
+  agency: "agency",
 } as const;
 
 export interface UpdateAdminUserBody {
@@ -228,6 +321,11 @@ export type ListHistoryParams = {
   limit?: number;
 };
 
+export type ListCreditTransactionsParams = {
+  limit?: number;
+  offset?: number;
+};
+
 export type ListAdminUsersParams = {
   search?: string;
   plan?: ListAdminUsersPlan;
@@ -243,6 +341,7 @@ export const ListAdminUsersPlan = {
   free: "free",
   pro: "pro",
   business: "business",
+  agency: "agency",
 } as const;
 
 export type ListAdminUsersRole =

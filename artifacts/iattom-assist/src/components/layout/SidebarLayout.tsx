@@ -15,6 +15,7 @@ import {
   LogOut,
   ChevronDown,
   ShieldCheck,
+  Zap,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useSyncUser, useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
+import {
+  useSyncUser,
+  useGetMe,
+  getGetMeQueryKey,
+  useGetCreditsBalance,
+  getGetCreditsBalanceQueryKey,
+} from "@workspace/api-client-react";
+import { getCreditColor, getCreditBarColor } from "@/lib/credits";
 
 const navItems = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
@@ -40,6 +48,7 @@ const navItems = [
   { href: "/dashboard/video-scripts", label: "Video Scripts", icon: Video },
   { href: "/dashboard/projects", label: "Projects", icon: FolderOpen },
   { href: "/dashboard/history", label: "History", icon: Clock },
+  { href: "/dashboard/credits", label: "Credits", icon: Zap },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
@@ -52,6 +61,14 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const { signOut } = useClerk();
   const syncUser = useSyncUser();
   const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), retry: false, enabled: !!isSignedIn } });
+  const { data: creditsData } = useGetCreditsBalance({
+    query: {
+      queryKey: getGetCreditsBalanceQueryKey(),
+      retry: false,
+      enabled: !!isSignedIn,
+      staleTime: 60_000,
+    },
+  });
 
   useEffect(() => {
     if (isLoaded && isSignedIn && user) {
@@ -81,6 +98,12 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   };
 
   const isAdmin = me?.role === "admin";
+
+  const creditBalance = creditsData?.balance ?? 0;
+  const creditPct = creditsData?.percentage ?? 0;
+  const creditBarColor = getCreditBarColor(creditPct);
+  const creditTextColor = getCreditColor(creditPct);
+  const isLowCredit = creditsData?.lowCredit ?? false;
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
@@ -123,6 +146,9 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                 >
                   <Icon className="w-4 h-4" />
                   {item.label}
+                  {item.href === "/dashboard/credits" && isLowCredit && (
+                    <span className="ml-auto w-2 h-2 rounded-full bg-red-400 shrink-0" />
+                  )}
                 </Link>
               );
             })}
@@ -147,6 +173,36 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
               </div>
             )}
           </div>
+
+          {creditsData && (
+            <div className="px-4 py-3 border-t border-sidebar-border shrink-0">
+              <Link
+                href="/dashboard/credits"
+                onClick={closeSidebar}
+                className="block group"
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Zap className="w-3 h-3 text-primary fill-primary" />
+                    <span className="text-xs text-muted-foreground font-medium">Credits</span>
+                  </div>
+                  <span className={`text-xs font-semibold tabular-nums ${creditTextColor}`}>
+                    {creditBalance.toLocaleString()}
+                    <span className="text-muted-foreground font-normal"> / {creditsData.planLimit.toLocaleString()}</span>
+                  </span>
+                </div>
+                <div className="h-1 rounded-full bg-white/5 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${creditBarColor}`}
+                    style={{ width: `${Math.min(creditPct, 100)}%` }}
+                  />
+                </div>
+                {isLowCredit && (
+                  <p className="text-[10px] text-red-400 mt-1">Low credits — tap to upgrade</p>
+                )}
+              </Link>
+            </div>
+          )}
 
           <div className="p-4 border-t border-sidebar-border shrink-0">
             <DropdownMenu>
@@ -176,6 +232,16 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                   >
                     <Settings className="w-4 h-4" />
                     Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link
+                    href="/dashboard/credits"
+                    className="flex items-center gap-2 cursor-pointer"
+                    onClick={closeSidebar}
+                  >
+                    <Zap className="w-4 h-4" />
+                    Credits
                   </Link>
                 </DropdownMenuItem>
                 {isAdmin && (

@@ -30,6 +30,12 @@ A premium dark-themed AI business assistant SaaS platform for product discovery,
 - `artifacts/iattom-assist/src/components/layout/SidebarLayout.tsx` — user dashboard shell (syncs user on mount, shows Admin Panel link for admins)
 - `artifacts/iattom-assist/src/components/layout/AdminLayout.tsx` — admin dashboard shell
 - `artifacts/iattom-assist/src/pages/admin/AdminGuard.tsx` — admin role guard + first-admin bootstrap flow
+- `artifacts/iattom-assist/src/lib/credits.ts` — FEATURE_COSTS, PLAN_CREDITS, PLAN_PRICES, getCreditColor/getCreditBarColor
+- `artifacts/iattom-assist/src/components/CreditsGate.tsx` — wraps AI action buttons; deducts credits, shows 402 upgrade modal
+- `artifacts/iattom-assist/src/pages/dashboard/Credits.tsx` — credits balance + transaction history page
+- `artifacts/api-server/src/lib/credits.ts` — deductCredits, adjustCredits, getTransactionCount helpers
+- `artifacts/api-server/src/routes/credits.ts` — GET /credits/balance, GET /credits/transactions, POST /credits/use
+- `lib/db/src/schema/creditsTransactions.ts` — credits_transactions table (clerkUserId, amount, balanceAfter, type, feature, description)
 - `artifacts/iattom-assist/src/index.css` — dark theme, gold accent CSS variables, Clerk layer ordering
 - `artifacts/iattom-assist/public/logo.svg` — branded SVG logo
 - `lib/api-spec/openapi.yaml` — OpenAPI contract (source of truth)
@@ -58,11 +64,15 @@ A premium dark-themed AI business assistant SaaS platform for product discovery,
 
 - Landing page with hero, features, CTA
 - Clerk sign-in/sign-up pages with dark gold branded appearance
-- User dashboard with sidebar (10 sections): Home, Find Products, Validate Products, Create Campaign, Create Content, Creative Generator, Video Scripts, Projects, History, Settings
-- Sidebar shows Admin Panel link for users with admin role
+- User dashboard with sidebar (11 sections): Home, Find Products, Validate Products, Create Campaign, Create Content, Creative Generator, Video Scripts, Projects, History, Credits, Settings
+- Sidebar shows Admin Panel link for users with admin role; credits widget with balance bar + low-credit indicator
+- Credits system: per-user balance, automatic deduction on AI use (product_discovery=5, product_validation=5, campaign=10, content=8, creative=15, video_script=10)
+- Plans: Free(50), Pro(500), Business(2000), Agency(10000) credits/month
+- `CreditsGate` component wraps every AI action button — shows credit cost badge, calls POST /api/credits/use, shows upgrade modal on 402
+- Credits page (`/dashboard/credits`): balance card with progress bar, feature cost table, full transaction history
 - Admin dashboard at `/admin/*` — Overview (stats + charts), Users (CRUD table), Analytics (Recharts area/bar/pie), Activity (platform feed)
 - Admin Overview: stat cards (users, projects, AI actions, MRR), area chart (growth), bar chart (plan distribution), recent activity
-- Admin Users: searchable/filterable table, inline edit dialog (role, plan, credits)
+- Admin Users: searchable/filterable table, inline edit dialog (role/plan/credits), separate credit adjustment dialog (amount + reason) with `useAdminAdjustCredits`; agency plan color added
 - Admin Analytics: user growth area chart, feature usage bar chart, plan revenue pie chart + adoption progress bars
 - Admin Activity: full platform activity feed with search, module badges, user info
 

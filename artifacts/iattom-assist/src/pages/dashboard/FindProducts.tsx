@@ -3,8 +3,9 @@ import { motion } from "framer-motion";
 import { Search, TrendingUp, Star, DollarSign, BarChart2, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CreditsGate } from "@/components/CreditsGate";
 
 const mockProducts = [
   { id: 1, name: "Portable Air Purifier", category: "Home & Living", score: 94, demand: "High", margin: "68%", trend: "+34%" },
@@ -29,8 +30,7 @@ export function FindProducts() {
   const [isSearching, setIsSearching] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  const handleSearch = () => {
-    if (!query.trim()) return;
+  const runSearch = () => {
     setIsSearching(true);
     setTimeout(() => {
       setIsSearching(false);
@@ -60,24 +60,28 @@ export function FindProducts() {
                   className="pl-10 bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50 text-white"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  onKeyDown={(e) => e.key === "Enter" && !isSearching && query.trim() && runSearch()}
                 />
               </div>
-              <Button
-                data-testid="button-search"
-                onClick={handleSearch}
-                disabled={isSearching}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 px-6"
-              >
-                {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
-              </Button>
+              <CreditsGate feature="product_discovery" onSuccess={runSearch} disabled={!query.trim() || isSearching}>
+                {({ trigger, isLoading }) => (
+                  <Button
+                    data-testid="button-search"
+                    onClick={trigger}
+                    disabled={isLoading || isSearching || !query.trim()}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 px-6"
+                  >
+                    {isLoading || isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
+                  </Button>
+                )}
+              </CreditsGate>
             </div>
 
             <div className="flex flex-wrap gap-2 mt-4">
               {["Trending now", "High margin", "Low competition", "Home & Living", "Fitness", "Tech accessories"].map((tag) => (
                 <button
                   key={tag}
-                  onClick={() => { setQuery(tag); }}
+                  onClick={() => setQuery(tag)}
                   className="text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-muted-foreground hover:border-primary/30 hover:text-primary transition-colors"
                 >
                   {tag}
@@ -101,12 +105,7 @@ export function FindProducts() {
             </h3>
             <span className="text-xs text-muted-foreground">{displayProducts.length} found</span>
           </div>
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
-            className="grid gap-3"
-          >
+          <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid gap-3">
             {displayProducts.map((product) => (
               <motion.div key={product.id} variants={itemVariants}>
                 <Card

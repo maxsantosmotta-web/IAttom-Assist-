@@ -9,7 +9,10 @@ import {
   ListAdminActivityResponseItem,
   GetAdminAnalyticsResponse,
   UpdateAdminUserBody,
+  AdminAdjustCreditsBody,
+  AdminAdjustCreditsResponse,
 } from "@workspace/api-zod";
+import { adjustCredits } from "../lib/credits";
 
 const router: IRouter = Router();
 
@@ -53,7 +56,9 @@ router.get("/admin/users", requireAdmin, async (req, res): Promise<void> => {
 
   const conditions = [];
   if (search) conditions.push(or(ilike(users.email, `%${search}%`), ilike(users.name, `%${search}%`)));
-  if (plan && ["free", "pro", "business"].includes(plan)) conditions.push(eq(users.plan, plan as "free" | "pro" | "business"));
+  if (plan && ["free", "pro", "business", "agency"].includes(plan)) {
+    conditions.push(eq(users.plan, plan as "free" | "pro" | "business" | "agency"));
+  }
   if (role && ["user", "admin"].includes(role)) conditions.push(eq(users.role, role as "user" | "admin"));
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -95,6 +100,32 @@ router.patch("/admin/users/:id", requireAdmin, async (req, res): Promise<void> =
   ]);
 
   res.json(UpdateAdminUserResponse.parse({ ...updated, projectCount: pc.count, actionCount: ac.count }));
+});
+
+router.post("/admin/users/:id/credits", requireAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id as string, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid user ID" }); return; }
+
+  const parsed = AdminAdjustCreditsBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+
+  const [targetUser] = await db.select().from(users).where(eq(users.id, id));
+  if (!targetUser) { res.status(404).json({ error: "User not found" }); return; }
+
+  const result = await adjustCredits(
+    targetUser.clerkId,
+    parsed.data.amount,
+    parsed.data.description,
+    parsed.data.amount >= 0 ? "credit" : "adjustment",
+  );
+  if (!result) { res.status(404).json({ error: "User not found" }); return; }
+
+  const [[pc], [ac]] = await Promise.all([
+    db.select({ count: count() }).from(projectsTable).where(eq(projectsTable.clerkUserId, result.user.clerkId)),
+    db.select({ count: count() }).from(historyTable).where(eq(historyTable.clerkUserId, result.user.clerkId)),
+  ]);
+
+  res.json(AdminAdjustCreditsResponse.parse({ ...result.user, projectCount: pc.count, actionCount: ac.count }));
 });
 
 router.get("/admin/activity", requireAdmin, async (req, res): Promise<void> => {

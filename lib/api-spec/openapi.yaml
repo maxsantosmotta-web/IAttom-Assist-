@@ -20,6 +20,8 @@ tags:
     description: Authentication helpers
   - name: admin
     description: Admin operations
+  - name: credits
+    description: Credits management
 paths:
   /healthz:
     get:
@@ -192,6 +194,68 @@ paths:
         "404":
           description: User not synced yet
 
+  /credits/balance:
+    get:
+      operationId: getCreditsBalance
+      tags: [credits]
+      summary: Get current user credits balance and plan info
+      responses:
+        "200":
+          description: Credits balance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditsBalance"
+
+  /credits/transactions:
+    get:
+      operationId: listCreditTransactions
+      tags: [credits]
+      summary: List credit transactions for current user
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Credit transactions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditTransactionList"
+
+  /credits/use:
+    post:
+      operationId: useCredits
+      tags: [credits]
+      summary: Deduct credits for an AI feature use
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UseCreditsBody"
+      responses:
+        "200":
+          description: Credits deducted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UseCreditsResult"
+        "402":
+          description: Insufficient credits
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InsufficientCreditsError"
+
   /admin/stats:
     get:
       operationId: getAdminStats
@@ -219,7 +283,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [free, pro, business]
+            enum: [free, pro, business, agency]
         - name: role
           in: query
           schema:
@@ -263,6 +327,31 @@ paths:
       responses:
         "200":
           description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+
+  /admin/users/{id}/credits:
+    post:
+      operationId: adminAdjustCredits
+      tags: [admin]
+      summary: Adjust a user's credits with a transaction record
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminAdjustCreditsBody"
+      responses:
+        "200":
+          description: Adjustment applied
           content:
             application/json:
               schema:
@@ -443,7 +532,7 @@ components:
           enum: [user, admin]
         plan:
           type: string
-          enum: [free, pro, business]
+          enum: [free, pro, business, agency]
         credits:
           type: integer
         createdAt:
@@ -457,6 +546,147 @@ components:
         - plan
         - credits
         - createdAt
+
+    CreditsBalance:
+      type: object
+      properties:
+        balance:
+          type: integer
+        plan:
+          type: string
+          enum: [free, pro, business, agency]
+        planLimit:
+          type: integer
+        percentage:
+          type: number
+        lowCredit:
+          type: boolean
+        featureCosts:
+          type: object
+          properties:
+            product_discovery:
+              type: integer
+            product_validation:
+              type: integer
+            campaign:
+              type: integer
+            content:
+              type: integer
+            creative:
+              type: integer
+            video_script:
+              type: integer
+          required:
+            - product_discovery
+            - product_validation
+            - campaign
+            - content
+            - creative
+            - video_script
+      required:
+        - balance
+        - plan
+        - planLimit
+        - percentage
+        - lowCredit
+        - featureCosts
+
+    CreditTransaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        clerkUserId:
+          type: string
+        amount:
+          type: integer
+        type:
+          type: string
+          enum: [initial, credit, debit, adjustment, refund]
+        feature:
+          type: string
+        description:
+          type: string
+        balanceBefore:
+          type: integer
+        balanceAfter:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - clerkUserId
+        - amount
+        - type
+        - description
+        - balanceBefore
+        - balanceAfter
+        - createdAt
+
+    CreditTransactionList:
+      type: object
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreditTransaction"
+        total:
+          type: integer
+        balance:
+          type: integer
+      required:
+        - transactions
+        - total
+        - balance
+
+    UseCreditsBody:
+      type: object
+      properties:
+        feature:
+          type: string
+          enum: [product_discovery, product_validation, campaign, content, creative, video_script]
+      required:
+        - feature
+
+    UseCreditsResult:
+      type: object
+      properties:
+        creditsUsed:
+          type: integer
+        newBalance:
+          type: integer
+        transactionId:
+          type: integer
+      required:
+        - creditsUsed
+        - newBalance
+        - transactionId
+
+    InsufficientCreditsError:
+      type: object
+      properties:
+        error:
+          type: string
+        balance:
+          type: integer
+        required:
+          type: integer
+      required:
+        - error
+        - balance
+        - required
+
+    AdminAdjustCreditsBody:
+      type: object
+      properties:
+        amount:
+          type: integer
+        description:
+          type: string
+      required:
+        - amount
+        - description
 
     AdminUser:
       type: object
@@ -474,7 +704,7 @@ components:
           enum: [user, admin]
         plan:
           type: string
-          enum: [free, pro, business]
+          enum: [free, pro, business, agency]
         credits:
           type: integer
         projectCount:
@@ -516,7 +746,7 @@ components:
           enum: [user, admin]
         plan:
           type: string
-          enum: [free, pro, business]
+          enum: [free, pro, business, agency]
         credits:
           type: integer
 

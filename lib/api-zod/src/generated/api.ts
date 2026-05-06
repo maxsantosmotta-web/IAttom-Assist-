@@ -189,7 +189,7 @@ export const SyncUserResponse = zod.object({
   email: zod.string(),
   name: zod.string().optional(),
   role: zod.enum(["user", "admin"]),
-  plan: zod.enum(["free", "pro", "business"]),
+  plan: zod.enum(["free", "pro", "business", "agency"]),
   credits: zod.number(),
   createdAt: zod.coerce.date(),
 });
@@ -203,9 +203,77 @@ export const GetMeResponse = zod.object({
   email: zod.string(),
   name: zod.string().optional(),
   role: zod.enum(["user", "admin"]),
-  plan: zod.enum(["free", "pro", "business"]),
+  plan: zod.enum(["free", "pro", "business", "agency"]),
   credits: zod.number(),
   createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Get current user credits balance and plan info
+ */
+export const GetCreditsBalanceResponse = zod.object({
+  balance: zod.number(),
+  plan: zod.enum(["free", "pro", "business", "agency"]),
+  planLimit: zod.number(),
+  percentage: zod.number(),
+  lowCredit: zod.boolean(),
+  featureCosts: zod.object({
+    product_discovery: zod.number(),
+    product_validation: zod.number(),
+    campaign: zod.number(),
+    content: zod.number(),
+    creative: zod.number(),
+    video_script: zod.number(),
+  }),
+});
+
+/**
+ * @summary List credit transactions for current user
+ */
+export const listCreditTransactionsQueryLimitDefault = 50;
+export const listCreditTransactionsQueryOffsetDefault = 0;
+
+export const ListCreditTransactionsQueryParams = zod.object({
+  limit: zod.coerce.number().default(listCreditTransactionsQueryLimitDefault),
+  offset: zod.coerce.number().default(listCreditTransactionsQueryOffsetDefault),
+});
+
+export const ListCreditTransactionsResponse = zod.object({
+  transactions: zod.array(
+    zod.object({
+      id: zod.number(),
+      clerkUserId: zod.string(),
+      amount: zod.number(),
+      type: zod.enum(["initial", "credit", "debit", "adjustment", "refund"]),
+      feature: zod.string().optional(),
+      description: zod.string(),
+      balanceBefore: zod.number(),
+      balanceAfter: zod.number(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+  total: zod.number(),
+  balance: zod.number(),
+});
+
+/**
+ * @summary Deduct credits for an AI feature use
+ */
+export const UseCreditsBody = zod.object({
+  feature: zod.enum([
+    "product_discovery",
+    "product_validation",
+    "campaign",
+    "content",
+    "creative",
+    "video_script",
+  ]),
+});
+
+export const UseCreditsResponse = zod.object({
+  creditsUsed: zod.number(),
+  newBalance: zod.number(),
+  transactionId: zod.number(),
 });
 
 /**
@@ -233,7 +301,7 @@ export const listAdminUsersQueryOffsetDefault = 0;
 
 export const ListAdminUsersQueryParams = zod.object({
   search: zod.coerce.string().optional(),
-  plan: zod.enum(["free", "pro", "business"]).optional(),
+  plan: zod.enum(["free", "pro", "business", "agency"]).optional(),
   role: zod.enum(["user", "admin"]).optional(),
   limit: zod.coerce.number().default(listAdminUsersQueryLimitDefault),
   offset: zod.coerce.number().default(listAdminUsersQueryOffsetDefault),
@@ -247,7 +315,7 @@ export const ListAdminUsersResponse = zod.object({
       email: zod.string(),
       name: zod.string().optional(),
       role: zod.enum(["user", "admin"]),
-      plan: zod.enum(["free", "pro", "business"]),
+      plan: zod.enum(["free", "pro", "business", "agency"]),
       credits: zod.number(),
       projectCount: zod.number(),
       actionCount: zod.number(),
@@ -266,7 +334,7 @@ export const UpdateAdminUserParams = zod.object({
 
 export const UpdateAdminUserBody = zod.object({
   role: zod.enum(["user", "admin"]).optional(),
-  plan: zod.enum(["free", "pro", "business"]).optional(),
+  plan: zod.enum(["free", "pro", "business", "agency"]).optional(),
   credits: zod.number().optional(),
 });
 
@@ -276,7 +344,32 @@ export const UpdateAdminUserResponse = zod.object({
   email: zod.string(),
   name: zod.string().optional(),
   role: zod.enum(["user", "admin"]),
-  plan: zod.enum(["free", "pro", "business"]),
+  plan: zod.enum(["free", "pro", "business", "agency"]),
+  credits: zod.number(),
+  projectCount: zod.number(),
+  actionCount: zod.number(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Adjust a user's credits with a transaction record
+ */
+export const AdminAdjustCreditsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AdminAdjustCreditsBody = zod.object({
+  amount: zod.number(),
+  description: zod.string(),
+});
+
+export const AdminAdjustCreditsResponse = zod.object({
+  id: zod.number(),
+  clerkId: zod.string(),
+  email: zod.string(),
+  name: zod.string().optional(),
+  role: zod.enum(["user", "admin"]),
+  plan: zod.enum(["free", "pro", "business", "agency"]),
   credits: zod.number(),
   projectCount: zod.number(),
   actionCount: zod.number(),
@@ -341,7 +434,7 @@ export const BootstrapAdminResponse = zod.object({
   email: zod.string(),
   name: zod.string().optional(),
   role: zod.enum(["user", "admin"]),
-  plan: zod.enum(["free", "pro", "business"]),
+  plan: zod.enum(["free", "pro", "business", "agency"]),
   credits: zod.number(),
   createdAt: zod.coerce.date(),
 });

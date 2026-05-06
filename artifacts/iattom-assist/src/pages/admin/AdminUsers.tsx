@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, ChevronDown, Loader2, Users, Edit2, Check, X } from "lucide-react";
+import { Search, Loader2, Users, Edit2, Zap, Plus, Minus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,13 +18,16 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useListAdminUsers,
   useUpdateAdminUser,
+  useAdminAdjustCredits,
   getListAdminUsersQueryKey,
 } from "@workspace/api-client-react";
+import { useToast } from "@/hooks/use-toast";
 
 const planColors: Record<string, string> = {
   free: "text-zinc-400 bg-zinc-400/10 border-zinc-400/20",
   pro: "text-primary bg-primary/10 border-primary/20",
   business: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+  agency: "text-purple-400 bg-purple-400/10 border-purple-400/20",
 };
 
 const roleColors: Record<string, string> = {
@@ -38,7 +41,7 @@ type AdminUser = {
   email: string;
   name?: string | null;
   role: "user" | "admin";
-  plan: "free" | "pro" | "business";
+  plan: "free" | "pro" | "business" | "agency";
   credits: number;
   projectCount: number;
   actionCount: number;
@@ -47,23 +50,33 @@ type AdminUser = {
 
 type EditState = {
   role: "user" | "admin";
-  plan: "free" | "pro" | "business";
+  plan: "free" | "pro" | "business" | "agency";
   credits: number;
+};
+
+type CreditAdjust = {
+  userId: number;
+  userEmail: string;
+  amount: string;
+  description: string;
 };
 
 export function AdminUsers() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [editState, setEditState] = useState<EditState>({ role: "user", plan: "free", credits: 0 });
+  const [creditAdjust, setCreditAdjust] = useState<CreditAdjust | null>(null);
 
   const updateUser = useUpdateAdminUser();
+  const adjustCredits = useAdminAdjustCredits();
 
   const params = {
     ...(search ? { search } : {}),
-    ...(planFilter !== "all" ? { plan: planFilter as "free" | "pro" | "business" } : {}),
+    ...(planFilter !== "all" ? { plan: planFilter as "free" | "pro" | "business" | "agency" } : {}),
     ...(roleFilter !== "all" ? { role: roleFilter as "user" | "admin" } : {}),
     limit: 50,
   };
@@ -77,6 +90,10 @@ export function AdminUsers() {
     setEditState({ role: user.role, plan: user.plan, credits: user.credits });
   };
 
+  const openCreditAdjust = (user: AdminUser) => {
+    setCreditAdjust({ userId: user.id, userEmail: user.email, amount: "", description: "" });
+  };
+
   const handleSave = () => {
     if (!editingUser) return;
     updateUser.mutate(
@@ -85,6 +102,30 @@ export function AdminUsers() {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListAdminUsersQueryKey() });
           setEditingUser(null);
+        },
+      },
+    );
+  };
+
+  const handleCreditAdjust = () => {
+    if (!creditAdjust) return;
+    const amount = parseInt(creditAdjust.amount, 10);
+    if (isNaN(amount) || amount === 0) return;
+    if (!creditAdjust.description.trim()) return;
+
+    adjustCredits.mutate(
+      {
+        id: creditAdjust.userId,
+        data: { amount, description: creditAdjust.description },
+      },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListAdminUsersQueryKey() });
+          setCreditAdjust(null);
+          toast({ description: `Credits ${amount > 0 ? "added" : "removed"} successfully.` });
+        },
+        onError: () => {
+          toast({ description: "Failed to adjust credits.", variant: "destructive" });
         },
       },
     );
@@ -120,6 +161,7 @@ export function AdminUsers() {
             <SelectItem value="free">Free</SelectItem>
             <SelectItem value="pro">Pro</SelectItem>
             <SelectItem value="business">Business</SelectItem>
+            <SelectItem value="agency">Agency</SelectItem>
           </SelectContent>
         </Select>
         <Select value={roleFilter} onValueChange={setRoleFilter}>
@@ -197,7 +239,7 @@ export function AdminUsers() {
                           </Badge>
                         </td>
                         <td className="px-4 py-3">
-                          <Badge variant="outline" className={`text-xs capitalize ${planColors[user.plan]}`}>
+                          <Badge variant="outline" className={`text-xs capitalize ${planColors[user.plan] ?? planColors.free}`}>
                             {user.plan}
                           </Badge>
                         </td>
@@ -208,12 +250,22 @@ export function AdminUsers() {
                           {new Date(user.createdAt).toLocaleDateString()}
                         </td>
                         <td className="px-4 py-3">
-                          <button
-                            onClick={() => openEdit(user)}
-                            className="text-muted-foreground hover:text-primary transition-colors p-1"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => openCreditAdjust(user)}
+                              title="Adjust credits"
+                              className="text-muted-foreground hover:text-primary transition-colors p-1"
+                            >
+                              <Zap className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => openEdit(user)}
+                              title="Edit user"
+                              className="text-muted-foreground hover:text-primary transition-colors p-1"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -253,20 +305,21 @@ export function AdminUsers() {
               <Label className="text-xs text-muted-foreground">Plan</Label>
               <Select
                 value={editState.plan}
-                onValueChange={(v) => setEditState((s) => ({ ...s, plan: v as "free" | "pro" | "business" }))}
+                onValueChange={(v) => setEditState((s) => ({ ...s, plan: v as "free" | "pro" | "business" | "agency" }))}
               >
                 <SelectTrigger className="bg-[#0a0a0a] border-white/10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-[#111111] border-white/10">
-                  <SelectItem value="free">Free</SelectItem>
-                  <SelectItem value="pro">Pro — $79/mo</SelectItem>
-                  <SelectItem value="business">Business — $199/mo</SelectItem>
+                  <SelectItem value="free">Free — 50 credits</SelectItem>
+                  <SelectItem value="pro">Pro — $79/mo — 500 credits</SelectItem>
+                  <SelectItem value="business">Business — $199/mo — 2,000 credits</SelectItem>
+                  <SelectItem value="agency">Agency — $499/mo — 10,000 credits</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Credits</Label>
+              <Label className="text-xs text-muted-foreground">Credits (direct set)</Label>
               <Input
                 type="number"
                 value={editState.credits}
@@ -286,6 +339,77 @@ export function AdminUsers() {
               className="bg-primary text-black hover:bg-primary/90 font-semibold"
             >
               {updateUser.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!creditAdjust} onOpenChange={(open) => !open && setCreditAdjust(null)}>
+        <DialogContent className="bg-[#111111] border-white/10 text-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Zap className="w-4 h-4 text-primary" />
+              Adjust Credits
+            </DialogTitle>
+            {creditAdjust && (
+              <p className="text-xs text-muted-foreground">{creditAdjust.userEmail}</p>
+            )}
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Amount (positive = add, negative = remove)</Label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCreditAdjust((s) => s ? { ...s, amount: s.amount.startsWith("-") ? s.amount.slice(1) : s.amount } : s)}
+                  className="px-3 py-2 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+                <Input
+                  type="number"
+                  placeholder="e.g. 100 or -50"
+                  value={creditAdjust?.amount ?? ""}
+                  onChange={(e) => setCreditAdjust((s) => s ? { ...s, amount: e.target.value } : s)}
+                  className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50 flex-1"
+                />
+                <button
+                  onClick={() => setCreditAdjust((s) => {
+                    if (!s) return s;
+                    const val = s.amount.replace("-", "");
+                    return { ...s, amount: val ? `-${val}` : "" };
+                  })}
+                  className="px-3 py-2 rounded-md bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Reason / Description</Label>
+              <Input
+                placeholder="e.g. Manual top-up by admin"
+                value={creditAdjust?.description ?? ""}
+                onChange={(e) => setCreditAdjust((s) => s ? { ...s, description: e.target.value } : s)}
+                className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCreditAdjust(null)} className="text-muted-foreground">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreditAdjust}
+              disabled={
+                adjustCredits.isPending ||
+                !creditAdjust?.amount ||
+                isNaN(parseInt(creditAdjust.amount, 10)) ||
+                parseInt(creditAdjust.amount, 10) === 0 ||
+                !creditAdjust.description.trim()
+              }
+              className="bg-primary text-black hover:bg-primary/90 font-semibold"
+            >
+              {adjustCredits.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply Adjustment"}
             </Button>
           </DialogFooter>
         </DialogContent>
