@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { CreditsGate } from "@/components/CreditsGate";
@@ -24,8 +23,11 @@ export function VideoScripts() {
   const isDone = status === "done";
   const isError = status === "error";
 
-  const runGenerate = () => {
-    generate("/api/ai/video-script", { product, format: format || undefined, duration: duration || undefined, style: style || undefined });
+  // charge() is provided by CreditsGate and called only after AI returns a result.
+  const runGenerate = (charge: () => void) => {
+    generate("/api/ai/video-script", { product, format: format || undefined, duration: duration || undefined, style: style || undefined }).then((res) => {
+      if (res !== null) charge();
+    });
   };
 
   const copyFull = () => {
@@ -57,41 +59,47 @@ export function VideoScripts() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm text-muted-foreground">Video Format</Label>
-                <Select onValueChange={setFormat}>
-                  <SelectTrigger className="bg-[#0a0a0a] border-white/10"><SelectValue placeholder="Select format" /></SelectTrigger>
-                  <SelectContent className="bg-[#111111] border-white/10">
-                    <SelectItem value="TikTok / Reels hook ad">TikTok / Reels Hook Ad</SelectItem>
-                    <SelectItem value="Facebook / Instagram ad">Facebook / Instagram Ad</SelectItem>
-                    <SelectItem value="YouTube pre-roll ad">YouTube Pre-roll Ad</SelectItem>
-                    <SelectItem value="UGC authentic review">UGC Authentic Review</SelectItem>
-                    <SelectItem value="Brand story video">Brand Story Video</SelectItem>
-                  </SelectContent>
-                </Select>
+                <select
+                  value={format}
+                  onChange={(e) => setFormat(e.target.value)}
+                  className="w-full h-9 rounded-md border border-white/10 bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0"
+                >
+                  <option value="" disabled>Select format</option>
+                  <option value="TikTok / Reels hook ad">TikTok / Reels Hook Ad</option>
+                  <option value="Facebook / Instagram ad">Facebook / Instagram Ad</option>
+                  <option value="YouTube pre-roll ad">YouTube Pre-roll Ad</option>
+                  <option value="UGC authentic review">UGC Authentic Review</option>
+                  <option value="Brand story video">Brand Story Video</option>
+                </select>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm text-muted-foreground">Duration</Label>
-                <Select onValueChange={setDuration}>
-                  <SelectTrigger className="bg-[#0a0a0a] border-white/10"><SelectValue placeholder="Select duration" /></SelectTrigger>
-                  <SelectContent className="bg-[#111111] border-white/10">
-                    <SelectItem value="15s">15s — Quick Hook</SelectItem>
-                    <SelectItem value="30s">30s — Standard Ad</SelectItem>
-                    <SelectItem value="60s">60s — Story Format</SelectItem>
-                    <SelectItem value="90s">90s — Extended</SelectItem>
-                  </SelectContent>
-                </Select>
+                <select
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  className="w-full h-9 rounded-md border border-white/10 bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0"
+                >
+                  <option value="" disabled>Select duration</option>
+                  <option value="15s">15s — Quick Hook</option>
+                  <option value="30s">30s — Standard Ad</option>
+                  <option value="60s">60s — Story Format</option>
+                  <option value="90s">90s — Extended</option>
+                </select>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm text-muted-foreground">Style (optional)</Label>
-                <Select onValueChange={setStyle}>
-                  <SelectTrigger className="bg-[#0a0a0a] border-white/10"><SelectValue placeholder="Select style" /></SelectTrigger>
-                  <SelectContent className="bg-[#111111] border-white/10">
-                    <SelectItem value="High energy fast-paced">High Energy Fast-Paced</SelectItem>
-                    <SelectItem value="Cinematic storytelling">Cinematic Storytelling</SelectItem>
-                    <SelectItem value="Conversational authentic">Conversational Authentic</SelectItem>
-                    <SelectItem value="Problem-solution">Problem → Solution</SelectItem>
-                    <SelectItem value="Testimonial social proof">Testimonial / Social Proof</SelectItem>
-                  </SelectContent>
-                </Select>
+                <select
+                  value={style}
+                  onChange={(e) => setStyle(e.target.value)}
+                  className="w-full h-9 rounded-md border border-white/10 bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0"
+                >
+                  <option value="" disabled>Select style</option>
+                  <option value="High energy fast-paced">High Energy Fast-Paced</option>
+                  <option value="Cinematic storytelling">Cinematic Storytelling</option>
+                  <option value="Conversational authentic">Conversational Authentic</option>
+                  <option value="Problem-solution">Problem → Solution</option>
+                  <option value="Testimonial social proof">Testimonial / Social Proof</option>
+                </select>
               </div>
             </div>
             <CreditsGate feature="video_script" onSuccess={runGenerate} disabled={!product.trim() || isGenerating}>
@@ -122,7 +130,7 @@ export function VideoScripts() {
               <CardContent className="p-5 flex items-center gap-4">
                 <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
                 <div className="flex-1"><p className="text-sm font-semibold text-red-400">Generation failed</p><p className="text-xs text-muted-foreground">{error}</p></div>
-                <Button size="sm" variant="outline" onClick={() => { reset(); runGenerate(); }} className="border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0"><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry</Button>
+                <Button size="sm" variant="outline" onClick={() => { reset(); generate("/api/ai/video-script", { product, format: format || undefined, duration: duration || undefined, style: style || undefined }); }} className="border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0"><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry</Button>
               </CardContent>
             </Card>
           </motion.div>
@@ -144,7 +152,6 @@ export function VideoScripts() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-5">
-                {/* Production notes */}
                 {(result.voiceoverStyle || result.musicMood || result.editingPace) && (
                   <div className="grid grid-cols-3 gap-3">
                     {result.voiceoverStyle && (
@@ -168,7 +175,6 @@ export function VideoScripts() {
                   </div>
                 )}
 
-                {/* Hooks */}
                 {result.hooks?.length > 0 && (
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3 font-medium">Hook Variations</p>
@@ -189,7 +195,6 @@ export function VideoScripts() {
                   </div>
                 )}
 
-                {/* Viral trigger */}
                 {result.viralTrigger && (
                   <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/15">
                     <Zap className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
@@ -200,7 +205,6 @@ export function VideoScripts() {
                   </div>
                 )}
 
-                {/* Scenes */}
                 {result.scenes?.length > 0 && (
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3 font-medium">Scene Breakdown</p>
@@ -234,7 +238,6 @@ export function VideoScripts() {
                   </div>
                 )}
 
-                {/* Distribution tips */}
                 {result.distributionTips?.length > 0 && (
                   <div className="border-t border-white/5 pt-4">
                     <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3 font-medium flex items-center gap-1.5"><Share2 className="w-3.5 h-3.5" /> Distribution Tips</p>

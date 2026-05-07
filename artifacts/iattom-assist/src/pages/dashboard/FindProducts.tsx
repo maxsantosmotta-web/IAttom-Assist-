@@ -34,13 +34,17 @@ export function FindProducts() {
   const isDone = status === "done";
   const isError = status === "error";
 
-  const runSearch = () => {
-    generate("/api/ai/find-products", { query, niche: niche || undefined });
+  // charge() is provided by CreditsGate and called only after AI returns a result.
+  const runSearch = (charge: () => void) => {
+    generate("/api/ai/find-products", { query, niche: niche || undefined }).then((res) => {
+      if (res !== null) charge();
+    });
   };
 
   const handleRetry = () => {
     reset();
-    runSearch();
+    // Retry does not re-charge credits — it re-runs the same prompt freely.
+    generate("/api/ai/find-products", { query, niche: niche || undefined });
   };
 
   return (
@@ -62,7 +66,6 @@ export function FindProducts() {
                   className="pl-10 bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50 text-white"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && !isGenerating && query.trim() && runSearch()}
                 />
               </div>
               <CreditsGate feature="product_discovery" onSuccess={runSearch} disabled={!query.trim() || isGenerating}>

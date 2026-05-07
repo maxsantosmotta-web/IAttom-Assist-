@@ -49,15 +49,25 @@ export function ValidateProducts() {
   const isDone = status === "done";
   const isError = status === "error";
 
-  const runValidation = () => {
+  // charge() is provided by CreditsGate and called only after AI returns a result.
+  const runValidation = (charge: () => void) => {
+    generate("/api/ai/validate-product", {
+      productName,
+      description: description || undefined,
+      targetMarket: targetMarket || undefined,
+    }).then((res) => {
+      if (res !== null) charge();
+    });
+  };
+
+  const handleRetry = () => {
+    reset();
     generate("/api/ai/validate-product", {
       productName,
       description: description || undefined,
       targetMarket: targetMarket || undefined,
     });
   };
-
-  const handleRetry = () => { reset(); runValidation(); };
 
   return (
     <div className="space-y-8">

@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-
 import { useToast } from "@/hooks/use-toast";
 import { CreditsGate } from "@/components/CreditsGate";
 import { useAiStream } from "@/hooks/useAiStream";
@@ -101,8 +100,11 @@ export function CreativeGenerator() {
   const isDone = status === "done";
   const isError = status === "error";
 
-  const runGenerate = () => {
-    generate("/api/ai/creative-ideas", { prompt, style: style || undefined, targetAudience: targetAudience || undefined });
+  // charge() is provided by CreditsGate and called only after AI returns a result.
+  const runGenerate = (charge: () => void) => {
+    generate("/api/ai/creative-ideas", { prompt, style: style || undefined, targetAudience: targetAudience || undefined }).then((res) => {
+      if (res !== null) charge();
+    });
   };
 
   return (
@@ -169,7 +171,7 @@ export function CreativeGenerator() {
               <CardContent className="p-5 flex items-center gap-4">
                 <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
                 <div className="flex-1"><p className="text-sm font-semibold text-red-400">Generation failed</p><p className="text-xs text-muted-foreground">{error}</p></div>
-                <Button size="sm" variant="outline" onClick={() => { reset(); runGenerate(); }} className="border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0"><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry</Button>
+                <Button size="sm" variant="outline" onClick={() => { reset(); generate("/api/ai/creative-ideas", { prompt, style: style || undefined, targetAudience: targetAudience || undefined }); }} className="border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0"><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry</Button>
               </CardContent>
             </Card>
           </motion.div>

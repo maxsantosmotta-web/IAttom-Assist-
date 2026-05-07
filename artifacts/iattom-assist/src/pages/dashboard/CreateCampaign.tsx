@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { CreditsGate } from "@/components/CreditsGate";
 import { useAiStream } from "@/hooks/useAiStream";
@@ -56,8 +55,11 @@ export function CreateCampaign() {
   const isDone = status === "done";
   const isError = status === "error";
 
-  const runGenerate = () => {
-    generate("/api/ai/create-campaign", { product, audience: audience || undefined, goal: goal || undefined });
+  // charge() is provided by CreditsGate and called only after AI returns a result.
+  const runGenerate = (charge: () => void) => {
+    generate("/api/ai/create-campaign", { product, audience: audience || undefined, goal: goal || undefined }).then((res) => {
+      if (res !== null) charge();
+    });
   };
 
   const copyAll = (text: string) => {
@@ -86,18 +88,18 @@ export function CreateCampaign() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm text-muted-foreground">Campaign Goal</Label>
-                <Select onValueChange={setGoal}>
-                  <SelectTrigger className="bg-[#0a0a0a] border-white/10 focus:ring-primary/50">
-                    <SelectValue placeholder="Select goal" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#111111] border-white/10">
-                    <SelectItem value="Drive sales">Drive Sales</SelectItem>
-                    <SelectItem value="Brand Awareness">Brand Awareness</SelectItem>
-                    <SelectItem value="Lead Generation">Lead Generation</SelectItem>
-                    <SelectItem value="Website Traffic">Website Traffic</SelectItem>
-                    <SelectItem value="App Installs">App Installs</SelectItem>
-                  </SelectContent>
-                </Select>
+                <select
+                  value={goal}
+                  onChange={(e) => setGoal(e.target.value)}
+                  className="w-full h-9 rounded-md border border-white/10 bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0"
+                >
+                  <option value="" disabled>Select goal</option>
+                  <option value="Drive sales">Drive Sales</option>
+                  <option value="Brand Awareness">Brand Awareness</option>
+                  <option value="Lead Generation">Lead Generation</option>
+                  <option value="Website Traffic">Website Traffic</option>
+                  <option value="App Installs">App Installs</option>
+                </select>
               </div>
             </div>
             <div className="space-y-1.5">
@@ -134,7 +136,7 @@ export function CreateCampaign() {
               <CardContent className="p-5 flex items-center gap-4">
                 <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
                 <div className="flex-1"><p className="text-sm font-semibold text-red-400">Generation failed</p><p className="text-xs text-muted-foreground mt-0.5">{error}</p></div>
-                <Button size="sm" variant="outline" onClick={() => { reset(); runGenerate(); }} className="border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0"><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry</Button>
+                <Button size="sm" variant="outline" onClick={() => { reset(); generate("/api/ai/create-campaign", { product, audience: audience || undefined, goal: goal || undefined }); }} className="border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0"><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry</Button>
               </CardContent>
             </Card>
           </motion.div>
@@ -153,7 +155,6 @@ export function CreateCampaign() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-5">
-                {/* Headline */}
                 <div className="p-4 rounded-lg bg-primary/5 border border-primary/15">
                   <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Headline</p>
                   <p className="text-white font-bold text-lg leading-snug">{result.headline}</p>
@@ -161,7 +162,6 @@ export function CreateCampaign() {
                   {result.cta && <p className="text-primary text-sm font-semibold mt-2">CTA: {result.cta}</p>}
                 </div>
 
-                {/* Strategy info */}
                 <div className="grid md:grid-cols-3 gap-4">
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1.5 flex items-center gap-1"><Target className="w-3 h-3" /> Audience</p>
@@ -186,7 +186,6 @@ export function CreateCampaign() {
                   </div>
                 )}
 
-                {/* Platform copy */}
                 {result.copy && (
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3 font-medium">Platform Copy</p>

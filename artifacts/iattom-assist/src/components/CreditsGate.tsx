@@ -10,7 +10,9 @@ import { PlanComparisonModal } from "@/components/PlanComparisonModal";
 
 interface CreditsGateProps {
   feature: FeatureKey;
-  onSuccess: () => void;
+  // charge() is passed to the caller and must be called AFTER AI succeeds.
+  // Credits are NOT deducted until charge() is invoked.
+  onSuccess: (charge: () => void) => void;
   disabled?: boolean;
   children: (props: { trigger: () => void; isLoading: boolean }) => React.ReactNode;
 }
@@ -34,9 +36,9 @@ export function CreditsGate({ feature, onSuccess, disabled, children }: CreditsG
     mutation: {
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: getGetCreditsBalanceQueryKey() });
-        onSuccess();
       },
       onError: (err: unknown) => {
+        // 402 can still happen if client-side balance was stale at trigger time
         const apiErr = err as { status?: number; data?: Record<string, unknown> };
         if (apiErr?.status === 402) {
           const data = apiErr.data ?? {};
@@ -51,7 +53,14 @@ export function CreditsGate({ feature, onSuccess, disabled, children }: CreditsG
 
   const trigger = () => {
     if (disabled) return;
-    mutation.mutate({ data: { feature } });
+    // Pre-check balance client-side to show modal immediately if clearly insufficient.
+    // Server still validates on charge() — this is just a UX shortcut.
+    if (balanceData && balanceData.balance < cost) {
+      setInsufficient({ balance: balanceData.balance, required: cost });
+      return;
+    }
+    // Fire AI immediately. charge() is called by the module only on success.
+    onSuccess(() => mutation.mutate({ data: { feature } }));
   };
 
   const currentPlan = balanceData?.plan ?? "free";
