@@ -1,18 +1,17 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles } from "lucide-react";
-import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
+import { ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
 import { Logo } from "@/components/ui/Logo";
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
+  hidden: { opacity: 0, y: 28 },
   show: { opacity: 1, y: 0 },
 };
 
 const stagger = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.09 } },
+  show: { transition: { staggerChildren: 0.12 } },
 };
 
 export function LandingPage() {
@@ -20,8 +19,8 @@ export function LandingPage() {
     <div className="min-h-screen bg-[#080808] flex flex-col selection:bg-primary/25 selection:text-white">
 
       {/* ─── NAVBAR ─── */}
-      <header className="fixed top-0 inset-x-0 z-50 bg-[#080808]/88 backdrop-blur-xl border-b border-white/[0.055]">
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 h-16 flex items-center">
+      <header className="fixed top-0 inset-x-0 z-50 bg-[#080808]/80 backdrop-blur-2xl border-b border-white/[0.05]">
+        <div className="max-w-6xl mx-auto px-6 sm:px-8 h-16 flex items-center">
           <Logo size={30} showWordmark />
         </div>
       </header>
@@ -29,55 +28,56 @@ export function LandingPage() {
       <main className="flex-1 pt-16">
 
         {/* ─── HERO ─── */}
-        <section className="relative pt-24 pb-32 sm:pt-28 sm:pb-40 overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,_rgba(201,168,76,0.18)_0%,_transparent_65%)] pointer-events-none" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_45%_45%_at_80%_90%,_rgba(201,168,76,0.05)_0%,_transparent_60%)] pointer-events-none" />
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.012)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.012)_1px,transparent_1px)] bg-[size:72px_72px] pointer-events-none" />
+        <section className="relative flex items-center min-h-[92vh] overflow-hidden">
 
-          <div className="max-w-6xl mx-auto px-5 sm:px-6 relative z-10">
+          {/* ambient glow */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_50%_-5%,_rgba(201,168,76,0.16)_0%,_transparent_68%)] pointer-events-none" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_40%_40%_at_85%_95%,_rgba(201,168,76,0.045)_0%,_transparent_65%)] pointer-events-none" />
+
+          {/* subtle grid */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.011)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.011)_1px,transparent_1px)] bg-[size:80px_80px] pointer-events-none" />
+
+          <div className="max-w-5xl mx-auto px-6 sm:px-8 py-28 sm:py-36 relative z-10 w-full">
             <motion.div
               variants={stagger}
               initial="hidden"
               animate="show"
-              className="max-w-4xl mx-auto text-center space-y-7 sm:space-y-9"
+              className="max-w-3xl mx-auto text-center space-y-8 sm:space-y-10"
             >
-              <motion.div variants={fadeUp} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}>
-                <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/25 text-primary text-[11px] font-bold tracking-widest uppercase">
-                  <Sparkles className="w-3 h-3" />
-                  Plataforma Privada de Negócios
-                </span>
-              </motion.div>
 
+              {/* headline */}
               <motion.h1
                 variants={fadeUp}
-                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                className="text-[42px] sm:text-6xl md:text-[76px] font-black tracking-[-0.035em] text-white leading-[1.04] px-1 sm:px-4"
+                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                className="text-[44px] sm:text-[64px] md:text-[80px] font-black tracking-[-0.038em] text-white leading-[1.02] px-2"
               >
-                Crie, valide e escale{" "}
+                Menos achismo.{" "}
                 <br className="hidden sm:block" />
-                <span className="bg-gradient-to-r from-[#F0DC8A] via-[#C9A84C] to-[#9A6F28] bg-clip-text text-transparent">
-                  com decisões precisas.
+                <span className="bg-gradient-to-r from-[#F2E08E] via-[#C9A84C] to-[#9A6F28] bg-clip-text text-transparent">
+                  Mais resultado.
                 </span>
               </motion.h1>
 
+              {/* supporting description */}
               <motion.p
                 variants={fadeUp}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="text-[15px] sm:text-base md:text-lg text-zinc-400 max-w-xl sm:max-w-2xl mx-auto leading-relaxed px-2"
+                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                className="text-[15px] sm:text-base text-zinc-500 max-w-md sm:max-w-lg mx-auto leading-relaxed tracking-wide"
               >
-                Uma plataforma completa para fundadores e equipes que recusam construir no achismo.
-                Estratégia, validação e execução — tudo em um único lugar.
+                Inteligência estruturada para fundadores que constroem com precisão —
+                da validação à execução.
               </motion.p>
 
+              {/* CTA buttons */}
               <motion.div
                 variants={fadeUp}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 px-4 sm:px-0"
+                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2"
               >
                 <Link href="/sign-up" className="w-full sm:w-auto">
                   <Button
                     size="lg"
-                    className="w-full sm:w-auto h-12 px-8 text-sm bg-primary text-black hover:bg-primary/90 font-black rounded-lg shadow-[0_0_50px_-8px_rgba(201,168,76,0.55)] hover:shadow-[0_0_70px_-8px_rgba(201,168,76,0.7)] transition-all duration-300"
+                    className="w-full sm:w-auto h-12 px-9 text-[13px] bg-primary text-black hover:bg-primary/90 font-black rounded-lg shadow-[0_0_55px_-10px_rgba(201,168,76,0.55)] hover:shadow-[0_0_75px_-10px_rgba(201,168,76,0.7)] transition-all duration-300 tracking-wide"
                   >
                     Começar Agora <ArrowRight className="ml-2 w-4 h-4" />
                   </Button>
@@ -86,12 +86,13 @@ export function LandingPage() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="w-full sm:w-auto h-12 px-8 text-sm border-white/10 bg-white/[0.03] text-zinc-300 hover:bg-white/[0.07] hover:text-white rounded-lg transition-all"
+                    className="w-full sm:w-auto h-12 px-9 text-[13px] border-white/[0.08] bg-white/[0.025] text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-200 rounded-lg transition-all tracking-wide"
                   >
                     Já tenho conta
                   </Button>
                 </Link>
               </motion.div>
+
             </motion.div>
           </div>
         </section>
@@ -99,8 +100,8 @@ export function LandingPage() {
       </main>
 
       {/* ─── FOOTER ─── */}
-      <footer className="border-t border-white/[0.055] bg-[#060606]">
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 py-8 text-center">
+      <footer className="border-t border-white/[0.05] bg-[#060606]">
+        <div className="max-w-6xl mx-auto px-6 sm:px-8 py-8 text-center">
           <p className="text-xs text-zinc-700">
             &copy; {new Date().getFullYear()} IAttom Assist. Todos os direitos reservados.
           </p>
