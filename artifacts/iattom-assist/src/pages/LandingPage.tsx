@@ -51,10 +51,10 @@ export function LandingPage() {
                 transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
                 className="text-[44px] sm:text-[64px] md:text-[80px] font-black tracking-[-0.038em] text-white leading-[1.02] px-2"
               >
-                Menos achismo.{" "}
+                Um passo sólido vale mais{" "}
                 <br className="hidden sm:block" />
                 <span className="bg-gradient-to-r from-[#F2E08E] via-[#C9A84C] to-[#9A6F28] bg-clip-text text-transparent">
-                  Mais resultado.
+                  do que cem recomeços.
                 </span>
               </motion.h1>
 
@@ -64,8 +64,7 @@ export function LandingPage() {
                 transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
                 className="text-[15px] sm:text-base text-zinc-500 max-w-md sm:max-w-lg mx-auto leading-relaxed tracking-wide"
               >
-                Inteligência estruturada para fundadores que constroem com precisão —
-                da validação à execução.
+                Sua concorrência já usa inteligência artificial.
               </motion.p>
 
               {/* CTA buttons */}
