@@ -1,0 +1,134 @@
+Refine ONLY the public landing page UX/UI and visible marketing sections of IAttom Assist.
+
+CRITICAL:
+Do NOT touch:
+- auth
+- login
+- backend
+- database
+- Stripe
+- credits logic
+- routes
+- module execution
+- dashboard internal system
+- APIs
+- generation engine
+
+Do NOT redesign the visual identity.
+Keep:
+- premium black/gold aesthetic
+- typography
+- spacing system
+- buttons
+- overall visual structure
+
+OBJECTIVE:
+Transform the landing page into a PREMIUM PRIVATE BUSINESS PLATFORM.
+Less “AI tool”.
+More “exclusive operating system”.
+
+REMOVE COMPLETELY these sections from landing page:
+
+1. Entire metrics/stats section:
+- “6 módulos especializados”
+- “GPT-5 Tecnologia de ponta”
+- “100% Dados privados”
+- “4 Planos disponíveis”
+
+2. Entire “Como Funciona” section:
+- “Da ideia à execução em três passos”
+- all step cards
+- all numbered blocks 01 02 03
+
+3. Remove ALL mentions of:
+- GPT-5
+- inteligência artificial de última geração
+- IA generativa
+- modelo de IA
+- tecnologia GPT
+- engine
+- AI powered
+- powered by AI
+
+4. Remove footer technical line:
+- “Tecnologia GPT-5”
+- “Segurança de nível empresarial”
+
+5. Remove duplicated CTA block at the bottom.
+Keep ONLY ONE final CTA section.
+
+6. Remove excessive explanatory copy.
+Shorter. More premium. More direct.
+
+KEEP ONLY these landing sections in this order:
+
+1. Hero section
+2. Modules section
+3. Testimonials/results
+4. Pricing
+5. FAQ
+6. Final CTA
+7. Minimal footer
+
+PRICING FIXES:
+
+START plan:
+- remove $0
+- set START price to R$19,90/mês
+- remove anything related to free/free forever
+
+PRO:
+- R$89/mês
+
+BUSINESS:
+- R$197/mês
+
+AGENCY:
+- R$497/mês
+
+Use Brazilian currency formatting everywhere.
+
+COPY DIRECTION:
+The platform should feel:
+- premium
+- private
+- strategic
+- executive
+- high value
+
+NOT:
+- robotic
+- tutorial-like
+- generic AI SaaS
+- developer-focused
+
+FINAL CTA:
+Keep only:
+Headline:
+“Sua concorrência já usa inteligência artificial.”
+
+Subheadline:
+“Acesse a plataforma completa e transforme a forma como você cria, valida e escala negócios.”
+
+Buttons:
+- “Começar Agora”
+- “Já tenho conta”
+
+FOOTER:
+Make footer ultra minimal:
+- logo
+- copyright
+- nothing else
+
+IMPORTANT:
+Do NOT create new sections.
+Do NOT add random marketing text.
+Do NOT duplicate blocks.
+Do NOT break mobile responsiveness.
+
+After finishing:
+- rebuild frontend
+- restart app
+- confirm all removed sections
+- confirm pricing updated
+- confirm mobile layout preserved

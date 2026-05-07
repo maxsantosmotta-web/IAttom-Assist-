@@ -1,8 +1,8 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
-  ArrowRight, BarChart3, Shield, Sparkles, Target, Zap, Check,
-  ChevronDown, Play, TrendingUp, Users, Brain, Rocket, Star, Globe,
+  ArrowRight, BarChart3, Sparkles, Target, Check,
+  ChevronDown, Play, Users, Brain, Rocket, Star,
 } from "lucide-react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { useRef, useState } from "react";
@@ -55,7 +55,7 @@ const modules = [
   {
     icon: Target,
     title: "Buscar Produtos",
-    desc: "Descubra oportunidades de mercado com alta demanda e baixa concorrência, antes que qualquer um perceba.",
+    desc: "Descubra oportunidades com alta demanda e baixa concorrência antes que o mercado perceba.",
     accent: "text-primary",
     bg: "bg-primary/8 border-primary/15",
     glow: "group-hover:shadow-[0_0_40px_-8px_rgba(201,168,76,0.28)]",
@@ -64,7 +64,7 @@ const modules = [
   {
     icon: BarChart3,
     title: "Validar Mercados",
-    desc: "Analise viabilidade com modelos reais de audiência. Elimine ideias fracas antes de investir um único real.",
+    desc: "Analise viabilidade com profundidade real. Elimine riscos antes de investir tempo e capital.",
     accent: "text-blue-400",
     bg: "bg-blue-400/8 border-blue-400/15",
     glow: "group-hover:shadow-[0_0_40px_-8px_rgba(96,165,250,0.22)]",
@@ -73,7 +73,7 @@ const modules = [
   {
     icon: Rocket,
     title: "Criar Campanhas",
-    desc: "Campanhas de funil completo adaptadas ao seu nicho — segmentação, mensagem e estratégia de canal prontas.",
+    desc: "Estratégias de funil completo adaptadas ao seu nicho — segmentação, mensagem e canal definidos.",
     accent: "text-amber-400",
     bg: "bg-amber-400/8 border-amber-400/15",
     glow: "group-hover:shadow-[0_0_40px_-8px_rgba(251,191,36,0.22)]",
@@ -82,7 +82,7 @@ const modules = [
   {
     icon: Brain,
     title: "Criar Conteúdo",
-    desc: "Posts, e-mails, copy de landing page e conteúdo social otimizados para SEO e focados em conversão.",
+    desc: "Textos, e-mails e copy de conversão para todos os canais — diretos, estratégicos e acionáveis.",
     accent: "text-emerald-400",
     bg: "bg-emerald-400/8 border-emerald-400/15",
     glow: "group-hover:shadow-[0_0_40px_-8px_rgba(52,211,153,0.22)]",
@@ -91,7 +91,7 @@ const modules = [
   {
     icon: Sparkles,
     title: "Gerador Criativo",
-    desc: "Conceitos de campanha, briefings visuais e direção de marca com qualidade de agência — em minutos.",
+    desc: "Conceitos de campanha, briefings visuais e direção de marca com qualidade de agência.",
     accent: "text-purple-400",
     bg: "bg-purple-400/8 border-purple-400/15",
     glow: "group-hover:shadow-[0_0_40px_-8px_rgba(192,132,252,0.22)]",
@@ -100,7 +100,7 @@ const modules = [
   {
     icon: Play,
     title: "Scripts de Vídeo",
-    desc: "Scripts prontos para YouTube, TikTok e anúncios — com gancho forte, narrativa envolvente e CTA que converte.",
+    desc: "Scripts para YouTube, TikTok e anúncios com gancho forte, narrativa clara e chamada para ação.",
     accent: "text-rose-400",
     bg: "bg-rose-400/8 border-rose-400/15",
     glow: "group-hover:shadow-[0_0_40px_-8px_rgba(251,113,133,0.22)]",
@@ -108,32 +108,11 @@ const modules = [
   },
 ];
 
-const steps = [
-  {
-    num: "01",
-    title: "Descreva seu objetivo",
-    desc: "Diga o que você quer criar, validar ou lançar. Nenhum conhecimento técnico necessário.",
-    icon: Brain,
-  },
-  {
-    num: "02",
-    title: "Inteligência em segundos",
-    desc: "O GPT-5 processa sua entrada com padrões reais de mercado e entrega resultados estruturados e acionáveis.",
-    icon: Zap,
-  },
-  {
-    num: "03",
-    title: "Execute com precisão",
-    desc: "Salve no seu espaço privado, refine e passe da ideia à execução em minutos — não semanas.",
-    icon: Rocket,
-  },
-];
-
 const testimonials = [
   {
     name: "Marcus Chen",
     role: "Fundador, Apex Digital",
-    quote: "O módulo de busca de produtos revelou uma oportunidade de R$ 10M em um setor que jamais teríamos considerado. Pagou o investimento mais de 50 vezes.",
+    quote: "O módulo de busca de produtos revelou uma oportunidade em um setor que jamais teríamos considerado. Pagou o investimento mais de 50 vezes.",
     stars: 5,
     initials: "MC",
     color: "bg-primary/20 text-primary",
@@ -141,7 +120,7 @@ const testimonials = [
   {
     name: "Priya Sharma",
     role: "CEO, LaunchStack",
-    quote: "Validamos três ideias de produto em uma tarde. Duas teriam sido desastres. A terceira se tornou nosso maior fluxo de receita. A precisão da análise é impressionante.",
+    quote: "Validamos três ideias de produto em uma tarde. Duas teriam sido desastres. A terceira se tornou nosso maior fluxo de receita.",
     stars: 5,
     initials: "PS",
     color: "bg-blue-400/20 text-blue-400",
@@ -149,7 +128,7 @@ const testimonials = [
   {
     name: "Jordan Williams",
     role: "Growth Lead, Nomad Labs",
-    quote: "O gerador de campanhas substituiu uma agência que cobrava R$ 40k por mês. A qualidade é genuinamente superior — e fica pronto em minutos, não semanas.",
+    quote: "O gerador de campanhas substituiu uma agência que cobrava R$\u00a040k por mês. A qualidade é genuinamente superior — e fica pronto em minutos.",
     stars: 5,
     initials: "JW",
     color: "bg-emerald-400/20 text-emerald-400",
@@ -160,8 +139,8 @@ const plans = [
   {
     key: "free",
     name: "START",
-    price: "$0",
-    period: "",
+    price: "R$\u00a019,90",
+    period: "/mês",
     credits: "50 créditos / mês",
     features: [
       "Todos os 6 módulos",
@@ -176,7 +155,7 @@ const plans = [
   {
     key: "pro",
     name: "Pro",
-    price: "$79",
+    price: "R$\u00a089",
     period: "/mês",
     credits: "500 créditos / mês",
     features: [
@@ -193,7 +172,7 @@ const plans = [
   {
     key: "business",
     name: "Business",
-    price: "$199",
+    price: "R$\u00a0197",
     period: "/mês",
     credits: "2.000 créditos / mês",
     features: [
@@ -210,7 +189,7 @@ const plans = [
   {
     key: "agency",
     name: "Agency",
-    price: "$499",
+    price: "R$\u00a0497",
     period: "/mês",
     credits: "10.000 créditos / mês",
     features: [
@@ -229,7 +208,7 @@ const plans = [
 const faqs = [
   {
     q: "O que são créditos e como funcionam?",
-    a: "Créditos são consumidos a cada execução de módulo. Busca de Produto custa 5 créditos, Criar Campanha custa 10, Gerador Criativo custa 15. Os créditos renovam automaticamente todo mês.",
+    a: "Créditos são consumidos a cada execução de módulo. Buscar Produto custa 5 créditos, Criar Campanha custa 10, Gerador Criativo custa 15. Os créditos renovam automaticamente todo mês.",
   },
   {
     q: "Posso mudar de plano a qualquer momento?",
@@ -237,27 +216,20 @@ const faqs = [
   },
   {
     q: "Meus dados são privados e seguros?",
-    a: "Completamente. Cada conta tem um espaço de trabalho isolado. Suas consultas, resultados e projetos nunca são compartilhados com outros usuários nem usados para treinar modelos. Todos os dados são criptografados em trânsito e em repouso.",
-  },
-  {
-    q: "Qual modelo de inteligência artificial é usado?",
-    a: "A plataforma utiliza GPT-5 mini via integração segura. Você acessa tecnologia de ponta sem gerenciar chaves de API ou se preocupar com limites de uso.",
+    a: "Cada conta tem um espaço de trabalho isolado. Suas consultas, resultados e projetos nunca são compartilhados com outros usuários. Todos os dados são criptografados em trânsito e em repouso.",
   },
   {
     q: "O que acontece se eu ficar sem créditos?",
-    a: "Você receberá uma notificação clara antes de esgotar os créditos. É possível fazer upgrade imediatamente ou aguardar a renovação mensal automática.",
+    a: "Você receberá uma notificação antes de esgotar os créditos. É possível fazer upgrade imediatamente ou aguardar a renovação mensal automática.",
   },
   {
     q: "Os resultados são genéricos ou personalizados?",
-    a: "Cada módulo gera resultados específicos para o seu contexto — produto, mercado, nicho e objetivos. Não é um chatbot genérico: é inteligência estruturada para o seu negócio.",
+    a: "Cada módulo gera resultados específicos para o seu contexto — produto, mercado, nicho e objetivos. Inteligência estruturada para o seu negócio, não respostas genéricas.",
   },
-];
-
-const stats = [
-  { value: "6", label: "Módulos especializados", icon: Brain },
-  { value: "GPT-5", label: "Tecnologia de ponta", icon: Sparkles },
-  { value: "100%", label: "Dados privados", icon: Shield },
-  { value: "4", label: "Planos disponíveis", icon: TrendingUp },
+  {
+    q: "Existe contrato de fidelidade?",
+    a: "Não. Todos os planos são mensais e podem ser cancelados a qualquer momento, sem multa ou burocracia.",
+  },
 ];
 
 function FAQItem({ q, a }: { q: string; a: string }) {
@@ -305,7 +277,7 @@ export function LandingPage() {
         <div className="max-w-6xl mx-auto px-5 sm:px-6 h-16 flex items-center justify-between">
           <Logo size={30} showWordmark />
           <nav className="hidden md:flex items-center gap-7">
-            {[["Recursos", "#features"], ["Como Funciona", "#how-it-works"], ["Preços", "#pricing"], ["FAQ", "#faq"]].map(([label, href]) => (
+            {[["Módulos", "#features"], ["Preços", "#pricing"], ["FAQ", "#faq"]].map(([label, href]) => (
               <a
                 key={href}
                 href={href}
@@ -331,12 +303,9 @@ export function LandingPage() {
       <main className="flex-1 pt-16">
 
         {/* ─── HERO ─── */}
-        <section className="relative pt-24 pb-32 sm:pt-28 sm:pb-36 overflow-hidden">
-          {/* Glows */}
+        <section className="relative pt-24 pb-32 sm:pt-28 sm:pb-40 overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,_rgba(201,168,76,0.18)_0%,_transparent_65%)] pointer-events-none" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_45%_45%_at_80%_90%,_rgba(201,168,76,0.055)_0%,_transparent_60%)] pointer-events-none" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_30%_30%_at_10%_80%,_rgba(96,165,250,0.035)_0%,_transparent_60%)] pointer-events-none" />
-          {/* Grid */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_45%_45%_at_80%_90%,_rgba(201,168,76,0.05)_0%,_transparent_60%)] pointer-events-none" />
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.012)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.012)_1px,transparent_1px)] bg-[size:72px_72px] pointer-events-none" />
 
           <div className="max-w-6xl mx-auto px-5 sm:px-6 relative z-10">
@@ -346,15 +315,13 @@ export function LandingPage() {
               animate="show"
               className="max-w-4xl mx-auto text-center space-y-7 sm:space-y-9"
             >
-              {/* Badge */}
               <motion.div variants={fadeUp} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}>
                 <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/25 text-primary text-[11px] font-bold tracking-widest uppercase">
                   <Sparkles className="w-3 h-3" />
-                  Plataforma de Inteligência de Negócios
+                  Plataforma Privada de Negócios
                 </span>
               </motion.div>
 
-              {/* Headline */}
               <motion.h1
                 variants={fadeUp}
                 transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -363,21 +330,19 @@ export function LandingPage() {
                 Crie, valide e escale{" "}
                 <br className="hidden sm:block" />
                 <span className="bg-gradient-to-r from-[#F0DC8A] via-[#C9A84C] to-[#9A6F28] bg-clip-text text-transparent">
-                  com inteligência real.
+                  com decisões precisas.
                 </span>
               </motion.h1>
 
-              {/* Subtitle */}
               <motion.p
                 variants={fadeUp}
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                 className="text-[15px] sm:text-base md:text-lg text-zinc-400 max-w-xl sm:max-w-2xl mx-auto leading-relaxed px-2"
               >
-                Encontre produtos, valide mercados, crie campanhas, gere criativos e conteúdo —
-                tudo em uma única plataforma movida por IA de última geração.
+                Uma plataforma completa para fundadores e equipes que recusam construir no achismo.
+                Seis módulos especializados. Resultados estruturados. Execução imediata.
               </motion.p>
 
-              {/* CTAs */}
               <motion.div
                 variants={fadeUp}
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -397,96 +362,16 @@ export function LandingPage() {
                     variant="outline"
                     className="w-full sm:w-auto h-12 px-8 text-sm border-white/10 bg-white/[0.03] text-zinc-300 hover:bg-white/[0.07] hover:text-white rounded-lg transition-all"
                   >
-                    Entrar
+                    Já tenho conta
                   </Button>
                 </Link>
-              </motion.div>
-
-              {/* Trust micro line */}
-              <motion.div variants={fadeUp} transition={{ duration: 0.4 }} className="flex items-center justify-center gap-4 pt-1">
-                {[
-                  { icon: Shield, text: "Dados privados e seguros" },
-                  { icon: Zap, text: "Resultados em segundos" },
-                  { icon: Globe, text: "Tecnologia GPT-5" },
-                ].map(({ icon: Icon, text }) => (
-                  <div key={text} className="hidden sm:flex items-center gap-1.5">
-                    <Icon className="w-3 h-3 text-primary/60" />
-                    <span className="text-[11px] text-zinc-600">{text}</span>
-                  </div>
-                ))}
-                <span className="sm:hidden text-[11px] text-zinc-700">Seguro &middot; Privado &middot; GPT-5</span>
               </motion.div>
             </motion.div>
           </div>
         </section>
 
-        {/* ─── STATS STRIP ─── */}
-        <section className="border-y border-white/[0.055] bg-white/[0.012]">
-          <div className="max-w-6xl mx-auto px-5 sm:px-6 py-7 sm:py-8">
-            <StaggerSection className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
-              {stats.map((stat) => {
-                const Icon = stat.icon;
-                return (
-                  <motion.div key={stat.label} variants={fadeUp} transition={{ duration: 0.4 }} className="text-center">
-                    <div className="flex items-center justify-center gap-1.5 mb-1">
-                      <Icon className="w-3.5 h-3.5 text-primary/60" />
-                      <p className="text-2xl font-black text-primary tracking-tight">{stat.value}</p>
-                    </div>
-                    <p className="text-[11px] text-zinc-600 font-medium leading-snug">{stat.label}</p>
-                  </motion.div>
-                );
-              })}
-            </StaggerSection>
-          </div>
-        </section>
-
-        {/* ─── HOW IT WORKS ─── */}
-        <section id="how-it-works" className="py-24 sm:py-28 bg-[#060606]">
-          <div className="max-w-6xl mx-auto px-5 sm:px-6">
-            <AnimatedSection className="text-center mb-14 sm:mb-16">
-              <p className="text-[11px] text-primary uppercase tracking-widest font-bold mb-3">
-                Como Funciona
-              </p>
-              <h2 className="text-[28px] sm:text-4xl md:text-[42px] font-black text-white tracking-tight mb-4 leading-[1.1]">
-                Da ideia à execução{" "}
-                <br className="hidden sm:block" />
-                <span className="text-zinc-400">em três passos.</span>
-              </h2>
-              <p className="text-zinc-500 max-w-sm sm:max-w-md mx-auto text-sm leading-relaxed">
-                Descreva o que precisa. A inteligência estrutura, analisa e entrega resultados prontos para usar.
-              </p>
-            </AnimatedSection>
-
-            <StaggerSection className="grid md:grid-cols-3 gap-4 sm:gap-6 max-w-5xl mx-auto">
-              {steps.map((step, i) => {
-                const Icon = step.icon;
-                return (
-                  <motion.div
-                    key={step.num}
-                    variants={fadeUp}
-                    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                    className="relative p-6 sm:p-7 bg-[#0d0d0d] border border-white/[0.06] rounded-2xl hover:border-white/[0.10] transition-all duration-300"
-                  >
-                    {i < 2 && (
-                      <div className="hidden md:block absolute top-1/2 -right-3 w-6 h-px bg-white/[0.07] -translate-y-1/2" />
-                    )}
-                    <div className="flex items-start justify-between mb-5">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                        <Icon className="w-5 h-5 text-primary" />
-                      </div>
-                      <span className="text-4xl font-black text-white/[0.035] leading-none">{step.num}</span>
-                    </div>
-                    <h3 className="text-[15px] font-bold text-white mb-2">{step.title}</h3>
-                    <p className="text-sm text-zinc-500 leading-relaxed">{step.desc}</p>
-                  </motion.div>
-                );
-              })}
-            </StaggerSection>
-          </div>
-        </section>
-
-        {/* ─── FEATURES ─── */}
-        <section id="features" className="py-24 sm:py-28 bg-[#080808]">
+        {/* ─── MODULES ─── */}
+        <section id="features" className="py-24 sm:py-28 bg-[#080808] border-t border-white/[0.05]">
           <div className="max-w-6xl mx-auto px-5 sm:px-6">
             <AnimatedSection className="text-center mb-14 sm:mb-16">
               <p className="text-[11px] text-primary uppercase tracking-widest font-bold mb-3">
@@ -496,7 +381,7 @@ export function LandingPage() {
                 Seis módulos. <span className="text-zinc-400">Precisão cirúrgica.</span>
               </h2>
               <p className="text-zinc-500 max-w-sm sm:max-w-lg mx-auto text-sm leading-relaxed">
-                Cada módulo é construído para um problema específico de negócio — não uma interface de chat genérica.
+                Cada módulo é construído para um problema específico de negócio — não uma interface genérica.
               </p>
             </AnimatedSection>
 
@@ -579,7 +464,7 @@ export function LandingPage() {
                 Escale no seu ritmo.
               </h2>
               <p className="text-zinc-500 max-w-xs sm:max-w-md mx-auto text-sm">
-                Créditos renovam mensalmente. Transparência total. Sem surpresas.
+                Créditos renovam mensalmente. Sem contratos. Cancele quando quiser.
               </p>
             </AnimatedSection>
 
@@ -607,8 +492,8 @@ export function LandingPage() {
                   <div className="mb-5">
                     <h3 className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2">{plan.name}</h3>
                     <div className="flex items-baseline gap-0.5 mb-1.5">
-                      <span className="text-4xl font-black text-white tracking-tight">{plan.price}</span>
-                      {plan.period && <span className="text-zinc-600 text-sm ml-1">{plan.period}</span>}
+                      <span className="text-3xl font-black text-white tracking-tight">{plan.price}</span>
+                      {plan.period && <span className="text-zinc-600 text-sm ml-0.5">{plan.period}</span>}
                     </div>
                     <p className="text-xs font-semibold text-primary">{plan.credits}</p>
                   </div>
@@ -681,7 +566,7 @@ export function LandingPage() {
                 <Link href="/sign-up" className="w-full sm:w-auto">
                   <Button
                     size="lg"
-                    className="w-full sm:w-auto h-13 px-10 text-[15px] bg-primary text-black hover:bg-primary/90 font-black rounded-lg shadow-[0_0_60px_-8px_rgba(201,168,76,0.55)] hover:shadow-[0_0_80px_-8px_rgba(201,168,76,0.7)] transition-all duration-300"
+                    className="w-full sm:w-auto h-12 px-10 text-[15px] bg-primary text-black hover:bg-primary/90 font-black rounded-lg shadow-[0_0_60px_-8px_rgba(201,168,76,0.55)] hover:shadow-[0_0_80px_-8px_rgba(201,168,76,0.7)] transition-all duration-300"
                   >
                     Começar Agora <ArrowRight className="ml-2 w-4 h-4" />
                   </Button>
@@ -690,7 +575,7 @@ export function LandingPage() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="w-full sm:w-auto h-13 px-8 text-sm border-white/10 bg-white/[0.03] text-zinc-400 hover:bg-white/[0.07] hover:text-white rounded-lg transition-all"
+                    className="w-full sm:w-auto h-12 px-8 text-sm border-white/10 bg-white/[0.03] text-zinc-400 hover:bg-white/[0.07] hover:text-white rounded-lg transition-all"
                   >
                     Já tenho conta
                   </Button>
@@ -704,41 +589,11 @@ export function LandingPage() {
 
       {/* ─── FOOTER ─── */}
       <footer className="border-t border-white/[0.055] bg-[#060606]">
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 py-10 sm:py-12">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-10 mb-10">
-            <div>
-              <Logo size={28} showWordmark />
-              <p className="text-xs text-zinc-600 mt-3 leading-relaxed max-w-[220px]">
-                Inteligência privada para quem constrói negócios com intenção e precisão.
-              </p>
-            </div>
-            <div>
-              <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Plataforma</p>
-              <ul className="space-y-2.5">
-                {[["Recursos", "#features"], ["Como Funciona", "#how-it-works"], ["Preços", "#pricing"], ["FAQ", "#faq"]].map(([label, href]) => (
-                  <li key={href}>
-                    <a href={href} className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors">{label}</a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Conta</p>
-              <ul className="space-y-2.5">
-                {[["Entrar", "/sign-in"], ["Criar Conta", "/sign-up"], ["Painel", "/dashboard"]].map(([label, href]) => (
-                  <li key={href}>
-                    <Link href={href} className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors">{label}</Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-8 border-t border-white/[0.055]">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6 py-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <Logo size={26} showWordmark />
             <p className="text-xs text-zinc-700">
               &copy; {new Date().getFullYear()} IAttom Assist. Todos os direitos reservados.
-            </p>
-            <p className="text-xs text-zinc-700">
-              Tecnologia GPT-5 &middot; Segurança de nível empresarial
             </p>
           </div>
         </div>
