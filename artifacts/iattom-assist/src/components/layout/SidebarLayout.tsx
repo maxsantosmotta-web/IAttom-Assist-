@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useUser, useClerk } from "@clerk/react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -52,7 +53,15 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const [cmdOpen, setCmdOpen] = useState(false);
   const { user, isLoaded, isSignedIn } = useUser();
   const { signOut } = useClerk();
-  const syncUser = useSyncUser();
+  const qc = useQueryClient();
+  const syncUser = useSyncUser({
+    mutation: {
+      onSuccess: () => {
+        // Invalidate me query so BetaGate re-evaluates access after sync creates/claims the user.
+        void qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      },
+    },
+  });
   const { data: me } = useGetMe({
     query: { queryKey: getGetMeQueryKey(), retry: false, enabled: !!isSignedIn },
   });
