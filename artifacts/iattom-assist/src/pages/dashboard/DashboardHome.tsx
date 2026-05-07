@@ -175,8 +175,39 @@ export function DashboardHome() {
     { label: "AI Actions", value: summary?.totalActions ?? 0, icon: Zap, color: "text-blue-400", bg: "bg-blue-400/10 border-blue-400/20" },
   ];
 
+  // DEBUG PANEL — remove once real Clerk ID is confirmed
+  const debugInfo = {
+    clerkId: user?.id ?? "loading...",
+    email: user?.primaryEmailAddress?.emailAddress ?? "loading...",
+    dbUserId: me?.id ?? "not synced",
+    role: me?.role ?? "not synced",
+    plan: me?.plan ?? "not synced",
+    credits: creditsData?.balance ?? "not synced",
+  };
+  console.group("[DEBUG] Session identity");
+  console.log("Clerk ID:", debugInfo.clerkId);
+  console.log("Email:", debugInfo.email);
+  console.log("DB user ID:", debugInfo.dbUserId);
+  console.log("Role:", debugInfo.role);
+  console.log("Plan:", debugInfo.plan);
+  console.log("Credits:", debugInfo.credits);
+  console.groupEnd();
+
   return (
     <div className="space-y-10 pb-2">
+
+      {/* DEBUG PANEL — temporary, remove after Clerk ID confirmed */}
+      {isLoaded && (
+        <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/5 p-4 font-mono text-xs text-yellow-300 space-y-1">
+          <p className="font-bold text-yellow-400 mb-2">DEBUG — Session Identity (remove after use)</p>
+          <p><span className="text-yellow-500">Clerk ID:</span> {debugInfo.clerkId}</p>
+          <p><span className="text-yellow-500">Email:</span> {debugInfo.email}</p>
+          <p><span className="text-yellow-500">DB User ID:</span> {String(debugInfo.dbUserId)}</p>
+          <p><span className="text-yellow-500">Role:</span> {debugInfo.role}</p>
+          <p><span className="text-yellow-500">Plan:</span> {debugInfo.plan}</p>
+          <p><span className="text-yellow-500">Credits:</span> {String(debugInfo.credits)}</p>
+        </div>
+      )}
 
       <UpgradeNudge totalActions={summary?.totalActions ?? 0} />
 

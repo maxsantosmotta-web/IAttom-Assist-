@@ -13,8 +13,12 @@ router.post("/auth/sync", requireAuth, async (req, res): Promise<void> => {
   const parsed = SyncUserBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
+  req.log.info({ clerkUserId, email: parsed.data.email }, "[DEBUG] /auth/sync called");
+
   const user = await getOrSyncUser(clerkUserId, parsed.data.email, parsed.data.name);
   if (!user) { res.status(500).json({ error: "Failed to sync user" }); return; }
+
+  req.log.info({ clerkUserId, dbUserId: user.id, role: user.role, plan: user.plan, credits: user.credits, email: user.email }, "[DEBUG] /auth/sync result");
 
   res.json(SyncUserResponse.parse(user));
 });
