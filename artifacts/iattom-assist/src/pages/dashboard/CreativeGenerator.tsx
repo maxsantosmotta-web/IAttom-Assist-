@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { useToast } from "@/hooks/use-toast";
 import { CreditsGate } from "@/components/CreditsGate";
 import { useAiStream } from "@/hooks/useAiStream";
@@ -123,16 +123,18 @@ export function CreativeGenerator() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm text-muted-foreground">Visual Style</Label>
-                <Select onValueChange={setStyle}>
-                  <SelectTrigger className="bg-[#0a0a0a] border-white/10"><SelectValue placeholder="Select style" /></SelectTrigger>
-                  <SelectContent className="bg-[#111111] border-white/10">
-                    <SelectItem value="Photorealistic lifestyle">Photorealistic Lifestyle</SelectItem>
-                    <SelectItem value="Minimalist clean">Minimalist Clean</SelectItem>
-                    <SelectItem value="Bold graphic">Bold & Graphic</SelectItem>
-                    <SelectItem value="Luxury editorial">Luxury Editorial</SelectItem>
-                    <SelectItem value="Raw authentic UGC">Raw Authentic UGC</SelectItem>
-                  </SelectContent>
-                </Select>
+                <select
+                  value={style}
+                  onChange={(e) => setStyle(e.target.value)}
+                  className="w-full h-9 rounded-md border border-white/10 bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0"
+                >
+                  <option value="" disabled>Select style</option>
+                  <option value="Photorealistic lifestyle">Photorealistic Lifestyle</option>
+                  <option value="Minimalist clean">Minimalist Clean</option>
+                  <option value="Bold graphic">Bold &amp; Graphic</option>
+                  <option value="Luxury editorial">Luxury Editorial</option>
+                  <option value="Raw authentic UGC">Raw Authentic UGC</option>
+                </select>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm text-muted-foreground">Target Audience (optional)</Label>
