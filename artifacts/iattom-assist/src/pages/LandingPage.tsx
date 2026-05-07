@@ -203,13 +203,6 @@ export function LandingPage() {
               </a>
             ))}
           </nav>
-          <div className="flex items-center gap-3">
-            <Link href="/sign-in">
-              <Button size="sm" variant="outline" className="border-white/10 bg-white/[0.03] text-zinc-300 hover:bg-white/[0.07] hover:text-white rounded-lg text-[13px] h-9 px-5 transition-all">
-                Entrar
-              </Button>
-            </Link>
-          </div>
         </div>
       </header>
 
