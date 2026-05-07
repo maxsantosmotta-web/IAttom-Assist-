@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
   ArrowRight, BarChart3, Sparkles, Target, Check,
-  ChevronDown, Play, Users, Brain, Rocket, Star,
+  ChevronDown, Play, Users, Brain, Rocket,
 } from "lucide-react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { useRef, useState } from "react";
@@ -105,33 +105,6 @@ const modules = [
     bg: "bg-rose-400/8 border-rose-400/15",
     glow: "group-hover:shadow-[0_0_40px_-8px_rgba(251,113,133,0.22)]",
     tag: "10 créditos",
-  },
-];
-
-const testimonials = [
-  {
-    name: "Marcus Chen",
-    role: "Fundador, Apex Digital",
-    quote: "O módulo de busca de produtos revelou uma oportunidade em um setor que jamais teríamos considerado. Pagou o investimento mais de 50 vezes.",
-    stars: 5,
-    initials: "MC",
-    color: "bg-primary/20 text-primary",
-  },
-  {
-    name: "Priya Sharma",
-    role: "CEO, LaunchStack",
-    quote: "Validamos três ideias de produto em uma tarde. Duas teriam sido desastres. A terceira se tornou nosso maior fluxo de receita.",
-    stars: 5,
-    initials: "PS",
-    color: "bg-blue-400/20 text-blue-400",
-  },
-  {
-    name: "Jordan Williams",
-    role: "Growth Lead, Nomad Labs",
-    quote: "O gerador de campanhas substituiu uma agência que cobrava R$\u00a040k por mês. A qualidade é genuinamente superior — e fica pronto em minutos.",
-    stars: 5,
-    initials: "JW",
-    color: "bg-emerald-400/20 text-emerald-400",
   },
 ];
 
@@ -408,47 +381,6 @@ export function LandingPage() {
                   </motion.div>
                 );
               })}
-            </StaggerSection>
-          </div>
-        </section>
-
-        {/* ─── TESTIMONIALS ─── */}
-        <section className="py-24 sm:py-28 bg-[#060606] border-t border-white/[0.05]">
-          <div className="max-w-6xl mx-auto px-5 sm:px-6">
-            <AnimatedSection className="text-center mb-14 sm:mb-16">
-              <p className="text-[11px] text-primary uppercase tracking-widest font-bold mb-3">
-                Resultados Reais
-              </p>
-              <h2 className="text-[28px] sm:text-4xl md:text-[42px] font-black text-white tracking-tight leading-[1.1]">
-                Quem usa, <span className="text-zinc-400">escala.</span>
-              </h2>
-            </AnimatedSection>
-
-            <StaggerSection className="grid md:grid-cols-3 gap-4 sm:gap-5 max-w-5xl mx-auto">
-              {testimonials.map((t) => (
-                <motion.div
-                  key={t.name}
-                  variants={fadeUp}
-                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                  className="p-5 sm:p-6 bg-[#0d0d0d] border border-white/[0.06] rounded-2xl hover:border-white/[0.10] transition-all duration-300 flex flex-col gap-4"
-                >
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: t.stars }).map((_, i) => (
-                      <Star key={i} className="w-3.5 h-3.5 text-primary fill-primary" />
-                    ))}
-                  </div>
-                  <p className="text-sm text-zinc-300 leading-relaxed flex-1">"{t.quote}"</p>
-                  <div className="flex items-center gap-3 pt-2 border-t border-white/[0.06]">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${t.color}`}>
-                      {t.initials}
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-white">{t.name}</p>
-                      <p className="text-[10px] text-zinc-600">{t.role}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
             </StaggerSection>
           </div>
         </section>
