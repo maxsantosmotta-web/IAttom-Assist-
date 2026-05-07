@@ -12,127 +12,159 @@ function IAttomBadge({ size = 240 }: { size?: number }) {
       xmlns="http://www.w3.org/2000/svg"
     >
       <defs>
+        {/* ring shimmer — sweeps around the circle */}
         <linearGradient id="ig_ring" x1="0" y1="0" x2="240" y2="240" gradientUnits="userSpaceOnUse">
-          <stop offset="0%"   stopColor="#F8E272"/>
-          <stop offset="22%"  stopColor="#C49820"/>
-          <stop offset="48%"  stopColor="#EDD050"/>
-          <stop offset="73%"  stopColor="#7A5408"/>
-          <stop offset="100%" stopColor="#F8E272"/>
+          <stop offset="0%"   stopColor="#FAE97A"/>
+          <stop offset="18%"  stopColor="#B8840A"/>
+          <stop offset="38%"  stopColor="#F0D050"/>
+          <stop offset="55%"  stopColor="#ECC830"/>
+          <stop offset="72%"  stopColor="#6A4400"/>
+          <stop offset="88%"  stopColor="#E8C830"/>
+          <stop offset="100%" stopColor="#FAE97A"/>
         </linearGradient>
-        <linearGradient id="ig_a" x1="120" y1="46" x2="120" y2="168" gradientUnits="userSpaceOnUse">
-          <stop offset="0%"   stopColor="#F8DF60"/>
-          <stop offset="42%"  stopColor="#D4A828"/>
+        {/* A lettermark — bright gold top → deep amber bottom */}
+        <linearGradient id="ig_a" x1="120" y1="42" x2="120" y2="162" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stopColor="#FAE870"/>
+          <stop offset="35%"  stopColor="#D4A020"/>
+          <stop offset="100%" stopColor="#6C4000"/>
+        </linearGradient>
+        {/* bars — gold top → dark amber bottom */}
+        <linearGradient id="ig_bars" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#F0D040"/>
+          <stop offset="100%" stopColor="#8A6010"/>
+        </linearGradient>
+        {/* IATTOM text — silver-white at top → gold → dark amber */}
+        <linearGradient id="ig_text" x1="0" y1="155" x2="0" y2="183" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stopColor="#FEFCE8"/>
+          <stop offset="28%"  stopColor="#F5DC60"/>
+          <stop offset="60%"  stopColor="#C9A020"/>
           <stop offset="100%" stopColor="#7A5008"/>
         </linearGradient>
-        <linearGradient id="ig_bars" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor="#EFD048"/>
-          <stop offset="100%" stopColor="#9A7015"/>
-        </linearGradient>
-        <linearGradient id="ig_label" x1="0" y1="174" x2="0" y2="196" gradientUnits="userSpaceOnUse">
-          <stop offset="0%"   stopColor="#F5DC60"/>
-          <stop offset="100%" stopColor="#C49820"/>
-        </linearGradient>
-        <radialGradient id="ig_bg" cx="50%" cy="42%" r="62%">
-          <stop offset="0%"   stopColor="#1e1608"/>
-          <stop offset="100%" stopColor="#07050202"/>
+        {/* dark bg inside circle */}
+        <radialGradient id="ig_bg" cx="50%" cy="38%" r="65%">
+          <stop offset="0%"   stopColor="#221a08"/>
+          <stop offset="100%" stopColor="#060504"/>
         </radialGradient>
       </defs>
 
-      {/* subtle outer glow ring */}
-      <circle cx="120" cy="120" r="119" fill="none" stroke="#C49820" strokeWidth="1.5" opacity="0.28"/>
-      {/* main gold ring */}
-      <circle cx="120" cy="120" r="116" fill="none" stroke="url(#ig_ring)" strokeWidth="4.5"/>
-      {/* inner accent ring */}
-      <circle cx="120" cy="120" r="110" fill="none" stroke="url(#ig_ring)" strokeWidth="1.5" opacity="0.55"/>
-      {/* dark background fill */}
-      <circle cx="120" cy="120" r="109" fill="url(#ig_bg)"/>
+      {/* ── rings ── */}
+      {/* outermost glow */}
+      <circle cx="120" cy="120" r="119.5" fill="none" stroke="#C49820" strokeWidth="1" opacity="0.22"/>
+      {/* primary bold ring */}
+      <circle cx="120" cy="120" r="116"   fill="none" stroke="url(#ig_ring)" strokeWidth="5.5"/>
+      {/* secondary inner ring */}
+      <circle cx="120" cy="120" r="109.5" fill="none" stroke="url(#ig_ring)" strokeWidth="1.5" opacity="0.6"/>
+      {/* fill */}
+      <circle cx="120" cy="120" r="108.5" fill="url(#ig_bg)"/>
 
-      {/* ── "A" lettermark with counter cutout (evenodd) ── */}
+      {/*
+        ── "A" lettermark ──
+        Wide, bold legs. Outer legs: x=48→192 bottom.
+        Leg thickness ~22px at base.
+        Crossbar at y=127–140.
+        Counter (hole): inner triangle above crossbar.
+        Using evenodd so inner triangle = hole.
+      */}
       <path
-        d="M120,46 L186,166 L165,166 L154,134 L86,134 L75,166 L54,166 Z
-           M120,64 L151,122 L89,122 Z"
+        d="M120,42
+           L194,162 L172,162
+           L158,132 L82,132
+           L68,162  L46,162
+           Z
+           M120,62 L156,124 L84,124 Z"
         fill="url(#ig_a)"
         fillRule="evenodd"
       />
 
-      {/* ── Bar chart + arrow growth icon ── */}
-      <rect x="148" y="118" width="8" height="17" rx="1.5" fill="url(#ig_bars)"/>
-      <rect x="158" y="106" width="8" height="29" rx="1.5" fill="url(#ig_bars)"/>
-      <rect x="168" y="92"  width="8" height="43" rx="1.5" fill="url(#ig_bars)"/>
+      {/*
+        ── Growth bar chart + arrow ──
+        Bars overlap the right leg of the A and extend right.
+        3 ascending bars left→right. Arrow goes upper-right.
+      */}
+      {/* bar 1 — shortest */}
+      <rect x="152" y="120" width="9" height="18" rx="2" fill="url(#ig_bars)"/>
+      {/* bar 2 — medium */}
+      <rect x="163" y="107" width="9" height="31" rx="2" fill="url(#ig_bars)"/>
+      {/* bar 3 — tallest */}
+      <rect x="174" y="92"  width="9" height="46" rx="2" fill="url(#ig_bars)"/>
       {/* arrow line */}
       <polyline
-        points="149,116 159,102 169,88 177,78"
-        stroke="#F5DC60"
-        strokeWidth="2.5"
+        points="153,118 163,104 175,90 184,78"
+        stroke="#FAE870"
+        strokeWidth="2.8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       {/* arrow head */}
-      <polygon points="177,78 170,82 174,88" fill="#F5DC60"/>
+      <polygon points="184,78 177,82 181,89" fill="#FAE870"/>
 
-      {/* ── IATTOM wordmark ── */}
+      {/*
+        ── IATTOM wordmark ──
+        Large, wide, metallic silver-to-gold gradient.
+        Positioned in lower half of circle.
+      */}
       <text
-        x="120" y="184"
+        x="120" y="182"
         textAnchor="middle"
-        fontSize="23"
+        fontSize="28"
         fontWeight="900"
-        fontFamily="'Arial Black', Impact, Arial, sans-serif"
-        fill="url(#ig_label)"
-        letterSpacing="3"
+        fontFamily="'Arial Black', 'Arial Bold', Impact, Arial, sans-serif"
+        fill="url(#ig_text)"
+        letterSpacing="2"
       >IATTOM</text>
 
       {/* ── — ASSIST — tagline ── */}
       <text
-        x="120" y="199"
+        x="120" y="198"
         textAnchor="middle"
-        fontSize="10"
+        fontSize="10.5"
         fontWeight="700"
         fontFamily="Arial, sans-serif"
         fill="#C49820"
-        letterSpacing="4"
+        letterSpacing="4.5"
       >— ASSIST —</text>
     </svg>
   );
 }
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 18 },
   show:   { opacity: 1, y: 0  },
 };
 
 const stagger = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.13 } },
+  show: { transition: { staggerChildren: 0.12 } },
 };
 
 export function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center selection:bg-yellow-900/30 selection:text-white px-6 py-10 overflow-hidden">
+    <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center selection:bg-yellow-900/30 selection:text-white px-6 py-8 overflow-hidden">
 
       {/* ambient gold glow */}
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_55%_42%_at_50%_38%,_rgba(180,130,20,0.13)_0%,_transparent_72%)] pointer-events-none"/>
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_52%_40%_at_50%_36%,_rgba(180,128,18,0.14)_0%,_transparent_70%)] pointer-events-none"/>
 
       <motion.div
         variants={stagger}
         initial="hidden"
         animate="show"
-        className="relative z-10 flex flex-col items-center text-center w-full max-w-[340px] sm:max-w-[390px] gap-8 sm:gap-9"
+        className="relative z-10 flex flex-col items-center text-center w-full max-w-[320px] sm:max-w-[370px] gap-5 sm:gap-6"
       >
 
         {/* logo badge */}
         <motion.div
           variants={fadeUp}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="drop-shadow-[0_0_48px_rgba(196,152,32,0.42)]"
+          className="drop-shadow-[0_0_52px_rgba(196,148,28,0.45)]"
         >
-          <IAttomBadge size={220} />
+          <IAttomBadge size={216} />
         </motion.div>
 
-        {/* slogan */}
+        {/* slogan — 35% smaller than before */}
         <motion.p
           variants={fadeUp}
           transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-          className="text-[16px] sm:text-[17px] text-white/88 font-normal leading-snug tracking-wide px-1"
+          className="text-[10.5px] sm:text-[11px] text-white/80 font-normal leading-snug tracking-wide px-1"
         >
           Um passo sólido vale mais do que cem recomeços.
         </motion.p>
@@ -141,18 +173,18 @@ export function LandingPage() {
         <motion.div
           variants={fadeUp}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="flex flex-col w-full gap-3"
+          className="flex flex-col w-full gap-2.5"
         >
           {/* primary — gold */}
           <Link href="/sign-up" className="w-full">
             <button
-              className="w-full h-[52px] flex items-center justify-center gap-3 rounded-lg font-bold text-[12px] tracking-[0.18em] uppercase text-black transition-all duration-200 hover:brightness-110 active:scale-[0.98]"
+              className="w-full h-[50px] flex items-center justify-center gap-3 rounded-lg font-bold text-[11.5px] tracking-[0.18em] uppercase text-black transition-all duration-200 hover:brightness-110 active:scale-[0.98]"
               style={{
                 background: "linear-gradient(135deg, #E8C84A 0%, #C9A030 38%, #A07820 68%, #C9A030 100%)",
                 boxShadow: "0 4px 28px -6px rgba(201,160,48,0.6), inset 0 1px 0 rgba(255,255,255,0.18)",
               }}
             >
-              <UserPlus className="w-[17px] h-[17px]" strokeWidth={2.2}/>
+              <UserPlus className="w-[16px] h-[16px]" strokeWidth={2.2}/>
               Criar Conta
             </button>
           </Link>
@@ -160,13 +192,13 @@ export function LandingPage() {
           {/* secondary — outlined */}
           <Link href="/sign-in" className="w-full">
             <button
-              className="w-full h-[52px] flex items-center justify-center gap-3 rounded-lg font-bold text-[12px] tracking-[0.18em] uppercase text-white/75 transition-all duration-200 hover:bg-white/[0.06] hover:text-white active:scale-[0.98]"
+              className="w-full h-[50px] flex items-center justify-center gap-3 rounded-lg font-bold text-[11.5px] tracking-[0.18em] uppercase text-white/70 transition-all duration-200 hover:bg-white/[0.06] hover:text-white active:scale-[0.98]"
               style={{
                 background: "rgba(255,255,255,0.025)",
                 border: "1.5px solid rgba(255,255,255,0.12)",
               }}
             >
-              <LogIn className="w-[17px] h-[17px]" strokeWidth={2.2}/>
+              <LogIn className="w-[16px] h-[16px]" strokeWidth={2.2}/>
               Fazer Login
             </button>
           </Link>
@@ -176,7 +208,7 @@ export function LandingPage() {
         <motion.p
           variants={fadeUp}
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-          className="text-[11px] text-white/22 tracking-wide pt-1"
+          className="text-[10px] text-white/20 tracking-wide"
         >
           &copy; {new Date().getFullYear()} IAttom Assist. Todos os direitos reservados.
         </motion.p>
