@@ -57,8 +57,9 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const syncUser = useSyncUser({
     mutation: {
       onSuccess: () => {
-        // Invalidate me query so BetaGate re-evaluates access after sync creates/claims the user.
+        // Invalidate both me and credits so the sidebar reflects real balance immediately after claim/sync.
         void qc.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        void qc.invalidateQueries({ queryKey: getGetCreditsBalanceQueryKey() });
       },
     },
   });
