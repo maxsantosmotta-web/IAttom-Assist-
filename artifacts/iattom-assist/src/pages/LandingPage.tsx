@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
   ArrowRight, Sparkles, Check,
-  ChevronDown, Users,
+  ChevronDown,
 } from "lucide-react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { useRef, useState } from "react";
@@ -375,48 +375,6 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* ─── FINAL CTA ─── */}
-        <section className="py-24 sm:py-32 bg-[#080808] border-t border-white/[0.05] relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_70%_at_50%_100%,_rgba(201,168,76,0.11)_0%,_transparent_70%)] pointer-events-none" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_40%_40%_at_50%_0%,_rgba(201,168,76,0.04)_0%,_transparent_60%)] pointer-events-none" />
-          <div className="max-w-6xl mx-auto px-5 sm:px-6 text-center relative z-10">
-            <AnimatedSection className="max-w-2xl mx-auto space-y-6 sm:space-y-8">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/25 text-primary text-[11px] font-bold tracking-widest uppercase">
-                <Users className="w-3 h-3" />
-                Pronto para escalar?
-              </div>
-              <h2 className="text-[32px] sm:text-4xl md:text-[52px] font-black text-white tracking-tight leading-[1.06]">
-                Sua concorrência já usa{" "}
-                <br className="hidden sm:block" />
-                <span className="bg-gradient-to-r from-[#F0DC8A] via-[#C9A84C] to-[#9A6F28] bg-clip-text text-transparent">
-                  inteligência artificial.
-                </span>
-              </h2>
-              <p className="text-zinc-400 text-[15px] sm:text-base leading-relaxed max-w-lg mx-auto px-2 sm:px-0">
-                Acesse a plataforma completa e transforme a forma como você cria, valida e escala negócios.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 px-4 sm:px-0">
-                <Link href="/sign-up" className="w-full sm:w-auto">
-                  <Button
-                    size="lg"
-                    className="w-full sm:w-auto h-12 px-10 text-[15px] bg-primary text-black hover:bg-primary/90 font-black rounded-lg shadow-[0_0_60px_-8px_rgba(201,168,76,0.55)] hover:shadow-[0_0_80px_-8px_rgba(201,168,76,0.7)] transition-all duration-300"
-                  >
-                    Começar Agora <ArrowRight className="ml-2 w-4 h-4" />
-                  </Button>
-                </Link>
-                <Link href="/sign-in" className="w-full sm:w-auto">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="w-full sm:w-auto h-12 px-8 text-sm border-white/10 bg-white/[0.03] text-zinc-400 hover:bg-white/[0.07] hover:text-white rounded-lg transition-all"
-                  >
-                    Já tenho conta
-                  </Button>
-                </Link>
-              </div>
-            </AnimatedSection>
-          </div>
-        </section>
 
       </main>
 
