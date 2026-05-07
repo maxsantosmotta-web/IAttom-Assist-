@@ -118,7 +118,7 @@ const steps = [
   {
     num: "02",
     title: "Inteligência em segundos",
-    desc: "O GPT-5 processa seu input com padrões reais de mercado e entrega resultados estruturados e acionáveis.",
+    desc: "O GPT-5 processa sua entrada com padrões reais de mercado e entrega resultados estruturados e acionáveis.",
     icon: Zap,
   },
   {
@@ -177,7 +177,7 @@ const plans = [
     key: "pro",
     name: "Pro",
     price: "$79",
-    period: "/mo",
+    period: "/mês",
     credits: "500 créditos / mês",
     features: [
       "Todos os 6 módulos",
@@ -194,7 +194,7 @@ const plans = [
     key: "business",
     name: "Business",
     price: "$199",
-    period: "/mo",
+    period: "/mês",
     credits: "2.000 créditos / mês",
     features: [
       "Tudo do Pro",
@@ -211,7 +211,7 @@ const plans = [
     key: "agency",
     name: "Agency",
     price: "$499",
-    period: "/mo",
+    period: "/mês",
     credits: "10.000 créditos / mês",
     features: [
       "Tudo do Business",
