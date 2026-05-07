@@ -9,13 +9,29 @@ async function shouldAutoPromote(email: string): Promise<boolean> {
   const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   if (adminEmail && email.toLowerCase() === adminEmail) return true;
 
-  const [{ value }] = await db
-    .select({ value: count() })
-    .from(users);
-  return value === 0;
+  // count() returns a string from PostgreSQL bigint — use Number() for safe comparison.
+  const [{ value }] = await db.select({ value: count() }).from(users);
+  return Number(value) === 0;
 }
 
 export async function getOrSyncUser(clerkId: string, email?: string, name?: string) {
+  // If a stub record was pre-created by email (no Clerk ID yet), claim it now.
+  if (email) {
+    const [byEmail] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
+    if (byEmail && byEmail.clerkId !== clerkId) {
+      // Claim the pre-seeded stub and attach the real Clerk ID.
+      const [claimed] = await db
+        .update(users)
+        .set({ clerkId, name: name ?? byEmail.name, updatedAt: new Date() })
+        .where(eq(users.email, email))
+        .returning();
+      return claimed;
+    }
+  }
+
   const [existing] = await db.select().from(users).where(eq(users.clerkId, clerkId));
 
   if (existing) {
@@ -54,5 +70,5 @@ export async function getOrSyncUser(clerkId: string, email?: string, name?: stri
 
 export async function getAdminCount() {
   const [result] = await db.select({ count: count() }).from(users).where(eq(users.role, "admin"));
-  return result.count;
+  return Number(result.count);
 }
