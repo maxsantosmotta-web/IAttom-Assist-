@@ -22,7 +22,7 @@ const errMap: Record<string, string> = {
   form_password_length_too_short:          "Sua senha precisa ter no mínimo 8 caracteres.",
   form_password_size_in_bytes_exceeded:    "Sua senha precisa ter no mínimo 8 caracteres.",
   form_password_no_password:              "Informe uma senha para continuar.",
-  form_password_not_enabled_for_user:      "Esta conta já possui cadastro.\nFaça login ou redefina sua senha.",
+  form_password_not_enabled_for_user:      "Este email já possui cadastro.\nUse Fazer login ou redefina sua senha.",
 
   /* identificadores — login */
   form_identifier_not_found:               "Usuário não encontrado.",
@@ -61,32 +61,43 @@ const errMap: Record<string, string> = {
   quota_exceeded:                          "Muitas tentativas. Aguarde alguns instantes.",
   captcha_invalid:                         "Verificação de segurança falhou. Tente novamente.",
 
-  /* conta */
+  /* conta / Google */
   user_locked:                             "Conta temporariamente bloqueada.\nAguarde alguns minutos e tente novamente.",
   account_transfer_invalid:               "Ocorreu um erro inesperado. Tente novamente.",
+  external_account_exists:                 "Este email já possui cadastro.\nUse Fazer login ou redefina sua senha.",
+  oauth_account_already_exists:            "Este email já possui cadastro.\nUse Fazer login ou redefina sua senha.",
+  account_already_exists:                  "Este email já possui cadastro.\nUse Fazer login ou redefina sua senha.",
+  external_account_email_address_verification_failed: "Este email já possui cadastro.\nUse Fazer login ou redefina sua senha.",
 };
 
 /* frases em inglês que podem vir em longMessage/message */
 const msgPhrases: Array<[RegExp, string]> = [
-  [/password is incorrect/i,               "Usuário ou senha inválidos."],
-  [/verification strategy is not valid/i,  "Esta conta já possui cadastro.\nFaça login ou redefina sua senha."],
-  [/strategy.*not.*valid/i,               "Esta conta já possui cadastro.\nFaça login ou redefina sua senha."],
-  [/identifier (is )?not found/i,          "Usuário não encontrado."],
-  [/already (exists|taken)/i,              "Estes dados já possuem cadastro.\nFaça login ou redefina sua senha."],
-  [/too many (requests|attempts)/i,        "Muitas tentativas. Aguarde alguns instantes."],
-  [/code (is )?incorrect/i,               "Código incorreto. Tente novamente."],
-  [/code (is )?expired/i,                 "Código expirado. Solicite um novo."],
-  [/is not allowed/i,                     "Esta conta já possui cadastro.\nFaça login ou redefina sua senha."],
-  [/locked/i,                             "Conta temporariamente bloqueada.\nAguarde alguns minutos e tente novamente."],
-  [/session.*not found/i,                 "Sessão encerrada. Faça login novamente."],
-  [/failed to fetch/i,                    "Não foi possível conectar ao servidor."],
-  [/network/i,                            "Não foi possível conectar ao servidor."],
+  [/password is incorrect/i,                           "Usuário ou senha inválidos."],
+  [/verification strategy is not valid/i,              "Este email já possui cadastro.\nUse Fazer login ou redefina sua senha."],
+  [/strategy.*not.*valid/i,                           "Este email já possui cadastro.\nUse Fazer login ou redefina sua senha."],
+  [/identifier (is )?not found/i,                      "Usuário não encontrado."],
+  [/already (exists|taken)/i,                          "Este email já possui cadastro.\nUse Fazer login ou redefina sua senha."],
+  [/external.*account|oauth.*account|google.*account/i,"Este email já possui cadastro.\nUse Fazer login ou redefina sua senha."],
+  [/password.*not.*enabled|not.*allowed.*password/i,   "Este email já possui cadastro.\nUse Fazer login ou redefina sua senha."],
+  [/is not allowed/i,                                  "Este email já possui cadastro.\nUse Fazer login ou redefina sua senha."],
+  [/too many (requests|attempts)/i,                    "Muitas tentativas. Aguarde alguns instantes."],
+  [/code (is )?incorrect/i,                           "Código incorreto. Tente novamente."],
+  [/code (is )?expired/i,                             "Código expirado. Solicite um novo."],
+  [/locked/i,                                         "Conta temporariamente bloqueada.\nAguarde alguns minutos e tente novamente."],
+  [/session.*not found/i,                             "Sessão encerrada. Faça login novamente."],
+  [/failed to fetch/i,                                "Não foi possível conectar ao servidor."],
+  [/network/i,                                        "Não foi possível conectar ao servidor."],
 ];
 
 type ClerkErr = { code: string; longMessage?: string; message?: string };
 
 function clerkMsg(e: ClerkErr | null | unknown): string {
   if (!e) return "Ocorreu um erro inesperado. Tente novamente.";
+
+  // timeout de 5 segundos
+  if (e instanceof Error && e.message === "__timeout__") {
+    return "Não foi possível concluir agora. Verifique os dados e tente novamente.";
+  }
 
   // erro de rede / fetch
   if (e instanceof TypeError || (e instanceof Error && /fetch|network/i.test(e.message))) {
@@ -106,6 +117,37 @@ function clerkMsg(e: ClerkErr | null | unknown): string {
 
   // 3. fallback genérico (nunca expõe texto técnico)
   return "Ocorreu um erro inesperado. Tente novamente.";
+}
+
+/* ─── helper: timeout de 5 segundos ─────────────────────────────────── */
+function withTimeout<T>(p: Promise<T>, ms = 5000): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error("__timeout__")), ms)
+    ),
+  ]);
+}
+
+/* ─── detecta erros de conta já existente por código ou texto ───────── */
+const EXISTING_ACCOUNT_CODES = new Set([
+  "form_identifier_exists",
+  "strategy_for_user_invalid",
+  "strategy_not_allowed_for_instance",
+  "form_password_not_enabled_for_user",
+  "external_account_exists",
+  "oauth_account_already_exists",
+  "account_already_exists",
+  "external_account_email_address_verification_failed",
+]);
+
+const EXISTING_ACCOUNT_PATTERN =
+  /already.*(exists|taken)|external.*account|oauth.*account|password.*not.*enabled|not.*allowed.*password|identifier.*exist/i;
+
+function isExistingAccount(e: ClerkErr): boolean {
+  if (EXISTING_ACCOUNT_CODES.has(e.code)) return true;
+  const raw = e.longMessage ?? e.message ?? "";
+  return EXISTING_ACCOUNT_PATTERN.test(raw);
 }
 
 /* ─── drawer shell ───────────────────────────────────────────────────── */
@@ -238,39 +280,29 @@ function ErrLine({ msg }: { msg: string }) {
 /* ═══════════════════════════════════════════════════════════════════════
    SIGN-UP DRAWER
 ═══════════════════════════════════════════════════════════════════════ */
-type SignUpStep = "form" | "verify" | "exists_offer" | "exists_code";
+type SignUpStep = "form" | "verify" | "exists_code";
 
 function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLogin: () => void }) {
   const [, navigate] = useLocation();
-  const { signUp, fetchStatus: suFetch } = useSignUp();
-  const { signIn, fetchStatus: siFetch } = useSignIn();
+  const { signUp } = useSignUp();
+  const { signIn } = useSignIn();
 
-  const [method, setMethod]   = useState<"email" | "phone">("email");
-  const [step, setStep]       = useState<SignUpStep>("form");
-  const [email, setEmail]     = useState("");
-  const [phone, setPhone]     = useState("");
-  const [password, setPass]   = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [code, setCode]       = useState("");
-  const [err, setErr]         = useState("");
+  const [method, setMethod]       = useState<"email" | "phone">("email");
+  const [step, setStep]           = useState<SignUpStep>("form");
+  const [email, setEmail]         = useState("");
+  const [phone, setPhone]         = useState("");
+  const [password, setPass]       = useState("");
+  const [confirm, setConfirm]     = useState("");
+  const [code, setCode]           = useState("");
+  const [err, setErr]             = useState("");
+  const [loading, setLoading]     = useState(false);
+  const [showResetLink, setReset] = useState(false);
 
-  const busy = suFetch === "fetching" || siFetch === "fetching";
-
-  /* ── códigos Clerk que indicam "email já existe" ─────────────────── */
-  const EXISTING_ACCOUNT_CODES = new Set([
-    "form_identifier_exists",
-    "strategy_for_user_invalid",
-    "strategy_not_allowed_for_instance",
-  ]);
+  const busy = loading;
 
   function handleMethodChange(m: "email" | "phone") {
-    setMethod(m);
-    setErr("");
-    setEmail("");
-    setPhone("");
-    setPass("");
-    setConfirm("");
-    setStep("form");
+    setMethod(m); setErr(""); setEmail(""); setPhone("");
+    setPass(""); setConfirm(""); setStep("form"); setReset(false);
   }
 
   /* ── PASSO 1: tentativa de cadastro ─────────────────────────────── */
@@ -278,7 +310,7 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
     e.preventDefault();
     if (password.length < 8) { setErr("Sua senha precisa ter no mínimo 8 caracteres."); return; }
     if (password !== confirm) { setErr("As senhas não conferem."); return; }
-    setErr("");
+    setErr(""); setReset(false); setLoading(true);
 
     try {
       const params =
@@ -286,17 +318,18 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
           ? { emailAddress: email, password }
           : { phoneNumber: phone, password };
 
-      const { error: e1 } = await signUp.password(params);
+      const { error: e1 } = await withTimeout(signUp.password(params));
 
-      // Email já existe → oferecer criar senha na conta existente
-      if (e1 && EXISTING_ACCOUNT_CODES.has(e1.code)) {
-        setStep("exists_offer");
+      // Conta já existe → mostrar mensagem inline + link "Redefinir senha"
+      if (e1 && isExistingAccount(e1)) {
+        setErr("Este email já possui cadastro. Use Fazer login ou redefina sua senha.");
+        setReset(true);
         return;
       }
       if (e1) { setErr(clerkMsg(e1)); return; }
 
       if (signUp.status === "complete") {
-        const { error: e2 } = await signUp.finalize();
+        const { error: e2 } = await withTimeout(signUp.finalize());
         if (e2) { setErr(clerkMsg(e2)); return; }
         if (method === "phone") localStorage.setItem("iattom_signup_phone", phone);
         navigate("/onboarding");
@@ -304,80 +337,83 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
       }
 
       // Precisa verificar email
-      const { error: e3 } = await signUp.verifications.sendEmailCode();
+      const { error: e3 } = await withTimeout(signUp.verifications.sendEmailCode());
       if (e3) { setErr(clerkMsg(e3)); return; }
       setStep("verify");
     } catch (ex) {
       setErr(clerkMsg(ex));
+    } finally {
+      setLoading(false);
     }
   }
 
   /* ── PASSO 2a: verificar email de novo cadastro ──────────────────── */
   async function handleVerifyNewAccount(e: React.FormEvent) {
     e.preventDefault();
-    setErr("");
+    setErr(""); setLoading(true);
 
     try {
-      const { error: e1 } = await signUp.verifications.verifyEmailCode({ code });
+      const { error: e1 } = await withTimeout(signUp.verifications.verifyEmailCode({ code }));
       if (e1) { setErr(clerkMsg(e1)); return; }
 
-      const { error: e2 } = await signUp.finalize();
+      const { error: e2 } = await withTimeout(signUp.finalize());
       if (e2) { setErr(clerkMsg(e2)); return; }
 
       navigate("/onboarding");
     } catch (ex) {
       setErr(clerkMsg(ex));
+    } finally {
+      setLoading(false);
     }
   }
 
-  /* ── PASSO 2b: enviar código de redefinição (conta existente) ────── */
+  /* ── "Redefinir senha" clicado: enviar código para conta existente ─ */
   async function handleSendResetCode() {
-    setErr("");
-    try {
-      // Inicializa sign-in com o email existente
-      const { error: e1 } = await signIn.create({ identifier: email });
-      if (e1) { setErr(clerkMsg(e1)); return; }
+    setErr(""); setReset(false); setLoading(true);
 
-      // Envia código de redefinição por email
-      const { error: e2 } = await signIn.resetPasswordEmailCode.sendCode();
-      if (e2) { setErr(clerkMsg(e2)); return; }
+    try {
+      const { error: e1 } = await withTimeout(signIn.create({ identifier: email }));
+      if (e1) { setErr(clerkMsg(e1)); setReset(true); return; }
+
+      const { error: e2 } = await withTimeout(signIn.resetPasswordEmailCode.sendCode());
+      if (e2) { setErr(clerkMsg(e2)); setReset(true); return; }
 
       setCode("");
       setStep("exists_code");
     } catch (ex) {
       setErr(clerkMsg(ex));
+      setReset(true);
+    } finally {
+      setLoading(false);
     }
   }
 
   /* ── PASSO 3b: verificar OTP e definir senha na conta existente ──── */
   async function handleVerifyAndSetPassword(e: React.FormEvent) {
     e.preventDefault();
-    setErr("");
+    setErr(""); setLoading(true);
 
     try {
-      // Verifica o código enviado por email
-      const { error: e1 } = await signIn.resetPasswordEmailCode.verifyCode({ code });
+      const { error: e1 } = await withTimeout(signIn.resetPasswordEmailCode.verifyCode({ code }));
       if (e1) { setErr(clerkMsg(e1)); return; }
 
-      // Define a senha que o usuário já digitou no formulário
-      const { error: e2 } = await signIn.resetPasswordEmailCode.submitPassword({ password });
+      const { error: e2 } = await withTimeout(signIn.resetPasswordEmailCode.submitPassword({ password }));
       if (e2) { setErr(clerkMsg(e2)); return; }
 
-      // Ativa a sessão
-      const { error: e3 } = await signIn.finalize();
+      const { error: e3 } = await withTimeout(signIn.finalize());
       if (e3) { setErr(clerkMsg(e3)); return; }
 
-      navigate("/dashboard"); // conta existente → vai direto ao dashboard
+      navigate("/dashboard");
     } catch (ex) {
       setErr(clerkMsg(ex));
+    } finally {
+      setLoading(false);
     }
   }
 
   async function handleResetNewAccount() {
     await signUp.reset();
-    setStep("form");
-    setCode("");
-    setErr("");
+    setStep("form"); setCode(""); setErr(""); setReset(false);
   }
 
   /* ── RENDER ──────────────────────────────────────────────────────── */
@@ -398,7 +434,7 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
                 type="email"
                 placeholder="Digite seu email"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={e => { setEmail(e.target.value); setErr(""); setReset(false); }}
                 className={inputBase}
                 autoComplete="email"
                 required
@@ -409,7 +445,7 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
                 type="tel"
                 placeholder="Digite seu telefone (ex: +5511999999999)"
                 value={phone}
-                onChange={e => setPhone(e.target.value)}
+                onChange={e => { setPhone(e.target.value); setErr(""); setReset(false); }}
                 className={inputBase}
                 autoComplete="tel"
                 required
@@ -427,7 +463,27 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
               onChange={setConfirm}
               autoComplete="new-password"
             />
+
             <ErrLine msg={err} />
+
+            {/* Link discreto "Redefinir senha" — aparece só quando conta existe */}
+            {showResetLink && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={handleSendResetCode}
+                className="text-[12px] text-[#C9A030] hover:text-[#F0D050] transition-colors underline underline-offset-2 w-full text-center -mt-1 disabled:opacity-50"
+              >
+                {busy
+                  ? <span className="inline-flex items-center gap-1.5">
+                      <span className="w-3 h-3 border border-[#C9A030]/50 border-t-[#C9A030] rounded-full animate-spin inline-block" />
+                      Enviando...
+                    </span>
+                  : "Redefinir senha"
+                }
+              </button>
+            )}
+
             <GoldBtn label="Continuar" busy={busy} />
           </form>
           <p className="text-center text-[11.5px] text-white/35 mt-5">
@@ -479,56 +535,6 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
         </>
       )}
 
-      {/* ── Conta existente — oferecer criar senha ──────────────────── */}
-      {step === "exists_offer" && (
-        <>
-          <p className="text-[11px] text-white/30 uppercase tracking-[0.18em] font-semibold mb-5 text-center">
-            Conta existente
-          </p>
-          <div
-            className="rounded-xl px-4 py-4 mb-5 flex flex-col gap-1"
-            style={{ background: "rgba(201,160,48,0.07)", border: "1px solid rgba(201,160,48,0.18)" }}
-          >
-            <p className="text-[13px] text-white/80 text-center leading-snug font-medium">
-              Esta conta ja existe.
-            </p>
-            <p className="text-[12px] text-white/45 text-center leading-snug mt-1">
-              Crie uma senha para acessar tambem com email e senha, sem perder seus dados.
-            </p>
-          </div>
-          <div className="rounded-xl px-3 py-2 mb-5" style={{ background: "rgba(255,255,255,0.04)" }}>
-            <p className="text-[11px] text-white/30 text-center">Senha a ser definida</p>
-            <p className="text-[12px] text-white/60 text-center mt-0.5 tracking-widest">
-              {"•".repeat(Math.min(password.length, 12))}
-            </p>
-          </div>
-          <ErrLine msg={err} />
-          <button
-            type="button"
-            disabled={busy}
-            onClick={handleSendResetCode}
-            className="w-full h-[50px] flex items-center justify-center rounded-xl font-black text-[12.5px] tracking-[0.16em] uppercase text-black mt-1 hover:brightness-110 active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:pointer-events-none"
-            style={{
-              background: "linear-gradient(135deg, #E8C84A 0%, #C9A030 38%, #A07820 68%, #C9A030 100%)",
-              boxShadow: "0 4px 24px -6px rgba(201,160,48,0.55), inset 0 1px 0 rgba(255,255,255,0.18)",
-            }}
-          >
-            {busy
-              ? <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin inline-block" />
-              : "Enviar codigo de verificacao"
-            }
-          </button>
-          <p className="text-center text-[11.5px] text-white/35 mt-5">
-            <button
-              onClick={() => { setStep("form"); setErr(""); }}
-              className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold"
-            >
-              Voltar
-            </button>
-          </p>
-        </>
-      )}
-
       {/* ── Conta existente — verificar OTP e definir senha ─────────── */}
       {step === "exists_code" && (
         <>
@@ -536,15 +542,15 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
             Verificar identidade
           </p>
           <p className="text-[12px] text-white/45 text-center mb-5 leading-snug">
-            Enviamos um codigo para{" "}
+            Enviamos um código para{" "}
             <span className="text-white/70 font-medium">{email}</span>
             <br />
-            <span className="text-[11px]">Insira o codigo para criar sua senha.</span>
+            <span className="text-[11px]">Insira o código para criar sua senha.</span>
           </p>
           <form onSubmit={handleVerifyAndSetPassword} className="flex flex-col gap-3">
             <input
               type="text"
-              placeholder="Codigo de 6 digitos"
+              placeholder="Código de 6 dígitos"
               value={code}
               onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
               className={inputBase + " text-center tracking-[0.35em] text-lg font-semibold"}
@@ -558,7 +564,7 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
           </form>
           <p className="text-center text-[11.5px] text-white/35 mt-5">
             <button
-              onClick={() => { setStep("exists_offer"); setCode(""); setErr(""); }}
+              onClick={() => { setStep("form"); setCode(""); setErr(""); setReset(true); }}
               className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold"
             >
               Voltar
