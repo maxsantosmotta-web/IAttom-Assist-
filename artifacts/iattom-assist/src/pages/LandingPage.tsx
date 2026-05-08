@@ -13,25 +13,31 @@ const inputBase =
   "w-full h-[48px] rounded-xl px-4 text-[13px] text-white bg-white/[0.06] border border-white/[0.10] placeholder:text-white/30 focus:outline-none focus:border-[#C9A030]/60 focus:bg-white/[0.08] transition-all duration-200";
 
 /* ─── error mapper ───────────────────────────────────────────────────── */
-const errMap: Record<string, string> = {
-  /* senhas */
-  form_password_pwned:                     "Senha muito comum. Escolha uma senha mais forte.",
-  form_password_incorrect:                 "Senha incorreta. Verifique e tente novamente.",
-  form_password_length_too_short:          "A senha deve ter pelo menos 8 caracteres.",
-  form_password_size_in_bytes_exceeded:    "Senha muito longa. Reduza o tamanho.",
-  form_password_no_password:              "Informe uma senha para continuar.",
 
-  /* identificadores */
-  form_identifier_exists:                  "Este email já está cadastrado.",
-  form_identifier_not_found:               "Usuário não encontrado. Verifique os dados.",
-  phone_number_exists:                     "Este número de telefone já está cadastrado.",
-  username_exists_in_instance:             "Este nome de usuário já está em uso.",
+// Erros com segunda linha de orientação ficam separados por \n
+const errMap: Record<string, string> = {
+  /* senha */
+  form_password_incorrect:                 "Usuário ou senha inválidos.",
+  form_password_pwned:                     "Sua senha precisa ter no mínimo 8 caracteres.",
+  form_password_length_too_short:          "Sua senha precisa ter no mínimo 8 caracteres.",
+  form_password_size_in_bytes_exceeded:    "Sua senha precisa ter no mínimo 8 caracteres.",
+  form_password_no_password:              "Informe uma senha para continuar.",
+  form_password_not_enabled_for_user:      "Esta conta já possui cadastro.\nFaça login ou redefina sua senha.",
+
+  /* identificadores — login */
+  form_identifier_not_found:               "Usuário não encontrado.",
+  user_not_found:                          "Usuário não encontrado.",
+
+  /* identificadores — cadastro */
+  form_identifier_exists:                  "Este email já possui cadastro.\nFaça login ou redefina sua senha.",
+  phone_number_exists:                     "Este telefone já possui cadastro.\nFaça login ou redefina sua senha.",
+  username_exists_in_instance:             "Este usuário já está em uso.\nFaça login ou redefina sua senha.",
 
   /* estratégia / método */
-  strategy_for_user_invalid:               "Este método de acesso não está disponível para esta conta. Tente entrar usando a mesma opção utilizada no cadastro.",
+  strategy_for_user_invalid:               "Esta conta já possui cadastro.\nFaça login ou redefina sua senha.",
   not_allowed_access:                      "Acesso não permitido para esta conta.",
-  client_state_invalid:                    "Sessão inválida. Recarregue a página e tente novamente.",
-  strategy_not_allowed_for_instance:       "Este método de autenticação não está habilitado.",
+  client_state_invalid:                    "Sessão expirada. Recarregue a página.",
+  strategy_not_allowed_for_instance:       "Esta conta já possui cadastro.\nFaça login ou redefina sua senha.",
 
   /* código de verificação */
   form_code_incorrect:                     "Código incorreto. Tente novamente.",
@@ -40,60 +46,66 @@ const errMap: Record<string, string> = {
   verification_expired:                    "Verificação expirada. Recomece o processo.",
 
   /* campos / formato */
-  form_param_format_invalid:               "Formato inválido. Verifique os dados informados.",
-  form_param_nil:                          "Preencha todos os campos obrigatórios.",
-  form_param_missing:                      "Campo obrigatório não preenchido.",
-  form_param_unknown:                      "Dados não reconhecidos pelo sistema.",
-  form_conditional_param_value_disallowed: "Combinação de dados inválida.",
+  form_param_format_invalid:               "Dados inválidos. Verifique as informações.",
+  form_param_nil:                          "Preencha todos os campos.",
+  form_param_missing:                      "Preencha todos os campos.",
+  form_param_unknown:                      "Ocorreu um erro inesperado. Tente novamente.",
+  form_conditional_param_value_disallowed: "Ocorreu um erro inesperado. Tente novamente.",
 
   /* sessão */
   session_exists:                          "Você já está autenticado.",
-  session_not_found:                       "Sessão não encontrada. Faça login novamente.",
+  session_not_found:                       "Sessão encerrada. Faça login novamente.",
 
   /* limites */
   too_many_requests:                       "Muitas tentativas. Aguarde alguns instantes.",
-  quota_exceeded:                          "Limite de tentativas excedido. Tente mais tarde.",
+  quota_exceeded:                          "Muitas tentativas. Aguarde alguns instantes.",
   captcha_invalid:                         "Verificação de segurança falhou. Tente novamente.",
 
   /* conta */
-  account_transfer_invalid:                "Erro na transferência de conta. Tente novamente.",
-  user_locked:                             "Conta temporariamente bloqueada. Aguarde e tente novamente.",
-  user_not_found:                          "Usuário não encontrado.",
+  user_locked:                             "Conta temporariamente bloqueada.\nAguarde alguns minutos e tente novamente.",
+  account_transfer_invalid:               "Ocorreu um erro inesperado. Tente novamente.",
 };
 
-/* frases em inglês que podem vir no campo message/longMessage */
+/* frases em inglês que podem vir em longMessage/message */
 const msgPhrases: Array<[RegExp, string]> = [
-  [/verification strategy is not valid/i,        "Este método de acesso não está disponível para esta conta. Tente entrar usando a mesma opção utilizada no cadastro."],
-  [/password is incorrect/i,                     "Senha incorreta. Verifique e tente novamente."],
-  [/identifier (is )?not found/i,                "Usuário não encontrado. Verifique os dados."],
-  [/already (exists|taken)/i,                    "Estes dados já estão cadastrados. Tente fazer login."],
-  [/too many (requests|attempts)/i,              "Muitas tentativas. Aguarde alguns instantes."],
-  [/code (is )?incorrect/i,                      "Código incorreto. Tente novamente."],
-  [/code (is )?expired/i,                        "Código expirado. Solicite um novo."],
-  [/is not allowed/i,                            "Ação não permitida para esta conta."],
-  [/strategy.*not.*valid/i,                      "Este método de acesso não está disponível para esta conta. Tente entrar usando a mesma opção utilizada no cadastro."],
-  [/locked/i,                                    "Conta temporariamente bloqueada. Aguarde e tente novamente."],
-  [/session.*not found/i,                        "Sessão não encontrada. Faça login novamente."],
-  [/is invalid/i,                                "Dado inválido. Verifique e tente novamente."],
+  [/password is incorrect/i,               "Usuário ou senha inválidos."],
+  [/verification strategy is not valid/i,  "Esta conta já possui cadastro.\nFaça login ou redefina sua senha."],
+  [/strategy.*not.*valid/i,               "Esta conta já possui cadastro.\nFaça login ou redefina sua senha."],
+  [/identifier (is )?not found/i,          "Usuário não encontrado."],
+  [/already (exists|taken)/i,              "Estes dados já possuem cadastro.\nFaça login ou redefina sua senha."],
+  [/too many (requests|attempts)/i,        "Muitas tentativas. Aguarde alguns instantes."],
+  [/code (is )?incorrect/i,               "Código incorreto. Tente novamente."],
+  [/code (is )?expired/i,                 "Código expirado. Solicite um novo."],
+  [/is not allowed/i,                     "Esta conta já possui cadastro.\nFaça login ou redefina sua senha."],
+  [/locked/i,                             "Conta temporariamente bloqueada.\nAguarde alguns minutos e tente novamente."],
+  [/session.*not found/i,                 "Sessão encerrada. Faça login novamente."],
+  [/failed to fetch/i,                    "Não foi possível conectar ao servidor."],
+  [/network/i,                            "Não foi possível conectar ao servidor."],
 ];
 
 type ClerkErr = { code: string; longMessage?: string; message?: string };
 
-function clerkMsg(e: ClerkErr | null): string {
-  if (!e) return "Erro desconhecido.";
+function clerkMsg(e: ClerkErr | null | unknown): string {
+  if (!e) return "Ocorreu um erro inesperado. Tente novamente.";
 
-  // 1. código mapeado diretamente
-  if (errMap[e.code]) return errMap[e.code];
+  // erro de rede / fetch
+  if (e instanceof TypeError || (e instanceof Error && /fetch|network/i.test(e.message))) {
+    return "Não foi possível conectar ao servidor.";
+  }
 
-  // 2. busca na mensagem por frases em inglês conhecidas
-  const raw = e.longMessage ?? e.message ?? "";
+  const ce = e as ClerkErr;
+
+  // 1. código mapeado
+  if (ce.code && errMap[ce.code]) return errMap[ce.code];
+
+  // 2. texto da mensagem com padrões conhecidos
+  const raw = ce.longMessage ?? ce.message ?? "";
   for (const [pattern, pt] of msgPhrases) {
     if (pattern.test(raw)) return pt;
   }
 
-  // 3. fallback: retorna o texto original se já estiver em pt, ou mensagem genérica
-  if (raw) return raw;
-  return "Erro ao autenticar. Tente novamente.";
+  // 3. fallback genérico (nunca expõe texto técnico)
+  return "Ocorreu um erro inesperado. Tente novamente.";
 }
 
 /* ─── drawer shell ───────────────────────────────────────────────────── */
@@ -209,10 +221,18 @@ function GoldBtn({ label, busy }: { label: string; busy?: boolean }) {
   );
 }
 
-/* ─── error line ─────────────────────────────────────────────────────── */
+/* ─── error block (suporta duas linhas separadas por \n) ────────────── */
 function ErrLine({ msg }: { msg: string }) {
   if (!msg) return null;
-  return <p className="text-[11.5px] text-red-400/90 text-center leading-snug">{msg}</p>;
+  const [line1, line2] = msg.split("\n");
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <p className="text-[11.5px] text-red-400/90 text-center leading-snug">{line1}</p>
+      {line2 && (
+        <p className="text-[11px] text-white/40 text-center leading-snug">{line2}</p>
+      )}
+    </div>
+  );
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -244,43 +264,50 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (password.length < 8) { setErr("A senha deve ter pelo menos 8 caracteres."); return; }
-    if (password !== confirm) { setErr("As senhas não coincidem."); return; }
+    if (password.length < 8) { setErr("Sua senha precisa ter no mínimo 8 caracteres."); return; }
+    if (password !== confirm) { setErr("As senhas não conferem."); return; }
     setErr("");
 
-    const params =
-      method === "email"
-        ? { emailAddress: email, password }
-        : { phoneNumber: phone, password };
+    try {
+      const params =
+        method === "email"
+          ? { emailAddress: email, password }
+          : { phoneNumber: phone, password };
 
-    const { error: e1 } = await signUp.password(params);
-    if (e1) { setErr(clerkMsg(e1)); return; }
+      const { error: e1 } = await signUp.password(params);
+      if (e1) { setErr(clerkMsg(e1)); return; }
 
-    if (signUp.status === "complete") {
-      const { error: e2 } = await signUp.finalize();
-      if (e2) { setErr(clerkMsg(e2)); return; }
-      if (method === "phone") localStorage.setItem("iattom_signup_phone", phone);
-      navigate("/onboarding");
-      return;
+      if (signUp.status === "complete") {
+        const { error: e2 } = await signUp.finalize();
+        if (e2) { setErr(clerkMsg(e2)); return; }
+        if (method === "phone") localStorage.setItem("iattom_signup_phone", phone);
+        navigate("/onboarding");
+        return;
+      }
+
+      const { error: e3 } = await signUp.verifications.sendEmailCode();
+      if (e3) { setErr(clerkMsg(e3)); return; }
+      setStep("verify");
+    } catch (ex) {
+      setErr(clerkMsg(ex));
     }
-
-    // needs verification (email OTP)
-    const { error: e3 } = await signUp.verifications.sendEmailCode();
-    if (e3) { setErr(clerkMsg(e3)); return; }
-    setStep("verify");
   }
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
 
-    const { error: e1 } = await signUp.verifications.verifyEmailCode({ code });
-    if (e1) { setErr(clerkMsg(e1)); return; }
+    try {
+      const { error: e1 } = await signUp.verifications.verifyEmailCode({ code });
+      if (e1) { setErr(clerkMsg(e1)); return; }
 
-    const { error: e2 } = await signUp.finalize();
-    if (e2) { setErr(clerkMsg(e2)); return; }
+      const { error: e2 } = await signUp.finalize();
+      if (e2) { setErr(clerkMsg(e2)); return; }
 
-    navigate("/onboarding");
+      navigate("/onboarding");
+    } catch (ex) {
+      setErr(clerkMsg(ex));
+    }
   }
 
   async function handleReset() {
@@ -407,15 +434,19 @@ function SignInDrawer({ onClose, onOpenSignUp }: { onClose: () => void; onOpenSi
     e.preventDefault();
     setErr("");
 
-    const { error: e1 } = await signIn.password({ identifier, password });
-    if (e1) { setErr(clerkMsg(e1)); return; }
+    try {
+      const { error: e1 } = await signIn.password({ identifier, password });
+      if (e1) { setErr(clerkMsg(e1)); return; }
 
-    if (signIn.status === "complete") {
-      const { error: e2 } = await signIn.finalize();
-      if (e2) { setErr(clerkMsg(e2)); return; }
-      navigate("/dashboard");
-    } else {
-      setErr("Autenticação incompleta. Tente novamente.");
+      if (signIn.status === "complete") {
+        const { error: e2 } = await signIn.finalize();
+        if (e2) { setErr(clerkMsg(e2)); return; }
+        navigate("/dashboard");
+      } else {
+        setErr("Ocorreu um erro inesperado. Tente novamente.");
+      }
+    } catch (ex) {
+      setErr(clerkMsg(ex));
     }
   }
 
