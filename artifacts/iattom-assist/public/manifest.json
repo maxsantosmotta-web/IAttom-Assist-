@@ -3,6 +3,7 @@
   "short_name": "IAttom",
   "description": "Assistente de negócios com IA",
   "start_url": "/iattom-assist/",
+  "scope": "/iattom-assist/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
@@ -12,13 +13,19 @@
       "src": "/iattom-assist/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/iattom-assist/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/iattom-assist/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
