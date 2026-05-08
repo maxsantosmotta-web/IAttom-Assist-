@@ -104,7 +104,8 @@ function clerkMsg(e: ClerkErr | null | unknown): string {
     return "Não foi possível conectar ao servidor.";
   }
 
-  const ce = e as ClerkErr;
+  // Clerk error: pode ser { code } direto OU ClerkAPIResponseError { errors: [] }
+  const ce = extractFirstClerkErr(e) ?? (e as ClerkErr);
 
   // 1. código mapeado
   if (ce.code && errMap[ce.code]) return errMap[ce.code];
@@ -119,14 +120,25 @@ function clerkMsg(e: ClerkErr | null | unknown): string {
   return "Ocorreu um erro inesperado. Tente novamente.";
 }
 
-/* ─── helper: timeout de 5 segundos ─────────────────────────────────── */
-function withTimeout<T>(p: Promise<T>, ms = 5000): Promise<T> {
+/* ─── helper: timeout (10s) ──────────────────────────────────────────── */
+function withTimeout<T>(p: Promise<T>, ms = 10000): Promise<T> {
   return Promise.race([
     p,
     new Promise<T>((_, reject) =>
       setTimeout(() => reject(new Error("__timeout__")), ms)
     ),
   ]);
+}
+
+/* ─── extrai o primeiro ClerkErr de qualquer formato de erro ─────────── */
+// Clerk v6 pode retornar { error } OU lançar ClerkAPIResponseError { errors: [] }
+function extractFirstClerkErr(ex: unknown): ClerkErr | null {
+  if (!ex || typeof ex !== "object") return null;
+  const arr = (ex as { errors?: ClerkErr[] }).errors;
+  if (Array.isArray(arr) && arr.length > 0) return arr[0];
+  const ce = ex as ClerkErr;
+  if (ce.code) return ce;
+  return null;
 }
 
 /* ─── detecta erros de conta já existente por código ou texto ───────── */
@@ -144,9 +156,11 @@ const EXISTING_ACCOUNT_CODES = new Set([
 const EXISTING_ACCOUNT_PATTERN =
   /already.*(exists|taken)|external.*account|oauth.*account|password.*not.*enabled|not.*allowed.*password|identifier.*exist/i;
 
-function isExistingAccount(e: ClerkErr): boolean {
-  if (EXISTING_ACCOUNT_CODES.has(e.code)) return true;
-  const raw = e.longMessage ?? e.message ?? "";
+function isExistingAccount(e: ClerkErr | unknown): boolean {
+  const ce = extractFirstClerkErr(e) ?? (e as ClerkErr);
+  if (!ce?.code && !ce?.longMessage && !ce?.message) return false;
+  if (ce.code && EXISTING_ACCOUNT_CODES.has(ce.code)) return true;
+  const raw = ce.longMessage ?? ce.message ?? "";
   return EXISTING_ACCOUNT_PATTERN.test(raw);
 }
 
@@ -345,7 +359,13 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
       if (e3) { setErr(clerkMsg(e3)); return; }
       setStep("verify");
     } catch (ex) {
-      setErr(clerkMsg(ex));
+      // Clerk às vezes lança ClerkAPIResponseError ao invés de retornar { error }
+      if (isExistingAccount(ex)) {
+        setErr("Este email já possui cadastro. Use Fazer login ou redefina sua senha.");
+        setReset(true);
+      } else {
+        setErr(clerkMsg(ex));
+      }
     } finally {
       setLoading(false);
     }
