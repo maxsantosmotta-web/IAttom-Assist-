@@ -238,12 +238,15 @@ function ErrLine({ msg }: { msg: string }) {
 /* ═══════════════════════════════════════════════════════════════════════
    SIGN-UP DRAWER
 ═══════════════════════════════════════════════════════════════════════ */
+type SignUpStep = "form" | "verify" | "exists_offer" | "exists_code";
+
 function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLogin: () => void }) {
   const [, navigate] = useLocation();
-  const { signUp, fetchStatus } = useSignUp();
+  const { signUp, fetchStatus: suFetch } = useSignUp();
+  const { signIn, fetchStatus: siFetch } = useSignIn();
 
   const [method, setMethod]   = useState<"email" | "phone">("email");
-  const [step, setStep]       = useState<"form" | "verify">("form");
+  const [step, setStep]       = useState<SignUpStep>("form");
   const [email, setEmail]     = useState("");
   const [phone, setPhone]     = useState("");
   const [password, setPass]   = useState("");
@@ -251,7 +254,14 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
   const [code, setCode]       = useState("");
   const [err, setErr]         = useState("");
 
-  const busy = fetchStatus === "fetching";
+  const busy = suFetch === "fetching" || siFetch === "fetching";
+
+  /* ── códigos Clerk que indicam "email já existe" ─────────────────── */
+  const EXISTING_ACCOUNT_CODES = new Set([
+    "form_identifier_exists",
+    "strategy_for_user_invalid",
+    "strategy_not_allowed_for_instance",
+  ]);
 
   function handleMethodChange(m: "email" | "phone") {
     setMethod(m);
@@ -260,8 +270,10 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
     setPhone("");
     setPass("");
     setConfirm("");
+    setStep("form");
   }
 
+  /* ── PASSO 1: tentativa de cadastro ─────────────────────────────── */
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (password.length < 8) { setErr("Sua senha precisa ter no mínimo 8 caracteres."); return; }
@@ -275,6 +287,12 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
           : { phoneNumber: phone, password };
 
       const { error: e1 } = await signUp.password(params);
+
+      // Email já existe → oferecer criar senha na conta existente
+      if (e1 && EXISTING_ACCOUNT_CODES.has(e1.code)) {
+        setStep("exists_offer");
+        return;
+      }
       if (e1) { setErr(clerkMsg(e1)); return; }
 
       if (signUp.status === "complete") {
@@ -285,6 +303,7 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
         return;
       }
 
+      // Precisa verificar email
       const { error: e3 } = await signUp.verifications.sendEmailCode();
       if (e3) { setErr(clerkMsg(e3)); return; }
       setStep("verify");
@@ -293,7 +312,8 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
     }
   }
 
-  async function handleVerify(e: React.FormEvent) {
+  /* ── PASSO 2a: verificar email de novo cadastro ──────────────────── */
+  async function handleVerifyNewAccount(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
 
@@ -310,23 +330,67 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
     }
   }
 
-  async function handleReset() {
+  /* ── PASSO 2b: enviar código de redefinição (conta existente) ────── */
+  async function handleSendResetCode() {
+    setErr("");
+    try {
+      // Inicializa sign-in com o email existente
+      const { error: e1 } = await signIn.create({ identifier: email });
+      if (e1) { setErr(clerkMsg(e1)); return; }
+
+      // Envia código de redefinição por email
+      const { error: e2 } = await signIn.resetPasswordEmailCode.sendCode();
+      if (e2) { setErr(clerkMsg(e2)); return; }
+
+      setCode("");
+      setStep("exists_code");
+    } catch (ex) {
+      setErr(clerkMsg(ex));
+    }
+  }
+
+  /* ── PASSO 3b: verificar OTP e definir senha na conta existente ──── */
+  async function handleVerifyAndSetPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setErr("");
+
+    try {
+      // Verifica o código enviado por email
+      const { error: e1 } = await signIn.resetPasswordEmailCode.verifyCode({ code });
+      if (e1) { setErr(clerkMsg(e1)); return; }
+
+      // Define a senha que o usuário já digitou no formulário
+      const { error: e2 } = await signIn.resetPasswordEmailCode.submitPassword({ password });
+      if (e2) { setErr(clerkMsg(e2)); return; }
+
+      // Ativa a sessão
+      const { error: e3 } = await signIn.finalize();
+      if (e3) { setErr(clerkMsg(e3)); return; }
+
+      navigate("/dashboard"); // conta existente → vai direto ao dashboard
+    } catch (ex) {
+      setErr(clerkMsg(ex));
+    }
+  }
+
+  async function handleResetNewAccount() {
     await signUp.reset();
     setStep("form");
     setCode("");
     setErr("");
   }
 
+  /* ── RENDER ──────────────────────────────────────────────────────── */
   return (
     <DrawerShell onClose={onClose}>
-      {step === "form" ? (
+
+      {/* ── Formulário principal ────────────────────────────────────── */}
+      {step === "form" && (
         <>
           <p className="text-[11px] text-white/30 uppercase tracking-[0.18em] font-semibold mb-4 text-center">
             Criar conta
           </p>
-
           <MethodToggle value={method} onChange={handleMethodChange} />
-
           <form onSubmit={handleCreate} className="flex flex-col gap-3 mt-3">
             {method === "email" ? (
               <input
@@ -351,7 +415,6 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
                 required
               />
             )}
-
             <PasswordInput
               placeholder="Crie uma senha (mín. 8 caracteres)"
               value={password}
@@ -367,7 +430,6 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
             <ErrLine msg={err} />
             <GoldBtn label="Continuar" busy={busy} />
           </form>
-
           <p className="text-center text-[11.5px] text-white/35 mt-5">
             Já possui conta?{" "}
             <button
@@ -378,7 +440,10 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
             </button>
           </p>
         </>
-      ) : (
+      )}
+
+      {/* ── Verificar email — novo cadastro ─────────────────────────── */}
+      {step === "verify" && (
         <>
           <p className="text-[11px] text-white/30 uppercase tracking-[0.18em] font-semibold mb-2 text-center">
             Verificar email
@@ -387,7 +452,7 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
             Enviamos um código de verificação para{" "}
             <span className="text-white/70 font-medium">{email}</span>
           </p>
-          <form onSubmit={handleVerify} className="flex flex-col gap-3">
+          <form onSubmit={handleVerifyNewAccount} className="flex flex-col gap-3">
             <input
               type="text"
               placeholder="Código de 6 dígitos"
@@ -405,7 +470,7 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
           <p className="text-center text-[11.5px] text-white/35 mt-5">
             Email errado?{" "}
             <button
-              onClick={handleReset}
+              onClick={handleResetNewAccount}
               className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold"
             >
               Alterar
@@ -413,6 +478,95 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
           </p>
         </>
       )}
+
+      {/* ── Conta existente — oferecer criar senha ──────────────────── */}
+      {step === "exists_offer" && (
+        <>
+          <p className="text-[11px] text-white/30 uppercase tracking-[0.18em] font-semibold mb-5 text-center">
+            Conta existente
+          </p>
+          <div
+            className="rounded-xl px-4 py-4 mb-5 flex flex-col gap-1"
+            style={{ background: "rgba(201,160,48,0.07)", border: "1px solid rgba(201,160,48,0.18)" }}
+          >
+            <p className="text-[13px] text-white/80 text-center leading-snug font-medium">
+              Esta conta ja existe.
+            </p>
+            <p className="text-[12px] text-white/45 text-center leading-snug mt-1">
+              Crie uma senha para acessar tambem com email e senha, sem perder seus dados.
+            </p>
+          </div>
+          <div className="rounded-xl px-3 py-2 mb-5" style={{ background: "rgba(255,255,255,0.04)" }}>
+            <p className="text-[11px] text-white/30 text-center">Senha a ser definida</p>
+            <p className="text-[12px] text-white/60 text-center mt-0.5 tracking-widest">
+              {"•".repeat(Math.min(password.length, 12))}
+            </p>
+          </div>
+          <ErrLine msg={err} />
+          <button
+            type="button"
+            disabled={busy}
+            onClick={handleSendResetCode}
+            className="w-full h-[50px] flex items-center justify-center rounded-xl font-black text-[12.5px] tracking-[0.16em] uppercase text-black mt-1 hover:brightness-110 active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:pointer-events-none"
+            style={{
+              background: "linear-gradient(135deg, #E8C84A 0%, #C9A030 38%, #A07820 68%, #C9A030 100%)",
+              boxShadow: "0 4px 24px -6px rgba(201,160,48,0.55), inset 0 1px 0 rgba(255,255,255,0.18)",
+            }}
+          >
+            {busy
+              ? <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin inline-block" />
+              : "Enviar codigo de verificacao"
+            }
+          </button>
+          <p className="text-center text-[11.5px] text-white/35 mt-5">
+            <button
+              onClick={() => { setStep("form"); setErr(""); }}
+              className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold"
+            >
+              Voltar
+            </button>
+          </p>
+        </>
+      )}
+
+      {/* ── Conta existente — verificar OTP e definir senha ─────────── */}
+      {step === "exists_code" && (
+        <>
+          <p className="text-[11px] text-white/30 uppercase tracking-[0.18em] font-semibold mb-2 text-center">
+            Verificar identidade
+          </p>
+          <p className="text-[12px] text-white/45 text-center mb-5 leading-snug">
+            Enviamos um codigo para{" "}
+            <span className="text-white/70 font-medium">{email}</span>
+            <br />
+            <span className="text-[11px]">Insira o codigo para criar sua senha.</span>
+          </p>
+          <form onSubmit={handleVerifyAndSetPassword} className="flex flex-col gap-3">
+            <input
+              type="text"
+              placeholder="Codigo de 6 digitos"
+              value={code}
+              onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              className={inputBase + " text-center tracking-[0.35em] text-lg font-semibold"}
+              inputMode="numeric"
+              maxLength={6}
+              autoComplete="one-time-code"
+              required
+            />
+            <ErrLine msg={err} />
+            <GoldBtn label="Criar senha e entrar" busy={busy} />
+          </form>
+          <p className="text-center text-[11.5px] text-white/35 mt-5">
+            <button
+              onClick={() => { setStep("exists_offer"); setCode(""); setErr(""); }}
+              className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold"
+            >
+              Voltar
+            </button>
+          </p>
+        </>
+      )}
+
     </DrawerShell>
   );
 }
