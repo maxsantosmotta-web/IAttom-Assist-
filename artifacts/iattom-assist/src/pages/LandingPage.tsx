@@ -321,12 +321,16 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
       const { error: e1 } = await withTimeout(signUp.password(params));
 
       // Conta já existe → mostrar mensagem inline + link "Redefinir senha"
-      if (e1 && isExistingAccount(e1)) {
-        setErr("Este email já possui cadastro. Use Fazer login ou redefina sua senha.");
-        setReset(true);
+      if (e1) {
+        const msg = clerkMsg(e1);
+        const isExisting = isExistingAccount(e1) || /já possui cadastro|já está vinculado/i.test(msg);
+        setErr(isExisting
+          ? "Este email já possui cadastro. Use Fazer login ou redefina sua senha."
+          : msg
+        );
+        setReset(isExisting);
         return;
       }
-      if (e1) { setErr(clerkMsg(e1)); return; }
 
       if (signUp.status === "complete") {
         const { error: e2 } = await withTimeout(signUp.finalize());
@@ -631,6 +635,14 @@ function SignInDrawer({ onClose, onOpenSignUp }: { onClose: () => void; onOpenSi
           onChange={setPass}
           autoComplete="current-password"
         />
+        <div className="flex justify-end -mt-1">
+          <button
+            type="button"
+            className="text-[11.5px] text-white/35 hover:text-[#C9A030] transition-colors duration-150"
+          >
+            Esqueci minha senha
+          </button>
+        </div>
         <ErrLine msg={err} />
         <GoldBtn label="Entrar" busy={busy} />
       </form>
