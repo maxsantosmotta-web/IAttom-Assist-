@@ -548,17 +548,6 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
 
             <ErrLine msg={err} />
 
-            {/* Link "Redefinir senha" — aparece quando conta já existe */}
-            {showResetLink && (
-              <button
-                type="button"
-                onClick={() => { setStep("reset_form"); setErr(""); }}
-                className="text-[12px] text-[#C9A030] hover:text-[#F0D050] transition-colors underline underline-offset-2 w-full text-center -mt-1"
-              >
-                Redefinir senha
-              </button>
-            )}
-
             <GoldBtn label="Continuar" busy={busy} />
           </form>
           <p className="text-center text-[11.5px] text-white/35 mt-5">
@@ -568,6 +557,14 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
               className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold"
             >
               Fazer login
+            </button>
+            <span className="mx-1.5 opacity-40">•</span>
+            <button
+              type="button"
+              onClick={() => { setStep("reset_form"); setErr(""); setReset(false); }}
+              className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold"
+            >
+              Redefinir senha
             </button>
           </p>
         </>
