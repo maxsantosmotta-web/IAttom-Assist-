@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import logoSplash from "/logo-splash.png";
 
 export function LoadingScreen() {
   return (
@@ -17,7 +18,7 @@ export function LoadingScreen() {
           transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
         >
           <img
-            src="/iattom-assist/logo-splash.png"
+            src={logoSplash}
             alt="IAttom Assist"
             width={200}
             height={200}
