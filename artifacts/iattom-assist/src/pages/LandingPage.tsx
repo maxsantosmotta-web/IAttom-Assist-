@@ -44,8 +44,8 @@ function SignUpDrawer({ onClose }: { onClose: () => void }) {
         <motion.div
           className="relative z-10 w-full max-w-[480px] mx-auto rounded-t-3xl overflow-hidden"
           style={{
-            background: "linear-gradient(180deg, #141008 0%, #0d0b06 100%)",
-            border: "1px solid rgba(201,160,48,0.18)",
+            background: "#0a0a0a",
+            border: "1px solid rgba(201,160,48,0.10)",
             borderBottom: "none",
           }}
           initial={{ y: "100%" }}
