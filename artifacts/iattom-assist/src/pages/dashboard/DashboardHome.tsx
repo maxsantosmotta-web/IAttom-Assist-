@@ -14,7 +14,6 @@ import {
   useListHistory, getListHistoryQueryKey,
 } from "@workspace/api-client-react";
 import { useUser } from "@clerk/react";
-import { useMilestones } from "@/hooks/useMilestones";
 import { UpgradeNudge } from "@/components/UpgradeNudge";
 
 const quickActions = [
@@ -105,11 +104,6 @@ export function DashboardHome() {
   const { user, isLoaded } = useUser();
   const { data: me } = useGetMe({
     query: { queryKey: getGetMeQueryKey(), retry: false, staleTime: 60_000 },
-  });
-
-  useMilestones({
-    totalActions: summary?.totalActions ?? 0,
-    totalProjects: summary?.totalProjects ?? 0,
   });
 
   const firstName = user?.firstName || user?.fullName?.split(" ")[0] || "você";
