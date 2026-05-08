@@ -96,7 +96,7 @@ function clerkMsg(e: ClerkErr | null | unknown): string {
 
   // timeout de 5 segundos
   if (e instanceof Error && e.message === "__timeout__") {
-    return "Estamos verificando seu cadastro. Tente novamente em alguns segundos.";
+    return "Usuário já possui cadastro. Faça login ou redefina sua senha.";
   }
 
   // erro de rede / fetch
