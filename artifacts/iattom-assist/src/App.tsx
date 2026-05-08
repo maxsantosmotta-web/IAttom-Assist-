@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { Switch, Route, Redirect, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
+import { ClerkProvider, Show, useClerk } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { AnimatePresence } from "framer-motion";
@@ -149,36 +149,6 @@ const clerkAppearance = {
   },
 };
 
-function SignInPage() {
-  return (
-    <div className="relative flex min-h-[100dvh] items-center justify-center bg-[#080808] px-4">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-5%,_rgba(201,168,76,0.1)_0%,_transparent_60%)] pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_40%_40%_at_80%_80%,_rgba(201,168,76,0.04)_0%,_transparent_60%)] pointer-events-none" />
-      <SignIn
-        routing="path"
-        path={`${basePath}/sign-in`}
-        signUpUrl={`${basePath}/sign-up`}
-        fallbackRedirectUrl={`${basePath}/dashboard`}
-      />
-    </div>
-  );
-}
-
-function SignUpPage() {
-  return (
-    <div className="relative flex min-h-[100dvh] items-center justify-center bg-[#080808] px-4">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-5%,_rgba(201,168,76,0.1)_0%,_transparent_60%)] pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_40%_40%_at_80%_80%,_rgba(201,168,76,0.04)_0%,_transparent_60%)] pointer-events-none" />
-      <SignUp
-        routing="path"
-        path={`${basePath}/sign-up`}
-        signInUrl={`${basePath}/sign-in`}
-        fallbackRedirectUrl={`${basePath}/onboarding`}
-      />
-    </div>
-  );
-}
-
 function HomeRedirect() {
   return (
     <>
@@ -321,8 +291,8 @@ function ClerkProviderWithRoutes() {
           <ErrorBoundary>
             <Switch>
               <Route path="/" component={HomeRedirect} />
-              <Route path="/sign-in/*?" component={SignInPage} />
-              <Route path="/sign-up/*?" component={SignUpPage} />
+              <Route path="/sign-in/*?">{() => <Redirect to="/" />}</Route>
+              <Route path="/sign-up/*?">{() => <Redirect to="/" />}</Route>
               <Route path="/onboarding/*?" component={ProtectedOnboarding} />
               <Route path="/dashboard/*?" component={ProtectedDashboard} />
               <Route path="/admin/*?" component={ProtectedAdmin} />

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { UserPlus, LogIn, X, Eye, EyeOff } from "lucide-react";
+import { UserPlus, LogIn, X, Eye, EyeOff, Mail, Phone } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSignUp, useSignIn } from "@clerk/react";
 import { useLocation } from "wouter";
+
 /* ─── motion presets ─────────────────────────────────────────────────── */
 const fadeUp = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } };
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.12 } } };
@@ -13,15 +14,18 @@ const inputBase =
 
 /* ─── error mapper ───────────────────────────────────────────────────── */
 const errMap: Record<string, string> = {
-  form_password_pwned:       "Senha muito comum. Escolha outra.",
-  form_identifier_exists:    "Este email já está cadastrado.",
-  form_password_incorrect:   "Senha incorreta.",
-  form_identifier_not_found: "Email ou telefone não encontrado.",
-  too_many_requests:         "Muitas tentativas. Aguarde um momento.",
-  form_code_incorrect:       "Código incorreto. Tente novamente.",
-  form_code_expired:         "Código expirado. Solicite um novo.",
-  form_param_format_invalid: "Formato inválido. Verifique os dados.",
-  session_exists:            "Você já está autenticado.",
+  form_password_pwned:             "Senha muito comum. Escolha uma senha mais forte.",
+  form_identifier_exists:          "Este email já está cadastrado.",
+  form_password_incorrect:         "Senha incorreta.",
+  form_identifier_not_found:       "Usuário não encontrado.",
+  too_many_requests:               "Muitas tentativas. Aguarde um momento.",
+  form_code_incorrect:             "Código incorreto. Tente novamente.",
+  form_code_expired:               "Código expirado. Solicite um novo.",
+  form_param_format_invalid:       "Formato inválido. Verifique os dados.",
+  session_exists:                  "Você já está autenticado.",
+  form_password_length_too_short:  "A senha deve ter pelo menos 8 caracteres.",
+  form_param_nil:                  "Preencha todos os campos obrigatórios.",
+  phone_number_exists:             "Este número já está cadastrado.",
 };
 
 type ClerkErr = { code: string; longMessage?: string; message?: string };
@@ -84,6 +88,7 @@ function PasswordInput({ placeholder, value, onChange, autoComplete }: {
         className={inputBase + " pr-11"}
         autoComplete={autoComplete}
         required
+        minLength={8}
       />
       <button
         type="button"
@@ -93,6 +98,32 @@ function PasswordInput({ placeholder, value, onChange, autoComplete }: {
       >
         {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
       </button>
+    </div>
+  );
+}
+
+/* ─── method toggle (Email / Telefone) ───────────────────────────────── */
+function MethodToggle({ value, onChange }: { value: "email" | "phone"; onChange: (v: "email" | "phone") => void }) {
+  return (
+    <div className="flex rounded-xl overflow-hidden border border-white/[0.08] mb-1">
+      {(["email", "phone"] as const).map(opt => (
+        <button
+          key={opt}
+          type="button"
+          onClick={() => onChange(opt)}
+          className="flex-1 h-[42px] flex items-center justify-center gap-2 text-[11.5px] font-semibold tracking-wide transition-all duration-200"
+          style={{
+            background: value === opt ? "rgba(201,160,48,0.12)" : "transparent",
+            color: value === opt ? "#C9A030" : "rgba(255,255,255,0.30)",
+            borderBottom: value === opt ? "1.5px solid #C9A030" : "1.5px solid transparent",
+          }}
+        >
+          {opt === "email"
+            ? <><Mail className="w-3.5 h-3.5" /> Email</>
+            : <><Phone className="w-3.5 h-3.5" /> Telefone</>
+          }
+        </button>
+      ))}
     </div>
   );
 }
@@ -130,6 +161,7 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
   const [, navigate] = useLocation();
   const { signUp, fetchStatus } = useSignUp();
 
+  const [method, setMethod]   = useState<"email" | "phone">("email");
   const [step, setStep]       = useState<"form" | "verify">("form");
   const [email, setEmail]     = useState("");
   const [phone, setPhone]     = useState("");
@@ -140,16 +172,25 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
 
   const busy = fetchStatus === "fetching";
 
+  function handleMethodChange(m: "email" | "phone") {
+    setMethod(m);
+    setErr("");
+    setEmail("");
+    setPhone("");
+    setPass("");
+    setConfirm("");
+  }
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
+    if (password.length < 8) { setErr("A senha deve ter pelo menos 8 caracteres."); return; }
     if (password !== confirm) { setErr("As senhas não coincidem."); return; }
     setErr("");
 
-    const params: { emailAddress: string; password: string; phoneNumber?: string } = {
-      emailAddress: email,
-      password,
-      ...(phone ? { phoneNumber: phone } : {}),
-    };
+    const params =
+      method === "email"
+        ? { emailAddress: email, password }
+        : { phoneNumber: phone, password };
 
     const { error: e1 } = await signUp.password(params);
     if (e1) { setErr(clerkMsg(e1)); return; }
@@ -157,12 +198,12 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
     if (signUp.status === "complete") {
       const { error: e2 } = await signUp.finalize();
       if (e2) { setErr(clerkMsg(e2)); return; }
-      if (phone) localStorage.setItem("iattom_signup_phone", phone);
+      if (method === "phone") localStorage.setItem("iattom_signup_phone", phone);
       navigate("/onboarding");
       return;
     }
 
-    // email verification required
+    // needs verification (email OTP)
     const { error: e3 } = await signUp.verifications.sendEmailCode();
     if (e3) { setErr(clerkMsg(e3)); return; }
     setStep("verify");
@@ -178,7 +219,6 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
     const { error: e2 } = await signUp.finalize();
     if (e2) { setErr(clerkMsg(e2)); return; }
 
-    if (phone) localStorage.setItem("iattom_signup_phone", phone);
     navigate("/onboarding");
   }
 
@@ -193,36 +233,59 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
     <DrawerShell onClose={onClose}>
       {step === "form" ? (
         <>
-          <p className="text-[11px] text-white/30 uppercase tracking-[0.18em] font-semibold mb-5 text-center">
+          <p className="text-[11px] text-white/30 uppercase tracking-[0.18em] font-semibold mb-4 text-center">
             Criar conta
           </p>
-          <form onSubmit={handleCreate} className="flex flex-col gap-3">
-            <input
-              type="email"
-              placeholder="Digite seu email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className={inputBase}
-              autoComplete="email"
-              required
+
+          <MethodToggle value={method} onChange={handleMethodChange} />
+
+          <form onSubmit={handleCreate} className="flex flex-col gap-3 mt-3">
+            {method === "email" ? (
+              <input
+                key="email"
+                type="email"
+                placeholder="Digite seu email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className={inputBase}
+                autoComplete="email"
+                required
+              />
+            ) : (
+              <input
+                key="phone"
+                type="tel"
+                placeholder="Digite seu telefone (ex: +5511999999999)"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                className={inputBase}
+                autoComplete="tel"
+                required
+              />
+            )}
+
+            <PasswordInput
+              placeholder="Crie uma senha (mín. 8 caracteres)"
+              value={password}
+              onChange={setPass}
+              autoComplete="new-password"
             />
-            <input
-              type="tel"
-              placeholder="Digite seu telefone"
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
-              className={inputBase}
-              autoComplete="tel"
+            <PasswordInput
+              placeholder="Confirme sua senha"
+              value={confirm}
+              onChange={setConfirm}
+              autoComplete="new-password"
             />
-            <PasswordInput placeholder="Crie uma senha"    value={password} onChange={setPass}   autoComplete="new-password" />
-            <PasswordInput placeholder="Confirme sua senha" value={confirm} onChange={setConfirm} autoComplete="new-password" />
             <ErrLine msg={err} />
             <GoldBtn label="Continuar" busy={busy} />
           </form>
+
           <p className="text-center text-[11.5px] text-white/35 mt-5">
             Já possui conta?{" "}
-            <button onClick={() => { onClose(); onOpenLogin(); }}
-              className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold">
+            <button
+              onClick={() => { onClose(); onOpenLogin(); }}
+              className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold"
+            >
               Fazer login
             </button>
           </p>
@@ -233,7 +296,7 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
             Verificar email
           </p>
           <p className="text-[12px] text-white/45 text-center mb-5 leading-snug">
-            Enviamos um código para{" "}
+            Enviamos um código de verificação para{" "}
             <span className="text-white/70 font-medium">{email}</span>
           </p>
           <form onSubmit={handleVerify} className="flex flex-col gap-3">
@@ -252,9 +315,12 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
             <GoldBtn label="Verificar" busy={busy} />
           </form>
           <p className="text-center text-[11.5px] text-white/35 mt-5">
-            <button onClick={handleReset}
-              className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold">
-              Alterar email
+            Email errado?{" "}
+            <button
+              onClick={handleReset}
+              className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold"
+            >
+              Alterar
             </button>
           </p>
         </>
@@ -307,14 +373,21 @@ function SignInDrawer({ onClose, onOpenSignUp }: { onClose: () => void; onOpenSi
           autoComplete="username"
           required
         />
-        <PasswordInput placeholder="Sua senha" value={password} onChange={setPass} autoComplete="current-password" />
+        <PasswordInput
+          placeholder="Sua senha"
+          value={password}
+          onChange={setPass}
+          autoComplete="current-password"
+        />
         <ErrLine msg={err} />
         <GoldBtn label="Entrar" busy={busy} />
       </form>
       <p className="text-center text-[11.5px] text-white/35 mt-5">
-        Não possui conta?{" "}
-        <button onClick={() => { onClose(); onOpenSignUp(); }}
-          className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold">
+        Nao possui conta?{" "}
+        <button
+          onClick={() => { onClose(); onOpenSignUp(); }}
+          className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold"
+        >
           Criar conta
         </button>
       </p>
@@ -323,7 +396,7 @@ function SignInDrawer({ onClose, onOpenSignUp }: { onClose: () => void; onOpenSi
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   LANDING PAGE
+   LANDING PAGE — nao alterar nada abaixo desta linha
 ═══════════════════════════════════════════════════════════════════════ */
 export function LandingPage() {
   const [signUpOpen, setSignUpOpen] = useState(false);
@@ -353,7 +426,7 @@ export function LandingPage() {
             transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
             className="text-[10.5px] sm:text-[11px] text-white/80 font-normal leading-snug tracking-wide px-1"
           >
-            Um passo sólido vale mais do que cem recomeços.
+            Um passo solido vale mais do que cem recomeco.
           </motion.p>
 
           <motion.div
