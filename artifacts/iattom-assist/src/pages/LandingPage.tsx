@@ -22,22 +22,22 @@ const errMap: Record<string, string> = {
   form_password_length_too_short:          "Sua senha precisa ter no mínimo 8 caracteres.",
   form_password_size_in_bytes_exceeded:    "Sua senha precisa ter no mínimo 8 caracteres.",
   form_password_no_password:              "Informe uma senha para continuar.",
-  form_password_not_enabled_for_user:      "Este email já possui cadastro.\nUse Fazer login ou redefina sua senha.",
+  form_password_not_enabled_for_user:      "Esta conta não possui senha configurada.",
 
   /* identificadores — login */
   form_identifier_not_found:               "Usuário não encontrado.",
   user_not_found:                          "Usuário não encontrado.",
 
   /* identificadores — cadastro */
-  form_identifier_exists:                  "Este email já possui cadastro.\nFaça login ou redefina sua senha.",
-  phone_number_exists:                     "Este telefone já possui cadastro.\nFaça login ou redefina sua senha.",
-  username_exists_in_instance:             "Este usuário já está em uso.\nFaça login ou redefina sua senha.",
+  form_identifier_exists:                  "Este email já possui cadastro.",
+  phone_number_exists:                     "Este telefone já possui cadastro.",
+  username_exists_in_instance:             "Este usuário já está em uso.",
 
   /* estratégia / método */
-  strategy_for_user_invalid:               "Esta conta já possui cadastro.\nFaça login ou redefina sua senha.",
+  strategy_for_user_invalid:               "Método de acesso inválido para esta conta.",
   not_allowed_access:                      "Acesso não permitido para esta conta.",
   client_state_invalid:                    "Sessão expirada. Recarregue a página.",
-  strategy_not_allowed_for_instance:       "Esta conta já possui cadastro.\nFaça login ou redefina sua senha.",
+  strategy_not_allowed_for_instance:       "Método de acesso inválido para esta conta.",
 
   /* código de verificação */
   form_code_incorrect:                     "Código incorreto. Tente novamente.",
@@ -73,13 +73,13 @@ const errMap: Record<string, string> = {
 /* frases em inglês que podem vir em longMessage/message */
 const msgPhrases: Array<[RegExp, string]> = [
   [/password is incorrect/i,                           "Usuário ou senha inválidos."],
-  [/verification strategy is not valid/i,              "Este email já possui cadastro.\nUse Fazer login ou redefina sua senha."],
-  [/strategy.*not.*valid/i,                           "Este email já possui cadastro.\nUse Fazer login ou redefina sua senha."],
+  [/verification strategy is not valid/i,              "Método de acesso inválido para esta conta."],
+  [/strategy.*not.*valid/i,                           "Método de acesso inválido para esta conta."],
   [/identifier (is )?not found/i,                      "Usuário não encontrado."],
-  [/already (exists|taken)/i,                          "Este email já possui cadastro.\nUse Fazer login ou redefina sua senha."],
-  [/external.*account|oauth.*account|google.*account/i,"Este email já possui cadastro.\nUse Fazer login ou redefina sua senha."],
-  [/password.*not.*enabled|not.*allowed.*password/i,   "Este email já possui cadastro.\nUse Fazer login ou redefina sua senha."],
-  [/is not allowed/i,                                  "Este email já possui cadastro.\nUse Fazer login ou redefina sua senha."],
+  [/already (exists|taken)/i,                          "Este email já possui cadastro."],
+  [/external.*account|oauth.*account|google.*account/i,"Esta conta usa outro método de acesso."],
+  [/password.*not.*enabled|not.*allowed.*password/i,   "Esta conta não possui senha configurada."],
+  [/is not allowed/i,                                  "Método de acesso inválido para esta conta."],
   [/too many (requests|attempts)/i,                    "Muitas tentativas. Aguarde alguns instantes."],
   [/code (is )?incorrect/i,                           "Código incorreto. Tente novamente."],
   [/code (is )?expired/i,                             "Código expirado. Solicite um novo."],
