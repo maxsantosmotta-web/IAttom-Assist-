@@ -709,9 +709,6 @@ function SignInDrawer({ onClose, onOpenSignUp }: { onClose: () => void; onOpenSi
       {/* ── Login ───────────────────────────────────────────────────── */}
       {step === "login" && (
         <>
-          <p className="text-[11px] text-white/30 uppercase tracking-[0.18em] font-semibold mb-5 text-center">
-            Entrar
-          </p>
           <form onSubmit={handleLogin} className="flex flex-col gap-3">
             <input
               type="text"
