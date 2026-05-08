@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { LogoMark } from "@/components/ui/Logo";
 
 export function LoadingScreen() {
   return (
@@ -17,17 +16,13 @@ export function LoadingScreen() {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
         >
-          <LogoMark size={64} />
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.25 }}
-          className="flex items-baseline gap-1"
-        >
-          <span className="text-2xl font-bold tracking-tight text-white">IAttom</span>
-          <span className="text-2xl font-medium tracking-tight text-primary">Assist</span>
+          <img
+            src="/iattom-assist/logo-splash.png"
+            alt="IAttom Assist"
+            width={200}
+            height={200}
+            className="object-contain"
+          />
         </motion.div>
 
         <motion.div
