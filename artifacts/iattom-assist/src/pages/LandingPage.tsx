@@ -665,22 +665,29 @@ function ResetFormStep({
   initialIdentifier = "",
   onBack,
   backLabel = "Voltar para entrar",
+  onSuccess,
 }: {
   initialIdentifier?: string;
   onBack: () => void;
   backLabel?: string;
+  onSuccess?: () => void;
 }) {
   const { signIn } = useSignIn();
-  const [identifier, setId] = useState(initialIdentifier);
-  const [sent, setSent]     = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [err, setErr]       = useState("");
 
+  type RStep = "identifier" | "code" | "success";
+  const [rstep, setRStep]     = useState<RStep>("identifier");
+  const [identifier, setId]   = useState(initialIdentifier);
+  const [code, setCode]       = useState("");
+  const [password, setPass]   = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr]         = useState("");
+
+  /* ── Passo 1: enviar código ────────────────────────────────────── */
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
     if (!identifier.trim()) return;
     setErr(""); setLoading(true);
-
     try {
       const { error: e1 } = await withTimeout(
         signIn.create({ identifier: identifier.trim() }),
@@ -694,13 +701,44 @@ function ResetFormStep({
       );
       if (e2) { setErr(clerkMsg(e2)); return; }
 
-      setSent(true);
+      setCode(""); setPass(""); setConfirm("");
+      setRStep("code");
     } catch (ex) {
-      if (ex instanceof Error && ex.message === "__timeout__") {
-        setErr("Não foi possível conectar. Tente novamente.");
-      } else {
-        setErr(clerkMsg(ex));
-      }
+      setErr(ex instanceof Error && ex.message === "__timeout__"
+        ? "Não foi possível conectar. Tente novamente."
+        : clerkMsg(ex));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /* ── Passo 2: verificar código + nova senha ────────────────────── */
+  async function handleReset(e: React.FormEvent) {
+    e.preventDefault();
+    if (password.length < 8) { setErr("A senha precisa ter no mínimo 8 caracteres."); return; }
+    if (password !== confirm) { setErr("As senhas não conferem."); return; }
+    setErr(""); setLoading(true);
+    try {
+      const { error: e1 } = await withTimeout(
+        signIn.resetPasswordEmailCode.verifyCode({ code }),
+        5000,
+      );
+      if (e1) { setErr(clerkMsg(e1)); return; }
+
+      const { error: e2 } = await withTimeout(
+        signIn.resetPasswordEmailCode.submitPassword({ password }),
+        5000,
+      );
+      if (e2) { setErr(clerkMsg(e2)); return; }
+
+      const { error: e3 } = await withTimeout(signIn.finalize(), 5000);
+      if (e3) { setErr(clerkMsg(e3)); return; }
+
+      setRStep("success");
+    } catch (ex) {
+      setErr(ex instanceof Error && ex.message === "__timeout__"
+        ? "Não foi possível conectar. Tente novamente."
+        : clerkMsg(ex));
     } finally {
       setLoading(false);
     }
@@ -712,7 +750,8 @@ function ResetFormStep({
         Redefinir senha
       </p>
 
-      {!sent ? (
+      {/* ── Passo 1: identificador ─────────────────────────────────── */}
+      {rstep === "identifier" && (
         <form onSubmit={handleSend} className="flex flex-col gap-3">
           <input
             type="text"
@@ -726,29 +765,79 @@ function ResetFormStep({
           <ErrLine msg={err} />
           <GoldBtn label="Enviar instruções" busy={loading} />
         </form>
-      ) : (
+      )}
+
+      {/* ── Passo 2: código + nova senha ───────────────────────────── */}
+      {rstep === "code" && (
+        <>
+          <p className="text-[12px] text-white/35 text-center mb-3 leading-snug">
+            Enviamos um código para <span className="text-white/60">{identifier}</span>. Insira abaixo junto com sua nova senha.
+          </p>
+          <form onSubmit={handleReset} className="flex flex-col gap-3">
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="Código recebido"
+              value={code}
+              onChange={e => { setCode(e.target.value); setErr(""); }}
+              className={inputBase}
+              autoComplete="one-time-code"
+              required
+            />
+            <PasswordInput
+              placeholder="Nova senha (mín. 8 caracteres)"
+              value={password}
+              onChange={v => { setPass(v); setErr(""); }}
+              autoComplete="new-password"
+            />
+            <PasswordInput
+              placeholder="Confirmar nova senha"
+              value={confirm}
+              onChange={v => { setConfirm(v); setErr(""); }}
+              autoComplete="new-password"
+            />
+            <ErrLine msg={err} />
+            <GoldBtn label="Redefinir senha" busy={loading} />
+          </form>
+          <p className="text-center text-[11.5px] text-white/35 mt-4">
+            <button
+              type="button"
+              onClick={() => { setRStep("identifier"); setErr(""); }}
+              className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold"
+            >
+              Reenviar código
+            </button>
+          </p>
+        </>
+      )}
+
+      {/* ── Passo 3: sucesso ───────────────────────────────────────── */}
+      {rstep === "success" && (
         <div
           className="rounded-xl px-4 py-5 flex flex-col items-center gap-2"
           style={{ background: "rgba(201,160,48,0.07)", border: "1px solid rgba(201,160,48,0.18)" }}
         >
           <p className="text-[13px] text-white/80 text-center font-medium leading-snug">
-            Instruções enviadas
+            Senha redefinida com sucesso.
           </p>
-          <p className="text-[12px] text-white/40 text-center leading-snug">
-            Verifique seu email ou telefone e siga as instruções para redefinir sua senha.
+          <p className="text-[12px] text-white/40 text-center leading-snug mt-1">
+            Você já pode entrar com sua nova senha.
           </p>
         </div>
       )}
 
-      <p className="text-center text-[11.5px] text-white/35 mt-5">
-        <button
-          type="button"
-          onClick={onBack}
-          className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold"
-        >
-          {backLabel}
-        </button>
-      </p>
+      {/* ── Rodapé ─────────────────────────────────────────────────── */}
+      {rstep !== "code" && (
+        <p className="text-center text-[11.5px] text-white/35 mt-5">
+          <button
+            type="button"
+            onClick={rstep === "success" ? (onSuccess ?? onBack) : onBack}
+            className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold"
+          >
+            {rstep === "success" ? "Entrar agora" : backLabel}
+          </button>
+        </p>
+      )}
     </>
   );
 }
@@ -839,6 +928,7 @@ function SignInDrawer({ onClose, onOpenSignUp }: { onClose: () => void; onOpenSi
           initialIdentifier={identifier}
           onBack={() => { setStep("login"); }}
           backLabel="Voltar para entrar"
+          onSuccess={() => { setStep("login"); }}
         />
       )}
 
