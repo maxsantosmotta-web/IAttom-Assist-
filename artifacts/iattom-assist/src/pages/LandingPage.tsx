@@ -1,239 +1,330 @@
 import { useState } from "react";
-import { UserPlus, LogIn, X } from "lucide-react";
+import { UserPlus, LogIn, X, Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSignUp, useSignIn } from "@clerk/react";
 import { useLocation } from "wouter";
+/* ─── motion presets ─────────────────────────────────────────────────── */
+const fadeUp = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } };
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.12 } } };
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 18 },
-  show:   { opacity: 1, y: 0  },
-};
-
-const stagger = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.12 } },
-};
-
-const inputClass =
+/* ─── shared input style ─────────────────────────────────────────────── */
+const inputBase =
   "w-full h-[48px] rounded-xl px-4 text-[13px] text-white bg-white/[0.06] border border-white/[0.10] placeholder:text-white/30 focus:outline-none focus:border-[#C9A030]/60 focus:bg-white/[0.08] transition-all duration-200";
 
-const googleSvg = (
-  <svg width="17" height="17" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-  </svg>
-);
-
-const drawerPanel = {
-  style: {
-    background: "#0a0a0a",
-    border: "1px solid rgba(201,160,48,0.10)",
-    borderBottom: "none",
-  } as React.CSSProperties,
-  initial: { y: "100%" },
-  animate: { y: 0 },
-  exit:    { y: "100%" },
-  transition: { type: "spring" as const, damping: 32, stiffness: 280, mass: 0.9 },
+/* ─── error mapper ───────────────────────────────────────────────────── */
+const errMap: Record<string, string> = {
+  form_password_pwned:       "Senha muito comum. Escolha outra.",
+  form_identifier_exists:    "Este email já está cadastrado.",
+  form_password_incorrect:   "Senha incorreta.",
+  form_identifier_not_found: "Email ou telefone não encontrado.",
+  too_many_requests:         "Muitas tentativas. Aguarde um momento.",
+  form_code_incorrect:       "Código incorreto. Tente novamente.",
+  form_code_expired:         "Código expirado. Solicite um novo.",
+  form_param_format_invalid: "Formato inválido. Verifique os dados.",
+  session_exists:            "Você já está autenticado.",
 };
 
-const goldLine = (
-  <div
-    className="w-full h-[1.5px]"
-    style={{ background: "linear-gradient(90deg, transparent, #C9A030 40%, #F0D050 50%, #C9A030 60%, transparent)" }}
-  />
-);
+type ClerkErr = { code: string; longMessage?: string; message?: string };
 
-const divider = (
-  <div className="flex items-center gap-3 mb-5">
-    <div className="flex-1 h-px bg-white/10" />
-    <span className="text-[11px] text-white/30 tracking-widest uppercase">ou</span>
-    <div className="flex-1 h-px bg-white/10" />
-  </div>
-);
+function clerkMsg(e: ClerkErr | null): string {
+  if (!e) return "Erro desconhecido.";
+  return errMap[e.code] ?? e.longMessage ?? e.message ?? "Erro ao autenticar. Tente novamente.";
+}
 
-function CloseBtn({ onClose }: { onClose: () => void }) {
+/* ─── drawer shell ───────────────────────────────────────────────────── */
+function DrawerShell({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
-    <button
-      onClick={onClose}
-      className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-white/[0.06] text-white/40 hover:text-white/80 hover:bg-white/[0.10] transition-all"
-    >
-      <X className="w-4 h-4" />
-    </button>
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex flex-col justify-end">
+        <motion.div
+          className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          transition={{ duration: 0.28 }}
+          onClick={onClose}
+        />
+        <motion.div
+          className="relative z-10 w-full max-w-[480px] mx-auto rounded-t-3xl overflow-hidden"
+          style={{ background: "#0a0a0a", border: "1px solid rgba(201,160,48,0.10)", borderBottom: "none" }}
+          initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+          transition={{ type: "spring", damping: 32, stiffness: 280, mass: 0.9 }}
+        >
+          <div className="w-full h-[1.5px]"
+            style={{ background: "linear-gradient(90deg,transparent,#C9A030 40%,#F0D050 50%,#C9A030 60%,transparent)" }}
+          />
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-10 h-1 rounded-full bg-white/15" />
+          </div>
+          <div className="px-6 pt-4 pb-10">
+            <button
+              onClick={onClose}
+              className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-white/[0.06] text-white/40 hover:text-white/80 hover:bg-white/[0.10] transition-all"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            {children}
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
   );
 }
 
-function ContinueBtn({ label = "Continuar" }: { label?: string }) {
+/* ─── password field with show/hide ─────────────────────────────────── */
+function PasswordInput({ placeholder, value, onChange, autoComplete }: {
+  placeholder: string; value: string; onChange: (v: string) => void; autoComplete?: string;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="relative">
+      <input
+        type={show ? "text" : "password"}
+        placeholder={placeholder}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className={inputBase + " pr-11"}
+        autoComplete={autoComplete}
+        required
+      />
+      <button
+        type="button"
+        tabIndex={-1}
+        onClick={() => setShow(s => !s)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+      >
+        {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      </button>
+    </div>
+  );
+}
+
+/* ─── gold submit button ─────────────────────────────────────────────── */
+function GoldBtn({ label, busy }: { label: string; busy?: boolean }) {
   return (
     <button
       type="submit"
-      className="w-full h-[50px] flex items-center justify-center rounded-xl font-black text-[12.5px] tracking-[0.16em] uppercase text-black mt-1 hover:brightness-110 active:scale-[0.98] transition-all duration-200"
+      disabled={busy}
+      className="w-full h-[50px] flex items-center justify-center rounded-xl font-black text-[12.5px] tracking-[0.16em] uppercase text-black mt-1 hover:brightness-110 active:scale-[0.98] transition-all duration-200 disabled:opacity-60 disabled:pointer-events-none"
       style={{
         background: "linear-gradient(135deg, #E8C84A 0%, #C9A030 38%, #A07820 68%, #C9A030 100%)",
         boxShadow: "0 4px 24px -6px rgba(201,160,48,0.55), inset 0 1px 0 rgba(255,255,255,0.18)",
       }}
     >
-      {label}
+      {busy
+        ? <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin inline-block" />
+        : label
+      }
     </button>
   );
 }
 
+/* ─── error line ─────────────────────────────────────────────────────── */
+function ErrLine({ msg }: { msg: string }) {
+  if (!msg) return null;
+  return <p className="text-[11.5px] text-red-400/90 text-center leading-snug">{msg}</p>;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SIGN-UP DRAWER
+═══════════════════════════════════════════════════════════════════════ */
 function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLogin: () => void }) {
   const [, navigate] = useLocation();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const { signUp, fetchStatus } = useSignUp();
 
-  function handleContinue(e: React.FormEvent) {
+  const [step, setStep]       = useState<"form" | "verify">("form");
+  const [email, setEmail]     = useState("");
+  const [phone, setPhone]     = useState("");
+  const [password, setPass]   = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [code, setCode]       = useState("");
+  const [err, setErr]         = useState("");
+
+  const busy = fetchStatus === "fetching";
+
+  async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    navigate("/sign-up");
+    if (password !== confirm) { setErr("As senhas não coincidem."); return; }
+    setErr("");
+
+    const params: { emailAddress: string; password: string; phoneNumber?: string } = {
+      emailAddress: email,
+      password,
+      ...(phone ? { phoneNumber: phone } : {}),
+    };
+
+    const { error: e1 } = await signUp.password(params);
+    if (e1) { setErr(clerkMsg(e1)); return; }
+
+    if (signUp.status === "complete") {
+      const { error: e2 } = await signUp.finalize();
+      if (e2) { setErr(clerkMsg(e2)); return; }
+      if (phone) localStorage.setItem("iattom_signup_phone", phone);
+      navigate("/onboarding");
+      return;
+    }
+
+    // email verification required
+    const { error: e3 } = await signUp.verifications.sendEmailCode();
+    if (e3) { setErr(clerkMsg(e3)); return; }
+    setStep("verify");
+  }
+
+  async function handleVerify(e: React.FormEvent) {
+    e.preventDefault();
+    setErr("");
+
+    const { error: e1 } = await signUp.verifications.verifyEmailCode({ code });
+    if (e1) { setErr(clerkMsg(e1)); return; }
+
+    const { error: e2 } = await signUp.finalize();
+    if (e2) { setErr(clerkMsg(e2)); return; }
+
+    if (phone) localStorage.setItem("iattom_signup_phone", phone);
+    navigate("/onboarding");
+  }
+
+  async function handleReset() {
+    await signUp.reset();
+    setStep("form");
+    setCode("");
+    setErr("");
   }
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex flex-col justify-end">
-        <motion.div
-          className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          transition={{ duration: 0.28 }}
-          onClick={onClose}
-        />
-        <motion.div
-          className="relative z-10 w-full max-w-[480px] mx-auto rounded-t-3xl overflow-hidden"
-          style={drawerPanel.style}
-          initial={drawerPanel.initial}
-          animate={drawerPanel.animate}
-          exit={drawerPanel.exit}
-          transition={drawerPanel.transition}
-        >
-          {goldLine}
-          <div className="flex justify-center pt-3 pb-1">
-            <div className="w-10 h-1 rounded-full bg-white/15" />
-          </div>
-          <div className="px-6 pt-4 pb-10">
-            <CloseBtn onClose={onClose} />
-
-            <button
-              onClick={() => navigate("/sign-up")}
-              className="w-full h-[48px] flex items-center justify-center gap-3 rounded-xl font-semibold text-[13px] text-white/80 hover:text-white transition-all duration-200 hover:bg-white/[0.08] mb-5"
-              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)" }}
-            >
-              {googleSvg}
-              Continuar com Google
+    <DrawerShell onClose={onClose}>
+      {step === "form" ? (
+        <>
+          <p className="text-[11px] text-white/30 uppercase tracking-[0.18em] font-semibold mb-5 text-center">
+            Criar conta
+          </p>
+          <form onSubmit={handleCreate} className="flex flex-col gap-3">
+            <input
+              type="email"
+              placeholder="Digite seu email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className={inputBase}
+              autoComplete="email"
+              required
+            />
+            <input
+              type="tel"
+              placeholder="Digite seu telefone"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              className={inputBase}
+              autoComplete="tel"
+            />
+            <PasswordInput placeholder="Crie uma senha"    value={password} onChange={setPass}   autoComplete="new-password" />
+            <PasswordInput placeholder="Confirme sua senha" value={confirm} onChange={setConfirm} autoComplete="new-password" />
+            <ErrLine msg={err} />
+            <GoldBtn label="Continuar" busy={busy} />
+          </form>
+          <p className="text-center text-[11.5px] text-white/35 mt-5">
+            Já possui conta?{" "}
+            <button onClick={() => { onClose(); onOpenLogin(); }}
+              className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold">
+              Fazer login
             </button>
-
-            {divider}
-
-            <form onSubmit={handleContinue} className="flex flex-col gap-3">
-              <input
-                type="email"
-                placeholder="Digite seu email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className={inputClass}
-                autoComplete="email"
-                required
-              />
-              <input
-                type="password"
-                placeholder="Crie uma senha"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                className={inputClass}
-                autoComplete="new-password"
-                required
-              />
-              <ContinueBtn />
-            </form>
-
-            <p className="text-center text-[11.5px] text-white/35 mt-5">
-              Já possui conta?{" "}
-              <button
-                onClick={() => { onClose(); onOpenLogin(); }}
-                className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold"
-              >
-                Fazer login
-              </button>
-            </p>
-          </div>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="text-[11px] text-white/30 uppercase tracking-[0.18em] font-semibold mb-2 text-center">
+            Verificar email
+          </p>
+          <p className="text-[12px] text-white/45 text-center mb-5 leading-snug">
+            Enviamos um código para{" "}
+            <span className="text-white/70 font-medium">{email}</span>
+          </p>
+          <form onSubmit={handleVerify} className="flex flex-col gap-3">
+            <input
+              type="text"
+              placeholder="Código de 6 dígitos"
+              value={code}
+              onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              className={inputBase + " text-center tracking-[0.35em] text-lg font-semibold"}
+              inputMode="numeric"
+              maxLength={6}
+              autoComplete="one-time-code"
+              required
+            />
+            <ErrLine msg={err} />
+            <GoldBtn label="Verificar" busy={busy} />
+          </form>
+          <p className="text-center text-[11.5px] text-white/35 mt-5">
+            <button onClick={handleReset}
+              className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold">
+              Alterar email
+            </button>
+          </p>
+        </>
+      )}
+    </DrawerShell>
   );
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   SIGN-IN DRAWER
+═══════════════════════════════════════════════════════════════════════ */
 function SignInDrawer({ onClose, onOpenSignUp }: { onClose: () => void; onOpenSignUp: () => void }) {
   const [, navigate] = useLocation();
-  const [email, setEmail] = useState("");
+  const { signIn, fetchStatus } = useSignIn();
 
-  function handleContinue(e: React.FormEvent) {
+  const [identifier, setId] = useState("");
+  const [password, setPass] = useState("");
+  const [err, setErr]       = useState("");
+
+  const busy = fetchStatus === "fetching";
+
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    navigate("/sign-in");
+    setErr("");
+
+    const { error: e1 } = await signIn.password({ identifier, password });
+    if (e1) { setErr(clerkMsg(e1)); return; }
+
+    if (signIn.status === "complete") {
+      const { error: e2 } = await signIn.finalize();
+      if (e2) { setErr(clerkMsg(e2)); return; }
+      navigate("/dashboard");
+    } else {
+      setErr("Autenticação incompleta. Tente novamente.");
+    }
   }
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex flex-col justify-end">
-        <motion.div
-          className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          transition={{ duration: 0.28 }}
-          onClick={onClose}
+    <DrawerShell onClose={onClose}>
+      <p className="text-[11px] text-white/30 uppercase tracking-[0.18em] font-semibold mb-5 text-center">
+        Entrar
+      </p>
+      <form onSubmit={handleLogin} className="flex flex-col gap-3">
+        <input
+          type="text"
+          placeholder="Email ou telefone"
+          value={identifier}
+          onChange={e => setId(e.target.value)}
+          className={inputBase}
+          autoComplete="username"
+          required
         />
-        <motion.div
-          className="relative z-10 w-full max-w-[480px] mx-auto rounded-t-3xl overflow-hidden"
-          style={drawerPanel.style}
-          initial={drawerPanel.initial}
-          animate={drawerPanel.animate}
-          exit={drawerPanel.exit}
-          transition={drawerPanel.transition}
-        >
-          {goldLine}
-          <div className="flex justify-center pt-3 pb-1">
-            <div className="w-10 h-1 rounded-full bg-white/15" />
-          </div>
-          <div className="px-6 pt-4 pb-10">
-            <CloseBtn onClose={onClose} />
-
-            <button
-              onClick={() => navigate("/sign-in")}
-              className="w-full h-[48px] flex items-center justify-center gap-3 rounded-xl font-semibold text-[13px] text-white/80 hover:text-white transition-all duration-200 hover:bg-white/[0.08] mb-5"
-              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)" }}
-            >
-              {googleSvg}
-              Continuar com Google
-            </button>
-
-            {divider}
-
-            <form onSubmit={handleContinue} className="flex flex-col gap-3">
-              <input
-                type="email"
-                placeholder="Digite seu email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className={inputClass}
-                autoComplete="email"
-                required
-              />
-              <ContinueBtn label="CONTINUAR" />
-            </form>
-
-            <p className="text-center text-[11.5px] text-white/35 mt-5">
-              Não possui conta?{" "}
-              <button
-                onClick={() => { onClose(); onOpenSignUp(); }}
-                className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold"
-              >
-                Criar conta
-              </button>
-            </p>
-          </div>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+        <PasswordInput placeholder="Sua senha" value={password} onChange={setPass} autoComplete="current-password" />
+        <ErrLine msg={err} />
+        <GoldBtn label="Entrar" busy={busy} />
+      </form>
+      <p className="text-center text-[11.5px] text-white/35 mt-5">
+        Não possui conta?{" "}
+        <button onClick={() => { onClose(); onOpenSignUp(); }}
+          className="text-[#C9A030] hover:text-[#F0D050] transition-colors font-semibold">
+          Criar conta
+        </button>
+      </p>
+    </DrawerShell>
   );
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   LANDING PAGE
+═══════════════════════════════════════════════════════════════════════ */
 export function LandingPage() {
   const [signUpOpen, setSignUpOpen] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
@@ -241,25 +332,17 @@ export function LandingPage() {
   return (
     <>
       <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center selection:bg-yellow-900/30 selection:text-white px-6 py-8 overflow-hidden">
-
-        <div className="fixed inset-0 bg-[radial-gradient(ellipse_45%_35%_at_50%_36%,_rgba(180,128,18,0.06)_0%,_transparent_70%)] pointer-events-none"/>
+        <div className="fixed inset-0 bg-[radial-gradient(ellipse_45%_35%_at_50%_36%,_rgba(180,128,18,0.06)_0%,_transparent_70%)] pointer-events-none" />
 
         <motion.div
-          variants={stagger}
-          initial="hidden"
-          animate="show"
+          variants={stagger} initial="hidden" animate="show"
           className="relative z-10 flex flex-col items-center text-center w-full max-w-[320px] sm:max-w-[370px] gap-7 sm:gap-8"
         >
-
-          <motion.div
-            variants={fadeUp}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          >
+          <motion.div variants={fadeUp} transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}>
             <img
               src="/iattom-logo-transparent.png"
               alt="IAttom Assist"
-              width={216}
-              height={216}
+              width={216} height={216}
               draggable={false}
               className="w-[216px] h-[216px] object-contain select-none"
             />
@@ -286,7 +369,7 @@ export function LandingPage() {
                 boxShadow: "0 4px 28px -6px rgba(201,160,48,0.6), inset 0 1px 0 rgba(255,255,255,0.18)",
               }}
             >
-              <UserPlus className="w-[16px] h-[16px]" strokeWidth={2.2}/>
+              <UserPlus className="w-[16px] h-[16px]" strokeWidth={2.2} />
               Criar Conta
             </button>
 
@@ -298,7 +381,7 @@ export function LandingPage() {
                 border: "1.5px solid rgba(255,255,255,0.12)",
               }}
             >
-              <LogIn className="w-[16px] h-[16px]" strokeWidth={2.2}/>
+              <LogIn className="w-[16px] h-[16px]" strokeWidth={2.2} />
               Fazer Login
             </button>
           </motion.div>
@@ -310,20 +393,19 @@ export function LandingPage() {
           >
             &copy; {new Date().getFullYear()} IAttom Assist. Todos os direitos reservados.
           </motion.p>
-
         </motion.div>
       </div>
 
       {signUpOpen && (
         <SignUpDrawer
           onClose={() => setSignUpOpen(false)}
-          onOpenLogin={() => setSignInOpen(true)}
+          onOpenLogin={() => { setSignUpOpen(false); setSignInOpen(true); }}
         />
       )}
       {signInOpen && (
         <SignInDrawer
           onClose={() => setSignInOpen(false)}
-          onOpenSignUp={() => setSignUpOpen(true)}
+          onOpenSignUp={() => { setSignInOpen(false); setSignUpOpen(true); }}
         />
       )}
     </>
