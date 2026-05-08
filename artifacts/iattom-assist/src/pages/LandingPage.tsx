@@ -670,12 +670,40 @@ function ResetFormStep({
   onBack: () => void;
   backLabel?: string;
 }) {
+  const { signIn } = useSignIn();
   const [identifier, setId] = useState(initialIdentifier);
   const [sent, setSent]     = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr]       = useState("");
 
-  function handleSend(e: React.FormEvent) {
+  async function handleSend(e: React.FormEvent) {
     e.preventDefault();
-    setSent(true);
+    if (!identifier.trim()) return;
+    setErr(""); setLoading(true);
+
+    try {
+      const { error: e1 } = await withTimeout(
+        signIn.create({ identifier: identifier.trim() }),
+        5000,
+      );
+      if (e1) { setErr(clerkMsg(e1)); return; }
+
+      const { error: e2 } = await withTimeout(
+        signIn.resetPasswordEmailCode.sendCode(),
+        5000,
+      );
+      if (e2) { setErr(clerkMsg(e2)); return; }
+
+      setSent(true);
+    } catch (ex) {
+      if (ex instanceof Error && ex.message === "__timeout__") {
+        setErr("Não foi possível conectar. Tente novamente.");
+      } else {
+        setErr(clerkMsg(ex));
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -690,12 +718,13 @@ function ResetFormStep({
             type="text"
             placeholder="Email ou telefone"
             value={identifier}
-            onChange={e => setId(e.target.value)}
+            onChange={e => { setId(e.target.value); setErr(""); }}
             className={inputBase}
             autoComplete="username"
             required
           />
-          <GoldBtn label="Enviar instruções" busy={false} />
+          <ErrLine msg={err} />
+          <GoldBtn label="Enviar instruções" busy={loading} />
         </form>
       ) : (
         <div
