@@ -16,6 +16,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AdminGuard } from "@/pages/admin/AdminGuard";
 import { LandingPage } from "@/pages/LandingPage";
 import { BetaGate } from "@/components/BetaGate";
+import { Onboarding } from "@/pages/Onboarding";
 
 // Eager load lightweight pages
 import { DashboardHome } from "@/pages/dashboard/DashboardHome";
@@ -172,7 +173,7 @@ function SignUpPage() {
         routing="path"
         path={`${basePath}/sign-up`}
         signInUrl={`${basePath}/sign-in`}
-        fallbackRedirectUrl={`${basePath}/dashboard`}
+        fallbackRedirectUrl={`${basePath}/onboarding`}
       />
     </div>
   );
@@ -186,6 +187,19 @@ function HomeRedirect() {
       </Show>
       <Show when="signed-out">
         <LandingPage />
+      </Show>
+    </>
+  );
+}
+
+function ProtectedOnboarding() {
+  return (
+    <>
+      <Show when="signed-in">
+        <Onboarding />
+      </Show>
+      <Show when="signed-out">
+        <Redirect to="/sign-up" />
       </Show>
     </>
   );
@@ -309,6 +323,7 @@ function ClerkProviderWithRoutes() {
               <Route path="/" component={HomeRedirect} />
               <Route path="/sign-in/*?" component={SignInPage} />
               <Route path="/sign-up/*?" component={SignUpPage} />
+              <Route path="/onboarding/*?" component={ProtectedOnboarding} />
               <Route path="/dashboard/*?" component={ProtectedDashboard} />
               <Route path="/admin/*?" component={ProtectedAdmin} />
               <Route component={NotFound} />
