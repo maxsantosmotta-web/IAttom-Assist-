@@ -339,7 +339,7 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
         const msg = clerkMsg(e1);
         const isExisting = isExistingAccount(e1) || /já possui cadastro|já está vinculado/i.test(msg);
         setErr(isExisting
-          ? "Este email já possui cadastro. Use Fazer login ou redefina sua senha."
+          ? "Usuário já possui cadastro. Faça login ou redefina sua senha."
           : msg
         );
         setReset(isExisting);
@@ -361,7 +361,7 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
     } catch (ex) {
       // Clerk às vezes lança ClerkAPIResponseError ao invés de retornar { error }
       if (isExistingAccount(ex)) {
-        setErr("Este email já possui cadastro. Use Fazer login ou redefina sua senha.");
+        setErr("Usuário já possui cadastro. Faça login ou redefina sua senha.");
         setReset(true);
       } else {
         setErr(clerkMsg(ex));
