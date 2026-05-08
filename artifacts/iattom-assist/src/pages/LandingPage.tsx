@@ -96,7 +96,7 @@ function clerkMsg(e: ClerkErr | null | unknown): string {
 
   // timeout de 5 segundos
   if (e instanceof Error && e.message === "__timeout__") {
-    return "Usuário já possui cadastro. Faça login ou redefina sua senha.";
+    return "Estamos verificando seu cadastro. Tente novamente em alguns segundos.";
   }
 
   // erro de rede / fetch
@@ -121,7 +121,7 @@ function clerkMsg(e: ClerkErr | null | unknown): string {
 }
 
 /* ─── helper: timeout (10s) ──────────────────────────────────────────── */
-function withTimeout<T>(p: Promise<T>, ms = 10000): Promise<T> {
+function withTimeout<T>(p: Promise<T>, ms = 5000): Promise<T> {
   return Promise.race([
     p,
     new Promise<T>((_, reject) =>
