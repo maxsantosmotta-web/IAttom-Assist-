@@ -114,10 +114,7 @@ export function Billing() {
   const sortedPlans = [...plans].sort((a, b) => PLAN_ORDER.indexOf(a.planKey) - PLAN_ORDER.indexOf(b.planKey));
 
   const handleUpgrade = (priceId: string | null | undefined, planKey: string) => {
-    if (!priceId) {
-      toast({ title: "Plan not available", description: "Stripe products not yet seeded. Run seed-products script.", variant: "destructive" });
-      return;
-    }
+    if (!priceId) return;
     checkout.mutate({ data: { priceId, planKey } });
   };
 

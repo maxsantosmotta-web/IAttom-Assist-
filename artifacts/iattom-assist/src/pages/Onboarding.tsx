@@ -163,14 +163,7 @@ export function Onboarding() {
     if (!user || selecting) return;
 
     const stripePlan = stripePlans.find((p) => p.planKey === planKey);
-    if (!stripePlan?.priceId) {
-      toast({
-        title: "Plano em configuração",
-        description: "Este plano será disponibilizado em breve.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!stripePlan?.priceId) return;
 
     localStorage.setItem(onboardingKey(user.id), "1");
     setSelecting(planKey);
