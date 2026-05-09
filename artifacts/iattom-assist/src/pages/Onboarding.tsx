@@ -206,9 +206,9 @@ export function Onboarding() {
           className="mb-12"
         >
           <img
-            src="/iattom-logo-transparent.png"
-            alt="iAttom"
-            className="w-11 h-11 opacity-85"
+            src="/logo-nobg.png"
+            alt="IAttom Assist"
+            className="w-11 h-11 object-contain"
           />
         </motion.div>
 
