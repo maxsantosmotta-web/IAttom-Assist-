@@ -333,8 +333,6 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
         if (code === "form_identifier_exists") {
           setErr("Usuário já possui cadastro. Faça login ou redefina sua senha.");
           setReset(true);
-        } else if (code) {
-          setErr("");
         }
       } else {
         setErr("");
@@ -345,6 +343,10 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
       if (code === "form_identifier_exists") {
         setErr("Usuário já possui cadastro. Faça login ou redefina sua senha.");
         setReset(true);
+      } else if (ex instanceof Error && ex.message === "__timeout__") {
+        setErr("");
+      } else if (ex instanceof TypeError || (ex instanceof Error && /fetch|network/i.test(ex.message))) {
+        setErr("");
       }
     } finally {
       setChecking(false);
