@@ -83,6 +83,30 @@ A premium dark-themed AI business assistant SaaS platform for product discovery,
 - All 6 AI feature modules use real OpenAI GPT-5-mini via SSE streaming
 - Lazy loading: all AI module pages + admin pages + Referral page via React.lazy + Suspense
 
+## Protected Areas — ALTERAÇÃO BLOQUEADA SEM AUTORIZAÇÃO EXPLÍCITA
+
+As áreas abaixo foram validadas e aprovadas. Nenhuma modificação deve ser feita nelas sem comando explícito do usuário. Antes de alterar qualquer arquivo listado, exibir o aviso: "Área protegida do projeto. Alteração bloqueada sem autorização explícita."
+
+### Arquivos protegidos
+
+| Área | Arquivos |
+|---|---|
+| Splash screen / animação inicial | `src/components/LoadingScreen.tsx` |
+| Transição splash → conteúdo | `src/App.tsx` (bloco `showContent` / `onExitComplete`) |
+| Login / Cadastro / Redefinição de senha | `src/pages/LandingPage.tsx` |
+| Autenticação Clerk | `src/main.tsx`, qualquer configuração de `<ClerkProvider>` |
+| PWA — manifest | `public/manifest.json` |
+| PWA — service worker | `public/sw.js` |
+| PWA — ícones | `public/icon-*.png`, `public/apple-touch-icon.png` |
+| Logos aprovadas | `public/logo-nobg.png`, `public/logo-splash.png`, `public/logo.svg`, `src/components/ui/Logo.tsx` |
+| HTML base (meta/preload/bg) | `index.html` |
+
+### Regra
+
+- Escopo de qualquer tarefa futura deve ser restrito ao que foi explicitamente solicitado.
+- Se uma tarefa exigir alterar um arquivo protegido como efeito colateral, parar e informar antes de prosseguir.
+- Correções de bugs dentro de `LandingPage.tsx` restritas à lógica solicitada — layout, animações e fluxo Clerk não devem ser tocados.
+
 ## User preferences
 
 - Dark premium design with gold accents (#C9A84C range)
