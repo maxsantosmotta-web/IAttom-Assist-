@@ -327,27 +327,31 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
     setLastChecked(value);
     setChecking(true);
     try {
-      const { error } = await withTimeout(signUp.password({ emailAddress: value, password: "Temp1234!" }));
+      // signIn.create() retorna { error } — não lança.
+      // error === null → email existe (sign-in criado com sucesso)
+      // error.code === "form_identifier_not_found" → email novo, sem cadastro
+      const { error } = await withTimeout(signIn.create({ identifier: value }));
       if (error) {
-        const code = extractFirstClerkErr(error)?.code ?? "";
-        if (code === "form_identifier_exists") {
+        const ce = extractFirstClerkErr(error);
+        const code = ce?.code ?? "";
+        if (NOT_FOUND_CODES.has(code)) {
+          // Email novo — sem erro, libera o cadastro
+          setErr("");
+          setReset(false);
+        } else if (isExistingAccount(error)) {
+          // Conta existe via outro método (ex: Google/OAuth)
           setErr("Usuário já possui cadastro. Faça login ou redefina sua senha.");
           setReset(true);
         }
+        // Outros erros (ex: formato inválido) → silencioso, submit trata
       } else {
-        setErr("");
-        setReset(false);
-      }
-    } catch (ex) {
-      const code = extractFirstClerkErr(ex)?.code ?? "";
-      if (code === "form_identifier_exists") {
+        // Sem erro → email existe com senha configurada
         setErr("Usuário já possui cadastro. Faça login ou redefina sua senha.");
         setReset(true);
-      } else if (ex instanceof Error && ex.message === "__timeout__") {
-        setErr("");
-      } else if (ex instanceof TypeError || (ex instanceof Error && /fetch|network/i.test(ex.message))) {
-        setErr("");
       }
+    } catch (ex) {
+      // Timeout ou rede → não tratar como conta existente, silencioso
+      // O submit vai tratar adequadamente se necessário
     } finally {
       setChecking(false);
     }
