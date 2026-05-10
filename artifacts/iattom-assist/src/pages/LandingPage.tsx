@@ -344,7 +344,7 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
           ? { emailAddress: email, password }
           : { phoneNumber: phone, password };
 
-      const { error: e1 } = await withTimeout(signUp.password(params));
+      const { error: e1 } = await signUp.password(params);
 
       // Conta já existe → mostrar mensagem inline + link "Redefinir senha"
       if (e1) {
@@ -359,7 +359,7 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
       }
 
       if (signUp.status === "complete") {
-        const { error: e2 } = await withTimeout(signUp.finalize());
+        const { error: e2 } = await signUp.finalize();
         if (e2) { setErr(clerkMsg(e2)); return; }
         if (method === "phone") localStorage.setItem("iattom_signup_phone", phone);
         navigate("/onboarding");
@@ -392,7 +392,7 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
       const { error: e1 } = await withTimeout(signUp.verifications.verifyEmailCode({ code }));
       if (e1) { setErr(clerkMsg(e1)); return; }
 
-      const { error: e2 } = await withTimeout(signUp.finalize());
+      const { error: e2 } = await signUp.finalize();
       if (e2) { setErr(clerkMsg(e2)); return; }
 
       navigate("/onboarding");
@@ -408,7 +408,7 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
     setErr(""); setReset(false); setLoading(true);
 
     try {
-      const { error: e1 } = await withTimeout(signIn.create({ identifier: email }));
+      const { error: e1 } = await signIn.create({ identifier: email });
       if (e1) { setErr(clerkMsg(e1)); setReset(true); return; }
 
       const { error: e2 } = await withTimeout(signIn.resetPasswordEmailCode.sendCode());
@@ -436,7 +436,7 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
       const { error: e2 } = await withTimeout(signIn.resetPasswordEmailCode.submitPassword({ password }));
       if (e2) { setErr(clerkMsg(e2)); return; }
 
-      const { error: e3 } = await withTimeout(signIn.finalize());
+      const { error: e3 } = await signIn.finalize();
       if (e3) { setErr(clerkMsg(e3)); return; }
 
       navigate("/dashboard");
@@ -657,10 +657,7 @@ function ResetFormStep({
     if (!identifier.trim()) return;
     setErr(""); setLoading(true);
     try {
-      const { error: e1 } = await withTimeout(
-        signIn.create({ identifier: identifier.trim() }),
-        5000,
-      );
+      const { error: e1 } = await signIn.create({ identifier: identifier.trim() });
       if (e1) { setErr(clerkMsg(e1)); return; }
 
       const { error: e2 } = await withTimeout(
@@ -699,7 +696,7 @@ function ResetFormStep({
       );
       if (e2) { setErr(clerkMsg(e2)); return; }
 
-      const { error: e3 } = await withTimeout(signIn.finalize(), 5000);
+      const { error: e3 } = await signIn.finalize();
       if (e3) { setErr(clerkMsg(e3)); return; }
 
       setRStep("success");
