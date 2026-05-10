@@ -320,40 +320,9 @@ function SignUpDrawer({ onClose, onOpenLogin }: { onClose: () => void; onOpenLog
     "form_identifier_not_found", "user_not_found", "resource_not_found",
   ]);
 
-  async function handleIdentifierBlur() {
-    if (method !== "email") return;
-    const value = email.trim();
-    if (!value || value === lastChecked) return;
-    setLastChecked(value);
-    setChecking(true);
-    try {
-      // signUp.password() é o único probe que não interfere no fluxo de cadastro.
-      // Para email EXISTENTE: Clerk retorna { error: { code: "form_identifier_exists" } }
-      // Para email NOVO: Clerk retorna { error: null } ou qualquer outro erro (senha, etc.)
-      // — nenhum desses outros erros indica email existente.
-      const { error } = await withTimeout(signUp.password({ emailAddress: value, password: "Temp1234!" }));
-      if (error) {
-        const code = extractFirstClerkErr(error)?.code ?? "";
-        if (code === "form_identifier_exists") {
-          setErr("Usuário já possui cadastro. Faça login ou redefina sua senha.");
-          setReset(true);
-        } else {
-          // Qualquer outro erro (senha fraca, parâmetro, etc.) = email NOVO
-          setErr("");
-          setReset(false);
-        }
-      } else {
-        // Sem erro = email novo, signUp pré-configurado com emailAddress
-        setErr("");
-        setReset(false);
-      }
-    } catch {
-      // Timeout ou falha de rede → silencioso, não bloqueia o usuário
-      setErr("");
-      setReset(false);
-    } finally {
-      setChecking(false);
-    }
+  function handleIdentifierBlur() {
+    // Não inicia cadastro nem consulta Clerk no blur.
+    // A detecção de email já cadastrado ocorre em handleCreate ao submeter.
   }
 
   function handleMethodChange(m: "email" | "phone") {
