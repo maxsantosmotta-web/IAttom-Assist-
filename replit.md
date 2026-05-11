@@ -107,6 +107,24 @@ As áreas abaixo foram validadas e aprovadas. Nenhuma modificação deve ser fei
 - Se uma tarefa exigir alterar um arquivo protegido como efeito colateral, parar e informar antes de prosseguir.
 - Correções de bugs dentro de `LandingPage.tsx` restritas à lógica solicitada — layout, animações e fluxo Clerk não devem ser tocados.
 
+### PAINEL ADMINISTRATIVO — CONGELADO E VALIDADO
+
+O painel ADM está bloqueado em seu estado atual. Nenhuma alteração deve ser feita nos arquivos abaixo sem comando explícito e direto autorizando mudanças no painel administrativo:
+
+| Arquivo | Motivo |
+|---|---|
+| `src/components/layout/AdminLayout.tsx` | Layout e nav do painel ADM |
+| `src/pages/admin/AdminOverview.tsx` | Visão Geral |
+| `src/pages/admin/AdminAnalytics.tsx` | Análises |
+| `src/pages/admin/AdminUsers.tsx` | Usuários |
+| `src/pages/admin/AdminActivity.tsx` | Atividade |
+| `src/pages/admin/AdminWaitlist.tsx` | Lista de Espera |
+| `src/pages/admin/AdminFeedback.tsx` | Feedback |
+| `src/pages/admin/AdminLaunchChecklist.tsx` | Checklist de Lançamento |
+| `src/pages/admin/AdminGuard.tsx` | Guarda de acesso admin |
+
+Proibido sem autorização explícita: traduções, ajustes visuais, layout, tabelas, gráficos, responsividade, textos, refatorações, componentes, alinhamentos, sidebar, cards, analytics.
+
 ## User preferences
 
 - Dark premium design with gold accents (#C9A84C range)
