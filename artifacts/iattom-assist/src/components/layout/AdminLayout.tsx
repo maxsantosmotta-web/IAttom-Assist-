@@ -26,12 +26,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Logo } from "@/components/ui/Logo";
+import { LogoMark } from "@/components/ui/Logo";
 
 const navItems = [
   { href: "/admin", label: "Visão Geral", icon: BarChart3 },
   { href: "/admin/users", label: "Usuários", icon: Users },
-  { href: "/admin/analytics", label: "Analytics", icon: TrendingUp },
+  { href: "/admin/analytics", label: "Análises", icon: TrendingUp },
   { href: "/admin/activity", label: "Atividade", icon: Activity },
   { href: "/admin/waitlist", label: "Lista de Espera", icon: Clock },
   { href: "/admin/feedback", label: "Feedback", icon: MessageSquare },
@@ -78,7 +78,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       >
         {/* Logo */}
         <div className="flex items-center h-16 px-5 border-b border-white/[0.06] shrink-0 gap-3">
-          <Logo size={30} />
+          <LogoMark size={30} />
           <div className="flex items-center gap-1.5 ml-auto">
             <Badge className="text-[9px] px-1.5 py-0 h-4 bg-primary/20 text-primary border-primary/30 font-bold leading-4 tracking-wider">
               ADMIN
