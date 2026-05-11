@@ -23,7 +23,7 @@ const competitionColors: Record<string, string> = {
   "Low": "text-emerald-400",
 };
 
-const quickSearches = ["Trending now", "High margin", "Low competition", "Home & Living", "Fitness", "Tech accessories"];
+const quickSearches = ["Em alta agora", "Alta margem", "Baixa concorrência", "Casa & Decoração", "Fitness", "Acessórios tech"];
 
 export function FindProducts() {
   const [query, setQuery] = useState("");
@@ -34,7 +34,6 @@ export function FindProducts() {
   const isDone = status === "done";
   const isError = status === "error";
 
-  // charge() is provided by CreditsGate and called only after AI returns a result.
   const runSearch = (charge: () => void) => {
     generate("/api/ai/find-products", { query, niche: niche || undefined }).then((res) => {
       if (res !== null) charge();
@@ -43,16 +42,15 @@ export function FindProducts() {
 
   const handleRetry = () => {
     reset();
-    // Retry does not re-charge credits — it re-runs the same prompt freely.
     generate("/api/ai/find-products", { query, niche: niche || undefined });
   };
 
   return (
     <div className="space-y-8">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">AI Product Research</p>
-        <h2 className="text-2xl font-bold text-white mb-1">Find Products</h2>
-        <p className="text-muted-foreground text-sm">Discover high-margin, trending products powered by real AI market intelligence.</p>
+        <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Pesquisa de Produtos com IA</p>
+        <h2 className="text-2xl font-bold text-white mb-1">Buscar Produtos</h2>
+        <p className="text-muted-foreground text-sm">Descubra produtos de alta margem e tendência com inteligência de mercado real.</p>
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
@@ -62,7 +60,7 @@ export function FindProducts() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search for products, niches, or categories..."
+                  placeholder="Buscar produtos, nichos ou categorias..."
                   className="pl-10 bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50 text-white"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -75,7 +73,7 @@ export function FindProducts() {
                     disabled={isLoading || isGenerating || !query.trim()}
                     className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 shrink-0"
                   >
-                    {isLoading || isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
+                    {isLoading || isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Buscar"}
                   </Button>
                 )}
               </CreditsGate>
@@ -104,7 +102,7 @@ export function FindProducts() {
                   <span key={i} className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                 ))}
               </div>
-              <span className="text-sm">AI is analyzing markets for <span className="text-white">"{query}"</span>...</span>
+              <span className="text-sm">A IA está analisando mercados para <span className="text-white">"{query}"</span>...</span>
             </div>
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -120,11 +118,11 @@ export function FindProducts() {
               <CardContent className="p-5 flex items-center gap-4">
                 <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-red-400">Generation failed</p>
+                  <p className="text-sm font-semibold text-red-400">Falha na geração</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{error}</p>
                 </div>
                 <Button size="sm" variant="outline" onClick={handleRetry} className="border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0">
-                  <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry
+                  <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Tentar novamente
                 </Button>
               </CardContent>
             </Card>
@@ -135,18 +133,18 @@ export function FindProducts() {
           <motion.div key="results" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}>
             {result.marketInsight && (
               <div className="mb-5 p-4 rounded-lg bg-primary/5 border border-primary/15">
-                <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1.5">Market Insight</p>
+                <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1.5">Visão de Mercado</p>
                 <p className="text-sm text-white/80 leading-relaxed">{result.marketInsight}</p>
               </div>
             )}
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
-                Results for "{query}"
+                Resultados para "{query}"
               </h3>
               <div className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground">{result.products?.length ?? 0} found</span>
+                <span className="text-xs text-muted-foreground">{result.products?.length ?? 0} encontrados</span>
                 <button onClick={() => reset()} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
-                  <RefreshCw className="w-3 h-3" /> New search
+                  <RefreshCw className="w-3 h-3" /> Nova busca
                 </button>
               </div>
             </div>
@@ -161,25 +159,25 @@ export function FindProducts() {
                             <h4 className="font-semibold text-white text-sm">{product.name}</h4>
                             <Badge variant="outline" className="text-xs border-white/10 text-muted-foreground">{product.category}</Badge>
                             {result.topPick === product.name && (
-                              <Badge className="text-xs bg-primary/20 text-primary border-primary/30">Top Pick</Badge>
+                              <Badge className="text-xs bg-primary/20 text-primary border-primary/30">Destaque</Badge>
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground mb-3 leading-relaxed">{product.whyNow}</p>
                           <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
-                              <BarChart2 className="w-3 h-3" /> Demand:{" "}
+                              <BarChart2 className="w-3 h-3" /> Demanda:{" "}
                               <span className={`font-medium ml-0.5 ${demandColors[product.demand] ?? "text-white"}`}>{product.demand}</span>
                             </span>
                             <span className="flex items-center gap-1">
-                              <DollarSign className="w-3 h-3" /> Margin:{" "}
+                              <DollarSign className="w-3 h-3" /> Margem:{" "}
                               <span className="text-emerald-400 font-medium ml-0.5">{product.margin}</span>
                             </span>
                             <span className="flex items-center gap-1">
-                              <TrendingUp className="w-3 h-3" /> Trend:{" "}
+                              <TrendingUp className="w-3 h-3" /> Tendência:{" "}
                               <span className="text-primary font-medium ml-0.5">{product.trend}</span>
                             </span>
                             <span className="flex items-center gap-1">
-                              <Users className="w-3 h-3" /> Competition:{" "}
+                              <Users className="w-3 h-3" /> Concorrência:{" "}
                               <span className={`font-medium ml-0.5 ${competitionColors[product.competition] ?? "text-white"}`}>{product.competition}</span>
                             </span>
                           </div>

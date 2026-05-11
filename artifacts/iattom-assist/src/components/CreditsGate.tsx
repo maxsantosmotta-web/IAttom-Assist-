@@ -10,8 +10,6 @@ import { PlanComparisonModal } from "@/components/PlanComparisonModal";
 
 interface CreditsGateProps {
   feature: FeatureKey;
-  // charge() is passed to the caller and must be called AFTER AI succeeds.
-  // Credits are NOT deducted until charge() is invoked.
   onSuccess: (charge: () => void) => void;
   disabled?: boolean;
   children: (props: { trigger: () => void; isLoading: boolean }) => React.ReactNode;
@@ -38,7 +36,6 @@ export function CreditsGate({ feature, onSuccess, disabled, children }: CreditsG
         qc.invalidateQueries({ queryKey: getGetCreditsBalanceQueryKey() });
       },
       onError: (err: unknown) => {
-        // 402 can still happen if client-side balance was stale at trigger time
         const apiErr = err as { status?: number; data?: Record<string, unknown> };
         if (apiErr?.status === 402) {
           const data = apiErr.data ?? {};
@@ -53,13 +50,10 @@ export function CreditsGate({ feature, onSuccess, disabled, children }: CreditsG
 
   const trigger = () => {
     if (disabled) return;
-    // Pre-check balance client-side to show modal immediately if clearly insufficient.
-    // Server still validates on charge() — this is just a UX shortcut.
     if (balanceData && balanceData.balance < cost) {
       setInsufficient({ balance: balanceData.balance, required: cost });
       return;
     }
-    // Fire AI immediately. charge() is called by the module only on success.
     onSuccess(() => mutation.mutate({ data: { feature } }));
   };
 
@@ -79,7 +73,6 @@ export function CreditsGate({ feature, onSuccess, disabled, children }: CreditsG
         </div>
       </div>
 
-      {/* Insufficient credits dialog */}
       <Dialog open={!!insufficient} onOpenChange={(open) => !open && setInsufficient(null)}>
         <DialogContent className="bg-[#111111] border-white/10 max-w-md p-0 gap-0">
           <div className="p-6 border-b border-white/5">
@@ -87,12 +80,12 @@ export function CreditsGate({ feature, onSuccess, disabled, children }: CreditsG
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <AlertTriangle className="w-4 h-4 text-amber-400" />
-                  <p className="text-xs text-amber-400 uppercase tracking-widest font-medium">Insufficient Credits</p>
+                  <p className="text-xs text-amber-400 uppercase tracking-widest font-medium">Créditos Insuficientes</p>
                 </div>
-                <h2 className="text-xl font-bold text-white mb-1">Not enough credits</h2>
+                <h2 className="text-xl font-bold text-white mb-1">Créditos insuficientes</h2>
                 <p className="text-sm text-muted-foreground">
-                  This action costs{" "}
-                  <span className="text-white font-semibold">{insufficient?.required} credits</span>. Your balance is{" "}
+                  Esta ação custa{" "}
+                  <span className="text-white font-semibold">{insufficient?.required} créditos</span>. Seu saldo é{" "}
                   <span className="text-amber-400 font-semibold">{insufficient?.balance}</span>.
                 </p>
               </div>
@@ -109,7 +102,7 @@ export function CreditsGate({ feature, onSuccess, disabled, children }: CreditsG
             {hasUpgrade ? (
               <>
                 <p className="text-xs text-muted-foreground uppercase tracking-widest font-medium mb-4">
-                  Upgrade to unlock more credits
+                  Faça upgrade para obter mais créditos
                 </p>
                 <Button
                   className="w-full bg-primary text-black hover:bg-primary/90 font-semibold"
@@ -119,12 +112,12 @@ export function CreditsGate({ feature, onSuccess, disabled, children }: CreditsG
                   }}
                 >
                   <Zap className="w-3.5 h-3.5 mr-2 fill-black" />
-                  Compare Plans
+                  Comparar Planos
                 </Button>
               </>
             ) : (
               <p className="text-sm text-muted-foreground">
-                You are on the highest plan. Contact support to add more credits.
+                Você está no plano mais alto. Contate o suporte para adicionar mais créditos.
               </p>
             )}
             <Button
@@ -132,13 +125,12 @@ export function CreditsGate({ feature, onSuccess, disabled, children }: CreditsG
               className="w-full border-white/10 hover:border-primary/30 text-sm"
               onClick={() => setInsufficient(null)}
             >
-              Dismiss
+              Fechar
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Plan comparison modal */}
       <PlanComparisonModal
         open={showPlans}
         onClose={() => setShowPlans(false)}

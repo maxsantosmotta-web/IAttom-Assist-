@@ -343,7 +343,7 @@ export function DashboardHome() {
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <Badge variant="outline" className={`text-[10px] capitalize ${style.badge}`}>
-                        {project.status.replace("_", " ")}
+                        {({ draft: "Rascunho", in_progress: "Em Andamento", completed: "Concluído" } as Record<string, string>)[project.status] ?? project.status.replace("_", " ")}
                       </Badge>
                     </div>
                   </div>

@@ -72,7 +72,7 @@ export function Settings() {
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">First Name</Label>
+                      <Label className="text-xs text-muted-foreground">Nome</Label>
                       <Input
                         readOnly
                         value={firstName}
@@ -80,7 +80,7 @@ export function Settings() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">Last Name</Label>
+                      <Label className="text-xs text-muted-foreground">Sobrenome</Label>
                       <Input
                         readOnly
                         value={lastName}
@@ -89,7 +89,7 @@ export function Settings() {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">Email Address</Label>
+                    <Label className="text-xs text-muted-foreground">E-mail</Label>
                     <Input
                       readOnly
                       value={email}

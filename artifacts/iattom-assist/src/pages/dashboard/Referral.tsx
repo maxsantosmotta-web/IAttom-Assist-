@@ -52,7 +52,7 @@ export function Referral() {
     if (!data) return;
     await navigator.clipboard.writeText(data.shareUrl);
     setCopied(true);
-    toast({ title: "Share link copied", description: "Send it to friends and earn credits when they join." });
+    toast({ title: "Link copiado", description: "Envie para amigos e ganhe créditos quando eles entrarem." });
     setTimeout(() => setCopied(false), 2500);
   };
 
@@ -77,13 +77,13 @@ export function Referral() {
       });
       const json = await res.json();
       if (!res.ok) {
-        setApplyError(json.error ?? "Something went wrong.");
+        setApplyError(json.error ?? "Algo deu errado.");
       } else {
-        setApplySuccess(`${json.creditsAwarded} bonus credits added to your account.`);
+        setApplySuccess(`${json.creditsAwarded} créditos de bônus adicionados à sua conta.`);
         setApplyCode("");
       }
     } catch {
-      setApplyError("Network error. Please try again.");
+      setApplyError("Erro de rede. Tente novamente.");
     } finally {
       setApplying(false);
     }
@@ -144,7 +144,7 @@ export function Referral() {
         ) : (
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1 flex items-center gap-3 bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-3">
-              <span className="text-2xl font-mono font-bold text-primary tracking-widest">{data?.code ?? "Loading..."}</span>
+              <span className="text-2xl font-mono font-bold text-primary tracking-widest">{data?.code ?? "Carregando..."}</span>
               <button
                 onClick={copyCode}
                 className="ml-auto p-1.5 text-zinc-500 hover:text-zinc-200 rounded-lg hover:bg-white/[0.06] transition-colors"
@@ -206,10 +206,10 @@ export function Referral() {
                 </div>
                 <div className="flex items-center gap-3">
                   <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] px-2">
-                    +{r.creditsAwarded} credits
+                    +{r.creditsAwarded} créditos
                   </Badge>
                   <span className="text-[10px] text-zinc-600">
-                    {new Date(r.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    {new Date(r.createdAt).toLocaleDateString("pt-BR", { month: "short", day: "numeric" })}
                   </span>
                 </div>
               </div>

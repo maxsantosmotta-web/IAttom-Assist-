@@ -13,14 +13,14 @@ interface AnalyticsData {
 }
 
 const MODULE_META: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  find_products: { label: "Find Products", color: "#C9A84C", icon: Search },
-  product_discovery: { label: "Find Products", color: "#C9A84C", icon: Search },
-  validate_products: { label: "Validate", color: "#34D399", icon: CheckCircle },
-  product_validation: { label: "Validate", color: "#34D399", icon: CheckCircle },
-  campaign: { label: "Campaign", color: "#FBBF24", icon: Megaphone },
-  content: { label: "Content", color: "#60A5FA", icon: FileText },
-  creative: { label: "Creative", color: "#C084FC", icon: Sparkles },
-  video_script: { label: "Video Script", color: "#FB7185", icon: Video },
+  find_products: { label: "Buscar Produtos", color: "#C9A84C", icon: Search },
+  product_discovery: { label: "Buscar Produtos", color: "#C9A84C", icon: Search },
+  validate_products: { label: "Validar", color: "#34D399", icon: CheckCircle },
+  product_validation: { label: "Validar", color: "#34D399", icon: CheckCircle },
+  campaign: { label: "Campanha", color: "#FBBF24", icon: Megaphone },
+  content: { label: "Conteúdo", color: "#60A5FA", icon: FileText },
+  creative: { label: "Criativo", color: "#C084FC", icon: Sparkles },
+  video_script: { label: "Script de Vídeo", color: "#FB7185", icon: Video },
   marketing: { label: "Marketing", color: "#FBBF24", icon: Megaphone },
 };
 
@@ -63,7 +63,7 @@ export function Analytics() {
     .sort((a, b) => b.count - a.count) ?? [];
 
   const creditsChart = data?.creditsSpent.map((d) => ({
-    day: new Date(d.day).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    day: new Date(d.day).toLocaleDateString("pt-BR", { month: "short", day: "numeric" }),
     spent: d.spent,
   })) ?? [];
 

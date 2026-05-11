@@ -19,22 +19,22 @@ interface SavedPrompt {
 }
 
 const MODULE_OPTIONS = [
-  { value: "all", label: "All Modules" },
-  { value: "product_discovery", label: "Find Products" },
-  { value: "product_validation", label: "Validate Products" },
-  { value: "campaign", label: "Create Campaign" },
-  { value: "content", label: "Create Content" },
-  { value: "creative", label: "Creative Generator" },
-  { value: "video_script", label: "Video Scripts" },
+  { value: "all", label: "Todos os Módulos" },
+  { value: "product_discovery", label: "Buscar Produtos" },
+  { value: "product_validation", label: "Validar Produtos" },
+  { value: "campaign", label: "Criar Campanha" },
+  { value: "content", label: "Criar Conteúdo" },
+  { value: "creative", label: "Gerador Criativo" },
+  { value: "video_script", label: "Scripts de Vídeo" },
 ];
 
 const MODULE_META: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  product_discovery: { label: "Find Products", color: "text-primary bg-primary/10 border-primary/20", icon: Search },
-  product_validation: { label: "Validate", color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20", icon: CheckCircle },
-  campaign: { label: "Campaign", color: "text-amber-400 bg-amber-400/10 border-amber-400/20", icon: Megaphone },
-  content: { label: "Content", color: "text-blue-400 bg-blue-400/10 border-blue-400/20", icon: FileText },
-  creative: { label: "Creative", color: "text-purple-400 bg-purple-400/10 border-purple-400/20", icon: Sparkles },
-  video_script: { label: "Video Script", color: "text-rose-400 bg-rose-400/10 border-rose-400/20", icon: Video },
+  product_discovery: { label: "Buscar Produtos", color: "text-primary bg-primary/10 border-primary/20", icon: Search },
+  product_validation: { label: "Validar", color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20", icon: CheckCircle },
+  campaign: { label: "Campanha", color: "text-amber-400 bg-amber-400/10 border-amber-400/20", icon: Megaphone },
+  content: { label: "Conteúdo", color: "text-blue-400 bg-blue-400/10 border-blue-400/20", icon: FileText },
+  creative: { label: "Criativo", color: "text-purple-400 bg-purple-400/10 border-purple-400/20", icon: Sparkles },
+  video_script: { label: "Script de Vídeo", color: "text-rose-400 bg-rose-400/10 border-rose-400/20", icon: Video },
 };
 
 const fadeUp = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } };
@@ -74,14 +74,14 @@ export function SavedPrompts() {
     navigator.clipboard.writeText(p.prompt).then(() => {
       setCopiedId(p.id);
       setTimeout(() => setCopiedId(null), 2000);
-      toast({ description: "Copied to clipboard" });
+      toast({ description: "Copiado para a área de transferência" });
     });
   };
 
   const deletePrompt = async (id: number) => {
     setPrompts((prev) => prev.filter((p) => p.id !== id));
     await fetch(`/api/prompts/${id}`, { method: "DELETE" });
-    toast({ description: "Prompt deleted" });
+    toast({ description: "Prompt excluído" });
   };
 
   const savePrompt = async () => {
@@ -99,7 +99,7 @@ export function SavedPrompts() {
         setCreating(false);
         setNewTitle("");
         setNewPrompt("");
-        toast({ description: "Prompt saved" });
+        toast({ description: "Prompt salvo" });
       }
     } finally {
       setSaving(false);
@@ -113,16 +113,16 @@ export function SavedPrompts() {
         className="flex items-start justify-between gap-4"
       >
         <div className="space-y-1">
-          <p className="text-[10px] text-primary font-bold tracking-widest uppercase">Library</p>
-          <h2 className="text-2xl font-black tracking-tight text-white">Saved Prompts</h2>
-          <p className="text-sm text-zinc-500">Your personal prompt library across all AI modules</p>
+          <p className="text-[10px] text-primary font-bold tracking-widest uppercase">Biblioteca</p>
+          <h2 className="text-2xl font-black tracking-tight text-white">Prompts Salvos</h2>
+          <p className="text-sm text-zinc-500">Sua biblioteca pessoal de prompts em todos os módulos de IA</p>
         </div>
         <Button
           onClick={() => setCreating(true)}
           size="sm"
           className="bg-primary text-black hover:bg-primary/90 font-bold text-xs shrink-0 h-8"
         >
-          <Plus className="w-3.5 h-3.5 mr-1.5" /> New Prompt
+          <Plus className="w-3.5 h-3.5 mr-1.5" /> Novo Prompt
         </Button>
       </motion.div>
 
@@ -138,7 +138,7 @@ export function SavedPrompts() {
           >
             <div className="bg-[#0f0f0f] border border-primary/20 rounded-2xl p-5 space-y-3">
               <div className="flex items-center justify-between mb-1">
-                <p className="text-sm font-bold text-white">New Prompt</p>
+                <p className="text-sm font-bold text-white">Novo Prompt</p>
                 <button onClick={() => setCreating(false)} className="text-zinc-600 hover:text-zinc-400 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
@@ -146,13 +146,13 @@ export function SavedPrompts() {
               <Input
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="Prompt title..."
+                placeholder="Título do prompt..."
                 className="bg-[#111111] border-white/[0.08] text-zinc-200 placeholder:text-zinc-700 h-9"
               />
               <Textarea
                 value={newPrompt}
                 onChange={(e) => setNewPrompt(e.target.value)}
-                placeholder="Paste your prompt here..."
+                placeholder="Cole seu prompt aqui..."
                 className="bg-[#111111] border-white/[0.08] text-zinc-200 placeholder:text-zinc-700 h-28 resize-none text-sm"
               />
               <div className="flex items-center gap-3">
@@ -171,7 +171,7 @@ export function SavedPrompts() {
                   size="sm"
                   className="bg-primary text-black hover:bg-primary/90 font-bold text-xs h-9 px-4"
                 >
-                  {saving ? "Saving..." : "Save Prompt"}
+                  {saving ? "Salvando..." : "Salvar Prompt"}
                 </Button>
               </div>
             </div>
@@ -186,7 +186,7 @@ export function SavedPrompts() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search prompts..."
+            placeholder="Buscar prompts..."
             className="pl-9 h-8 text-xs bg-[#0f0f0f] border-white/[0.07] placeholder:text-zinc-700"
           />
         </div>
@@ -221,14 +221,14 @@ export function SavedPrompts() {
           <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/[0.07] flex items-center justify-center mx-auto mb-4">
             <BookMarked className="w-5 h-5 text-zinc-700" />
           </div>
-          <p className="text-sm font-semibold text-zinc-500">No prompts saved yet</p>
+          <p className="text-sm font-semibold text-zinc-500">Nenhum prompt salvo ainda</p>
           <p className="text-xs text-zinc-700 mt-1 max-w-[220px] leading-relaxed">
-            Save prompts you use regularly to build your personal library
+            Salve os prompts que você usa regularmente para construir sua biblioteca pessoal
           </p>
           <Button onClick={() => setCreating(true)} size="sm" variant="outline"
             className="mt-4 text-xs border-white/[0.10] text-zinc-400 hover:text-white h-8"
           >
-            <Plus className="w-3 h-3 mr-1.5" /> Save your first prompt
+            <Plus className="w-3 h-3 mr-1.5" /> Salvar seu primeiro prompt
           </Button>
         </motion.div>
       ) : (
@@ -260,7 +260,7 @@ export function SavedPrompts() {
                 <p className="text-xs text-zinc-600 leading-relaxed line-clamp-3 mb-3">{p.prompt}</p>
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-zinc-700">
-                    {new Date(p.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    {new Date(p.createdAt).toLocaleDateString("pt-BR", { month: "short", day: "numeric" })}
                   </span>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                     <button
@@ -268,7 +268,7 @@ export function SavedPrompts() {
                       className="flex items-center gap-1 text-[10px] text-zinc-600 hover:text-primary transition-colors px-2 py-1 rounded-lg hover:bg-primary/10"
                     >
                       {copiedId === p.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                      {copiedId === p.id ? "Copied" : "Copy"}
+                      {copiedId === p.id ? "Copiado" : "Copiar"}
                     </button>
                     <button
                       onClick={() => deletePrompt(p.id)}

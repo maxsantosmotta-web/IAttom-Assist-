@@ -27,18 +27,24 @@ const statusColors: Record<string, string> = {
   completed: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
 };
 
+const statusLabels: Record<string, string> = {
+  draft: "Rascunho",
+  in_progress: "Em Andamento",
+  completed: "Concluído",
+};
+
 const typeLabels: Record<string, string> = {
-  product_discovery: "Product Discovery",
-  product_validation: "Product Validation",
-  campaign: "Campaign",
-  content: "Content",
-  creative: "Creative",
-  video_script: "Video Script",
+  product_discovery: "Descoberta de Produtos",
+  product_validation: "Validação de Produtos",
+  campaign: "Campanha",
+  content: "Conteúdo",
+  creative: "Criativo",
+  video_script: "Script de Vídeo",
   marketing: "Marketing",
 };
 
 const createSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(1, "Nome é obrigatório"),
   type: z.enum(["product_discovery", "product_validation", "campaign", "content", "creative", "video_script", "marketing"]),
   status: z.enum(["draft", "in_progress", "completed"]).optional(),
   description: z.string().optional(),
@@ -104,9 +110,9 @@ export function Projects() {
   return (
     <div className="space-y-8">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Workspace</p>
-        <h2 className="text-2xl font-bold text-white mb-1">Projects</h2>
-        <p className="text-muted-foreground text-sm">Manage all your AI-powered projects in one place.</p>
+        <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Espaço de Trabalho</p>
+        <h2 className="text-2xl font-bold text-white mb-1">Projetos</h2>
+        <p className="text-muted-foreground text-sm">Gerencie todos os seus projetos com IA em um só lugar.</p>
       </motion.div>
 
       <motion.div
@@ -119,7 +125,7 @@ export function Projects() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             data-testid="input-project-search"
-            placeholder="Search projects..."
+            placeholder="Buscar projetos..."
             className="pl-10 bg-[#111111] border-white/5 focus-visible:ring-primary/50"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -130,7 +136,7 @@ export function Projects() {
           onClick={() => setIsDialogOpen(true)}
           className="bg-primary text-primary-foreground hover:bg-primary/90 shrink-0"
         >
-          <Plus className="w-4 h-4 mr-2" /> New Project
+          <Plus className="w-4 h-4 mr-2" /> Novo Projeto
         </Button>
       </motion.div>
 
@@ -158,19 +164,19 @@ export function Projects() {
             <div className="absolute top-1 right-0 w-1.5 h-1.5 rounded-full bg-white/[0.08] animate-ambient-float" style={{ animationDelay: "1.2s" }} />
           </div>
           <p className="text-base font-semibold text-zinc-300 mb-1.5">
-            {search ? "No projects match your search" : "No projects yet"}
+            {search ? "Nenhum projeto encontrado" : "Sem projetos ainda"}
           </p>
           <p className="text-sm text-zinc-600 max-w-[240px] leading-relaxed mb-5">
             {search
-              ? "Try a different search term or clear the filter."
-              : "Organize your AI work into projects to track progress and resume where you left off."}
+              ? "Tente outro termo de busca."
+              : "Organize seu trabalho com IA em projetos para acompanhar o progresso e continuar de onde parou."}
           </p>
           {!search && (
             <Button
               onClick={() => setIsDialogOpen(true)}
               className="bg-primary/[0.10] text-primary border border-primary/25 hover:bg-primary/[0.16] hover:border-primary/35 transition-all duration-200 press-effect"
             >
-              <Plus className="w-4 h-4 mr-2" /> Create first project
+              <Plus className="w-4 h-4 mr-2" /> Criar primeiro projeto
             </Button>
           )}
         </motion.div>
@@ -191,14 +197,14 @@ export function Projects() {
                           {typeLabels[project.type] ?? project.type}
                         </Badge>
                         <Badge variant="outline" className={`text-[10px] capitalize shrink-0 px-2 py-0 ${statusColors[project.status] ?? ""}`}>
-                          {project.status.replace("_", " ")}
+                          {statusLabels[project.status] ?? project.status.replace("_", " ")}
                         </Badge>
                       </div>
                       {project.description && (
                         <p className="text-xs text-zinc-600 truncate mb-1">{project.description}</p>
                       )}
                       <p className="text-[11px] text-zinc-700 mt-1">
-                        Updated {new Date(project.updatedAt).toLocaleDateString()}
+                        Atualizado {new Date(project.updatedAt).toLocaleDateString("pt-BR")}
                       </p>
                     </div>
                     <button
@@ -224,14 +230,14 @@ export function Projects() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="bg-[#0f0f0f] border-white/[0.10] text-white max-w-md shadow-depth-lg animate-scale-in">
           <DialogHeader>
-            <DialogTitle className="text-white">New Project</DialogTitle>
+            <DialogTitle className="text-white">Novo Projeto</DialogTitle>
           </DialogHeader>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label className="text-sm text-muted-foreground">Project Name</Label>
+              <Label className="text-sm text-muted-foreground">Nome do Projeto</Label>
               <Input
                 data-testid="input-new-project-name"
-                placeholder="e.g. Summer Sale Campaign"
+                placeholder="ex: Campanha de Verão"
                 className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50"
                 {...form.register("name")}
               />
@@ -240,10 +246,10 @@ export function Projects() {
               )}
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm text-muted-foreground">Project Type</Label>
+              <Label className="text-sm text-muted-foreground">Tipo do Projeto</Label>
               <Select onValueChange={(v) => form.setValue("type", v as CreateForm["type"])}>
                 <SelectTrigger data-testid="select-new-project-type" className="bg-[#0a0a0a] border-white/10">
-                  <SelectValue placeholder="Select type" />
+                  <SelectValue placeholder="Selecionar tipo" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#111111] border-white/10">
                   {Object.entries(typeLabels).map(([val, label]) => (
@@ -256,10 +262,10 @@ export function Projects() {
               )}
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm text-muted-foreground">Description (optional)</Label>
+              <Label className="text-sm text-muted-foreground">Descrição (opcional)</Label>
               <Textarea
                 data-testid="input-new-project-description"
-                placeholder="Brief description of this project..."
+                placeholder="Breve descrição deste projeto..."
                 className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50 resize-none"
                 rows={2}
                 {...form.register("description")}
@@ -267,14 +273,14 @@ export function Projects() {
             </div>
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="text-muted-foreground">
-                Cancel
+                Cancelar
               </Button>
               <Button
                 type="submit"
                 disabled={createProject.isPending}
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                {createProject.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create Project"}
+                {createProject.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Criar Projeto"}
               </Button>
             </DialogFooter>
           </form>

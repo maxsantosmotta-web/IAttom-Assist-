@@ -49,7 +49,6 @@ export function ValidateProducts() {
   const isDone = status === "done";
   const isError = status === "error";
 
-  // charge() is provided by CreditsGate and called only after AI returns a result.
   const runValidation = (charge: () => void) => {
     generate("/api/ai/validate-product", {
       productName,
@@ -72,31 +71,31 @@ export function ValidateProducts() {
   return (
     <div className="space-y-8">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Market Intelligence</p>
-        <h2 className="text-2xl font-bold text-white mb-1">Validate Products</h2>
-        <p className="text-muted-foreground text-sm">Run AI-powered market validation before committing resources.</p>
+        <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Inteligência de Mercado</p>
+        <h2 className="text-2xl font-bold text-white mb-1">Validar Produtos</h2>
+        <p className="text-muted-foreground text-sm">Execute validação de mercado com IA antes de comprometer recursos.</p>
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
         <Card className="bg-[#111111] border-white/5">
           <CardHeader className="pb-4">
-            <CardTitle className="text-base font-semibold text-white">Product Details</CardTitle>
+            <CardTitle className="text-base font-semibold text-white">Detalhes do Produto</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-sm text-muted-foreground">Product / Idea Name</Label>
+                <Label className="text-sm text-muted-foreground">Nome do Produto / Ideia</Label>
                 <Input
-                  placeholder="e.g. Smart Hydration Bottle"
+                  placeholder="ex: Garrafa de Hidratação Inteligente"
                   className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50"
                   value={productName}
                   onChange={(e) => setProductName(e.target.value)}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-sm text-muted-foreground">Target Market (optional)</Label>
+                <Label className="text-sm text-muted-foreground">Mercado-alvo (opcional)</Label>
                 <Input
-                  placeholder="e.g. Athletes 25-40, US market"
+                  placeholder="ex: Atletas 25-40, mercado brasileiro"
                   className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50"
                   value={targetMarket}
                   onChange={(e) => setTargetMarket(e.target.value)}
@@ -104,9 +103,9 @@ export function ValidateProducts() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm text-muted-foreground">Description (optional)</Label>
+              <Label className="text-sm text-muted-foreground">Descrição (opcional)</Label>
               <Textarea
-                placeholder="Describe your product, target audience, price point, unique features..."
+                placeholder="Descreva seu produto, público-alvo, faixa de preço, diferenciais..."
                 className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50 resize-none"
                 rows={3}
                 value={description}
@@ -121,8 +120,8 @@ export function ValidateProducts() {
                   className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
                 >
                   {isLoading || isGenerating ? (
-                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> AI is analyzing your idea...</>
-                  ) : "Run AI Validation"}
+                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> A IA está analisando sua ideia...</>
+                  ) : "Executar Validação IA"}
                 </Button>
               )}
             </CreditsGate>
@@ -139,7 +138,7 @@ export function ValidateProducts() {
                   <span key={i} className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                 ))}
               </div>
-              <span className="text-sm">Analyzing <span className="text-white">"{productName}"</span> across market signals...</span>
+              <span className="text-sm">Analisando <span className="text-white">"{productName}"</span> nos sinais de mercado...</span>
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -155,11 +154,11 @@ export function ValidateProducts() {
               <CardContent className="p-5 flex items-center gap-4">
                 <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-red-400">Validation failed</p>
+                  <p className="text-sm font-semibold text-red-400">Validação falhou</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{error}</p>
                 </div>
                 <Button size="sm" variant="outline" onClick={handleRetry} className="border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0">
-                  <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry
+                  <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Tentar novamente
                 </Button>
               </CardContent>
             </Card>
@@ -172,17 +171,17 @@ export function ValidateProducts() {
               <CardContent className="p-6">
                 <div className="flex items-start justify-between gap-6 mb-6">
                   <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Validation Result</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Resultado da Validação</p>
                     <h3 className="text-2xl font-bold text-white mb-1">{result.verdict}</h3>
                     <div className="flex items-center gap-2 flex-wrap">
                       {result.demandTrend && (
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full bg-white/5 border border-white/10 ${demandTrendColors[result.demandTrend] ?? "text-white"}`}>
-                          {result.demandTrend} demand
+                          demanda {result.demandTrend}
                         </span>
                       )}
                       {result.profitabilityRating && (
                         <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-400/10 border border-emerald-400/20 text-emerald-400">
-                          {result.profitabilityRating} profitability
+                          rentabilidade {result.profitabilityRating}
                         </span>
                       )}
                     </div>
@@ -192,10 +191,10 @@ export function ValidateProducts() {
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                   {[
-                    { label: "Market Size", value: result.marketSize, icon: DollarSign, color: "text-emerald-400" },
-                    { label: "Competition", value: result.competition, icon: Users, color: "text-amber-400" },
-                    { label: "Buyer Intent", value: `${result.buyerIntentScore}%`, icon: Target, color: "text-primary" },
-                    { label: "Demand Trend", value: result.demandTrend, icon: TrendingUp, color: demandTrendColors[result.demandTrend ?? ""] ?? "text-white" },
+                    { label: "Tamanho do Mercado", value: result.marketSize, icon: DollarSign, color: "text-emerald-400" },
+                    { label: "Concorrência", value: result.competition, icon: Users, color: "text-amber-400" },
+                    { label: "Intenção de Compra", value: `${result.buyerIntentScore}%`, icon: Target, color: "text-primary" },
+                    { label: "Tendência de Demanda", value: result.demandTrend, icon: TrendingUp, color: demandTrendColors[result.demandTrend ?? ""] ?? "text-white" },
                   ].map((item) => {
                     const Icon = item.icon;
                     return (
@@ -210,7 +209,7 @@ export function ValidateProducts() {
 
                 <div className="grid md:grid-cols-3 gap-4 mb-5">
                   <div className="space-y-2">
-                    <p className="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Strengths</p>
+                    <p className="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Pontos Fortes</p>
                     {result.strengths?.map((s, i) => (
                       <div key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
                         <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
@@ -219,7 +218,7 @@ export function ValidateProducts() {
                     ))}
                   </div>
                   <div className="space-y-2">
-                    <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest">Risks</p>
+                    <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest">Riscos</p>
                     {result.risks?.map((r, i) => (
                       <div key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
                         <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
@@ -228,7 +227,7 @@ export function ValidateProducts() {
                     ))}
                   </div>
                   <div className="space-y-2">
-                    <p className="text-xs font-semibold text-primary uppercase tracking-widest">Opportunities</p>
+                    <p className="text-xs font-semibold text-primary uppercase tracking-widest">Oportunidades</p>
                     {result.opportunities?.map((o, i) => (
                       <div key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
                         <Lightbulb className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
@@ -240,12 +239,12 @@ export function ValidateProducts() {
 
                 <div className="space-y-3 border-t border-white/5 pt-5">
                   <div>
-                    <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-1.5">AI Recommendation</p>
+                    <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-1.5">Recomendação IA</p>
                     <p className="text-sm text-muted-foreground leading-relaxed">{result.recommendation}</p>
                   </div>
                   {result.launchStrategy && (
                     <div>
-                      <p className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-1.5">Launch Strategy</p>
+                      <p className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-1.5">Estratégia de Lançamento</p>
                       <p className="text-sm text-muted-foreground leading-relaxed">{result.launchStrategy}</p>
                     </div>
                   )}
@@ -261,7 +260,7 @@ export function ValidateProducts() {
 
             <div className="flex justify-end">
               <button onClick={reset} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5">
-                <RefreshCw className="w-3 h-3" /> Validate another product
+                <RefreshCw className="w-3 h-3" /> Validar outro produto
               </button>
             </div>
           </motion.div>

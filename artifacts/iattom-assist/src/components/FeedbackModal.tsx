@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 const CATEGORIES = [
-  { value: "bug", label: "Bug Report" },
-  { value: "feature", label: "Feature Request" },
-  { value: "general", label: "General Feedback" },
-  { value: "other", label: "Other" },
+  { value: "bug", label: "Relatar Bug" },
+  { value: "feature", label: "Sugestão de Funcionalidade" },
+  { value: "general", label: "Feedback Geral" },
+  { value: "other", label: "Outro" },
 ] as const;
 
 type Category = (typeof CATEGORIES)[number]["value"];
@@ -63,7 +63,7 @@ export function FeedbackModal() {
       setIsDone(true);
       setTimeout(() => handleClose(), 2000);
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError("Algo deu errado. Tente novamente.");
     } finally {
       setIsSubmitting(false);
     }
@@ -76,7 +76,7 @@ export function FeedbackModal() {
       <button
         onClick={handleOpen}
         className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-[#111111] border border-white/[0.10] text-zinc-400 hover:text-primary hover:border-primary/30 transition-all duration-200 shadow-lg hover:shadow-primary/10 text-[12px] font-medium"
-        title="Send feedback"
+        title="Enviar feedback"
       >
         <MessageSquare className="w-3.5 h-3.5" />
         <span className="hidden sm:inline">Feedback</span>
@@ -104,7 +104,7 @@ export function FeedbackModal() {
               <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
                 <div className="flex items-center gap-2.5">
                   <MessageSquare className="w-4 h-4 text-primary" />
-                  <p className="text-sm font-semibold text-white">Send Feedback</p>
+                  <p className="text-sm font-semibold text-white">Enviar Feedback</p>
                 </div>
                 <button
                   onClick={handleClose}
@@ -118,13 +118,13 @@ export function FeedbackModal() {
                 {isDone ? (
                   <div className="text-center py-6">
                     <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
-                    <p className="text-sm font-semibold text-white">Thank you!</p>
-                    <p className="text-xs text-muted-foreground mt-1">Your feedback has been received.</p>
+                    <p className="text-sm font-semibold text-white">Obrigado!</p>
+                    <p className="text-xs text-muted-foreground mt-1">Seu feedback foi recebido.</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     <div>
-                      <p className="text-[11px] font-semibold text-zinc-500 mb-2 uppercase tracking-wider">Category</p>
+                      <p className="text-[11px] font-semibold text-zinc-500 mb-2 uppercase tracking-wider">Categoria</p>
                       <div className="grid grid-cols-2 gap-1.5">
                         {CATEGORIES.map((c) => (
                           <button
@@ -143,11 +143,11 @@ export function FeedbackModal() {
                     </div>
 
                     <div>
-                      <p className="text-[11px] font-semibold text-zinc-500 mb-2 uppercase tracking-wider">Message</p>
+                      <p className="text-[11px] font-semibold text-zinc-500 mb-2 uppercase tracking-wider">Mensagem</p>
                       <Textarea
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
-                        placeholder="Describe the issue or idea..."
+                        placeholder="Descreva o problema ou ideia..."
                         className="bg-[#0a0a0a] border-white/[0.08] text-sm text-zinc-200 placeholder:text-zinc-700 resize-none h-24 focus:border-primary/40 focus:ring-0"
                         maxLength={2000}
                       />
@@ -156,7 +156,7 @@ export function FeedbackModal() {
 
                     <div>
                       <p className="text-[11px] font-semibold text-zinc-500 mb-2 uppercase tracking-wider">
-                        Rating <span className="text-zinc-700 font-normal">(optional)</span>
+                        Avaliação <span className="text-zinc-700 font-normal">(opcional)</span>
                       </p>
                       <div className="flex gap-1.5">
                         {[1, 2, 3, 4, 5].map((star) => (
@@ -189,9 +189,9 @@ export function FeedbackModal() {
                       className="w-full bg-primary hover:bg-primary/90 text-black font-semibold h-9 text-[13px]"
                     >
                       {isSubmitting ? (
-                        <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Sending...</>
+                        <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Enviando...</>
                       ) : (
-                        "Send Feedback"
+                        "Enviar Feedback"
                       )}
                     </Button>
                   </div>

@@ -16,11 +16,11 @@ interface Notification {
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
+  if (m < 1) return "agora mesmo";
+  if (m < 60) return `há ${m}min`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+  if (h < 24) return `há ${h}h`;
+  return `há ${Math.floor(h / 24)}d`;
 }
 
 const typeIcon: Record<string, React.ElementType> = {
@@ -110,7 +110,7 @@ export function NotificationsPanel() {
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.08]">
               <div className="flex items-center gap-2">
                 <Bell className="w-3.5 h-3.5 text-zinc-500" />
-                <span className="text-xs font-bold text-zinc-300">Notifications</span>
+                <span className="text-xs font-bold text-zinc-300">Notificações</span>
                 {unreadCount > 0 && (
                   <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 leading-tight">
                     {unreadCount}
@@ -123,7 +123,7 @@ export function NotificationsPanel() {
                   className="flex items-center gap-1 text-[10px] text-zinc-600 hover:text-primary transition-colors"
                 >
                   <CheckCheck className="w-3 h-3" />
-                  Mark all read
+                  Marcar todas como lidas
                 </button>
               )}
             </div>
@@ -131,14 +131,14 @@ export function NotificationsPanel() {
             {/* List */}
             <div className="max-h-[380px] overflow-y-auto">
               {loading && notifications.length === 0 ? (
-                <div className="py-10 text-center text-xs text-zinc-700">Loading...</div>
+                <div className="py-10 text-center text-xs text-zinc-700">Carregando...</div>
               ) : notifications.length === 0 ? (
                 <div className="py-12 text-center">
                   <div className="w-10 h-10 rounded-2xl bg-white/[0.03] border border-white/[0.07] flex items-center justify-center mx-auto mb-3">
                     <Sparkles className="w-5 h-5 text-zinc-700" />
                   </div>
-                  <p className="text-xs text-zinc-600 font-medium">No notifications yet</p>
-                  <p className="text-[10px] text-zinc-700 mt-1">We'll notify you about important updates</p>
+                  <p className="text-xs text-zinc-600 font-medium">Nenhuma notificação</p>
+                  <p className="text-[10px] text-zinc-700 mt-1">Você será notificado sobre atualizações importantes</p>
                 </div>
               ) : (
                 notifications.map((n) => {
@@ -163,12 +163,12 @@ export function NotificationsPanel() {
                             <Link href={n.link} onClick={() => { markRead(n.id); setOpen(false); }}
                               className="flex items-center gap-0.5 text-[10px] text-primary hover:text-primary/80 transition-colors">
                               <ExternalLink className="w-2.5 h-2.5" />
-                              View
+                              Ver
                             </Link>
                           )}
                           {!n.read && (
                             <button onClick={() => markRead(n.id)} className="text-[10px] text-zinc-700 hover:text-zinc-400 transition-colors">
-                              Mark read
+                              Marcar como lida
                             </button>
                           )}
                         </div>
@@ -187,7 +187,7 @@ export function NotificationsPanel() {
 
             {notifications.length > 0 && (
               <div className="px-4 py-2.5 border-t border-white/[0.06] bg-white/[0.02]">
-                <p className="text-[10px] text-zinc-700 text-center">{notifications.length} notification{notifications.length !== 1 ? "s" : ""} total</p>
+                <p className="text-[10px] text-zinc-700 text-center">{notifications.length} notificação{notifications.length !== 1 ? "s" : ""} no total</p>
               </div>
             )}
           </motion.div>

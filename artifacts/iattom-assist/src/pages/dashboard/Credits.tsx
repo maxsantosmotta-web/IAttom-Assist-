@@ -65,8 +65,8 @@ export function Credits() {
       )
     : [];
 
-  const PLAN_DISPLAY_NAMES: Record<string, string> = { free: "Cristal", pro: "Rubi", business: "Esmeralda", agency: "Diamante" };
-  const currentPlanDisplay = balance?.plan ? (PLAN_DISPLAY_NAMES[balance.plan] ?? balance.plan) : "Cristal";
+  const PLAN_DISPLAY_NAMES: Record<string, string> = { free: "START", pro: "COMPLETO", business: "PREMIUM", agency: "PRO" };
+  const currentPlanDisplay = balance?.plan ? (PLAN_DISPLAY_NAMES[balance.plan] ?? balance.plan) : "START";
 
   return (
     <div className="space-y-8">
