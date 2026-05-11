@@ -30,19 +30,19 @@ const CREDIT_PACKAGES = [
 /* ─── plan visual tokens ─────────────────────────────────────────────── */
 const PLAN_COLORS: Record<string, string> = {
   free:     "text-blue-300",
-  pro:      "text-[#C9A84C]",
+  pro:      "text-[#E96C1A]",
   business: "text-violet-400",
   agency:   "text-[#E8C96A]",
 };
 const PLAN_BORDER: Record<string, string> = {
   free:     "border-blue-400/20",
-  pro:      "border-[#C9A84C]/45",
+  pro:      "border-[#E96C1A]/40",
   business: "border-violet-500/30",
   agency:   "border-[#C9A84C]/55",
 };
 const PLAN_BADGE_STYLE: Record<string, string> = {
   free:     "bg-blue-500/10 text-blue-200 border-blue-400/20",
-  pro:      "bg-[#C9A84C]/15 text-[#C9A84C] border-[#C9A84C]/30",
+  pro:      "bg-[#E96C1A]/15 text-[#E96C1A] border-[#E96C1A]/30",
   business: "bg-violet-500/15 text-violet-300 border-violet-500/25",
   agency:   "bg-[#C9A84C]/20 text-[#E8C96A] border-[#C9A84C]/40",
 };
@@ -54,13 +54,13 @@ const PLAN_BTN_STYLE: Record<string, string> = {
 };
 const PLAN_GLOW: Record<string, string> = {
   free:     "",
-  pro:      "shadow-[0_0_36px_-4px_rgba(201,168,76,0.20)]",
+  pro:      "shadow-[0_0_36px_-4px_rgba(233,108,26,0.22)]",
   business: "",
   agency:   "",
 };
 const PLAN_ICON: Record<string, React.FC<{ className?: string }>> = {
   free:     ({ className }) => <Zap className={className} />,
-  pro:      ({ className }) => <Crown className={className} />,
+  pro:      ({ className }) => <Rocket className={className} />,
   business: ({ className }) => <Sparkles className={className} />,
   agency:   ({ className }) => <Building2 className={className} />,
 };

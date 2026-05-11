@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Check, Zap, Crown, RefreshCw, Star, Sparkles, Building2 } from "lucide-react";
+import { X, Check, Zap, Crown, RefreshCw, Star, Sparkles, Building2, Rocket } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -18,19 +18,19 @@ const PLAN_ORDER = ["free", "pro", "business", "agency"];
 
 const PLAN_ACCENT: Record<string, string> = {
   free:     "border-blue-400/20",
-  pro:      "border-[#C9A84C]/45",
+  pro:      "border-[#E96C1A]/40",
   business: "border-violet-500/30",
   agency:   "border-[#C9A84C]/55",
 };
 const PLAN_GLOW: Record<string, string> = {
   free:     "",
-  pro:      "shadow-[0_0_40px_-4px_rgba(201,168,76,0.18)]",
+  pro:      "shadow-[0_0_40px_-4px_rgba(233,108,26,0.20)]",
   business: "shadow-[0_0_32px_-4px_rgba(139,92,246,0.09)]",
   agency:   "shadow-[0_0_40px_-4px_rgba(201,168,76,0.14)]",
 };
 const PLAN_COLOR: Record<string, string> = {
   free:     "text-blue-300",
-  pro:      "text-[#C9A84C]",
+  pro:      "text-[#E96C1A]",
   business: "text-violet-400",
   agency:   "text-[#E8C96A]",
 };
@@ -42,7 +42,7 @@ const PLAN_BTN: Record<string, string> = {
 };
 const PLAN_ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
   free:     ({ className }) => <Zap className={className} />,
-  pro:      ({ className }) => <Crown className={className} />,
+  pro:      ({ className }) => <Rocket className={className} />,
   business: ({ className }) => <Sparkles className={className} />,
   agency:   ({ className }) => <Building2 className={className} />,
 };
