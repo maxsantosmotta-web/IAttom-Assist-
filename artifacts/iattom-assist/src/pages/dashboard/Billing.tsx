@@ -159,7 +159,7 @@ function BillingToggle({ value, onChange }: { value: "monthly" | "annual"; onCha
 /* ─── main component ─────────────────────────────────────────────────── */
 export function Billing() {
   const { toast } = useToast();
-  const [location, setLocation] = useLocation();
+  const [location] = useLocation();
   const [showComparison, setShowComparison] = useState(false);
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
 
@@ -233,10 +233,7 @@ export function Billing() {
   };
 
   const handleUpgrade = (priceId: string | null | undefined, planKey: string) => {
-    if (!priceId) {
-      if (planKey === "free") setLocation("/dashboard");
-      return;
-    }
+    if (!priceId) return;
     checkout.mutate({ data: { priceId, planKey } });
   };
 
@@ -395,8 +392,9 @@ export function Billing() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {sortedPlans.map((plan) => {
               const planKey    = plan.planKey;
-              /* ← a card is only "current" when the user actually has an active subscription */
-              const isCurrent  = planKey === currentPlan && hasActiveSub;
+              /* free plan is always "current" for users without a paid subscription */
+              const isCurrent  = (planKey === currentPlan && hasActiveSub) ||
+                                 (planKey === "free" && currentPlan === "free" && !hasActiveSub);
               const isUpgrade  = PLAN_ORDER.indexOf(planKey) > PLAN_ORDER.indexOf(currentPlan);
               const isDowngrade= PLAN_ORDER.indexOf(planKey) < PLAN_ORDER.indexOf(currentPlan);
               const isPopular  = planKey === "pro";
@@ -547,12 +545,12 @@ export function Billing() {
             return (
               <div
                 key={pkg.id}
-                className={`relative flex flex-col rounded-xl border p-4 transition-all duration-200 ${
+                className={`relative flex flex-col rounded-xl border p-5 transition-all duration-200 ${
                   isPopular
-                    ? "border-[#C9A84C]/40 bg-white/[0.025] shadow-[0_0_28px_-4px_rgba(201,168,76,0.14)]"
+                    ? "border-[#C9A84C]/45 bg-white/[0.025] shadow-[0_0_28px_-4px_rgba(201,168,76,0.14)]"
                     : isBest
-                    ? "border-[#C9A84C]/25 bg-white/[0.015]"
-                    : "border-white/[0.07] hover:border-white/[0.14] hover:bg-white/[0.01]"
+                    ? "border-[#C9A84C]/20 bg-[#111111] hover:border-[#C9A84C]/35 hover:bg-white/[0.01]"
+                    : "border-white/[0.08] bg-[#111111] hover:border-white/[0.15] hover:bg-white/[0.01]"
                 }`}
               >
                 {isPopular && (
@@ -563,7 +561,7 @@ export function Billing() {
                     <span className={`inline-block text-[9px] font-bold px-2.5 py-0.5 rounded-b-md whitespace-nowrap ${
                       isPopular
                         ? "bg-[#C9A84C] text-black"
-                        : "bg-white/10 text-zinc-400 border border-white/10 border-t-0"
+                        : "bg-white/[0.08] text-zinc-400 border border-white/[0.10] border-t-0"
                     }`}>
                       {pkg.tag.toUpperCase()}
                     </span>
@@ -574,7 +572,7 @@ export function Billing() {
                   <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
                     isPopular ? "bg-[#C9A84C]/12 border border-[#C9A84C]/25" : "bg-white/[0.04] border border-white/[0.08]"
                   }`}>
-                    <Plus className={`w-3.5 h-3.5 ${isPopular ? "text-[#C9A84C]" : "text-zinc-400"}`} />
+                    <Plus className={`w-3.5 h-3.5 ${isPopular ? "text-[#C9A84C]" : "text-zinc-500"}`} />
                   </div>
                   <div>
                     <p className={`text-base font-bold leading-none ${isPopular ? "text-[#C9A84C]" : "text-white"}`}>
@@ -585,14 +583,14 @@ export function Billing() {
                 </div>
 
                 <p className="text-xl font-bold text-white mb-0.5">{pkg.price}</p>
-                <p className="text-[10px] text-zinc-600 mb-4">{pkg.perUnit}</p>
+                <p className="text-[10px] text-zinc-600 mb-5">{pkg.perUnit}</p>
 
                 <Button
                   size="sm"
-                  className={`w-full text-xs mt-auto ${
+                  className={`w-full h-9 text-xs font-semibold ${
                     isPopular
-                      ? "bg-[#C9A84C] text-black hover:bg-[#E8C96A] font-bold"
-                      : "bg-white/[0.06] text-zinc-300 hover:bg-white/[0.10] border border-white/[0.10]"
+                      ? "bg-[#C9A84C] text-black hover:bg-[#E8C96A]"
+                      : "bg-white/[0.05] text-zinc-300 border border-white/[0.09] hover:bg-[#C9A84C]/10 hover:text-[#C9A84C] hover:border-[#C9A84C]/25 transition-colors"
                   }`}
                   onClick={() => handleBuyCredits(pkg.id)}
                   disabled={isPending || creditsPending !== null}
