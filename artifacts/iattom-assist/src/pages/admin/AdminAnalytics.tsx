@@ -38,12 +38,36 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
+const FEATURE_NAME_MAP: Record<string, string> = {
+  "Product Discovery": "Descoberta de Produtos",
+  "Product Validation": "Validação de Produtos",
+  "Validate Products": "Validar Produtos",
+  "Campaign": "Campanha",
+  "Content": "Conteúdo",
+  "Creative": "Criativos",
+  "Video Script": "Roteiro de Vídeo",
+};
+
+const PLAN_MRR_LABEL: Record<string, string> = {
+  free: "MRR Gratuito",
+  pro: "MRR PRO",
+  business: "MRR Empresarial",
+  agency: "MRR Agência",
+};
+
 const PieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
   if (percent < 0.05) return null;
   const RADIAN = Math.PI / 180;
-  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  let x: number;
+  let y: number;
+  if (percent >= 0.99) {
+    x = cx;
+    y = cy;
+  } else {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    x = cx + radius * Math.cos(-midAngle * RADIAN);
+    y = cy + radius * Math.sin(-midAngle * RADIAN);
+  }
   return (
     <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600}>
       {`${(percent * 100).toFixed(0)}%`}
@@ -100,6 +124,7 @@ export function AdminAnalytics() {
 
   const featureData = (analytics?.featureUsage ?? []).map((f, i) => ({
     ...f,
+    name: FEATURE_NAME_MAP[f.name] ?? f.name,
     fill: FEATURE_COLORS[i % FEATURE_COLORS.length],
   }));
 
@@ -118,8 +143,8 @@ export function AdminAnalytics() {
     <div className="space-y-8">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Insights</p>
-        <h2 className="text-2xl font-bold text-white mb-1">Analytics</h2>
-        <p className="text-muted-foreground text-sm">Growth, revenue, activation, and churn intelligence.</p>
+        <h2 className="text-2xl font-bold text-white mb-1">Análises</h2>
+        <p className="text-muted-foreground text-sm">Crescimento, receita, ativação e análise de cancelamentos.</p>
       </motion.div>
 
       {/* Revenue & Growth KPIs */}
@@ -309,7 +334,7 @@ export function AdminAnalytics() {
                     {analytics?.planRevenue.map((p, i) => (
                       <div key={p.plan} className="text-center">
                         <p className="text-sm font-bold" style={{ color: PIE_COLORS[i] }}>${p.mrr.toLocaleString()}</p>
-                        <p className="text-[10px] text-muted-foreground">{p.plan} MRR</p>
+                        <p className="text-[10px] text-muted-foreground">{PLAN_MRR_LABEL[p.plan] ?? `${p.plan} MRR`}</p>
                       </div>
                     ))}
                   </div>

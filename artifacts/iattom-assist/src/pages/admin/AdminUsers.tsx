@@ -134,9 +134,9 @@ export function AdminUsers() {
   return (
     <div className="space-y-8">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Management</p>
-        <h2 className="text-2xl font-bold text-white mb-1">Users</h2>
-        <p className="text-muted-foreground text-sm">Manage all registered users, plans, roles, and credits.</p>
+        <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Gerenciamento</p>
+        <h2 className="text-2xl font-bold text-white mb-1">Usuários</h2>
+        <p className="text-muted-foreground text-sm">Gerencie todos os usuários cadastrados, planos, funções e créditos.</p>
       </motion.div>
 
       <motion.div
@@ -146,7 +146,7 @@ export function AdminUsers() {
         <div className="relative flex-1 min-w-48">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name or email..."
+            placeholder="Pesquisar por nome ou e-mail"
             className="pl-10 bg-[#111111] border-white/5 focus-visible:ring-primary/50"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -154,29 +154,29 @@ export function AdminUsers() {
         </div>
         <Select value={planFilter} onValueChange={setPlanFilter}>
           <SelectTrigger className="w-36 bg-[#111111] border-white/5">
-            <SelectValue placeholder="All Plans" />
+            <SelectValue placeholder="Todos os Planos" />
           </SelectTrigger>
           <SelectContent className="bg-[#111111] border-white/10">
-            <SelectItem value="all">All Plans</SelectItem>
-            <SelectItem value="free">Free</SelectItem>
+            <SelectItem value="all">Todos os Planos</SelectItem>
+            <SelectItem value="free">Gratuito</SelectItem>
             <SelectItem value="pro">Pro</SelectItem>
-            <SelectItem value="business">Business</SelectItem>
+            <SelectItem value="business">Empresarial</SelectItem>
             <SelectItem value="agency">Agency</SelectItem>
           </SelectContent>
         </Select>
         <Select value={roleFilter} onValueChange={setRoleFilter}>
           <SelectTrigger className="w-32 bg-[#111111] border-white/5">
-            <SelectValue placeholder="All Roles" />
+            <SelectValue placeholder="Todas as Funções" />
           </SelectTrigger>
           <SelectContent className="bg-[#111111] border-white/10">
-            <SelectItem value="all">All Roles</SelectItem>
-            <SelectItem value="user">User</SelectItem>
+            <SelectItem value="all">Todas as Funções</SelectItem>
+            <SelectItem value="user">Usuário</SelectItem>
             <SelectItem value="admin">Admin</SelectItem>
           </SelectContent>
         </Select>
         <div className="flex items-center gap-1.5 text-sm text-muted-foreground ml-auto">
           <Users className="w-4 h-4" />
-          <span>{isLoading ? "..." : data?.total ?? 0} users</span>
+          <span>{isLoading ? "..." : data?.total ?? 0} usuários</span>
         </div>
       </motion.div>
 
@@ -186,13 +186,13 @@ export function AdminUsers() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/5">
-                  <th className="text-left px-5 py-3 text-xs text-muted-foreground font-medium">User</th>
-                  <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Role</th>
-                  <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Plan</th>
-                  <th className="text-right px-4 py-3 text-xs text-muted-foreground font-medium">Credits</th>
-                  <th className="text-right px-4 py-3 text-xs text-muted-foreground font-medium">Projects</th>
-                  <th className="text-right px-4 py-3 text-xs text-muted-foreground font-medium">Actions</th>
-                  <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Joined</th>
+                  <th className="text-left px-5 py-3 text-xs text-muted-foreground font-medium">Usuário</th>
+                  <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Função</th>
+                  <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Plano</th>
+                  <th className="text-right px-4 py-3 text-xs text-muted-foreground font-medium">Créditos</th>
+                  <th className="text-right px-4 py-3 text-xs text-muted-foreground font-medium">Projetos</th>
+                  <th className="text-right px-4 py-3 text-xs text-muted-foreground font-medium">Ações</th>
+                  <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Cadastro</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
@@ -213,7 +213,7 @@ export function AdminUsers() {
                 ) : !data?.users?.length ? (
                   <tr>
                     <td colSpan={8} className="text-center py-12 text-muted-foreground text-sm">
-                      No users found.
+                      Nenhum usuário encontrado.
                     </td>
                   </tr>
                 ) : (
