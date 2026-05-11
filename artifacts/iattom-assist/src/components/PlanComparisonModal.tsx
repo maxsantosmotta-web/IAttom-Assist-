@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { X, Check, Zap, Crown, RefreshCw, Star, Sparkles, Building2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,7 @@ interface PlanComparisonModalProps {
 
 export function PlanComparisonModal({ open, onClose, highlightPlan = "pro" }: PlanComparisonModalProps) {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
 
   const { data: plans = [], isLoading } = useGetStripePlans({
@@ -83,7 +85,10 @@ export function PlanComparisonModal({ open, onClose, highlightPlan = "pro" }: Pl
   const sortedPlans  = [...plans].sort((a, b) => PLAN_ORDER.indexOf(a.planKey) - PLAN_ORDER.indexOf(b.planKey));
 
   const handleUpgrade = (priceId: string | null | undefined, planKey: string) => {
-    if (!priceId) return;
+    if (!priceId) {
+      if (planKey === "free") { onClose(); setLocation("/dashboard"); }
+      return;
+    }
     checkout.mutate({ data: { priceId, planKey } });
   };
 

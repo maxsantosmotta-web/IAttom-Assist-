@@ -151,7 +151,7 @@ function BillingToggle({ value, onChange }: { value: "monthly" | "annual"; onCha
 /* ─── main component ─────────────────────────────────────────────────── */
 export function Billing() {
   const { toast } = useToast();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [showComparison, setShowComparison] = useState(false);
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
 
@@ -203,7 +203,10 @@ export function Billing() {
   const sortedPlans = [...plans].sort((a, b) => PLAN_ORDER.indexOf(a.planKey) - PLAN_ORDER.indexOf(b.planKey));
 
   const handleUpgrade = (priceId: string | null | undefined, planKey: string) => {
-    if (!priceId) return;
+    if (!priceId) {
+      if (planKey === "free") setLocation("/dashboard");
+      return;
+    }
     checkout.mutate({ data: { priceId, planKey } });
   };
 
