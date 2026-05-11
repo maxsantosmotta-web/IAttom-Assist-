@@ -9,7 +9,7 @@ import {
   getGetMeQueryKey,
 } from "@workspace/api-client-react";
 import { PlanComparisonModal } from "./PlanComparisonModal";
-import { PLAN_CREDITS } from "@/lib/credits";
+import { PLAN_CREDITS, PLAN_NAMES } from "@/lib/credits";
 
 interface UpgradeNudgeProps {
   totalActions?: number;
@@ -41,12 +41,15 @@ export function UpgradeNudge({ totalActions = 0 }: UpgradeNudgeProps) {
   else if (pct <= 10) variant = "critical";
   else variant = "low";
 
+  const completoPlanName = PLAN_NAMES["pro"] ?? "COMPLETO";
+  const completoCredits = PLAN_CREDITS.pro.toLocaleString("pt-BR");
+
   const configs = {
     critical: {
       icon: <Zap className="w-4 h-4 text-red-400 fill-red-400/30 shrink-0" />,
       bg: "bg-red-500/8 border-red-500/20",
       title: "Créditos quase esgotados",
-      body: `Apenas ${creditsLeft} créditos restantes. Atualize agora para continuar sem interrupção.`,
+      body: `Apenas ${creditsLeft} créditos restantes. Faça upgrade para o ${completoPlanName} e continue sem interrupção.`,
       cta: "Atualizar agora",
       accentCta: true,
     },
@@ -54,16 +57,16 @@ export function UpgradeNudge({ totalActions = 0 }: UpgradeNudgeProps) {
       icon: <Zap className="w-4 h-4 text-amber-400 fill-amber-400/20 shrink-0" />,
       bg: "bg-amber-500/6 border-amber-500/15",
       title: `Créditos baixos — ${pct}% restantes`,
-      body: `Você tem ${creditsLeft} créditos este mês. Atualize para o Rubi: ${PLAN_CREDITS.pro.toLocaleString()}+ créditos e acesso prioritário.`,
+      body: `Você tem ${creditsLeft} créditos este mês. Upgrade para o ${completoPlanName}: ${completoCredits}+ créditos e suporte prioritário.`,
       cta: "Ver planos",
       accentCta: false,
     },
     power: {
       icon: <TrendingUp className="w-4 h-4 text-primary shrink-0" />,
       bg: "bg-primary/6 border-primary/20",
-      title: `Você é um usuário avançado`,
-      body: `${totalActions} execuções e contando. O plano Rubi oferece ${PLAN_CREDITS.pro.toLocaleString()} créditos/mês — muito mais potência.`,
-      cta: "Desbloquear Rubi",
+      title: "Você é um usuário avançado",
+      body: `${totalActions} execuções e contando. O plano ${completoPlanName} oferece ${completoCredits} créditos/mês — muito mais potência.`,
+      cta: `Desbloquear ${completoPlanName}`,
       accentCta: true,
     },
   };

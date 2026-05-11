@@ -1,7 +1,7 @@
-import { X, Check, Zap, Crown, RefreshCw, Star } from "lucide-react";
+import { useState } from "react";
+import { X, Check, Zap, Crown, RefreshCw, Star, Sparkles, Building2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
   useGetStripePlans,
@@ -10,32 +10,45 @@ import {
   getGetMeQueryKey,
   useCreateCheckoutSession,
 } from "@workspace/api-client-react";
-import { PLAN_CREDITS, PLAN_NAMES, PLAN_PRICES } from "@/lib/credits";
+import { PLAN_CREDITS, PLAN_NAMES, PLAN_PRICES, PLAN_SAVINGS } from "@/lib/credits";
 
 const PLAN_ORDER = ["free", "pro", "business", "agency"];
+
 const PLAN_ACCENT: Record<string, string> = {
-  free: "border-sky-300/20",
-  pro: "border-rose-500/40",
-  business: "border-emerald-500/40",
-  agency: "border-slate-300/25",
+  free:     "border-blue-400/20",
+  pro:      "border-[#C9A84C]/45",
+  business: "border-violet-500/30",
+  agency:   "border-[#C9A84C]/55",
 };
 const PLAN_GLOW: Record<string, string> = {
-  free: "shadow-[0_0_32px_rgba(186,230,253,0.05)]",
-  pro: "shadow-[0_0_32px_rgba(244,63,94,0.09)]",
-  business: "shadow-[0_0_32px_rgba(16,185,129,0.09)]",
-  agency: "shadow-[0_0_40px_rgba(226,232,240,0.06)]",
+  free:     "",
+  pro:      "shadow-[0_0_40px_-4px_rgba(201,168,76,0.18)]",
+  business: "shadow-[0_0_32px_-4px_rgba(139,92,246,0.09)]",
+  agency:   "shadow-[0_0_40px_-4px_rgba(201,168,76,0.14)]",
 };
 const PLAN_COLOR: Record<string, string> = {
-  free: "text-sky-100",
-  pro: "text-rose-400",
-  business: "text-emerald-400",
-  agency: "text-slate-100",
+  free:     "text-blue-300",
+  pro:      "text-[#C9A84C]",
+  business: "text-violet-400",
+  agency:   "text-[#E8C96A]",
 };
 const PLAN_BTN: Record<string, string> = {
-  free: "bg-sky-400/15 text-sky-100 hover:bg-sky-400/25 border border-sky-300/25",
-  pro: "bg-rose-600 text-white hover:bg-rose-500 font-bold",
-  business: "bg-emerald-600 text-white hover:bg-emerald-500 font-bold",
-  agency: "bg-white text-black hover:bg-slate-100 font-bold",
+  free:     "bg-blue-500/15 text-blue-200 hover:bg-blue-500/25 border border-blue-400/25",
+  pro:      "bg-[#C9A84C] text-black hover:bg-[#E8C96A] font-bold",
+  business: "bg-violet-600 text-white hover:bg-violet-500 font-bold",
+  agency:   "bg-gradient-to-r from-[#C9A84C] to-[#E8C96A] text-black hover:brightness-110 font-black",
+};
+const PLAN_ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
+  free:     ({ className }) => <Zap className={className} />,
+  pro:      ({ className }) => <Crown className={className} />,
+  business: ({ className }) => <Sparkles className={className} />,
+  agency:   ({ className }) => <Building2 className={className} />,
+};
+const PLAN_DESC: Record<string, string> = {
+  free:     "Entrada na plataforma.",
+  pro:      "Melhor custo-benefício.",
+  business: "Recursos avançados.",
+  agency:   "Experiência máxima.",
 };
 
 interface PlanComparisonModalProps {
@@ -46,6 +59,7 @@ interface PlanComparisonModalProps {
 
 export function PlanComparisonModal({ open, onClose, highlightPlan = "pro" }: PlanComparisonModalProps) {
   const { toast } = useToast();
+  const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
 
   const { data: plans = [], isLoading } = useGetStripePlans({
     query: { queryKey: getGetStripePlansQueryKey(), staleTime: 60_000 },
@@ -55,7 +69,7 @@ export function PlanComparisonModal({ open, onClose, highlightPlan = "pro" }: Pl
   const checkout = useCreateCheckoutSession({
     mutation: {
       onSuccess: (data) => { if (data.url) window.location.href = data.url; },
-      onError: () => toast({ title: "Checkout failed", description: "Please try again.", variant: "destructive" }),
+      onError: () => toast({ title: "Erro no checkout", description: "Tente novamente.", variant: "destructive" }),
     },
   });
 
@@ -65,6 +79,12 @@ export function PlanComparisonModal({ open, onClose, highlightPlan = "pro" }: Pl
   const handleUpgrade = (priceId: string | null | undefined, planKey: string) => {
     if (!priceId) return;
     checkout.mutate({ data: { priceId, planKey } });
+  };
+
+  const getPriceDisplay = (planKey: string) => {
+    const p = PLAN_PRICES[planKey];
+    if (!p) return "—";
+    return billing === "annual" ? p.yearlyMonthlyDisplay : p.monthlyDisplay;
   };
 
   return (
@@ -78,7 +98,7 @@ export function PlanComparisonModal({ open, onClose, highlightPlan = "pro" }: Pl
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           onClick={onClose}
         >
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+          <div className="absolute inset-0 bg-black/85 backdrop-blur-md" />
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -87,47 +107,64 @@ export function PlanComparisonModal({ open, onClose, highlightPlan = "pro" }: Pl
             className="relative w-full max-w-5xl bg-[#0d0d0d] border border-white/10 rounded-2xl shadow-depth-lg overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#C9A84C]/35 to-transparent" />
 
+            {/* ── Header ────────────────────────────────────────────── */}
             <div className="flex items-start justify-between p-6 pb-4 border-b border-white/[0.06]">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <Crown className="w-4 h-4 text-primary" />
-                  <p className="text-xs text-primary uppercase tracking-widest font-semibold">Upgrade</p>
+                  <p className="text-xs text-primary uppercase tracking-widest font-semibold">Planos</p>
                 </div>
                 <h2 className="text-xl font-bold text-white">Escolha seu plano</h2>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Desbloqueie mais créditos e recursos avançados.
-                </p>
+                <p className="text-sm text-muted-foreground mt-0.5">Desbloqueie mais créditos e recursos avançados.</p>
               </div>
-              <button
-                onClick={onClose}
-                className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="p-6">
-              {isLoading ? (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  {[0,1,2,3].map((i) => (
-                    <div key={i} className="h-72 rounded-xl bg-white/[0.03] skeleton-shimmer" />
+              <div className="flex items-center gap-3">
+                {/* billing toggle */}
+                <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.07]">
+                  {(["monthly", "annual"] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => setBilling(opt)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold tracking-wide transition-all duration-200 ${
+                        billing === opt ? "bg-white/[0.08] text-white" : "text-zinc-500 hover:text-zinc-300"
+                      }`}
+                    >
+                      {opt === "monthly" ? "Mensal" : "Anual"}
+                      {opt === "annual" && (
+                        <span className="text-[9px] font-black px-1 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">
+                          -16%
+                        </span>
+                      )}
+                    </button>
                   ))}
                 </div>
-              ) : sortedPlans.length === 0 ? (
+                <button
+                  onClick={onClose}
+                  className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* ── Plans ─────────────────────────────────────────────── */}
+            <div className="p-6">
+              {(isLoading || sortedPlans.length === 0) ? (
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   {[0,1,2,3].map((i) => (
-                    <div key={i} className="h-72 rounded-xl bg-white/[0.03] skeleton-shimmer" />
+                    <div key={i} className="h-80 rounded-xl bg-white/[0.03] skeleton-shimmer" />
                   ))}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {sortedPlans.map((plan) => {
-                    const key = plan.planKey;
-                    const isCurrent = key === currentPlan;
-                    const isHighlight = key === highlightPlan;
-                    const isUpgrade = PLAN_ORDER.indexOf(key) > PLAN_ORDER.indexOf(currentPlan);
+                    const key        = plan.planKey;
+                    const isCurrent  = key === currentPlan;
+                    const isHighlight= key === highlightPlan;
+                    const isUpgrade  = PLAN_ORDER.indexOf(key) > PLAN_ORDER.indexOf(currentPlan);
+                    const savings    = PLAN_SAVINGS[key] ?? 0;
+                    const PlanIcon   = PLAN_ICON_MAP[key] ?? PLAN_ICON_MAP.free;
 
                     return (
                       <div
@@ -135,56 +172,86 @@ export function PlanComparisonModal({ open, onClose, highlightPlan = "pro" }: Pl
                         className={`relative flex flex-col rounded-xl border p-5 transition-all duration-200 ${
                           PLAN_ACCENT[key]
                         } ${isHighlight ? PLAN_GLOW[key] : ""} ${
-                          isHighlight ? "bg-white/[0.03]" : "bg-[#111111]"
+                          isHighlight ? "bg-white/[0.025]" : "bg-[#111111]"
                         }`}
                       >
-                        {isHighlight && (
+                        {/* top gold line for popular */}
+                        {isHighlight && key === "pro" && (
+                          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#C9A84C]/55 to-transparent rounded-t-xl" />
+                        )}
+
+                        {isHighlight && !isCurrent && (
                           <div className="absolute -top-px left-1/2 -translate-x-1/2">
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-3 py-0.5 rounded-b-md bg-primary text-black">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-3 py-0.5 rounded-b-md bg-[#C9A84C] text-black">
                               <Star className="w-2.5 h-2.5 fill-black" />
-                              MOST POPULAR
+                              MAIS ESCOLHIDO
                             </span>
                           </div>
                         )}
                         {isCurrent && (
                           <div className="absolute -top-px left-1/2 -translate-x-1/2">
-                            <span className="inline-block text-[10px] font-bold px-3 py-0.5 rounded-b-md bg-white/10 text-zinc-400">
-                              CURRENT
+                            <span className="inline-block text-[10px] font-bold px-3 py-0.5 rounded-b-md bg-white/10 text-zinc-400 border border-white/10 border-t-0">
+                              PLANO ATUAL
                             </span>
                           </div>
                         )}
 
-                        <p className={`text-sm font-bold mb-0.5 mt-1 ${PLAN_COLOR[key]}`}>{PLAN_NAMES[key] ?? plan.name}</p>
-                        <p className="text-xs text-zinc-600 leading-snug mb-3">{plan.description}</p>
-
-                        <div className="mb-3">
-                          <span className="text-2xl font-bold text-white">
-                            {PLAN_PRICES[key]?.monthlyDisplay ?? "—"}
-                          </span>
+                        {/* plan icon + name */}
+                        <div className="flex items-center gap-2 mb-1 mt-1">
+                          <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${
+                            key === "free"     ? "bg-blue-500/12 border border-blue-400/20" :
+                            key === "pro"      ? "bg-[#C9A84C]/12 border border-[#C9A84C]/25" :
+                            key === "business" ? "bg-violet-500/12 border border-violet-500/20" :
+                                                "bg-[#C9A84C]/10 border border-[#C9A84C]/20"
+                          }`}>
+                            <PlanIcon className={`w-3 h-3 ${PLAN_COLOR[key]}`} />
+                          </div>
+                          <p className={`text-sm font-bold ${PLAN_COLOR[key]}`}>
+                            {PLAN_NAMES[key] ?? plan.name}
+                          </p>
                         </div>
 
+                        <p className="text-[11px] text-zinc-600 leading-snug mb-3">{PLAN_DESC[key] ?? plan.description}</p>
+
+                        {/* price */}
+                        <div className="mb-1">
+                          <span className="text-2xl font-bold text-white">{getPriceDisplay(key)}</span>
+                        </div>
+                        {billing === "annual" && (
+                          <div className="flex items-center gap-1.5 mb-3">
+                            <span className="text-[10px] text-zinc-600">{PLAN_PRICES[key]?.yearlyDisplay}/ano</span>
+                            <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
+                              -{savings}%
+                            </span>
+                          </div>
+                        )}
+                        {billing === "monthly" && <div className="mb-3" />}
+
+                        {/* credits */}
                         <div className="flex items-center gap-1.5 mb-4 p-2 rounded-lg bg-white/[0.04] border border-white/[0.06]">
                           <Zap className="w-3 h-3 text-primary fill-primary shrink-0" />
                           <span className="text-xs font-semibold text-zinc-300">
-                            {(PLAN_CREDITS[key as keyof typeof PLAN_CREDITS] ?? plan.credits).toLocaleString()} créditos/mês
+                            {(PLAN_CREDITS[key as keyof typeof PLAN_CREDITS] ?? plan.credits).toLocaleString("pt-BR")} créditos/mês
                           </span>
                         </div>
 
+                        {/* features */}
                         <ul className="space-y-2 mb-5 flex-1">
                           {plan.features.slice(0, 4).map((f) => (
                             <li key={f} className="flex items-start gap-2">
-                              <Check className={`w-3 h-3 shrink-0 mt-0.5 ${isHighlight ? "text-primary" : "text-zinc-500"}`} />
+                              <Check className={`w-3 h-3 shrink-0 mt-0.5 ${isHighlight ? "text-[#C9A84C]" : "text-zinc-600"}`} />
                               <span className="text-[11px] text-zinc-400 leading-snug">{f}</span>
                             </li>
                           ))}
                         </ul>
 
+                        {/* CTA */}
                         {isCurrent ? (
                           <Button disabled size="sm" className="w-full text-xs bg-white/5 border border-white/10 text-zinc-500">
                             Plano Atual
                           </Button>
                         ) : !isUpgrade ? (
-                          <Button size="sm" variant="outline" className="w-full text-xs border-white/10 text-zinc-400">
+                          <Button size="sm" variant="outline" className="w-full text-xs border-white/10 text-zinc-400 hover:border-white/20">
                             Fazer Downgrade
                           </Button>
                         ) : (
