@@ -829,13 +829,10 @@ function SignInDrawer({ onClose, onOpenSignUp }: { onClose: () => void; onOpenSi
       const { error: e1 } = await signIn.password({ identifier, password });
       if (e1) { setErr(clerkMsg(e1)); return; }
 
-      if (signIn.status === "complete") {
-        const { error: e2 } = await signIn.finalize();
-        if (e2) { setErr(clerkMsg(e2)); return; }
-        navigate("/dashboard");
-      } else {
-        setErr("Ocorreu um erro inesperado. Tente novamente.");
-      }
+      const { error: e2 } = await signIn.finalize();
+      if (e2) { setErr(clerkMsg(e2)); return; }
+
+      navigate("/dashboard");
     } catch (ex) {
       setErr(clerkMsg(ex));
     }
