@@ -48,7 +48,7 @@ const PLAN_BADGE_STYLE: Record<string, string> = {
 };
 const PLAN_BTN_STYLE: Record<string, string> = {
   free:     "bg-blue-500/15 text-blue-200 hover:bg-blue-500/25 border border-blue-400/25",
-  pro:      "bg-[#C9A84C] text-black hover:bg-[#E8C96A] font-bold",
+  pro:      "bg-[#E96C1A] text-white hover:bg-[#FF7C2A] font-bold",
   business: "bg-violet-600 text-white hover:bg-violet-500 font-bold",
   agency:   "bg-gradient-to-r from-[#C9A84C] to-[#E8C96A] text-black hover:brightness-110 font-black",
 };
