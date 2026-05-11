@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import {
   Crown, Check, Zap, ExternalLink, AlertTriangle, RefreshCw,
   CreditCard, Gift, TrendingUp, Star, Lock, ChevronDown, ChevronUp,
-  Sparkles, Building2, Rocket, CircleSlash,
+  Sparkles, Building2, Rocket, CircleSlash, ShoppingCart, Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,14 @@ import {
 import { Link } from "wouter";
 import { PlanComparisonModal } from "@/components/PlanComparisonModal";
 import { PLAN_CREDITS, PLAN_NAMES, PLAN_PRICES, PLAN_SAVINGS } from "@/lib/credits";
+
+/* ─── credit packages ────────────────────────────────────────────────── */
+const CREDIT_PACKAGES = [
+  { id: "credits_100",  credits: 100,  label: "100",   price: "R$ 19,90",  tag: null,           perUnit: "R$ 0,20/cr" },
+  { id: "credits_300",  credits: 300,  label: "300",   price: "R$ 49,90",  tag: null,           perUnit: "R$ 0,17/cr" },
+  { id: "credits_1000", credits: 1000, label: "1.000", price: "R$ 129,90", tag: "Mais popular", perUnit: "R$ 0,13/cr" },
+  { id: "credits_5000", credits: 5000, label: "5.000", price: "R$ 497,90", tag: "Melhor valor", perUnit: "R$ 0,10/cr" },
+] as const;
 
 /* ─── plan visual tokens ─────────────────────────────────────────────── */
 const PLAN_COLORS: Record<string, string> = {
@@ -185,6 +193,9 @@ export function Billing() {
     if (payment === "success") {
       toast({ title: "Pagamento realizado", description: "Seu plano foi ativado. Créditos adicionados à sua conta." });
       window.history.replaceState({}, "", window.location.pathname);
+    } else if (payment === "credits_success") {
+      toast({ title: "Créditos adicionados", description: "Seus créditos foram somados ao saldo da conta." });
+      window.history.replaceState({}, "", window.location.pathname);
     } else if (payment === "canceled") {
       toast({ title: "Checkout cancelado", description: "Nenhuma cobrança foi realizada." });
       window.history.replaceState({}, "", window.location.pathname);
@@ -201,6 +212,25 @@ export function Billing() {
 
   const PLAN_ORDER  = ["free", "pro", "business", "agency"];
   const sortedPlans = [...plans].sort((a, b) => PLAN_ORDER.indexOf(a.planKey) - PLAN_ORDER.indexOf(b.planKey));
+
+  const [creditsPending, setCreditsPending] = useState<string | null>(null);
+  const handleBuyCredits = async (packageId: string) => {
+    setCreditsPending(packageId);
+    try {
+      const resp = await fetch("/api/stripe/credits/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packageId }),
+      });
+      const data = await resp.json() as { url?: string; error?: string };
+      if (!resp.ok) throw new Error(data.error ?? "Erro");
+      if (data.url) window.location.href = data.url;
+    } catch {
+      toast({ title: "Erro ao iniciar compra", description: "Tente novamente em instantes.", variant: "destructive" });
+    } finally {
+      setCreditsPending(null);
+    }
+  };
 
   const handleUpgrade = (priceId: string | null | undefined, planKey: string) => {
     if (!priceId) {
@@ -490,6 +520,92 @@ export function Billing() {
             })}
           </div>
         )}
+      </div>
+
+      {/* ── Comprar Créditos ──────────────────────────────────────────── */}
+      <div className="rounded-xl border border-white/[0.07] bg-[#111111] p-6">
+        <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <ShoppingCart className="w-4 h-4 text-primary" />
+              <p className="text-xs text-primary uppercase tracking-widest font-semibold">Comprar Créditos</p>
+            </div>
+            <h2 className="text-sm font-semibold text-zinc-300">Recarregue seu saldo sem mudar de plano</h2>
+            <p className="text-xs text-zinc-600 mt-0.5">Os créditos são somados ao seu saldo atual e nunca expiram.</p>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.07]">
+            <Zap className="w-3.5 h-3.5 text-primary fill-primary shrink-0" />
+            <span className="text-xs font-semibold text-zinc-300">{creditsLeft.toLocaleString("pt-BR")} créditos disponíveis</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {CREDIT_PACKAGES.map((pkg) => {
+            const isPopular = pkg.tag === "Mais popular";
+            const isBest    = pkg.tag === "Melhor valor";
+            const isPending = creditsPending === pkg.id;
+            return (
+              <div
+                key={pkg.id}
+                className={`relative flex flex-col rounded-xl border p-4 transition-all duration-200 ${
+                  isPopular
+                    ? "border-[#C9A84C]/40 bg-white/[0.025] shadow-[0_0_28px_-4px_rgba(201,168,76,0.14)]"
+                    : isBest
+                    ? "border-[#C9A84C]/25 bg-white/[0.015]"
+                    : "border-white/[0.07] hover:border-white/[0.14] hover:bg-white/[0.01]"
+                }`}
+              >
+                {isPopular && (
+                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#C9A84C]/55 to-transparent rounded-t-xl" />
+                )}
+                {pkg.tag && (
+                  <div className="absolute -top-px left-1/2 -translate-x-1/2">
+                    <span className={`inline-block text-[9px] font-bold px-2.5 py-0.5 rounded-b-md whitespace-nowrap ${
+                      isPopular
+                        ? "bg-[#C9A84C] text-black"
+                        : "bg-white/10 text-zinc-400 border border-white/10 border-t-0"
+                    }`}>
+                      {pkg.tag.toUpperCase()}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 mb-3 mt-1">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                    isPopular ? "bg-[#C9A84C]/12 border border-[#C9A84C]/25" : "bg-white/[0.04] border border-white/[0.08]"
+                  }`}>
+                    <Plus className={`w-3.5 h-3.5 ${isPopular ? "text-[#C9A84C]" : "text-zinc-400"}`} />
+                  </div>
+                  <div>
+                    <p className={`text-base font-bold leading-none ${isPopular ? "text-[#C9A84C]" : "text-white"}`}>
+                      {pkg.label}
+                    </p>
+                    <p className="text-[10px] text-zinc-600 mt-0.5">créditos</p>
+                  </div>
+                </div>
+
+                <p className="text-xl font-bold text-white mb-0.5">{pkg.price}</p>
+                <p className="text-[10px] text-zinc-600 mb-4">{pkg.perUnit}</p>
+
+                <Button
+                  size="sm"
+                  className={`w-full text-xs mt-auto ${
+                    isPopular
+                      ? "bg-[#C9A84C] text-black hover:bg-[#E8C96A] font-bold"
+                      : "bg-white/[0.06] text-zinc-300 hover:bg-white/[0.10] border border-white/[0.10]"
+                  }`}
+                  onClick={() => handleBuyCredits(pkg.id)}
+                  disabled={isPending || creditsPending !== null}
+                >
+                  {isPending
+                    ? <><RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />Aguarde...</>
+                    : <><ShoppingCart className="w-3.5 h-3.5 mr-1.5" />Comprar Créditos</>
+                  }
+                </Button>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── Referral CTA (only shown when user has active plan) ────────── */}

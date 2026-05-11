@@ -164,6 +164,52 @@ async function handleSubscriptionDeleted(
   logger.info({ userId: user.id }, "Subscription deleted — reverted to free");
 }
 
+async function handleCreditPurchase(
+  session: Stripe.Checkout.Session,
+): Promise<void> {
+  if (session.metadata?.type !== "credit_purchase") return;
+
+  const clerkUserId = session.metadata.clerkUserId;
+  const credits = parseInt(session.metadata.credits ?? "0", 10);
+
+  if (!clerkUserId || !credits) {
+    logger.warn({ sessionId: session.id }, "Credit purchase: missing metadata");
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.clerkId, clerkUserId));
+
+  if (!user) {
+    logger.warn({ clerkUserId }, "Credit purchase: user not found");
+    return;
+  }
+
+  const balanceBefore = user.credits;
+  const balanceAfter = balanceBefore + credits;
+
+  await db
+    .update(users)
+    .set({ credits: balanceAfter, updatedAt: new Date() })
+    .where(eq(users.clerkId, clerkUserId));
+
+  await db.insert(creditsTransactions).values({
+    clerkUserId,
+    amount: credits,
+    type: "credit",
+    description: `Compra avulsa de ${credits.toLocaleString("pt-BR")} créditos`,
+    balanceBefore,
+    balanceAfter,
+  });
+
+  logger.info(
+    { clerkUserId, credits, balanceBefore, balanceAfter },
+    "Credit purchase processed — credits added",
+  );
+}
+
 export class WebhookHandlers {
   static async processWebhook(
     payload: Buffer,
@@ -197,6 +243,11 @@ export class WebhookHandlers {
         case "customer.subscription.deleted":
           await handleSubscriptionDeleted(
             event.data.object as Stripe.Subscription,
+          );
+          break;
+        case "checkout.session.completed":
+          await handleCreditPurchase(
+            event.data.object as Stripe.Checkout.Session,
           );
           break;
         default:

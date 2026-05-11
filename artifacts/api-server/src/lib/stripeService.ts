@@ -63,6 +63,58 @@ export async function createCheckoutSession(
   return session.url;
 }
 
+export async function createCreditPurchaseCheckoutSession(
+  clerkUserId: string,
+  packageId: string,
+  credits: number,
+  unitAmountBrl: number,
+  packageName: string,
+): Promise<string> {
+  const customerId = await ensureStripeCustomer(clerkUserId);
+  const stripe = await getUncachableStripeClient();
+
+  const billingUrl = `${APP_ORIGIN}${BASE_PATH}/dashboard/billing`;
+
+  const session = await stripe.checkout.sessions.create({
+    customer: customerId,
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price_data: {
+          currency: "brl",
+          unit_amount: unitAmountBrl,
+          product_data: {
+            name: packageName,
+            description: `${credits.toLocaleString("pt-BR")} créditos — compra avulsa`,
+          },
+        },
+        quantity: 1,
+      },
+    ],
+    mode: "payment",
+    success_url: `${billingUrl}?payment=credits_success`,
+    cancel_url: `${billingUrl}?payment=canceled`,
+    client_reference_id: clerkUserId,
+    metadata: {
+      clerkUserId,
+      type: "credit_purchase",
+      packageId,
+      credits: String(credits),
+    },
+    payment_intent_data: {
+      metadata: {
+        clerkUserId,
+        type: "credit_purchase",
+        packageId,
+        credits: String(credits),
+      },
+    },
+  });
+
+  if (!session.url) throw new Error("Stripe checkout session URL is null");
+  return session.url;
+}
+
 export async function createBillingPortalSession(
   clerkUserId: string,
 ): Promise<string> {

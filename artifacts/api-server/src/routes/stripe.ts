@@ -9,6 +9,7 @@ import {
 import {
   createCheckoutSession,
   createBillingPortalSession,
+  createCreditPurchaseCheckoutSession,
 } from "../lib/stripeService.js";
 import {
   getSubscriptionByCustomerId,
@@ -16,6 +17,59 @@ import {
 } from "../lib/stripeStorage.js";
 
 const router: IRouter = Router();
+
+const CREDIT_PACKAGES = [
+  { id: "credits_100",  credits: 100,  unitAmountBrl: 1990,  name: "Pacote 100 Créditos",   displayPrice: "R$ 19,90"  },
+  { id: "credits_300",  credits: 300,  unitAmountBrl: 4990,  name: "Pacote 300 Créditos",   displayPrice: "R$ 49,90"  },
+  { id: "credits_1000", credits: 1000, unitAmountBrl: 12990, name: "Pacote 1.000 Créditos", displayPrice: "R$ 129,90" },
+  { id: "credits_5000", credits: 5000, unitAmountBrl: 49790, name: "Pacote 5.000 Créditos", displayPrice: "R$ 497,90" },
+] as const;
+
+router.get("/stripe/credit-packages", requireAuth, (_req: Request, res: Response) => {
+  res.json(CREDIT_PACKAGES);
+});
+
+const CreditCheckoutBodySchema = z.object({
+  packageId: z.string().min(1),
+});
+
+router.post(
+  "/stripe/credits/checkout",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    const parsed = CreditCheckoutBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "packageId is required" });
+    }
+
+    const { packageId } = parsed.data;
+    const pkg = CREDIT_PACKAGES.find((p) => p.id === packageId);
+    if (!pkg) {
+      return res.status(400).json({ error: "Pacote inválido" });
+    }
+
+    const clerkUserId = (req as AuthenticatedRequest).clerkUserId;
+
+    try {
+      const url = await createCreditPurchaseCheckoutSession(
+        clerkUserId,
+        pkg.id,
+        pkg.credits,
+        pkg.unitAmountBrl,
+        pkg.name,
+      );
+      return res.json({ url });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("not configured")) {
+        req.log.warn("Credit checkout attempted but billing is not configured");
+        return res.status(503).json({ error: "Faturamento não disponível neste ambiente." });
+      }
+      req.log.error({ err }, "Failed to create credit purchase checkout session");
+      return res.status(500).json({ error: "Falha ao iniciar o checkout" });
+    }
+  },
+);
 
 const PLAN_CREDITS: Record<string, number> = {
   free: 50,
