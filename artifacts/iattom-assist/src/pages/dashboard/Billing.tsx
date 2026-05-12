@@ -159,7 +159,7 @@ function BillingToggle({ value, onChange }: { value: "monthly" | "annual"; onCha
 /* ─── main component ─────────────────────────────────────────────────── */
 export function Billing() {
   const { toast } = useToast();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [showComparison, setShowComparison] = useState(false);
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
 
@@ -233,7 +233,11 @@ export function Billing() {
   };
 
   const handleUpgrade = (priceId: string | null | undefined, planKey: string) => {
-    if (!priceId) return;
+    if (!priceId) {
+      toast({ title: "Plano START selecionado!", description: "Bem-vindo à IAttom Assist. Explore todos os recursos disponíveis." });
+      setLocation("/dashboard");
+      return;
+    }
     checkout.mutate({ data: { priceId, planKey } });
   };
 
@@ -392,9 +396,7 @@ export function Billing() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {sortedPlans.map((plan) => {
               const planKey    = plan.planKey;
-              /* free plan is always "current" for users without a paid subscription */
-              const isCurrent  = (planKey === currentPlan && hasActiveSub) ||
-                                 (planKey === "free" && currentPlan === "free" && !hasActiveSub);
+              const isCurrent  = planKey === currentPlan && hasActiveSub;
               const isUpgrade  = PLAN_ORDER.indexOf(planKey) > PLAN_ORDER.indexOf(currentPlan);
               const isDowngrade= PLAN_ORDER.indexOf(planKey) < PLAN_ORDER.indexOf(currentPlan);
               const isPopular  = planKey === "pro";

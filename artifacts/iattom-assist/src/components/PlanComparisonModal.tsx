@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { X, Check, Zap, Crown, RefreshCw, Star, Sparkles, Building2, TrendingUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,7 @@ interface PlanComparisonModalProps {
 
 export function PlanComparisonModal({ open, onClose, highlightPlan = "pro" }: PlanComparisonModalProps) {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
 
   const { data: plans = [], isLoading } = useGetStripePlans({
@@ -83,7 +85,12 @@ export function PlanComparisonModal({ open, onClose, highlightPlan = "pro" }: Pl
   const sortedPlans  = [...plans].sort((a, b) => PLAN_ORDER.indexOf(a.planKey) - PLAN_ORDER.indexOf(b.planKey));
 
   const handleUpgrade = (priceId: string | null | undefined, planKey: string) => {
-    if (!priceId) return;
+    if (!priceId) {
+      toast({ title: "Plano START selecionado!", description: "Bem-vindo à IAttom Assist. Explore todos os recursos disponíveis." });
+      onClose();
+      setLocation("/dashboard");
+      return;
+    }
     checkout.mutate({ data: { priceId, planKey } });
   };
 
@@ -167,9 +174,7 @@ export function PlanComparisonModal({ open, onClose, highlightPlan = "pro" }: Pl
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {sortedPlans.map((plan) => {
                     const key        = plan.planKey;
-                    /* free plan is always "current" for users without a paid subscription */
-                    const isCurrent  = (key === currentPlan && hasActiveSub) ||
-                                       (key === "free" && currentPlan === "free" && !hasActiveSub);
+                    const isCurrent  = key === currentPlan && hasActiveSub;
                     const isHighlight= key === highlightPlan;
                     const isUpgrade  = PLAN_ORDER.indexOf(key) > PLAN_ORDER.indexOf(currentPlan);
                     const savings    = PLAN_SAVINGS[key] ?? 0;
