@@ -48,6 +48,8 @@ REGRA DE VARIEDADE TEXTUAL: Varie naturalmente o vocabulário, a intensidade emo
 
 REGRA DE OBJETIVIDADE: Seja direto e escaneável. Comece com o ponto mais relevante. Use blocos curtos, ações concretas e linguagem direta. Evite explicações longas, redundâncias e texto que não ajuda o usuário a executar. Mantenha a qualidade estratégica, mas elimine o excesso — menos é mais quando o conteúdo é denso e acionável.
 
+REGRA DE ESCANEABILIDADE MOBILE: Estruture cada campo de texto para leitura rápida em tela pequena. Aplique obrigatoriamente: frases curtas (máx. 2 linhas cada), parágrafos de no máximo 3 frases, listas de pontos quando houver mais de 2 itens seguidos, uma ação prática destacada no início de cada bloco, sem introduções longas nem conclusões redundantes. O usuário deve entender o essencial em 10 segundos de leitura por campo. Priorize: o que fazer → como fazer → por quê. Nessa ordem.
+
 REGRA DE MODO DE CAMPANHA: Quando um modo for informado, adapte TODA a campanha — orçamento, canais, intensidade do copy, cronograma e profundidade — conforme a definição abaixo. Se nenhum modo for informado, use o modo "Conversão" como padrão.
 
 Modos disponíveis e suas regras obrigatórias:
