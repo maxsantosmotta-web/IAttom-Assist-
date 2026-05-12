@@ -89,7 +89,7 @@ Provide a rigorous, honest market validation analysis.`;
 
     const result: ValidationResult = JSON.parse(fullResponse);
     sendSSE(res, { type: "result", data: result });
-    await logAiUsage({ clerkUserId, action: `Validated: ${params.productName}`, module: "validate_products" });
+    await logAiUsage({ clerkUserId, action: `Validado: ${params.productName}`, module: "validate_products" });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "AI generation failed";
     sendSSEError(res, msg);

@@ -101,7 +101,7 @@ Create 4 creative concepts that are visually striking, on-brand, and conversion-
 
     const result: CreativeIdeasResult = JSON.parse(fullResponse);
     sendSSE(res, { type: "result", data: result });
-    await logAiUsage({ clerkUserId, action: `Creatives generated: ${params.prompt.slice(0, 50)}`, module: "creative" });
+    await logAiUsage({ clerkUserId, action: `Criativos gerados: ${params.prompt.slice(0, 50)}`, module: "creative" });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "AI generation failed";
     sendSSEError(res, msg);
