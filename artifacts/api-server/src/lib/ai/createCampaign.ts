@@ -32,12 +32,40 @@ export interface CampaignResult {
   objectionHandling: string;
 }
 
+const BACKEND_DIGITAL_GOALS = ["Vender na Hotmart", "Vender na Kiwify"];
+const BACKEND_PHYSICAL_KEYWORDS = [
+  "roupa", "camiseta", "tênis", "sapato", "calçado", "bolsa", "mochila",
+  "eletrônico", "celular", "tablet", "garrafa", "utensílio", "cosmético",
+  "perfume", "kit", "aparelho", "dispositivo", "equipamento", "alimento",
+  "suplemento", "vitamina", "remédio", "skincare", "caderno", "agenda",
+  "óculos", "relógio", "acessório", "brinquedo", "produto físico",
+];
+
+function isPhysicalProduct(name: string): boolean {
+  const lower = name.toLowerCase();
+  return BACKEND_PHYSICAL_KEYWORDS.some((k) => lower.includes(k));
+}
+
 export async function streamCreateCampaign(
   params: CreateCampaignInput,
   res: Response,
   clerkUserId: string,
 ): Promise<void> {
   setupSSE(res);
+
+  if (
+    params.goal &&
+    BACKEND_DIGITAL_GOALS.includes(params.goal) &&
+    isPhysicalProduct(params.product)
+  ) {
+    sendSSEError(
+      res,
+      "Produto físico detectado. Hotmart/Kiwify são plataformas voltadas principalmente para produtos digitais. Altere a plataforma ou transforme a oferta em produto digital antes de gerar a campanha.",
+    );
+    sendSSEDone(res);
+    return;
+  }
+
   sendSSE(res, { type: "start" });
 
   const systemPrompt = `Você é um estrategista de marketing de resposta direta de nível mundial. Cria campanhas que geram ROI mensurável, combinando gatilhos psicológicos com segmentação precisa para o mercado brasileiro.
