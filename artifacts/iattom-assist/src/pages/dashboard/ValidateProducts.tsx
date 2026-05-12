@@ -121,7 +121,7 @@ export function ValidateProducts() {
                 >
                   {isLoading || isGenerating ? (
                     <><Loader2 className="w-4 h-4 animate-spin mr-2" /> A IA está analisando sua ideia...</>
-                  ) : "Executar Validação IA"}
+                  ) : "Executar Validação"}
                 </Button>
               )}
             </CreditsGate>

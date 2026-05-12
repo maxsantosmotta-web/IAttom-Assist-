@@ -169,7 +169,7 @@ export function Projects() {
           <p className="text-sm text-zinc-600 max-w-[240px] leading-relaxed mb-5">
             {search
               ? "Tente outro termo de busca."
-              : "Organize seu trabalho com IA em projetos para acompanhar o progresso e continuar de onde parou."}
+              : "Organize seu trabalho em projetos para acompanhar o progresso e continuar de onde parou."}
           </p>
           {!search && (
             <Button
