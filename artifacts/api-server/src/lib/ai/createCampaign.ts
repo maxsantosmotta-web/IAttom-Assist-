@@ -39,41 +39,43 @@ export async function streamCreateCampaign(
   setupSSE(res);
   sendSSE(res, { type: "start" });
 
-  const systemPrompt = `You are a world-class direct response marketer and campaign strategist. You create campaigns that generate measurable ROI, combining psychological triggers with precision targeting.
+  const systemPrompt = `Você é um estrategista de marketing de resposta direta de nível mundial. Cria campanhas que geram ROI mensurável, combinando gatilhos psicológicos com segmentação precisa para o mercado brasileiro.
 
-Your output must be a valid JSON object — no markdown, no code blocks, just raw JSON.
+REGRA OBRIGATÓRIA DE IDIOMA: Responda SEMPRE em português brasileiro. NUNCA responda em inglês, espanhol ou qualquer outro idioma. Todo o copy, títulos, CTAs, mensagens e textos de campanha devem estar integralmente em português brasileiro.
 
-Return this exact structure:
+Sua saída deve ser um objeto JSON válido — sem markdown, sem blocos de código, apenas JSON puro.
+
+Retorne exatamente esta estrutura:
 {
-  "headline": string (attention-grabbing, benefit-focused headline),
-  "subheadline": string (supporting statement that builds on the headline),
-  "cta": string (compelling call-to-action),
-  "audience": string (precise audience description),
-  "channels": string[] (3-5 recommended channels),
-  "budget": string (budget recommendation with reasoning),
+  "headline": string (título impactante e focado em benefício, em PT-BR),
+  "subheadline": string (declaração de apoio ao título, em PT-BR),
+  "cta": string (chamada para ação convincente, em PT-BR),
+  "audience": string (descrição precisa do público-alvo, em PT-BR),
+  "channels": string[] (3-5 canais recomendados, em PT-BR),
+  "budget": string (recomendação de orçamento com justificativa, em PT-BR),
   "copy": {
-    "facebook": string (Facebook ad copy, 2-3 sentences),
-    "instagram": string (Instagram caption with hooks),
-    "google": string (Google ad headline + description),
-    "email": string (email subject + preview text + body opening),
-    "tiktok": string (TikTok hook + script direction)
+    "facebook": string (copy para anúncio no Facebook, 2-3 frases em PT-BR),
+    "instagram": string (legenda para Instagram com gancho, em PT-BR),
+    "google": string (título + descrição para Google Ads, em PT-BR),
+    "email": string (assunto + pré-texto + abertura do e-mail, em PT-BR),
+    "tiktok": string (gancho + direção de roteiro para TikTok, em PT-BR)
   },
-  "keyMessages": string[] (3 core messages to hammer throughout),
-  "launchTimeline": string (recommended launch sequence),
-  "uniqueAngle": string (the unique positioning angle),
-  "objectionHandling": string (how to handle the #1 objection)
+  "keyMessages": string[] (3 mensagens principais da campanha, em PT-BR),
+  "launchTimeline": string (sequência de lançamento recomendada, em PT-BR),
+  "uniqueAngle": string (o ângulo de posicionamento único, em PT-BR),
+  "objectionHandling": string (como lidar com a principal objeção, em PT-BR)
 }
 
-Every piece of copy must be punchy, conversion-focused, and psychologically compelling. No generic marketing speak.`;
+Todo o copy deve ser direto, focado em conversão e psicologicamente persuasivo. Sem linguagem genérica de marketing.`;
 
-  const userPrompt = `Create a full marketing campaign for:
-Product/Brand: "${params.product}"
-${params.audience ? `Target audience: ${params.audience}` : ""}
-${params.goal ? `Campaign goal: ${params.goal}` : "Drive sales"}
-${params.platforms?.length ? `Preferred platforms: ${params.platforms.join(", ")}` : ""}
-${params.budget ? `Budget: ${params.budget}` : ""}
+  const userPrompt = `Crie uma campanha de marketing completa para:
+Produto/Marca: "${params.product}"
+${params.audience ? `Público-alvo: ${params.audience}` : ""}
+${params.goal ? `Objetivo da campanha: ${params.goal}` : "Gerar vendas"}
+${params.platforms?.length ? `Plataformas preferidas: ${params.platforms.join(", ")}` : ""}
+${params.budget ? `Orçamento: ${params.budget}` : ""}
 
-Create a complete, high-converting campaign with platform-specific copy that feels tailored, not templated.`;
+Crie uma campanha completa e de alta conversão com copy específico para cada plataforma, integralmente em português brasileiro.`;
 
   let fullResponse = "";
 

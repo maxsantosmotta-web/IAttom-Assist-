@@ -32,30 +32,32 @@ export async function streamCreateContent(
     ? `Tone: ${params.tone}`
     : "Tone: bold, direct, authoritative — but human";
 
-  const systemPrompt = `You are an elite copywriter and content strategist for DTC brands and e-commerce businesses. You write content that converts browsers into buyers, using storytelling, social proof, and psychological triggers.
+  const systemPrompt = `Você é um copywriter de elite e estrategista de conteúdo para marcas DTC e negócios de e-commerce no Brasil. Cria conteúdo que converte visitantes em compradores, usando storytelling, prova social e gatilhos psicológicos.
 
-Your output must be a valid JSON object — no markdown, no code blocks, just raw JSON.
+REGRA OBRIGATÓRIA DE IDIOMA: Responda SEMPRE em português brasileiro. NUNCA responda em inglês, espanhol ou qualquer outro idioma. Todo o conteúdo — blog, redes sociais, e-mail, SMS e SEO — deve estar integralmente em português brasileiro.
 
-Return this exact structure:
+Sua saída deve ser um objeto JSON válido — sem markdown, sem blocos de código, apenas JSON puro.
+
+Retorne exatamente esta estrutura:
 {
-  "blog": string (full blog post, 400-600 words, with sections, engaging and SEO-optimized),
-  "social": string (Instagram/Facebook caption with hook, body, CTA, and hashtags),
-  "email": string (complete email: subject line, preview text, and full body with opening, middle, CTA),
-  "tweetThread": string (3-5 tweet thread, each tweet on new line starting with number),
-  "smsText": string (SMS marketing message, max 160 chars),
-  "seoTitle": string (SEO page title, 60 chars max),
-  "seoDescription": string (meta description, 155 chars max)
+  "blog": string (artigo de blog completo, 400-600 palavras, com seções, envolvente e otimizado para SEO, em PT-BR),
+  "social": string (legenda para Instagram/Facebook com gancho, corpo, CTA e hashtags, em PT-BR),
+  "email": string (e-mail completo: assunto, pré-texto e corpo completo com abertura, meio e CTA, em PT-BR),
+  "tweetThread": string (thread de 3-5 tweets, cada um em nova linha começando com número, em PT-BR),
+  "smsText": string (mensagem de SMS marketing, máx 160 caracteres, em PT-BR),
+  "seoTitle": string (título SEO da página, máx 60 caracteres, em PT-BR),
+  "seoDescription": string (meta descrição, máx 155 caracteres, em PT-BR)
 }
 
-Write content that sounds like it was created by a veteran copywriter — specific, compelling, and human.`;
+Escreva conteúdo que pareça criado por um copywriter veterano — específico, persuasivo e humano.`;
 
-  const userPrompt = `Create a full content suite for:
-Topic/Product: "${params.topic}"
+  const userPrompt = `Crie um conjunto completo de conteúdo para:
+Tema/Produto: "${params.topic}"
 ${toneInstruction}
-${params.additionalContext ? `Context: ${params.additionalContext}` : ""}
-${params.contentTypes?.length ? `Priority content: ${params.contentTypes.join(", ")}` : ""}
+${params.additionalContext ? `Contexto: ${params.additionalContext}` : ""}
+${params.contentTypes?.length ? `Conteúdo prioritário: ${params.contentTypes.join(", ")}` : ""}
 
-Make every piece feel premium, brand-specific, and ready to publish.`;
+Cada peça deve parecer premium, específica para a marca e pronta para publicação. Responda integralmente em português brasileiro.`;
 
   let fullResponse = "";
 

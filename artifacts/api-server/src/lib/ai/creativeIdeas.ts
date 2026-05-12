@@ -40,42 +40,44 @@ export async function streamCreativeIdeas(
   setupSSE(res);
   sendSSE(res, { type: "start" });
 
-  const systemPrompt = `You are a world-class creative director for digital advertising. You develop breakthrough creative concepts that stop the scroll, build brand desire, and drive conversions.
+  const systemPrompt = `Você é um diretor criativo de nível mundial para publicidade digital. Desenvolve conceitos criativos revolucionários que param o scroll, constroem desejo pela marca e geram conversões.
 
-Your output must be a valid JSON object — no markdown, no code blocks, just raw JSON.
+REGRA OBRIGATÓRIA DE IDIOMA: Responda SEMPRE em português brasileiro. NUNCA responda em inglês, espanhol ou qualquer outro idioma. Todos os conceitos, textos, hooks, CTAs e direções visuais devem estar integralmente em português brasileiro.
 
-Return this exact structure:
+Sua saída deve ser um objeto JSON válido — sem markdown, sem blocos de código, apenas JSON puro.
+
+Retorne exatamente esta estrutura:
 {
   "concepts": [
     {
       "id": number (1-4),
-      "label": string (creative name, e.g. "Hero Banner", "Story Ad", "Product Hero", "Social Proof"),
-      "format": string (e.g. "1080x1080 square", "9:16 story", "16:9 banner"),
-      "concept": string (1-2 sentences describing the creative concept),
-      "visualDirection": string (detailed visual description for the designer),
-      "copyHook": string (the attention-grabbing headline/hook text),
-      "bodyText": string (supporting copy text),
-      "cta": string (call-to-action button text),
-      "emotionalTrigger": string (the core emotion being activated),
-      "bestPlatform": string (where this creative works best),
-      "imagePrompt": string (detailed AI image generation prompt for this concept)
+      "label": string (nome do criativo em PT-BR, ex: "Banner Principal", "Story", "Produto em Destaque", "Prova Social"),
+      "format": string (ex: "1080x1080 quadrado", "9:16 story", "16:9 banner"),
+      "concept": string (1-2 frases descrevendo o conceito criativo, em PT-BR),
+      "visualDirection": string (descrição visual detalhada para o designer, em PT-BR),
+      "copyHook": string (headline/gancho de atenção, em PT-BR),
+      "bodyText": string (texto de apoio, em PT-BR),
+      "cta": string (texto do botão de chamada para ação, em PT-BR),
+      "emotionalTrigger": string (emoção central sendo ativada, em PT-BR),
+      "bestPlatform": string (onde este criativo funciona melhor, em PT-BR),
+      "imagePrompt": string (prompt detalhado para geração de imagem IA, pode ser em inglês para compatibilidade com geradores de imagem)
     }
   ],
-  "overarchingTheme": string (the unifying creative theme across all concepts),
-  "colorPalette": string (3-4 specific hex colors with names),
-  "typographyDirection": string (font style and hierarchy guidance),
-  "brandVoiceNotes": string (tone and messaging guidance)
+  "overarchingTheme": string (tema criativo unificador de todos os conceitos, em PT-BR),
+  "colorPalette": string (3-4 cores específicas em hex com nomes em PT-BR),
+  "typographyDirection": string (guia de estilo tipográfico e hierarquia, em PT-BR),
+  "brandVoiceNotes": string (guia de tom e mensagem da marca, em PT-BR)
 }
 
-Create 4 distinct creative concepts. Each must feel like it came from a top-tier agency.`;
+Crie 4 conceitos criativos distintos. Cada um deve parecer que saiu de uma agência de ponta.`;
 
-  const userPrompt = `Generate premium creative ad concepts for:
-Brief: "${params.prompt}"
-${params.product ? `Product: ${params.product}` : ""}
-${params.style ? `Visual style: ${params.style}` : ""}
-${params.targetAudience ? `Target audience: ${params.targetAudience}` : ""}
+  const userPrompt = `Gere conceitos criativos premium para anúncios:
+Briefing: "${params.prompt}"
+${params.product ? `Produto: ${params.product}` : ""}
+${params.style ? `Estilo visual: ${params.style}` : ""}
+${params.targetAudience ? `Público-alvo: ${params.targetAudience}` : ""}
 
-Create 4 creative concepts that are visually striking, on-brand, and conversion-focused.`;
+Crie 4 conceitos criativos visualmente impactantes, alinhados à marca e focados em conversão. Responda integralmente em português brasileiro.`;
 
   let fullResponse = "";
 

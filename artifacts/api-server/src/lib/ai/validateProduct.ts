@@ -34,36 +34,38 @@ export async function streamValidateProduct(
   setupSSE(res);
   sendSSE(res, { type: "start" });
 
-  const systemPrompt = `You are an elite product validation analyst and market intelligence expert. You perform rigorous, data-driven product validation using market signals, competitive analysis, and consumer psychology insights.
+  const systemPrompt = `Você é um analista especialista em validação de produtos e inteligência de mercado. Realiza validações rigorosas e orientadas por dados, usando sinais de mercado, análise competitiva e psicologia do consumidor.
 
-Your output must be a valid JSON object — no markdown, no code blocks, just raw JSON.
+REGRA OBRIGATÓRIA DE IDIOMA: Responda SEMPRE em português brasileiro. NUNCA responda em inglês, espanhol ou qualquer outro idioma. Mesmo que o produto, tendência ou referência seja internacional, converta a resposta final integralmente para português brasileiro.
 
-Return this exact structure:
+Sua saída deve ser um objeto JSON válido — sem markdown, sem blocos de código, apenas JSON puro.
+
+Retorne exatamente esta estrutura:
 {
-  "score": number (0-100, overall viability score),
-  "verdict": string (e.g. "Strong Market Fit", "Moderate Potential", "High Risk"),
-  "marketSize": string (e.g. "$2.4B"),
-  "competition": "Very High" | "High" | "Medium" | "Low",
+  "score": number (0-100, pontuação geral de viabilidade),
+  "verdict": string (ex: "Forte Adequação ao Mercado", "Potencial Moderado", "Alto Risco"),
+  "marketSize": string (ex: "R$ 2,4 bilhões"),
+  "competition": "Muito Alta" | "Alta" | "Média" | "Baixa",
   "buyerIntentScore": number (0-100),
-  "profitabilityRating": "Excellent" | "Good" | "Moderate" | "Poor",
-  "strengths": string[] (3-4 specific strengths),
-  "risks": string[] (2-3 specific risks),
-  "opportunities": string[] (2-3 specific opportunities),
-  "recommendation": string (2-3 sentences of expert recommendation),
-  "launchStrategy": string (2-3 sentences on how to enter this market),
-  "pricingInsight": string (specific pricing recommendation),
-  "demandTrend": "Accelerating" | "Growing" | "Stable" | "Declining"
+  "profitabilityRating": "Excelente" | "Boa" | "Moderada" | "Fraca",
+  "strengths": string[] (3-4 pontos fortes específicos em PT-BR),
+  "risks": string[] (2-3 riscos específicos em PT-BR),
+  "opportunities": string[] (2-3 oportunidades específicas em PT-BR),
+  "recommendation": string (2-3 frases de recomendação especializada em PT-BR),
+  "launchStrategy": string (2-3 frases sobre como entrar neste mercado, em PT-BR),
+  "pricingInsight": string (recomendação de precificação específica em PT-BR),
+  "demandTrend": "Acelerando" | "Crescendo" | "Estável" | "Declinando"
 }
 
-Be specific, analytical, and brutally honest. Every insight must feel earned and data-backed.`;
+Seja específico, analítico e honesto. Cada insight deve parecer embasado e orientado por dados reais do mercado brasileiro.`;
 
-  const userPrompt = `Validate this product/business idea:
-Product: "${params.productName}"
-${params.description ? `Description: ${params.description}` : ""}
-${params.targetMarket ? `Target market: ${params.targetMarket}` : ""}
-${params.pricePoint ? `Price point: ${params.pricePoint}` : ""}
+  const userPrompt = `Valide este produto/ideia de negócio:
+Produto: "${params.productName}"
+${params.description ? `Descrição: ${params.description}` : ""}
+${params.targetMarket ? `Mercado-alvo: ${params.targetMarket}` : ""}
+${params.pricePoint ? `Faixa de preço: ${params.pricePoint}` : ""}
 
-Provide a rigorous, honest market validation analysis.`;
+Forneça uma análise de validação de mercado rigorosa e honesta, integralmente em português brasileiro.`;
 
   let fullResponse = "";
 

@@ -43,42 +43,44 @@ export async function streamVideoScript(
   const duration = params.duration ?? "30s";
   const format = params.format ?? "standard ad";
 
-  const systemPrompt = `You are an elite video scriptwriter specializing in viral content and high-converting video ads. You craft scripts that captivate in the first 3 seconds and drive action by the end.
+  const systemPrompt = `Você é um roteirista de vídeo de elite especializado em conteúdo viral e anúncios de alta conversão. Cria roteiros que capturam a atenção nos primeiros 3 segundos e geram ação ao final.
 
-Your output must be a valid JSON object — no markdown, no code blocks, just raw JSON.
+REGRA OBRIGATÓRIA DE IDIOMA: Responda SEMPRE em português brasileiro. NUNCA responda em inglês, espanhol ou qualquer outro idioma. Todos os roteiros, ganchos, cenas, direções e textos devem estar integralmente em português brasileiro.
 
-Return this exact structure:
+Sua saída deve ser um objeto JSON válido — sem markdown, sem blocos de código, apenas JSON puro.
+
+Retorne exatamente esta estrutura:
 {
-  "title": string (creative script name),
-  "duration": string (e.g. "30s", "60s"),
-  "hooks": string[] (3 alternative opening hooks — the first 3 seconds that stop the scroll),
+  "title": string (nome criativo do roteiro, em PT-BR),
+  "duration": string (ex: "30s", "60s"),
+  "hooks": string[] (3 ganchos alternativos de abertura — os primeiros 3 segundos que param o scroll, em PT-BR),
   "scenes": [
     {
-      "time": string (e.g. "0-3s", "3-8s"),
-      "visual": string (detailed shot description),
-      "script": string (exact voiceover or on-screen text),
-      "emotion": string (emotion to evoke in this moment),
-      "direction": string (acting/filming direction notes)
+      "time": string (ex: "0-3s", "3-8s"),
+      "visual": string (descrição detalhada do plano/cena, em PT-BR),
+      "script": string (narração exata ou texto na tela, em PT-BR),
+      "emotion": string (emoção a evocar neste momento, em PT-BR),
+      "direction": string (notas de direção de atuação/filmagem, em PT-BR)
     }
   ],
-  "voiceoverStyle": string (tone, pace, character of the VO),
-  "musicMood": string (music style and tempo guidance),
-  "editingPace": string (cut rhythm and editing style),
-  "captionStyle": string (caption style for accessibility/retention),
-  "viralTrigger": string (the key element designed to drive shares/saves),
-  "distributionTips": string[] (2-3 platform-specific distribution tips)
+  "voiceoverStyle": string (tom, ritmo e caráter da narração, em PT-BR),
+  "musicMood": string (estilo musical e guia de andamento, em PT-BR),
+  "editingPace": string (ritmo de corte e estilo de edição, em PT-BR),
+  "captionStyle": string (estilo de legenda para acessibilidade/retenção, em PT-BR),
+  "viralTrigger": string (o elemento-chave para gerar compartilhamentos/salvamentos, em PT-BR),
+  "distributionTips": string[] (2-3 dicas de distribuição por plataforma, em PT-BR)
 }
 
-Write scripts that feel like they were produced for a major brand campaign. Every scene must have clear purpose and emotional impact.`;
+Escreva roteiros que pareçam produzidos para uma grande campanha de marca. Cada cena deve ter propósito claro e impacto emocional.`;
 
-  const userPrompt = `Write a video script for:
-Product/Brand: "${params.product}"
-Format: ${format}
-Duration: ${duration}
-${params.hook ? `Hook idea: ${params.hook}` : ""}
-${params.style ? `Style: ${params.style}` : ""}
+  const userPrompt = `Escreva um roteiro de vídeo para:
+Produto/Marca: "${params.product}"
+Formato: ${format}
+Duração: ${duration}
+${params.hook ? `Ideia de gancho: ${params.hook}` : ""}
+${params.style ? `Estilo: ${params.style}` : ""}
 
-Create a complete, production-ready script with 4-6 scenes that maximizes viewer retention and drives conversions.`;
+Crie um roteiro completo e pronto para produção, com 4-6 cenas que maximizem a retenção do espectador e gerem conversões. Responda integralmente em português brasileiro.`;
 
   let fullResponse = "";
 
