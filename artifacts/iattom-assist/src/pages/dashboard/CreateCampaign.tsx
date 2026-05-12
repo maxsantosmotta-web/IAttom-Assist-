@@ -93,11 +93,23 @@ export function CreateCampaign() {
                   className="w-full h-9 rounded-md border border-white/10 bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0"
                 >
                   <option value="" disabled>Selecionar objetivo</option>
-                  <option value="Drive sales">Gerar Vendas</option>
-                  <option value="Brand Awareness">Reconhecimento de Marca</option>
-                  <option value="Lead Generation">Geração de Leads</option>
-                  <option value="Website Traffic">Tráfego para o Site</option>
-                  <option value="App Installs">Instalações de App</option>
+                  <option value="Vender na Shopee">Vender na Shopee</option>
+                  <option value="Vender no Mercado Livre">Vender no Mercado Livre</option>
+                  <option value="Vender na Hotmart">Vender na Hotmart</option>
+                  <option value="Vender na Kiwify">Vender na Kiwify</option>
+                  <option value="Vender pelo WhatsApp">Vender pelo WhatsApp</option>
+                  <option value="Vender pelo Instagram">Vender pelo Instagram</option>
+                  <option value="Viralizar no Instagram">Viralizar no Instagram</option>
+                  <option value="Viralizar no TikTok">Viralizar no TikTok</option>
+                  <option value="Gerar Leads">Gerar Leads</option>
+                  <option value="Captar Afiliados">Captar Afiliados</option>
+                  <option value="Lançar Produto Novo">Lançar Produto Novo</option>
+                  <option value="Escalar Produto Vencedor">Escalar Produto Vencedor</option>
+                  <option value="Recuperar Produto Fraco">Recuperar Produto Fraco</option>
+                  <option value="Criar Autoridade">Criar Autoridade</option>
+                  <option value="Reconhecimento de Marca">Reconhecimento de Marca</option>
+                  <option value="Tráfego para Site">Tráfego para Site</option>
+                  <option value="Instalações de App">Instalações de App</option>
                 </select>
               </div>
             </div>
