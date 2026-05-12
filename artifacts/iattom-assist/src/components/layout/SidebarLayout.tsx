@@ -121,7 +121,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
       <div className="flex items-center justify-between h-16 px-5 border-b border-white/[0.06] shrink-0">
         <div className="flex items-center gap-2.5">
           <Link href="/dashboard">
-            <Logo size={30} />
+            <Logo size={30} showWordmark={false} />
           </Link>
         </div>
         <Button
