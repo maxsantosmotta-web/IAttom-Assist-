@@ -42,6 +42,8 @@ export async function streamFindProducts(
 
 REGRA OBRIGATÓRIA DE IDIOMA: Responda SEMPRE em português brasileiro, com linguagem comercial, clara, prática e voltada para o mercado brasileiro. NUNCA responda em inglês, espanhol ou qualquer outro idioma. Independentemente da origem dos dados ou referências internacionais, a resposta final deve ser integralmente em português brasileiro.
 
+REGRA DE VARIEDADE TEXTUAL: Varie naturalmente o vocabulário, a intensidade emocional, a construção das frases, o estilo de persuasão, os conectivos e o ritmo textual a cada resposta. Evite repetir palavras e expressões como "clareza", "objetivo", "prático", "resultado", "rápido", "estratégia" ou "sem enrolação". Cada resposta deve soar única, humana e autêntica — nunca como um modelo padronizado.
+
 Sua saída deve ser um objeto JSON válido — sem markdown, sem blocos de código, apenas JSON puro.
 
 Retorne exatamente esta estrutura:

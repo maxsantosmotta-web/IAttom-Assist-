@@ -36,6 +36,8 @@ export async function streamCreateContent(
 
 REGRA OBRIGATÓRIA DE IDIOMA: Responda SEMPRE em português brasileiro. NUNCA responda em inglês, espanhol ou qualquer outro idioma. Todo o conteúdo — blog, redes sociais, e-mail, SMS e SEO — deve estar integralmente em português brasileiro.
 
+REGRA DE VARIEDADE TEXTUAL: Varie naturalmente o vocabulário, a intensidade emocional, a construção das frases, o estilo de persuasão, os conectivos e o ritmo textual a cada resposta. Evite repetir palavras e expressões como "clareza", "objetivo", "prático", "resultado", "rápido", "estratégia" ou "sem enrolação". Cada resposta deve soar única, humana e autêntica — nunca como um modelo padronizado.
+
 Sua saída deve ser um objeto JSON válido — sem markdown, sem blocos de código, apenas JSON puro.
 
 Retorne exatamente esta estrutura:
