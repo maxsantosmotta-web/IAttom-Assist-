@@ -362,7 +362,9 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
             >
               <Menu className="w-4.5 h-4.5" />
             </Button>
-            <h1 className="text-[13px] font-semibold text-zinc-400 tracking-wide">{currentPage}</h1>
+            {location !== "/dashboard/billing" && (
+              <h1 className="text-[13px] font-semibold text-zinc-400 tracking-wide">{currentPage}</h1>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {/* Cmd+K shortcut hint (desktop) */}

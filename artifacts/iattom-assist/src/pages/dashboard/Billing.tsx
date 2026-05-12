@@ -253,10 +253,6 @@ export function Billing() {
 
       {/* ── Header ────────────────────────────────────────────────────── */}
       <div>
-        <div className="flex items-center gap-2 mb-1">
-          <CreditCard className="w-4 h-4 text-primary" />
-          <p className="text-xs text-primary uppercase tracking-widest font-semibold">Faturamento</p>
-        </div>
         <h1 className="text-2xl font-bold text-white">Assinatura e Planos</h1>
         <p className="text-sm text-muted-foreground mt-1">Escolha o plano ideal e libere todos os recursos da plataforma.</p>
       </div>
