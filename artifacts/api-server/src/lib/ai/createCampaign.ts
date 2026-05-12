@@ -6,6 +6,7 @@ interface CreateCampaignInput {
   product: string;
   audience?: string;
   goal?: string;
+  mode?: string;
   platforms?: string[];
   budget?: string;
 }
@@ -47,6 +48,18 @@ REGRA DE VARIEDADE TEXTUAL: Varie naturalmente o vocabulário, a intensidade emo
 
 REGRA DE OBJETIVIDADE: Seja direto e escaneável. Comece com o ponto mais relevante. Use blocos curtos, ações concretas e linguagem direta. Evite explicações longas, redundâncias e texto que não ajuda o usuário a executar. Mantenha a qualidade estratégica, mas elimine o excesso — menos é mais quando o conteúdo é denso e acionável.
 
+REGRA DE MODO DE CAMPANHA: Quando um modo for informado, adapte TODA a campanha — orçamento, canais, intensidade do copy, cronograma e profundidade — conforme a definição abaixo. Se nenhum modo for informado, use o modo "Conversão" como padrão.
+
+Modos disponíveis e suas regras obrigatórias:
+- Iniciante: tom acolhedor e educativo, orçamento R$300–R$800/mês, canais simples (Instagram + WhatsApp), copy direto sem jargões, cronograma de 30 dias com passos pequenos, foco em primeiras vendas.
+- Orgânico: zero ou quase zero tráfego pago, foco em conteúdo, creators, SEO e comunidade, copy conversacional e autêntico, cronograma de 60–90 dias, canais orgânicos como Reels, blog, TikTok sem ads.
+- Baixo orçamento: máximo R$500–R$1.500/mês, campanhas enxutas, 1–2 canais apenas, copy simples e direto, sem remarketing complexo, prioridade para canal com melhor custo por resultado.
+- Conversão: foco em venda imediata, copy com urgência e prova social, orçamento R$1.500–R$5.000/mês, funil direto (tráfego → landing page → venda), canais de alta intenção.
+- Viral: foco em UGC, retenção nos primeiros 3 segundos, creators e compartilhamento, copy com gatilho de curiosidade, sem necessidade de grande orçamento, canais: TikTok, Reels, YouTube Shorts.
+- Agressivo: copy de alta pressão com urgência real, remarketing forte, múltiplos canais em paralelo, orçamento R$5.000–R$15.000/mês, testes A/B constantes, cronograma acelerado de 15–30 dias.
+- Premium: posicionamento de marca de alto valor, copy sofisticado sem promoções de preço, canais selecionados (Instagram, Google, e-mail), orçamento flexível mas justificado, foco em percepção de valor e exclusividade.
+- Escala: produto já validado, expansão de público e remarketing pesado, múltiplos canais e audiências lookalike, orçamento acima de R$10.000/mês, copy testado e adaptado por segmento, cronograma de expansão em fases.
+
 REGRA DE COMPATIBILIDADE PRODUTO × PLATAFORMA: Antes de gerar a campanha, analise o nome do produto e o objetivo para inferir o tipo de produto (físico ou digital) e verifique a compatibilidade com a plataforma do objetivo. Use estas regras:
 - Shopee e Mercado Livre → plataformas para produtos FÍSICOS. Produtos digitais (cursos, ebooks, templates, mentorias, SaaS, infoprodutos) são incompatíveis.
 - Hotmart e Kiwify → plataformas para produtos DIGITAIS. Produtos físicos (roupas, eletrônicos, utensílios, cosméticos, alimentos) são incompatíveis.
@@ -86,10 +99,11 @@ Todo o copy deve ser direto, focado em conversão e psicologicamente persuasivo.
 Produto/Marca: "${params.product}"
 ${params.audience ? `Público-alvo: ${params.audience}` : ""}
 ${params.goal ? `Objetivo da campanha: ${params.goal}` : "Gerar vendas"}
+${params.mode ? `Modo da campanha: ${params.mode}` : "Modo da campanha: Conversão"}
 ${params.platforms?.length ? `Plataformas preferidas: ${params.platforms.join(", ")}` : ""}
 ${params.budget ? `Orçamento: ${params.budget}` : ""}
 
-Crie uma campanha completa e de alta conversão com copy específico para cada plataforma, integralmente em português brasileiro.`;
+Adapte toda a estrutura da campanha ao modo informado. Crie copy específico para cada plataforma, integralmente em português brasileiro.`;
 
   let fullResponse = "";
 

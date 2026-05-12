@@ -48,6 +48,7 @@ export function CreateCampaign() {
   const [product, setProduct] = useState("");
   const [audience, setAudience] = useState("");
   const [goal, setGoal] = useState("");
+  const [mode, setMode] = useState("");
   const { status, result, error, generate, reset } = useAiStream<CampaignResult>();
   const { toast } = useToast();
 
@@ -56,7 +57,7 @@ export function CreateCampaign() {
   const isError = status === "error";
 
   const runGenerate = (charge: () => void) => {
-    generate("/api/ai/create-campaign", { product, audience: audience || undefined, goal: goal || undefined }).then((res) => {
+    generate("/api/ai/create-campaign", { product, audience: audience || undefined, goal: goal || undefined, mode: mode || undefined }).then((res) => {
       if (res !== null) charge();
     });
   };
@@ -110,6 +111,26 @@ export function CreateCampaign() {
                   <option value="Reconhecimento de Marca">Reconhecimento de Marca</option>
                   <option value="Tráfego para Site">Tráfego para Site</option>
                   <option value="Instalações de App">Instalações de App</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-sm text-muted-foreground">Modo da Campanha</Label>
+                <select
+                  value={mode}
+                  onChange={(e) => setMode(e.target.value)}
+                  className="w-full h-9 rounded-md border border-white/10 bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0"
+                >
+                  <option value="">Padrão (Conversão)</option>
+                  <option value="Iniciante">Iniciante — primeiras vendas, orçamento baixo</option>
+                  <option value="Orgânico">Orgânico — sem tráfego pago, conteúdo e creators</option>
+                  <option value="Baixo orçamento">Baixo orçamento — máx. R$1.500/mês, enxuto</option>
+                  <option value="Conversão">Conversão — venda imediata, funil direto</option>
+                  <option value="Viral">Viral — UGC, retenção, compartilhamento</option>
+                  <option value="Agressivo">Agressivo — alta pressão, remarketing, A/B</option>
+                  <option value="Premium">Premium — posicionamento de alto valor</option>
+                  <option value="Escala">Escala — expansão de produto já validado</option>
                 </select>
               </div>
             </div>
