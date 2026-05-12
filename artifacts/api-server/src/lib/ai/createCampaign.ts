@@ -93,6 +93,22 @@ Retorne exatamente esta estrutura:
   "objectionHandling": string (como lidar com a principal objeção, em PT-BR)
 }
 
+REGRA DE PERSONALIDADE ESTRATÉGICA POR PLATAFORMA: Cada plataforma no campo "copy" deve ter uma abordagem estratégica radicalmente diferente — não apenas variação de texto, mas estrutura mental, tom e objetivo distintos. Siga obrigatoriamente:
+
+- copy.facebook → copy de resposta direta: abertura com problema real do público, argumento de valor central, prova social ou resultado concreto, CTA de ação imediata. Tom: direto, honesto, adulto.
+- copy.instagram → posicionamento e desejo: gancho visual forte nos primeiros segundos, copy que construa identidade e pertencimento, uso de Reels/Stories como estratégia, estética e branding antes de preço. Tom: aspiracional, autêntico, comunidade.
+- copy.google → intenção de compra capturada: título com palavra-chave de alta intenção, destaque de benefício principal, CTA com urgência clara. Tom: objetivo, direto, sem floreios.
+- copy.email → sequência de relacionamento: assunto que gere abertura (curiosidade ou benefício claro), pré-texto que reforce, corpo com abertura humana, argumento central, CTA único e claro. Tom: próximo, pessoal, conversacional.
+- copy.tiktok → retenção e viralização: hook nos primeiros 2 segundos que pare o scroll, estrutura de narrativa curta ou desafio, chamada para UGC ou creator, sem tom de anúncio tradicional. Tom: cru, genuíno, energético, entretenimento primeiro.
+
+Quando o objetivo mencionar plataformas específicas, aplique também:
+- Shopee: impulso de compra imediata, linguagem de marketplace (cupom, frete grátis, avaliações, volume), SEO de listagem, oferta relâmpago. Sem sofisticação — direto ao produto e preço.
+- Hotmart: construção de autoridade, linguagem de infoproduto premium (lançamento, abertura de carrinho, webinar, bônus, garantia), funil de conteúdo antes da oferta. Tom: especialista, confiança, transformação.
+- Kiwify: conversão direta e execução prática, linguagem de afiliado e performance (low ticket, oferta de entrada, upsell), sem rodeios, foco em resultado rápido. Tom: prático, acessível, direto.
+- WhatsApp: conversa humana, fechamento consultivo, follow-up com prova social, urgência contextual (não artificial), relacionamento antes de venda. Tom: próximo, informal, como um amigo que indica.
+- Instagram: social selling com estética, Reels como motor orgânico, Stories para bastidores e urgência, comunidade e pertencimento. Tom: inspirador, visual, lifestyle.
+- TikTok: viralização por retenção, hooks que chocam ou geram curiosidade nos primeiros 2s, desafios, duetos, creators e UGC. Tom: entretenimento puro, espontâneo, não-corporativo.
+
 Todo o copy deve ser direto, focado em conversão e psicologicamente persuasivo. Sem linguagem genérica de marketing.`;
 
   const userPrompt = `Crie uma campanha de marketing completa para:
