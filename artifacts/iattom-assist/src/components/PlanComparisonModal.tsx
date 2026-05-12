@@ -186,13 +186,13 @@ export function PlanComparisonModal({ open, onClose, highlightPlan = "pro" }: Pl
                         }`}
                       >
                         {isHighlight && key === "pro" && (
-                          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#C9A84C]/55 to-transparent rounded-t-xl" />
+                          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent rounded-t-xl" />
                         )}
 
                         {isHighlight && !isCurrent && (
                           <div className="absolute -top-px left-1/2 -translate-x-1/2">
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-3 py-0.5 rounded-b-md bg-[#C9A84C] text-black">
-                              <Star className="w-2.5 h-2.5 fill-black" />
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-3 py-0.5 rounded-b-md bg-emerald-600 text-white">
+                              <Star className="w-2.5 h-2.5 fill-white" />
                               MAIS ESCOLHIDO
                             </span>
                           </div>
@@ -209,7 +209,7 @@ export function PlanComparisonModal({ open, onClose, highlightPlan = "pro" }: Pl
                         <div className="flex items-center gap-2 mb-1 mt-1">
                           <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${
                             key === "free"     ? "bg-blue-500/12 border border-blue-400/20" :
-                            key === "pro"      ? "bg-[#C9A84C]/12 border border-[#C9A84C]/25" :
+                            key === "pro"      ? "bg-emerald-500/10 border border-emerald-500/25" :
                             key === "business" ? "bg-violet-500/12 border border-violet-500/20" :
                                                 "bg-[#C9A84C]/10 border border-[#C9A84C]/20"
                           }`}>

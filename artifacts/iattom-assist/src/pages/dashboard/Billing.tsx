@@ -427,8 +427,8 @@ export function Billing() {
                   )}
                   {isPopular && !isCurrent && (
                     <div className="absolute -top-px left-1/2 -translate-x-1/2">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-3 py-0.5 rounded-b-md bg-[#C9A84C] text-black">
-                        <Star className="w-2.5 h-2.5 fill-black" />
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-3 py-0.5 rounded-b-md bg-emerald-600 text-white">
+                        <Star className="w-2.5 h-2.5 fill-white" />
                         MAIS ESCOLHIDO
                       </span>
                     </div>
@@ -438,7 +438,7 @@ export function Billing() {
                   <div className="mb-3 mt-1 flex items-center gap-2">
                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
                       planKey === "free"     ? "bg-blue-500/12 border border-blue-400/20" :
-                      planKey === "pro"      ? "bg-[#C9A84C]/12 border border-[#C9A84C]/25" :
+                      planKey === "pro"      ? "bg-emerald-500/10 border border-emerald-500/25" :
                       planKey === "business" ? "bg-violet-500/12 border border-violet-500/20" :
                                               "bg-[#C9A84C]/10 border border-[#C9A84C]/20"
                     }`}>
