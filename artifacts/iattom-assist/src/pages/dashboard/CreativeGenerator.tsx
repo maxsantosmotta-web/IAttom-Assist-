@@ -36,9 +36,17 @@ function ConceptCard({ concept, index }: { concept: CreativeConcept; index: numb
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.08 }}>
       <Card className="bg-[#111111] border-white/5 hover:border-primary/20 transition-colors overflow-hidden">
-        <div className={`h-24 bg-gradient-to-br ${gradients[index % gradients.length]} flex items-center justify-center`}>
-          <FormatIcon className="w-8 h-8 text-white/20" />
-        </div>
+        {concept.imageBase64 ? (
+          <img
+            src={`data:image/png;base64,${concept.imageBase64}`}
+            alt={concept.label}
+            className="h-48 w-full object-cover"
+          />
+        ) : (
+          <div className={`h-24 bg-gradient-to-br ${gradients[index % gradients.length]} flex items-center justify-center`}>
+            <FormatIcon className="w-8 h-8 text-white/20" />
+          </div>
+        )}
         <CardContent className="p-4 space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div>

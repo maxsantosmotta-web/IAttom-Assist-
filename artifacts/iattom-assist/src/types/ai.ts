@@ -76,6 +76,7 @@ export interface CreativeConcept {
   emotionalTrigger: string;
   bestPlatform: string;
   imagePrompt: string;
+  imageBase64?: string;
 }
 
 export interface CreativeIdeasResult {

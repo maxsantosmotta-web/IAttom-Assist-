@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import { openai } from "@workspace/integrations-openai-ai-server";
+import { generateImageBuffer } from "@workspace/integrations-openai-ai-server/image";
 import { setupSSE, sendSSE, sendSSEError, sendSSEDone } from "./stream.js";
 
 interface CreativeIdeasInput {
@@ -22,6 +23,7 @@ export interface CreativeConcept {
   emotionalTrigger: string;
   bestPlatform: string;
   imagePrompt: string;
+  imageBase64?: string;
 }
 
 export interface CreativeIdeasResult {
@@ -105,8 +107,41 @@ Crie 4 conceitos criativos visualmente impactantes, alinhados à marca e focados
       }
     }
 
-    const result: CreativeIdeasResult = JSON.parse(fullResponse);
-    sendSSE(res, { type: "result", data: result });
+    const textResult: CreativeIdeasResult = JSON.parse(fullResponse);
+
+    const imageResults = await Promise.allSettled(
+      textResult.concepts.map((concept) =>
+        generateImageBuffer(concept.imagePrompt, "1024x1024"),
+      ),
+    );
+
+    const hasAtLeastOneImage = imageResults.some((r) => r.status === "fulfilled");
+
+    if (!hasAtLeastOneImage) {
+      sendSSEError(
+        res,
+        "Não foi possível gerar as imagens. Nenhum crédito foi descontado.",
+      );
+      return;
+    }
+
+    const conceptsWithImages = textResult.concepts.map((concept, i) => {
+      const imgResult = imageResults[i];
+      return {
+        ...concept,
+        imageBase64:
+          imgResult.status === "fulfilled"
+            ? imgResult.value.toString("base64")
+            : undefined,
+      };
+    });
+
+    const finalResult: CreativeIdeasResult = {
+      ...textResult,
+      concepts: conceptsWithImages,
+    };
+
+    sendSSE(res, { type: "result", data: finalResult });
     await logAiUsage({ clerkUserId, action: `Criativos gerados: ${params.prompt.slice(0, 50)}`, module: "creative" });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "AI generation failed";
