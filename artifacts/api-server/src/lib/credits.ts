@@ -56,7 +56,14 @@ export async function deductCredits(clerkId: string, feature: FeatureKey) {
       amount: -cost,
       type: "debit",
       feature,
-      description: `Used ${feature.replace(/_/g, " ")} feature`,
+      description: ({
+        product_discovery: "Uso do Buscador de Produtos",
+        product_validation: "Uso do Validador de Produtos",
+        campaign: "Uso do Criador de Campanha",
+        content: "Uso do Criador de Conteúdo",
+        creative: "Uso do Gerador Criativo",
+        video_script: "Uso do Gerador de Scripts",
+      } as Record<string, string>)[feature] ?? `Uso de ${feature.replace(/_/g, " ")}`,
       balanceBefore,
       balanceAfter,
     })

@@ -21,6 +21,19 @@ const featureLabels: Record<string, string> = {
   video_script: "Scripts de Vídeo",
 };
 
+const descriptionTranslations: Record<string, string> = {
+  "Used product discovery feature": "Uso do Buscador de Produtos",
+  "Used product validation feature": "Uso do Validador de Produtos",
+  "Used campaign feature": "Uso do Criador de Campanha",
+  "Used content feature": "Uso do Criador de Conteúdo",
+  "Used creative feature": "Uso do Gerador Criativo",
+  "Used video script feature": "Uso do Gerador de Scripts",
+};
+
+function translateDescription(desc: string): string {
+  return descriptionTranslations[desc] ?? desc;
+}
+
 const txTypeLabels: Record<string, string> = {
   initial: "inicial",
   credit: "crédito",
@@ -214,7 +227,7 @@ export function Credits() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-white max-w-xs">
-                        <span className="truncate block">{tx.description}</span>
+                        <span className="truncate block">{translateDescription(tx.description)}</span>
                         {tx.feature && (
                           <span className="text-xs text-muted-foreground">
                             {featureLabels[tx.feature] ?? tx.feature}
