@@ -53,6 +53,81 @@ function detectCampaignMode(mode?: string): "organic" | "paid" {
   return "paid";
 }
 
+const ORGANIC_CHANNELS = [
+  "Instagram Reels",
+  "Instagram Feed",
+  "Stories",
+  "TikTok orgânico",
+  "WhatsApp",
+  "YouTube Shorts",
+  "Pinterest",
+  "Comunidades",
+];
+
+const ORGANIC_BUDGET = "Sem investimento em mídia paga — estratégia 100% orgânica";
+
+const PAID_TERM_REPLACEMENTS: Array<[RegExp, string]> = [
+  [/\bFacebook\s*Ads\b/gi, "postagem no Facebook"],
+  [/\bMeta\s*Ads\b/gi, "conteúdo orgânico"],
+  [/\bInstagram\s*Ads\b/gi, "Reels orgânicos"],
+  [/\bGoogle\s*(Search\s*)?Ads\b/gi, "SEO orgânico"],
+  [/\bTikTok\s*Ads\b/gi, "TikTok orgânico"],
+  [/\bYouTube\s*Ads\b/gi, "YouTube Shorts orgânico"],
+  [/\bPinterest\s*Ads\b/gi, "Pinterest orgânico"],
+  [/\bROAS\b/gi, "retorno orgânico"],
+  [/\bCPC\b/gi, "engajamento"],
+  [/\bCPM\b/gi, "alcance orgânico"],
+  [/\bCPA\b/gi, "conversão orgânica"],
+  [/\bretargeting\b/gi, "reengajamento orgânico"],
+  [/\bremarketing\b/gi, "reconexão com audiência"],
+  [/\blookalike\b/gi, "público semelhante orgânico"],
+  [/\bpixel\b/gi, "engajamento"],
+  [/\bpago\b/gi, "orgânico"],
+  [/\bmídia\s*paga\b/gi, "conteúdo orgânico"],
+  [/\btráfego\s*pago\b/gi, "tráfego orgânico"],
+  [/\bcampanha\s*paga\b/gi, "estratégia orgânica"],
+  [/\bimpulsionar\b/gi, "publicar organicamente"],
+  [/\bimpulsionamento\b/gi, "crescimento orgânico"],
+  [/\banúncio(s)?\b/gi, "conteúdo"],
+  [/\banunciar\b/gi, "publicar"],
+  [/\bads\b/gi, "conteúdo orgânico"],
+  [/\bverba\s*de\s*mídia\b/gi, "dedicação de tempo"],
+  [/\borçamento\s*de\s*(anúncio|mídia|ads)(s)?\b/gi, "calendário de conteúdo"],
+  [/\blanding\s*page\s*pag(a|o)\b/gi, "página orgânica"],
+  [/\bescal(a|ar)\s*(com\s*anúncio(s)?|pag(a|o))\b/gi, "crescimento orgânico"],
+];
+
+function sanitizeOrganicText(text: string): string {
+  let result = text;
+  for (const [pattern, replacement] of PAID_TERM_REPLACEMENTS) {
+    result = result.replace(pattern, replacement);
+  }
+  return result;
+}
+
+function hardLockOrganicResult(result: CampaignResult): CampaignResult {
+  return {
+    ...result,
+    budget: ORGANIC_BUDGET,
+    channels: ORGANIC_CHANNELS,
+    headline: sanitizeOrganicText(result.headline),
+    subheadline: sanitizeOrganicText(result.subheadline),
+    cta: sanitizeOrganicText(result.cta),
+    audience: sanitizeOrganicText(result.audience),
+    copy: {
+      facebook: sanitizeOrganicText(result.copy.facebook),
+      instagram: sanitizeOrganicText(result.copy.instagram),
+      google: sanitizeOrganicText(result.copy.google),
+      email: sanitizeOrganicText(result.copy.email),
+      tiktok: sanitizeOrganicText(result.copy.tiktok),
+    },
+    keyMessages: result.keyMessages.map(sanitizeOrganicText),
+    launchTimeline: sanitizeOrganicText(result.launchTimeline),
+    uniqueAngle: sanitizeOrganicText(result.uniqueAngle),
+    objectionHandling: sanitizeOrganicText(result.objectionHandling),
+  };
+}
+
 const SHARED_RULES = `REGRA OBRIGATÓRIA DE IDIOMA: Responda SEMPRE em português brasileiro. NUNCA responda em inglês, espanhol ou qualquer outro idioma. Todo o copy, títulos, CTAs, mensagens e textos de campanha devem estar integralmente em português brasileiro.
 
 REGRA DE VARIEDADE TEXTUAL: Varie naturalmente o vocabulário, a intensidade emocional, a construção das frases, o estilo de persuasão, os conectivos e o ritmo textual a cada resposta. Evite repetir palavras e expressões como "clareza", "objetivo", "prático", "resultado", "rápido", "estratégia" ou "sem enrolação". Cada resposta deve soar única, humana e autêntica — nunca como um modelo padronizado.
@@ -212,7 +287,8 @@ Adapte toda a estrutura da campanha ao modo informado. Crie copy específico par
       }
     }
 
-    const result: CampaignResult = JSON.parse(fullResponse);
+    const raw: CampaignResult = JSON.parse(fullResponse);
+    const result = campaignMode === "organic" ? hardLockOrganicResult(raw) : raw;
     sendSSE(res, { type: "result", data: result });
     await logAiUsage({ clerkUserId, action: `Campaign created: ${params.product} [${campaignMode}]`, module: "campaign" });
   } catch (err) {
