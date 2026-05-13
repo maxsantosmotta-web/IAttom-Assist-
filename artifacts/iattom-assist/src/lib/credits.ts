@@ -16,9 +16,9 @@ export const PLAN_CREDITS = {
 
 export const PLAN_NAMES: Record<string, string> = {
   free:     "START",
-  pro:      "PRO",
+  pro:      "COMPLETO",
   business: "PREMIUM",
-  agency:   "BUSINESS",
+  agency:   "PRO",
 };
 
 export const PLAN_SAVINGS: Record<string, number> = {
@@ -38,9 +38,9 @@ export const PLAN_PRICES: Record<string, {
   color: string;
 }> = {
   free:     { monthly: 19.90, yearly: 197,  monthlyDisplay: "R$19,90/mês",  yearlyDisplay: "R$197/ano",    yearlyMonthlyDisplay: "R$16,42/mês",  label: "START",    color: "text-blue-300"   },
-  pro:      { monthly: 89,    yearly: 968,  monthlyDisplay: "R$89/mês",     yearlyDisplay: "R$968/ano",    yearlyMonthlyDisplay: "R$80,67/mês",  label: "PRO",      color: "text-[#C9A84C]"  },
+  pro:      { monthly: 89,    yearly: 968,  monthlyDisplay: "R$89/mês",     yearlyDisplay: "R$968/ano",    yearlyMonthlyDisplay: "R$80,67/mês",  label: "COMPLETO", color: "text-[#C9A84C]"  },
   business: { monthly: 197,   yearly: 1997, monthlyDisplay: "R$197/mês",    yearlyDisplay: "R$1.997/ano",  yearlyMonthlyDisplay: "R$166,42/mês", label: "PREMIUM",  color: "text-violet-400" },
-  agency:   { monthly: 497,   yearly: 4997, monthlyDisplay: "R$497/mês",    yearlyDisplay: "R$4.997/ano",  yearlyMonthlyDisplay: "R$416,42/mês", label: "BUSINESS", color: "text-[#E8C96A]"  },
+  agency:   { monthly: 497,   yearly: 4997, monthlyDisplay: "R$497/mês",    yearlyDisplay: "R$4.997/ano",  yearlyMonthlyDisplay: "R$416,42/mês", label: "PRO",      color: "text-[#E8C96A]"  },
 };
 
 export type FeatureKey = keyof typeof FEATURE_COSTS;
