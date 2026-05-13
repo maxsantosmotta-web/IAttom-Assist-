@@ -153,6 +153,54 @@ O estado atual da plataforma é a BASE ESTÁVEL OFICIAL E APROVADA. Toda altera�
 - Se houver risco indireto: NÃO executar alteração ampla. Aplicar solução isolada/local.
 - Ao final: validar mobile, desktop, alinhamento e isolamento da alteração.
 
+## MODO PROTEÇÃO — PROTOCOLO OPERACIONAL OBRIGATÓRIO
+
+Estado atual: BASE ESTÁVEL VALIDADA E APROVADA. Nenhuma alteração é feita sem comando explícito do usuário.
+
+### Declaração obrigatória antes de qualquer alteração
+
+Antes de modificar qualquer arquivo, declarar obrigatoriamente:
+
+1. **Arquivos que serão alterados** — lista exata, sem omissões
+2. **Impacto esperado** — o que muda no comportamento ou na interface
+3. **Risco** — classificado como: `baixo` / `médio` / `alto`
+
+Se qualquer um desses três pontos não puder ser determinado com certeza, NÃO executar a alteração e informar ao usuário antes de prosseguir.
+
+### Operações terminantemente proibidas sem autorização explícita
+
+| Operação proibida | Motivo |
+|---|---|
+| "cleanup geral" / "limpeza automática" | Pode impactar silenciosamente dezenas de arquivos |
+| "refactor completo" / "reestruturação" | Quebra compatibilidade com fluxos validados |
+| "melhorias automáticas globais" | Escopo indefinido e não autorizado |
+| "padronização automática" | Altera arquivos fora do escopo solicitado |
+| "substituição ampla de componentes" | Remove comportamento aprovado |
+| Alterar arquivos não citados na solicitação | Efeito colateral não autorizado |
+| Otimizar código "de passagem" | Qualquer alteração não solicitada é proibida |
+| Adicionar dependências sem autorização | Impacto em toda a build |
+| Alterar `index.css`, `tailwind.config`, `vite.config` | Estilos globais congelados |
+| Alterar rotas sem autorização explícita | Estrutura de navegação congelada |
+
+### Escopo de cada tarefa
+
+- Uma tarefa = um problema = arquivo(s) diretamente relacionados
+- Arquivos não citados → NÃO tocar, mesmo que pareça "óbvio melhorar"
+- Lógica não citada → NÃO tocar, mesmo que exista um bug aparente
+- Se um bug colateral for encontrado → INFORMAR ao usuário, NÃO corrigir silenciosamente
+
+### Áreas permanentemente congeladas (requer autorização nominal explícita)
+
+- Layout visual, cores, tipografia, espaçamento
+- Identidade visual: logo, ícones, splash, loading screen
+- Autenticação: Clerk, providers, sessão, tokens
+- Módulos AI já validados: prompts, parâmetros de modelo, estrutura de resposta
+- Créditos: FEATURE_COSTS, PLAN_CREDITS, lógica de cobrança aprovada
+- Stripe: planos, preços, webhook, checkout
+- PWA: manifest, service worker, ícones
+- Painel administrativo (congelado conforme seção anterior)
+- Sidebar, navbar, CommandPalette, UpgradeNudge, PlanComparisonModal
+
 ## User preferences
 
 - Dark premium design with gold accents (#C9A84C range)
