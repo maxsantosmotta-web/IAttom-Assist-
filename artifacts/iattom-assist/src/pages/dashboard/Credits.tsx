@@ -65,8 +65,8 @@ export function Credits() {
       )
     : [];
 
-  const PLAN_DISPLAY_NAMES: Record<string, string> = { free: "START", pro: "COMPLETO", business: "PREMIUM", agency: "PRO" };
-  const currentPlanDisplay = balance?.plan ? (PLAN_DISPLAY_NAMES[balance.plan] ?? balance.plan) : "START";
+  const PLAN_DISPLAY_NAMES: Record<string, string> = { free: "CRISTAL", pro: "RUBI", business: "ESMERALDA", agency: "DIAMANTE" };
+  const currentPlanDisplay = balance?.plan ? (PLAN_DISPLAY_NAMES[balance.plan] ?? balance.plan) : "CRISTAL";
 
   return (
     <div className="space-y-8">
@@ -132,22 +132,24 @@ export function Credits() {
       {balance?.lowCredit && upgradePlans.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
           <Card className="bg-amber-950/20 border-amber-500/20">
-            <CardContent className="p-4 flex items-center gap-4">
-              <TrendingUp className="w-5 h-5 text-amber-400 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-amber-400">Créditos acabando</p>
-                <p className="text-xs text-muted-foreground">
-                  Atualize para{" "}
-                  <span className="text-white capitalize">{upgradePlans[0]}</span> e tenha{" "}
-                  {PLAN_CREDITS[upgradePlans[0]].toLocaleString()} créditos/mês.
-                </p>
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3 mb-3">
+                <TrendingUp className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-amber-400">Créditos acabando</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Atualize para{" "}
+                    <span className="text-white font-medium">{PLAN_NAMES[upgradePlans[0]] ?? upgradePlans[0]}</span>{" "}
+                    e tenha {PLAN_CREDITS[upgradePlans[0]].toLocaleString()} créditos/mês.
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex flex-wrap gap-2 pl-8">
                 {upgradePlans.slice(0, 2).map((plan) => (
                   <button
                     key={plan}
                     onClick={() => navigate("/dashboard/billing")}
-                    className="text-xs px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors capitalize font-medium"
+                    className="text-xs px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-colors font-medium"
                   >
                     {PLAN_NAMES[plan] ?? plan} — {PLAN_PRICES[plan].monthlyDisplay}
                   </button>
