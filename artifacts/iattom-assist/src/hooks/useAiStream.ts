@@ -47,6 +47,7 @@ export function useAiStream<T = unknown>() {
         let buffer = "";
         let resultData: T | null = null;
         let tokenCount = 0;
+        let receivedDone = false;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -78,6 +79,7 @@ export function useAiStream<T = unknown>() {
               } else if (event.type === "error") {
                 throw new Error(event.message ?? "Generation failed");
               } else if (event.type === "done") {
+                receivedDone = true;
                 setState((s) => ({ ...s, status: "done" }));
                 return resultData;
               }
@@ -86,6 +88,11 @@ export function useAiStream<T = unknown>() {
               throw parseErr;
             }
           }
+        }
+
+        if (!receivedDone) {
+          setState({ status: "error", result: null, error: "A resposta foi interrompida antes de ser concluída. Nenhum crédito foi descontado.", tokenCount: 0 });
+          return null;
         }
 
         setState((s) => ({ ...s, status: "done" }));
