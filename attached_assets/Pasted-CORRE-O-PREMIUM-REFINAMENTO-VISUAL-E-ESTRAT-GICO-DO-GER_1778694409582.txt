@@ -1,0 +1,153 @@
+CORREÇÃO PREMIUM — REFINAMENTO VISUAL E ESTRATÉGICO DO GERADOR DE CAMPANHAS
+
+O sistema evoluiu corretamente na lógica estratégica.
+
+Agora o problema NÃO é mais estrutura.
+
+O problema atual é:
+- excesso de texto
+- blocos muito longos
+- leitura cansativa
+- repetição de argumentos
+- visual pesado
+- densidade excessiva
+- aparência de relatório
+- pouca objetividade executável
+
+OBJETIVO:
+Transformar o resultado em algo:
+- premium
+- moderno
+- rápido de consumir
+- mais visual
+- mais estratégico
+- mais parecido com ferramenta SaaS de IA avançada
+
+IMPLEMENTAR:
+
+1. REDUZIR O TAMANHO DAS COPYS
+
+Facebook:
+máximo 600 caracteres
+
+Instagram:
+máximo 450 caracteres
+
+TikTok:
+máximo 350 caracteres
+
+WhatsApp:
+máximo 300 caracteres
+
+Google:
+máximo padrão real de anúncios
+
+Email:
+versão resumida e escaneável
+
+2. CRIAR MODO “EXECUTIVO”
+
+A IA deve responder:
+- menos teoria
+- menos explicação
+- mais ação prática
+
+3. REMOVER REPETIÇÕES
+
+Evitar repetir:
+- “consultoria”
+- “WhatsApp”
+- “vagas limitadas”
+- “transformar perfil”
+- “clientes”
+- “CTA iguais”
+
+4. CRIAR BLOCOS MAIS VISUAIS
+
+Substituir paredes de texto por:
+
+- bullets
+- separações
+- mini blocos
+- listas rápidas
+- estrutura escaneável
+
+5. CRONOGRAMA MAIS INTELIGENTE
+
+Atualmente:
+muito grande e cansativo.
+
+Novo padrão:
+- máximo 4 etapas
+- máximo 1 linha por etapa
+- foco em execução
+
+EXEMPLO:
+Semana 1 → Estrutura e posicionamento
+Semana 2 → Criativos e conteúdo
+Semana 3 → Otimização e testes
+Semana 4 → Escala e ajustes
+
+6. REDUZIR EXCESSO DE CANAIS
+
+A IA deve entender o objetivo.
+
+Exemplo:
+Consultoria Instagram NÃO precisa:
+- Google
+- Email
+- Landing complexa
+
+Priorizar:
+- Instagram
+- WhatsApp
+- Reels
+- Stories
+- DM
+
+7. IMPLEMENTAR SISTEMA DE PRIORIDADE
+
+Antes de gerar:
+A IA deve decidir:
+- quais canais realmente fazem sentido
+- quais canais são exagero
+- quais canais só poluem o resultado
+
+8. REMOVER APARÊNCIA DE “RELATÓRIO GPT”
+
+Evitar:
+- textos enormes
+- parágrafos longos
+- excesso de contexto
+- linguagem robótica
+
+9. ESTILO FINAL:
+
+Mistura de:
+- estratégia
+- IA premium
+- marketing moderno
+- SaaS executivo
+- linguagem objetiva
+- visual limpo
+
+10. NÃO ALTERAR:
+- identidade visual
+- layout
+- animações
+- estrutura da UI
+
+ALTERAR APENAS:
+- engine de geração
+- densidade
+- tamanho
+- organização
+- priorização estratégica
+
+11. APÓS IMPLEMENTAR:
+MOSTRAR:
+- limites aplicados
+- sistema de priorização criado
+- redução média de tokens
+- arquivos alterados
+- melhorias de UX aplicadas
