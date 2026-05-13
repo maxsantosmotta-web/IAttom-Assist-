@@ -10,7 +10,7 @@ export function PlanGate({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useUser();
 
   const { data: me, isLoading: meLoading } = useGetMe({
-    query: { queryKey: getGetMeQueryKey(), retry: false, enabled: !!isSignedIn },
+    query: { queryKey: getGetMeQueryKey(), retry: false, staleTime: 0, enabled: !!isSignedIn },
   });
   const { data: subscription, isLoading: subLoading, isError: subError } = useGetStripeSubscription({
     query: {

@@ -95,7 +95,7 @@ export function DashboardHome() {
   const { data: summary, isLoading: summaryLoading } = useGetDashboardSummary();
   const { data: projects, isLoading: projectsLoading } = useListProjects();
   const { data: creditsData } = useGetCreditsBalance({
-    query: { queryKey: getGetCreditsBalanceQueryKey(), retry: false, staleTime: 30_000 },
+    query: { queryKey: getGetCreditsBalanceQueryKey(), retry: false, staleTime: 0 },
   });
   const { data: historyData } = useListHistory(
     { limit: 10 },
@@ -103,13 +103,13 @@ export function DashboardHome() {
   );
   const { user, isLoaded } = useUser();
   const { data: me } = useGetMe({
-    query: { queryKey: getGetMeQueryKey(), retry: false, staleTime: 60_000 },
+    query: { queryKey: getGetMeQueryKey(), retry: false, staleTime: 0 },
   });
 
   const firstName = user?.firstName || user?.fullName?.split(" ")[0] || "você";
   const rawPlan = creditsData ? (creditsData as { plan?: string }).plan as string | undefined : undefined;
-  const PLAN_DISPLAY_NAMES: Record<string, string> = { free: "Cristal", pro: "Rubi", business: "Esmeralda", agency: "Diamante" };
-  const planLabel = rawPlan ? (PLAN_DISPLAY_NAMES[rawPlan] ?? rawPlan.charAt(0).toUpperCase() + rawPlan.slice(1)) : null;
+  const PLAN_DISPLAY_NAMES: Record<string, string> = { free: "START", pro: "COMPLETO", business: "PREMIUM", agency: "PRO" };
+  const planLabel = rawPlan ? (PLAN_DISPLAY_NAMES[rawPlan] ?? rawPlan.toUpperCase()) : null;
 
   // Recently used tools — derive unique modules from history
   const recentModules = historyData
