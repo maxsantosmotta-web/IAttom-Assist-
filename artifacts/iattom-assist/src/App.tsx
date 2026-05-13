@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { Switch, Route, Redirect, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { ClerkProvider, Show, useClerk } from "@clerk/react";
+import { ClerkProvider, Show, useClerk, SignIn, SignUp } from "@clerk/react";
 import { ptBR } from "@clerk/localizations";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
@@ -150,6 +150,36 @@ const clerkAppearance = {
   },
 };
 
+function SignInCallbackPage() {
+  return (
+    <Show when="signed-out">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
+        <SignIn
+          routing="path"
+          path={`${basePath}/sign-in`}
+          fallbackRedirectUrl={`${basePath}/dashboard`}
+          appearance={clerkAppearance}
+        />
+      </div>
+    </Show>
+  );
+}
+
+function SignUpCallbackPage() {
+  return (
+    <Show when="signed-out">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
+        <SignUp
+          routing="path"
+          path={`${basePath}/sign-up`}
+          fallbackRedirectUrl={`${basePath}/onboarding`}
+          appearance={clerkAppearance}
+        />
+      </div>
+    </Show>
+  );
+}
+
 function HomeRedirect() {
   return (
     <>
@@ -281,8 +311,8 @@ function ClerkProviderWithRoutes() {
           <ErrorBoundary>
             <Switch>
               <Route path="/" component={HomeRedirect} />
-              <Route path="/sign-in/*?">{() => <Redirect to="/" />}</Route>
-              <Route path="/sign-up/*?">{() => <Redirect to="/" />}</Route>
+              <Route path="/sign-in/*?" component={SignInCallbackPage} />
+              <Route path="/sign-up/*?" component={SignUpCallbackPage} />
               <Route path="/onboarding/*?" component={ProtectedOnboarding} />
               <Route path="/dashboard/*?" component={ProtectedDashboard} />
               <Route path="/admin/*?" component={ProtectedAdmin} />
