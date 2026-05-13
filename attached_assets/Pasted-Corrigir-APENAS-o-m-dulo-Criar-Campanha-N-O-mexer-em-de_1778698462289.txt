@@ -1,0 +1,68 @@
+Corrigir APENAS o módulo “Criar Campanha”.
+
+NÃO mexer em design, layout, branding, autenticação, créditos ou telas aprovadas.
+
+Problemas confirmados:
+
+1. O módulo ainda falha várias vezes seguidas.
+2. Quando funciona, retorna campanha incompleta/parcial.
+3. Se o usuário sai da tela durante a geração, ocorre erro ou estado quebrado.
+4. Após 4 tentativas, apareceu apenas parte da campanha: manchete/CTA, mas público, canais e orçamento ficaram vazios.
+
+Objetivo:
+Garantir geração completa, estável e sem quebrar ao sair da tela.
+
+Correções obrigatórias:
+
+1. Backend:
+
+- Não retornar campanha parcial.
+- Validar todos os campos obrigatórios antes de enviar para o frontend.
+- Se qualquer campo obrigatório estiver vazio, fazer retry interno automático.
+- Retry interno máximo: 2 tentativas.
+- Não descontar crédito extra no retry interno.
+- Só retornar sucesso quando a campanha estiver completa.
+
+2. JSON:
+
+- A IA deve responder somente JSON puro.
+- Sem markdown.
+- Sem texto antes ou depois.
+- Extrair JSON com segurança.
+- Fazer JSON.parse somente depois da resposta completa.
+- Se JSON vier incompleto, retry interno.
+
+3. Campos obrigatórios mínimos:
+
+- manchete
+- publico
+- canais
+- orcamento
+- estrategia
+- copies
+- cronograma
+- mensagens_chave
+
+Se o frontend usa outros nomes, manter os nomes existentes e apenas garantir que todos sejam preenchidos.
+
+4. Frontend:
+
+- Enquanto estiver gerando, bloquear nova geração.
+- Exibir estado de carregamento.
+- Se o usuário sair da tela, cancelar a requisição com AbortController ou ignorar retorno tardio sem quebrar a tela.
+- Não atualizar state depois que o componente desmontar.
+- Não deixar cards vazios aparecendo como sucesso.
+
+5. Resultado:
+
+- Se falhar após retries, mostrar erro amigável:
+  “Não foi possível gerar a campanha completa agora. Tente novamente em instantes.”
+- Não mostrar campanha incompleta.
+
+6. Ao finalizar, mostrar:
+
+- arquivos alterados;
+- onde fica a validação de campanha completa;
+- onde fica o retry interno;
+- onde foi protegido o erro ao sair da tela;
+- como testar.

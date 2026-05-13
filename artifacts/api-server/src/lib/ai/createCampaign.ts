@@ -261,6 +261,19 @@ function isCompleteJson(text: string): boolean {
   }
 }
 
+function validateCampaignResult(r: CampaignResult): string | null {
+  if (!r.headline?.trim()) return "missing_headline";
+  if (!r.audience?.trim()) return "missing_audience";
+  if (!Array.isArray(r.channels) || r.channels.length === 0) return "missing_channels";
+  if (!r.budget?.trim()) return "missing_budget";
+  if (!r.copy || typeof r.copy !== "object") return "missing_copy";
+  const copyValues = Object.values(r.copy as Record<string, string>);
+  if (copyValues.every((v) => !v?.trim())) return "empty_copy";
+  if (!Array.isArray(r.keyMessages) || r.keyMessages.length === 0) return "missing_key_messages";
+  if (!r.launchTimeline?.trim()) return "missing_timeline";
+  return null;
+}
+
 async function attemptStreamGeneration(
   systemPrompt: string,
   userPrompt: string,
@@ -401,17 +414,21 @@ Responda em português brasileiro.`;
   if (attempt1.success) {
     try {
       const raw: CampaignResult = JSON.parse(attempt1.raw);
-      const result = campaignMode === "organic" ? hardLockOrganicResult(raw) : raw;
-      sendSSE(res, { type: "result", data: result });
-      await logAiUsage({
-        clerkUserId,
-        action: `Campaign [${campaignMode}] attempt=1 ms=${attempt1Ms} valid=true: ${params.product}`,
-        module: "campaign",
-      });
-      sendSSEDone(res);
-      return;
+      const validationError = validateCampaignResult(raw);
+      if (!validationError) {
+        const result = campaignMode === "organic" ? hardLockOrganicResult(raw) : raw;
+        sendSSE(res, { type: "result", data: result });
+        await logAiUsage({
+          clerkUserId,
+          action: `Campaign [${campaignMode}] attempt=1 ms=${attempt1Ms} valid=true: ${params.product}`,
+          module: "campaign",
+        });
+        sendSSEDone(res);
+        return;
+      }
+      // JSON valid but fields incomplete — fall through to retry
     } catch {
-      // fall through to retry
+      // JSON parse failed — fall through to retry
     }
   }
 
@@ -423,28 +440,32 @@ Responda em português brasileiro.`;
   if (attempt2.success) {
     try {
       const raw: CampaignResult = JSON.parse(attempt2.raw);
-      const result = campaignMode === "organic" ? hardLockOrganicResult(raw) : raw;
-      sendSSE(res, { type: "result", data: result });
-      await logAiUsage({
-        clerkUserId,
-        action: `Campaign [${campaignMode}] attempt=2(retry) ms=${attempt1Ms}+${attempt2Ms} valid=true: ${params.product}`,
-        module: "campaign",
-      });
-      sendSSEDone(res);
-      return;
+      const validationError = validateCampaignResult(raw);
+      if (!validationError) {
+        const result = campaignMode === "organic" ? hardLockOrganicResult(raw) : raw;
+        sendSSE(res, { type: "result", data: result });
+        await logAiUsage({
+          clerkUserId,
+          action: `Campaign [${campaignMode}] attempt=2(retry) ms=${attempt1Ms}+${attempt2Ms} valid=true: ${params.product}`,
+          module: "campaign",
+        });
+        sendSSEDone(res);
+        return;
+      }
+      // Retry JSON valid but still missing fields — fall through to error
     } catch {
-      // fall through to error
+      // Retry JSON parse failed — fall through to error
     }
   }
 
   // — Ambas falharam — não envia done, não cobra crédito ———————
-  const failReason = attempt2.success ? "parse_error" : attempt2.error;
+  const failReason = attempt2.success ? "incomplete_fields" : attempt2.error;
   await logAiUsage({
     clerkUserId,
     action: `Campaign FAILED [${campaignMode}] reason=${failReason} ms=${attempt1Ms}+${attempt2Ms}: ${params.product}`,
     module: "campaign",
   });
 
-  sendSSEError(res, "Não foi possível finalizar a geração. Tente novamente.");
+  sendSSEError(res, "Não foi possível gerar a campanha completa agora. Tente novamente em instantes.");
   sendSSEDone(res);
 }
