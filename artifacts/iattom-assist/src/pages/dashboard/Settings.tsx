@@ -27,7 +27,7 @@ const itemVariants = {
 export function Settings() {
   const { user, isLoaded } = useUser();
   const { openUserProfile } = useClerk();
-  const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey() } });
+  const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), staleTime: 0 } });
 
   const [, navigate] = useLocation();
 

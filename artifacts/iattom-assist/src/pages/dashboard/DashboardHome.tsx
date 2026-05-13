@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
 import { Link } from "wouter";
+import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Search, CheckCircle, Megaphone, FileText, Sparkles, Video,
   ArrowRight, TrendingUp, Layers, Zap, Clock, FolderOpen,
@@ -105,6 +107,15 @@ export function DashboardHome() {
   const { data: me } = useGetMe({
     query: { queryKey: getGetMeQueryKey(), retry: false, staleTime: 0 },
   });
+
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    void queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+    void queryClient.invalidateQueries({ queryKey: getGetCreditsBalanceQueryKey() });
+  }, [queryClient]);
+
+  // eslint-disable-next-line no-console
+  console.log("PLANO ATUAL:", me?.plan, "| creditsData.plan:", (creditsData as Record<string, unknown> | undefined)?.plan);
 
   const firstName = user?.firstName || user?.fullName?.split(" ")[0] || "você";
   const rawPlan = creditsData ? (creditsData as { plan?: string }).plan as string | undefined : undefined;

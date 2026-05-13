@@ -60,7 +60,7 @@ const planColors: Record<string, string> = {
 export function Credits() {
   const [, navigate] = useLocation();
   const { data: balance, isLoading: balanceLoading } = useGetCreditsBalance({
-    query: { queryKey: getGetCreditsBalanceQueryKey() },
+    query: { queryKey: getGetCreditsBalanceQueryKey(), staleTime: 0 },
   });
 
   const { data: txData, isLoading: txLoading } = useListCreditTransactions(

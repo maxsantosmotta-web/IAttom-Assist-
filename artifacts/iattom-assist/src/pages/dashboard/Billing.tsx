@@ -169,9 +169,9 @@ export function Billing() {
   const { data: subscription, isLoading: subLoading } = useGetStripeSubscription({
     query: { queryKey: getGetStripeSubscriptionQueryKey(), retry: false, staleTime: 30_000 },
   });
-  const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), retry: false } });
+  const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), retry: false, staleTime: 0 } });
   const { data: creditsData } = useGetCreditsBalance({
-    query: { queryKey: getGetCreditsBalanceQueryKey(), retry: false, staleTime: 30_000 },
+    query: { queryKey: getGetCreditsBalanceQueryKey(), retry: false, staleTime: 0 },
   });
 
   const checkout = useCreateCheckoutSession({
