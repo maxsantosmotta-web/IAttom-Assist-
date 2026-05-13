@@ -82,7 +82,7 @@ REGRA DE MODO DE CAMPANHA: Quando um modo for informado, adapte TODA a campanha 
 
 Modos disponíveis e suas regras obrigatórias:
 - Iniciante: tom acolhedor e educativo, orçamento R$300–R$800/mês, canais simples (Instagram + WhatsApp), copy direto sem jargões, cronograma de 30 dias com passos pequenos, foco em primeiras vendas.
-- Orgânico: zero ou quase zero tráfego pago, foco em conteúdo, creators, SEO e comunidade, copy conversacional e autêntico, cronograma de 60–90 dias, canais orgânicos como Reels, blog, TikTok sem ads.
+- Orgânico: PROIBIDO mencionar qualquer forma de tráfego pago — NUNCA inclua Google Ads, Meta Ads, Facebook Ads, Instagram Ads, TikTok Ads, YouTube Ads, ROAS, CPM, CPC, verba de mídia paga, orçamento de anúncios, retargeting pago, lookalike pago, campanha paga ou escala com anúncios. Foco exclusivo em: Reels orgânicos, TikTok orgânico, Stories, SEO social, creators orgânicos, collabs, comunidade, Direct manual, WhatsApp orgânico, indicações, postagem recorrente, prova social e relacionamento. Copy conversacional e autêntico. Cronograma de 60–90 dias. Budget no campo "budget" deve ser R$0 ou descrito como "sem investimento em mídia paga".
 - Baixo orçamento: máximo R$500–R$1.500/mês, campanhas enxutas, 1–2 canais apenas, copy simples e direto, sem remarketing complexo, prioridade para canal com melhor custo por resultado.
 - Conversão: foco em venda imediata, copy com urgência e prova social, orçamento R$1.500–R$5.000/mês, funil direto (tráfego → landing page → venda), canais de alta intenção.
 - Viral: foco em UGC, retenção nos primeiros 3 segundos, creators e compartilhamento, copy com gatilho de curiosidade, sem necessidade de grande orçamento, canais: TikTok, Reels, YouTube Shorts.
@@ -115,6 +115,11 @@ Retorne exatamente esta estrutura:
 
 REGRA DE PERSONALIDADE ESTRATÉGICA POR PLATAFORMA: Cada plataforma no campo "copy" deve ter uma abordagem estratégica radicalmente diferente — não apenas variação de texto, mas estrutura mental, tom e objetivo distintos. Siga obrigatoriamente:
 
+EXCEÇÃO OBRIGATÓRIA PARA MODO ORGÂNICO: Se o modo da campanha for "Orgânico", os campos copy.facebook e copy.google NÃO são anúncios pagos. Aplique as regras abaixo exclusivamente para esse modo:
+- copy.facebook (modo Orgânico) → postagem orgânica para feed ou grupo: conteúdo de valor, storytelling, prova social real, pergunta de engajamento ou convite para comentar. NUNCA mencione impulsionar, anunciar, Meta Ads ou Facebook Ads.
+- copy.google (modo Orgânico) → conteúdo para SEO ou blog: título otimizado para busca orgânica, descrição com palavra-chave natural, chamada para visitar o site ou ler o artigo. NUNCA mencione Google Ads, CPC, lances ou anúncios patrocinados.
+
+Para TODOS OS OUTROS modos, use as instruções padrão abaixo:
 - copy.facebook → copy de resposta direta: abertura com problema real do público, argumento de valor central, prova social ou resultado concreto, CTA de ação imediata. Tom: direto, honesto, adulto.
 - copy.instagram → posicionamento e desejo: gancho visual forte nos primeiros segundos, copy que construa identidade e pertencimento, uso de Reels/Stories como estratégia, estética e branding antes de preço. Tom: aspiracional, autêntico, comunidade.
 - copy.google → intenção de compra capturada: título com palavra-chave de alta intenção, destaque de benefício principal, CTA com urgência clara. Tom: objetivo, direto, sem floreios.
