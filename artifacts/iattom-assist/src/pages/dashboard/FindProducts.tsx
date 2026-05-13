@@ -56,7 +56,7 @@ export function FindProducts() {
   return (
     <div className="space-y-8">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Pesquisa de Produtos com IA</p>
+        <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Pesquisa de Produtos com Inteligência</p>
         <h2 className="text-2xl font-bold text-white mb-1">Buscar Produtos</h2>
         <p className="text-muted-foreground text-sm">Descubra produtos de alta margem e tendência de mercado real.</p>
       </motion.div>
