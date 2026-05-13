@@ -1,0 +1,97 @@
+CORREÇÃO CRÍTICA — PRIMEIRA GERAÇÃO FALHA E SEGUNDA FUNCIONA
+
+Problema confirmado:
+No módulo Criar Campanha, a primeira tentativa frequentemente falha com:
+- Unexpected end of JSON input
+- Unterminated string in JSON
+
+Ao repetir o mesmo comando, a geração funciona.
+Isso mostra que o problema NÃO é internet.
+O problema é o fluxo de geração/parsing/stream retornando resposta incompleta na primeira tentativa.
+
+Objetivo:
+Garantir que a primeira geração só seja enviada ao frontend quando o JSON estiver completo, válido e parseável.
+
+NÃO alterar:
+- layout
+- identidade visual
+- componentes visuais
+- créditos
+- planos
+- autenticação
+- outros módulos
+
+Corrigir apenas o fluxo de geração do módulo Criar Campanha.
+
+Implementar:
+
+1. Buffer completo antes do parse
+- Não fazer JSON.parse enquanto a stream ainda estiver aberta.
+- Acumular toda a resposta em uma variável final.
+- Só tentar parsear depois do evento final/done.
+
+2. Validação antes de retornar
+Antes de enviar ao frontend:
+- verificar se a resposta existe
+- verificar se começa com { e termina com }
+- executar JSON.parse no backend
+- se falhar, NÃO enviar erro imediatamente ao usuário
+
+3. Retry interno automático
+Se o primeiro JSON vier quebrado:
+- fazer 1 retry interno automático
+- usar prompt resumido
+- reduzir resposta em 40%
+- manter o mesmo input do usuário
+- NÃO cobrar crédito duas vezes
+
+4. Fallback seguro
+Se mesmo após retry falhar:
+- retornar erro amigável
+- não descontar crédito
+- registrar log técnico completo
+
+5. Remover dependência de JSON gigante
+Se possível, gerar estrutura menor:
+- headline
+- público
+- canais
+- orçamento
+- ângulo único
+- copy por plataforma resumida
+- mensagens-chave
+- cronograma
+
+6. Timeout
+Definir timeout máximo de 60 segundos.
+Se passar disso:
+- abortar geração
+- não descontar crédito
+- mostrar erro amigável:
+"Não foi possível finalizar a geração. Tente novamente."
+
+7. Performance
+Reduzir max_tokens/limite de resposta do Criar Campanha.
+Objetivo: resposta em até 45–60 segundos.
+
+8. Logs obrigatórios
+Registrar:
+- tempo total da geração
+- se foi primeira tentativa ou retry
+- se JSON válido
+- se crédito foi cobrado
+- motivo de falha
+
+9. Regra de cobrança
+Cobrar crédito somente quando:
+- JSON válido
+- resposta renderizável
+- frontend recebeu dados completos
+
+10. Ao final responder:
+- arquivos alterados
+- onde o buffer foi aplicado
+- onde o JSON é validado
+- onde o retry interno foi criado
+- onde a cobrança foi protegida
+- como testar com apenas 1 tentativa

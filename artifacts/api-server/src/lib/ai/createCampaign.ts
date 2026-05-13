@@ -242,6 +242,109 @@ PLATAFORMAS ESPECÍFICAS — quando mencionadas no objetivo:
 - Instagram: Reels como motor, Stories para bastidores e urgência.
 - TikTok: hooks de 2s, desafios, UGC, creators.`;
 
+const GENERATION_TIMEOUT_MS = 60_000;
+
+const RETRY_SYSTEM_PROMPT = `Você é um estrategista de marketing. Responda em português brasileiro.
+Gere uma campanha de marketing compacta. Saída: JSON puro, sem markdown.
+Seja direto e breve. Cada campo de texto: máximo 200 caracteres.
+Cronograma: exatamente 4 linhas "Semana N → ação".
+JSON válido e completo é obrigatório.`;
+
+function isCompleteJson(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) return false;
+  try {
+    JSON.parse(trimmed);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function attemptStreamGeneration(
+  systemPrompt: string,
+  userPrompt: string,
+  onChunk: (content: string) => void,
+  timeoutMs: number,
+): Promise<{ success: true; raw: string } | { success: false; error: string }> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let accumulated = "";
+
+  try {
+    const stream = await openai.chat.completions.create(
+      {
+        model: "gpt-5-mini",
+        max_completion_tokens: 6144,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: { type: "json_object" },
+        stream: true,
+      },
+      { signal: controller.signal },
+    );
+
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content;
+      if (content) {
+        accumulated += content;
+        onChunk(content);
+      }
+    }
+
+    clearTimeout(timer);
+
+    if (!isCompleteJson(accumulated)) {
+      return { success: false, error: "incomplete_json" };
+    }
+
+    return { success: true, raw: accumulated };
+  } catch (err) {
+    clearTimeout(timer);
+    const isTimeout = err instanceof Error && err.name === "AbortError";
+    return { success: false, error: isTimeout ? "timeout" : (err instanceof Error ? err.message : "stream_error") };
+  }
+}
+
+async function attemptNonStreamRetry(
+  userPrompt: string,
+  timeoutMs: number,
+): Promise<{ success: true; raw: string } | { success: false; error: string }> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await openai.chat.completions.create(
+      {
+        model: "gpt-5-mini",
+        max_completion_tokens: 3000,
+        messages: [
+          { role: "system", content: RETRY_SYSTEM_PROMPT },
+          { role: "user", content: userPrompt },
+        ],
+        response_format: { type: "json_object" },
+        stream: false,
+      },
+      { signal: controller.signal },
+    );
+
+    clearTimeout(timer);
+    const raw = response.choices[0]?.message?.content ?? "";
+
+    if (!isCompleteJson(raw)) {
+      return { success: false, error: "retry_incomplete_json" };
+    }
+
+    return { success: true, raw };
+  } catch (err) {
+    clearTimeout(timer);
+    const isTimeout = err instanceof Error && err.name === "AbortError";
+    return { success: false, error: isTimeout ? "retry_timeout" : (err instanceof Error ? err.message : "retry_error") };
+  }
+}
+
 export async function streamCreateCampaign(
   params: CreateCampaignInput,
   res: Response,
@@ -268,54 +371,80 @@ export async function streamCreateCampaign(
   const systemPrompt = campaignMode === "organic" ? ORGANIC_SYSTEM_PROMPT : PAID_SYSTEM_PROMPT;
 
   const userPrompt = campaignMode === "organic"
-    ? `Crie uma estratégia de marketing orgânico completa para:
-Produto/Marca: "${params.product}"
-${params.audience ? `Público-alvo: ${params.audience}` : ""}
+    ? `Estratégia de marketing orgânico para:
+Produto: "${params.product}"
+${params.audience ? `Público: ${params.audience}` : ""}
 ${params.goal ? `Objetivo: ${params.goal}` : "Gerar vendas via canais orgânicos"}
-${params.platforms?.length ? `Plataformas preferidas: ${params.platforms.join(", ")}` : ""}
-
-IMPORTANTE: Esta é uma estratégia 100% orgânica. Não inclua nenhum tipo de mídia paga, ads ou orçamento de anúncios. Crie copy específico para cada plataforma usando apenas abordagens orgânicas, integralmente em português brasileiro.`
-    : `Crie uma campanha de marketing completa para:
-Produto/Marca: "${params.product}"
-${params.audience ? `Público-alvo: ${params.audience}` : ""}
-${params.goal ? `Objetivo da campanha: ${params.goal}` : "Gerar vendas"}
-${params.mode ? `Modo da campanha: ${params.mode}` : "Modo da campanha: Conversão"}
-${params.platforms?.length ? `Plataformas preferidas: ${params.platforms.join(", ")}` : ""}
+${params.platforms?.length ? `Plataformas: ${params.platforms.join(", ")}` : ""}
+Regra: 100% orgânico. Sem mídia paga. Responda em português brasileiro.`
+    : `Campanha de marketing para:
+Produto: "${params.product}"
+${params.audience ? `Público: ${params.audience}` : ""}
+${params.goal ? `Objetivo: ${params.goal}` : "Gerar vendas"}
+Modo: ${params.mode ?? "Conversão"}
+${params.platforms?.length ? `Plataformas: ${params.platforms.join(", ")}` : ""}
 ${params.budget ? `Orçamento: ${params.budget}` : ""}
+Responda em português brasileiro.`;
 
-Adapte toda a estrutura da campanha ao modo informado. Crie copy específico para cada plataforma, integralmente em português brasileiro.`;
+  const genStart = Date.now();
 
-  let fullResponse = "";
+  // — Tentativa 1: stream completo ————————————————————————————
+  const attempt1 = await attemptStreamGeneration(
+    systemPrompt,
+    userPrompt,
+    (content) => sendSSE(res, { type: "chunk", content }),
+    GENERATION_TIMEOUT_MS,
+  );
 
-  try {
-    const stream = await openai.chat.completions.create({
-      model: "gpt-5-mini",
-      max_completion_tokens: 4096,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      response_format: { type: "json_object" },
-      stream: true,
-    });
+  const attempt1Ms = Date.now() - genStart;
 
-    for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content;
-      if (content) {
-        fullResponse += content;
-        sendSSE(res, { type: "chunk", content });
-      }
+  if (attempt1.success) {
+    try {
+      const raw: CampaignResult = JSON.parse(attempt1.raw);
+      const result = campaignMode === "organic" ? hardLockOrganicResult(raw) : raw;
+      sendSSE(res, { type: "result", data: result });
+      await logAiUsage({
+        clerkUserId,
+        action: `Campaign [${campaignMode}] attempt=1 ms=${attempt1Ms} valid=true: ${params.product}`,
+        module: "campaign",
+      });
+      sendSSEDone(res);
+      return;
+    } catch {
+      // fall through to retry
     }
-
-    const raw: CampaignResult = JSON.parse(fullResponse);
-    const result = campaignMode === "organic" ? hardLockOrganicResult(raw) : raw;
-    sendSSE(res, { type: "result", data: result });
-    await logAiUsage({ clerkUserId, action: `Campaign created: ${params.product} [${campaignMode}]`, module: "campaign" });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "AI generation failed";
-    sendSSEError(res, msg);
-    return;
   }
 
+  // — Tentativa 2: retry não-streaming com prompt compacto ————
+  const retryStart = Date.now();
+  const attempt2 = await attemptNonStreamRetry(userPrompt, GENERATION_TIMEOUT_MS);
+  const attempt2Ms = Date.now() - retryStart;
+
+  if (attempt2.success) {
+    try {
+      const raw: CampaignResult = JSON.parse(attempt2.raw);
+      const result = campaignMode === "organic" ? hardLockOrganicResult(raw) : raw;
+      sendSSE(res, { type: "result", data: result });
+      await logAiUsage({
+        clerkUserId,
+        action: `Campaign [${campaignMode}] attempt=2(retry) ms=${attempt1Ms}+${attempt2Ms} valid=true: ${params.product}`,
+        module: "campaign",
+      });
+      sendSSEDone(res);
+      return;
+    } catch {
+      // fall through to error
+    }
+  }
+
+  // — Ambas falharam — não envia done, não cobra crédito ———————
+  const failReason = attempt2.success ? "parse_error" : attempt2.error;
+  await logAiUsage({
+    clerkUserId,
+    action: `Campaign FAILED [${campaignMode}] reason=${failReason} ms=${attempt1Ms}+${attempt2Ms}: ${params.product}`,
+    module: "campaign",
+  });
+
+  sendSSEError(res, "Não foi possível finalizar a geração. Tente novamente.");
   sendSSEDone(res);
 }
