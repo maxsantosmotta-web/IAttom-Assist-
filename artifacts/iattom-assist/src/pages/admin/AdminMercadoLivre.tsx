@@ -237,17 +237,39 @@ export function AdminMercadoLivre() {
     } finally { setOauthLoading(false); }
   };
 
-  // ─── Connect — fetches URL then navigates same-window ─────────────────────
+  // ─── Connect — fetches URL then navigates ────────────────────────────────
   const handleConnect = async () => {
+    // Guard: credentials must be saved first
+    if (!config?.configured) {
+      toast({
+        title: "Credenciais não salvas",
+        description: "Preencha e salve App ID, Client Secret e URI de callback antes de conectar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setConnecting(true);
     try {
       const data = await apiFetch<{ url: string }>("/api/ml/oauth-url");
-      // Navigate same-window so callback redirect brings user back here
-      window.location.href = data.url;
+      if (!data.url) throw new Error("URL de autorização não retornada pelo servidor.");
+
+      // Primary: same-window navigation so the OAuth callback brings the user
+      // back to this page with ?ml_connected=1 detected on mount.
+      // Fallback: if running inside an iframe (e.g. Replit preview pane),
+      // window.location.href is blocked — open in a new tab instead.
+      const inFrame = (() => { try { return window.self !== window.top; } catch { return true; } })();
+      if (inFrame) {
+        window.open(data.url, "_blank", "noopener,noreferrer");
+        setConnecting(false); // page won't unload, reset state
+      } else {
+        window.location.href = data.url;
+        // Do NOT reset connecting — page navigates away on success
+      }
     } catch (e) {
       toast({
-        title: "Não foi possível conectar",
-        description: e instanceof Error ? e.message : "Salve as credenciais antes de conectar.",
+        title: "Erro ao gerar link de conexão",
+        description: e instanceof Error ? e.message : "Tente novamente ou salve as credenciais.",
         variant: "destructive",
       });
       setConnecting(false);
@@ -535,7 +557,7 @@ export function AdminMercadoLivre() {
           {!config?.isActive && (
             <Button
               onClick={() => void handleConnect()}
-              disabled={connecting || !config?.configured}
+              disabled={connecting}
               className="w-full bg-primary text-black hover:bg-primary/90 gap-2 h-10 font-semibold"
             >
               {connecting
