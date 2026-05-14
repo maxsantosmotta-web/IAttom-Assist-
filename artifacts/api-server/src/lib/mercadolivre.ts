@@ -218,6 +218,57 @@ export async function getMLOrders(
   return orders;
 }
 
+// ─── Create item ──────────────────────────────────────────────────────────────
+
+export interface MLCreateItemRequest {
+  title: string;
+  category_id: string;
+  price: number;
+  currency_id: string;
+  available_quantity: number;
+  listing_type_id: string;
+  condition: "new" | "used";
+}
+
+export interface MLCreateItemResponse {
+  id?: string;
+  title?: string;
+  permalink?: string;
+  status?: string;
+  error?: string;
+  message?: string;
+  cause?: Array<{ code: number; message: string }>;
+}
+
+export async function createMLItem(
+  accessToken: string,
+  item: MLCreateItemRequest,
+): Promise<MLCreateItemResponse> {
+  LoggerManager.info(`Creating item: "${item.title}"`, "ml");
+
+  const res = await fetch(`${ML_API_BASE}/items`, {
+    method: "POST",
+    headers: {
+      Authorization:  `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      "Accept":       "application/json",
+    },
+    body: JSON.stringify(item),
+  });
+
+  const data = (await res.json()) as MLCreateItemResponse;
+
+  if (!res.ok) {
+    const cause = data.cause?.map((c) => c.message).join("; ") ?? "";
+    const detail = [data.error, data.message, cause].filter(Boolean).join(" — ");
+    LoggerManager.warn(`Create item ${res.status}: ${detail}`, "ml");
+    throw new MLApiError(detail || `create_item_${res.status}`, res.status, JSON.stringify(data));
+  }
+
+  LoggerManager.info(`Item created: ${data.id} — ${data.permalink ?? ""}`, "ml");
+  return data;
+}
+
 // ─── Generic authenticated GET — throws MLApiError with HTTP status ────────────
 
 export async function mlGet<T>(path: string, accessToken: string): Promise<T> {

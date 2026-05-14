@@ -18,6 +18,7 @@ import {
   getMLItems,
   getMLOrders,
   registerMLToken,
+  createMLItem,
   MLApiError,
 } from "../lib/mercadolivre.js";
 import {
@@ -482,6 +483,67 @@ router.post("/ml/sync-orders", requireAdmin, async (req, res): Promise<void> => 
 
     if (err instanceof MLApiError && err.isUnauthorized) {
       IntegrationManager.recordError("ml", "Token expirado durante sync de pedidos.");
+      res.status(401).json({ error: "Token expirado. Renove o token ou reconecte a conta." });
+    } else if (err instanceof MLApiError && err.isForbidden) {
+      res.status(403).json({ error: "Sem permissão. Verifique os escopos do app no painel ML." });
+    } else {
+      res.status(500).json({ error: msg });
+    }
+  }
+});
+
+// ─── ADMIN: Create test item ──────────────────────────────────────────────────
+router.post("/ml/create-test-item", requireAdmin, async (req, res): Promise<void> => {
+  const [config] = await db.select().from(mlConfig).limit(1);
+  if (!config?.isActive || !config.accessToken) {
+    res.status(503).json({ error: "Mercado Livre não autenticado. Conecte uma conta primeiro." });
+    return;
+  }
+
+  try {
+    const item = await createMLItem(config.accessToken, {
+      title:              "Teste IAttom Assist",
+      category_id:        "MLB3530",   // Outros — categoria genérica, sem atributos obrigatórios
+      price:              10,
+      currency_id:        "BRL",
+      available_quantity: 1,
+      listing_type_id:    "free",
+      condition:          "new",
+    });
+
+    // Persist to local DB
+    if (item.id) {
+      await db.insert(mlProducts)
+        .values({
+          mlItemId:          item.id,
+          title:             item.title             ?? "Teste IAttom Assist",
+          price:             "10",
+          availableQuantity: 1,
+          status:            item.status            ?? "active",
+          categoryId:        "MLB3530",
+          permalink:         item.permalink         ?? "",
+          syncedAt:          new Date(),
+        })
+        .onConflictDoUpdate({
+          target: mlProducts.mlItemId,
+          set: {
+            title:     item.title   ?? "Teste IAttom Assist",
+            status:    item.status  ?? "active",
+            permalink: item.permalink ?? "",
+            syncedAt:  sql`now()`,
+          },
+        });
+    }
+
+    LoggerManager.info(`Test item created: ${item.id ?? "unknown"}`, "ml");
+    req.log.info({ itemId: item.id }, "ml: test item created");
+    res.json({ ok: true, item });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    LoggerManager.error(`Create test item failed: ${msg}`, "ml");
+    req.log.error({ err }, "ml: create-test-item failed");
+
+    if (err instanceof MLApiError && err.isUnauthorized) {
       res.status(401).json({ error: "Token expirado. Renove o token ou reconecte a conta." });
     } else if (err instanceof MLApiError && err.isForbidden) {
       res.status(403).json({ error: "Sem permissão. Verifique os escopos do app no painel ML." });

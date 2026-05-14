@@ -124,6 +124,10 @@ export function AdminMercadoLivre() {
   const [errorMsg, setErrorMsg]           = useState<string | null>(null);
   const [banner, setBanner]               = useState<"connected" | "error" | null>(null);
   const [connecting, setConnecting]       = useState(false);
+  const [creatingTestItem, setCreatingTestItem] = useState(false);
+  const [testItemResult, setTestItemResult]     = useState<{
+    ok: boolean; id?: string; permalink?: string; status?: string; error?: string;
+  } | null>(null);
 
   const { toast } = useToast();
 
@@ -327,6 +331,27 @@ export function AdminMercadoLivre() {
         variant: "destructive",
       });
     } finally { setSyncingProducts(false); }
+  };
+
+  // ─── Create test item ─────────────────────────────────────────────────────
+  const handleCreateTestItem = async () => {
+    setCreatingTestItem(true);
+    setTestItemResult(null);
+    try {
+      const r = await apiFetch<{ ok: boolean; item: { id?: string; permalink?: string; status?: string } }>(
+        "/api/ml/create-test-item", { method: "POST" },
+      );
+      setTestItemResult({ ok: true, id: r.item.id, permalink: r.item.permalink, status: r.item.status });
+      toast({
+        title: "Anúncio de teste criado",
+        description: `ID: ${r.item.id ?? "—"} — Status: ${r.item.status ?? "—"}`,
+      });
+      await loadAll();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Erro desconhecido.";
+      setTestItemResult({ ok: false, error: msg });
+      toast({ title: "Falha ao criar anúncio teste", description: msg, variant: "destructive" });
+    } finally { setCreatingTestItem(false); }
   };
 
   // ─── Sync orders ──────────────────────────────────────────────────────────
@@ -605,15 +630,58 @@ export function AdminMercadoLivre() {
                 <span className="text-[10px] text-emerald-400">{syncResult.products} sincronizados</span>
               )}
             </CardTitle>
-            <Button size="sm" variant="ghost" onClick={() => void handleSyncProducts()}
-              disabled={syncingProducts || !config?.isActive || config.tokenExpired}
-              className="h-7 px-2.5 text-zinc-500 hover:text-white gap-1.5 text-xs">
-              <RefreshCw className={`w-3 h-3 ${syncingProducts ? "animate-spin" : ""}`} />
-              {syncingProducts ? "Sincronizando..." : "Sincronizar"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="ghost"
+                onClick={() => void handleCreateTestItem()}
+                disabled={creatingTestItem || !config?.isActive || config?.tokenExpired}
+                className="h-7 px-2.5 text-zinc-500 hover:text-amber-400 gap-1.5 text-xs border border-white/6">
+                {creatingTestItem
+                  ? <><Loader2 className="w-3 h-3 animate-spin" />Criando...</>
+                  : <><Zap className="w-3 h-3" />Criar anúncio teste</>
+                }
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => void handleSyncProducts()}
+                disabled={syncingProducts || !config?.isActive || config?.tokenExpired}
+                className="h-7 px-2.5 text-zinc-500 hover:text-white gap-1.5 text-xs">
+                <RefreshCw className={`w-3 h-3 ${syncingProducts ? "animate-spin" : ""}`} />
+                {syncingProducts ? "Sincronizando..." : "Sincronizar"}
+              </Button>
+            </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          {/* ─── resultado do anúncio teste ─────────────────────────── */}
+          {testItemResult && (
+            <div className={`flex items-start gap-2.5 rounded-lg border px-3 py-2.5 text-xs ${
+              testItemResult.ok
+                ? "bg-emerald-500/8 border-emerald-500/20 text-emerald-300"
+                : "bg-red-500/8 border-red-500/20 text-red-300"
+            }`}>
+              {testItemResult.ok
+                ? <CheckCircle2 className="w-4 h-4 shrink-0 mt-px" />
+                : <AlertTriangle className="w-4 h-4 shrink-0 mt-px" />
+              }
+              {testItemResult.ok ? (
+                <div className="space-y-0.5 min-w-0">
+                  <p className="font-medium">Anúncio criado com sucesso</p>
+                  <p className="text-emerald-400/70 font-mono text-[10px]">ID: {testItemResult.id ?? "—"}</p>
+                  <p className="text-emerald-400/70 text-[10px]">Status: {testItemResult.status ?? "—"}</p>
+                  {testItemResult.permalink && (
+                    <a href={testItemResult.permalink} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 underline underline-offset-2">
+                      Ver no Mercado Livre <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <div className="min-w-0">
+                  <p className="font-medium">Falha ao criar anúncio</p>
+                  <p className="text-red-400/70 text-[10px] break-words">{testItemResult.error}</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {products.length === 0 ? (
             <div className="text-center py-8 text-zinc-600 text-sm">
               <Package className="w-8 h-8 mx-auto mb-2 opacity-30" />
