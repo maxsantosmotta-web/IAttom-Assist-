@@ -154,12 +154,22 @@ export function AdminMercadoLivre() {
     if (params.get("ml_connected") === "1") {
       setBanner("connected");
       window.history.replaceState({}, "", window.location.pathname);
+      toast({
+        title: "Mercado Livre conectado",
+        description: "Conta autenticada com sucesso. Sincronize seus dados.",
+      });
     } else if (params.get("ml_error")) {
+      const errMsg = decodeURIComponent(params.get("ml_error") ?? "Erro desconhecido");
       setBanner("error");
-      setErrorMsg(decodeURIComponent(params.get("ml_error") ?? "Erro desconhecido"));
+      setErrorMsg(errMsg);
       window.history.replaceState({}, "", window.location.pathname);
+      toast({
+        title: "Falha na autorização",
+        description: errMsg,
+        variant: "destructive",
+      });
     }
-  }, []);
+  }, [toast]);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -211,26 +221,54 @@ export function AdminMercadoLivre() {
     finally { setSaving(false); }
   };
 
-  // ─── Generate OAuth URL ───────────────────────────────────────────────────
+  // ─── Generate OAuth URL (display only) ────────────────────────────────────
   const handleGetOAuthUrl = async () => {
     setOauthLoading(true);
     try {
       const data = await apiFetch<{ url: string }>("/api/ml/oauth-url");
       setOauthUrl(data.url);
-    } catch { setOauthUrl(null); }
-    finally { setOauthLoading(false); }
+    } catch (e) {
+      toast({
+        title: "Erro ao gerar link",
+        description: e instanceof Error ? e.message : "Verifique se as credenciais foram salvas.",
+        variant: "destructive",
+      });
+      setOauthUrl(null);
+    } finally { setOauthLoading(false); }
+  };
+
+  // ─── Connect — fetches URL then navigates same-window ─────────────────────
+  const handleConnect = async () => {
+    setConnecting(true);
+    try {
+      const data = await apiFetch<{ url: string }>("/api/ml/oauth-url");
+      // Navigate same-window so callback redirect brings user back here
+      window.location.href = data.url;
+    } catch (e) {
+      toast({
+        title: "Não foi possível conectar",
+        description: e instanceof Error ? e.message : "Salve as credenciais antes de conectar.",
+        variant: "destructive",
+      });
+      setConnecting(false);
+    }
   };
 
   // ─── Disconnect ───────────────────────────────────────────────────────────
   const handleDisconnect = async () => {
-    if (!confirm("Desconectar a conta do Mercado Livre? Os tokens serão removidos.")) return;
     setDisconnecting(true);
     try {
       await apiFetch("/api/ml/disconnect", { method: "POST" });
       setOauthUrl(null);
+      toast({ title: "Conta desconectada", description: "Tokens do Mercado Livre removidos com sucesso." });
       await loadAll();
-    } catch { /* silent */ }
-    finally { setDisconnecting(false); }
+    } catch (e) {
+      toast({
+        title: "Erro ao desconectar",
+        description: e instanceof Error ? e.message : "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally { setDisconnecting(false); }
   };
 
   // ─── Refresh token ────────────────────────────────────────────────────────
@@ -238,12 +276,15 @@ export function AdminMercadoLivre() {
     setRefreshingToken(true);
     try {
       await apiFetch("/api/ml/refresh-token", { method: "POST" });
+      toast({ title: "Token renovado", description: "Acesso ao Mercado Livre reativado por mais 6 horas." });
       await loadAll();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Erro ao renovar token.");
-    } finally {
-      setRefreshingToken(false);
-    }
+      toast({
+        title: "Falha ao renovar token",
+        description: e instanceof Error ? e.message : "Reconecte a conta manualmente.",
+        variant: "destructive",
+      });
+    } finally { setRefreshingToken(false); }
   };
 
   // ─── Sync products ────────────────────────────────────────────────────────
@@ -252,9 +293,17 @@ export function AdminMercadoLivre() {
     try {
       const r = await apiFetch<{ ok: boolean; synced: number }>("/api/ml/sync-products", { method: "POST" });
       setSyncResult((prev) => ({ ...prev, products: r.synced }));
+      toast({
+        title: "Anúncios sincronizados",
+        description: `${r.synced} anúncio${r.synced !== 1 ? "s" : ""} importado${r.synced !== 1 ? "s" : ""} com sucesso.`,
+      });
       await loadAll();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Erro ao sincronizar anúncios.");
+      toast({
+        title: "Falha ao sincronizar anúncios",
+        description: e instanceof Error ? e.message : "Verifique a conexão e tente novamente.",
+        variant: "destructive",
+      });
     } finally { setSyncingProducts(false); }
   };
 
@@ -264,9 +313,17 @@ export function AdminMercadoLivre() {
     try {
       const r = await apiFetch<{ ok: boolean; synced: number }>("/api/ml/sync-orders", { method: "POST" });
       setSyncResult((prev) => ({ ...prev, orders: r.synced }));
+      toast({
+        title: "Pedidos sincronizados",
+        description: `${r.synced} pedido${r.synced !== 1 ? "s" : ""} importado${r.synced !== 1 ? "s" : ""} com sucesso.`,
+      });
       await loadAll();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Erro ao sincronizar pedidos.");
+      toast({
+        title: "Falha ao sincronizar pedidos",
+        description: e instanceof Error ? e.message : "Verifique a conexão e tente novamente.",
+        variant: "destructive",
+      });
     } finally { setSyncingOrders(false); }
   };
 
@@ -462,17 +519,33 @@ export function AdminMercadoLivre() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          {/* ─── instrução setup ──────────────────────────────────── */}
           <div className="bg-primary/5 border border-primary/15 rounded-lg p-3">
             <p className="text-xs font-medium text-primary mb-1.5">Como autenticar a conta Mercado Livre</p>
             <ol className="text-[11px] text-zinc-400 space-y-1 list-decimal list-inside">
               <li>Crie um app em <span className="text-primary/80">developers.mercadolivre.com.br</span> e obtenha o App ID e Client Secret.</li>
               <li>Cadastre a URI de callback: <code className="text-primary/80 font-mono">https://SEU_DOMINIO/api/ml/oauth-callback</code></li>
-              <li>Salve as credenciais acima e clique em "Gerar Link de Autorização".</li>
-              <li>Abra o link, faça login com sua conta ML e autorize o app.</li>
-              <li>O sistema salvará os tokens automaticamente e você será redirecionado de volta.</li>
+              <li>Salve as credenciais acima e clique em "Conectar".</li>
+              <li>Faça login com sua conta ML e autorize o app.</li>
+              <li>Você será redirecionado de volta com a conta já conectada.</li>
             </ol>
           </div>
 
+          {/* ─── botão principal de conexão ───────────────────────── */}
+          {!config?.isActive && (
+            <Button
+              onClick={() => void handleConnect()}
+              disabled={connecting || !config?.configured}
+              className="w-full bg-primary text-black hover:bg-primary/90 gap-2 h-10 font-semibold"
+            >
+              {connecting
+                ? <><Loader2 className="w-4 h-4 animate-spin" />Redirecionando para Mercado Livre...</>
+                : <><Zap className="w-4 h-4" />Conectar com Mercado Livre</>
+              }
+            </Button>
+          )}
+
+          {/* ─── link gerado (avançado) ───────────────────────────── */}
           {oauthUrl && (
             <div className="flex items-center gap-2">
               <code className="flex-1 bg-black/30 border border-white/8 rounded-lg px-3 py-2 text-xs text-zinc-300 font-mono break-all">{oauthUrl}</code>
@@ -488,11 +561,12 @@ export function AdminMercadoLivre() {
             </div>
           )}
 
+          {/* ─── gerar link manual (avançado) ────────────────────── */}
           <Button size="sm" variant="ghost" onClick={() => void handleGetOAuthUrl()}
             disabled={oauthLoading || !config?.configured}
-            className="border border-white/10 text-zinc-400 hover:text-white gap-2">
-            {oauthLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2 className="w-3.5 h-3.5" />}
-            {oauthUrl ? "Regenerar link" : "Gerar Link de Autorização"}
+            className="border border-white/8 text-zinc-500 hover:text-zinc-300 gap-1.5 text-xs">
+            {oauthLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />}
+            {oauthUrl ? "Regenerar link manualmente" : "Gerar link manualmente"}
           </Button>
         </CardContent>
       </Card>
