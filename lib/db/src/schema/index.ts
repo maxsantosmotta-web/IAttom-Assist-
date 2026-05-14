@@ -8,3 +8,5 @@ export * from "./notifications";
 export * from "./savedPrompts";
 export * from "./referrals";
 export * from "./referralUses";
+export * from "./whatsappConfig";
+export * from "./whatsappEvents";

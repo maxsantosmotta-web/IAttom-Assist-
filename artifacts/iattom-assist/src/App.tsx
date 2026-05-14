@@ -46,6 +46,7 @@ const AdminActivity = lazy(() => import("@/pages/admin/AdminActivity").then((m) 
 const AdminWaitlist = lazy(() => import("@/pages/admin/AdminWaitlist").then((m) => ({ default: m.AdminWaitlist })));
 const AdminFeedback = lazy(() => import("@/pages/admin/AdminFeedback").then((m) => ({ default: m.AdminFeedback })));
 const AdminLaunchChecklist = lazy(() => import("@/pages/admin/AdminLaunchChecklist").then((m) => ({ default: m.AdminLaunchChecklist })));
+const AdminWhatsApp = lazy(() => import("@/pages/admin/AdminWhatsApp").then((m) => ({ default: m.AdminWhatsApp })));
 
 function PageLoader() {
   return (
@@ -259,6 +260,7 @@ function ProtectedAdmin() {
                 <Route path="/admin/waitlist" component={AdminWaitlist} />
                 <Route path="/admin/feedback" component={AdminFeedback} />
                 <Route path="/admin/launch-checklist" component={AdminLaunchChecklist} />
+                <Route path="/admin/whatsapp" component={AdminWhatsApp} />
                 <Route component={NotFound} />
               </Switch>
             </Suspense>
