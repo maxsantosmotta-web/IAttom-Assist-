@@ -48,6 +48,8 @@ const AdminFeedback = lazy(() => import("@/pages/admin/AdminFeedback").then((m) 
 const AdminLaunchChecklist = lazy(() => import("@/pages/admin/AdminLaunchChecklist").then((m) => ({ default: m.AdminLaunchChecklist })));
 const AdminWhatsApp = lazy(() => import("@/pages/admin/AdminWhatsApp").then((m) => ({ default: m.AdminWhatsApp })));
 const AdminMeta = lazy(() => import("@/pages/admin/AdminMeta").then((m) => ({ default: m.AdminMeta })));
+const AdminShopee = lazy(() => import("@/pages/admin/AdminShopee").then((m) => ({ default: m.AdminShopee })));
+const AdminMercadoLivre = lazy(() => import("@/pages/admin/AdminMercadoLivre").then((m) => ({ default: m.AdminMercadoLivre })));
 
 function PageLoader() {
   return (
@@ -263,6 +265,8 @@ function ProtectedAdmin() {
                 <Route path="/admin/launch-checklist" component={AdminLaunchChecklist} />
                 <Route path="/admin/whatsapp" component={AdminWhatsApp} />
                 <Route path="/admin/meta" component={AdminMeta} />
+                <Route path="/admin/shopee" component={AdminShopee} />
+                <Route path="/admin/mercado-livre" component={AdminMercadoLivre} />
                 <Route component={NotFound} />
               </Switch>
             </Suspense>

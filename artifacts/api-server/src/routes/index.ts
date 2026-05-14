@@ -17,6 +17,8 @@ import referralRouter from "./referral.js";
 import adminGrowthRouter from "./adminGrowth.js";
 import whatsappRouter from "./whatsapp.js";
 import metaRouter from "./meta.js";
+import shopeeRouter from "./shopee.js";
+import mlRouter from "./ml.js";
 
 const router: IRouter = Router();
 
@@ -38,5 +40,7 @@ router.use(userAnalyticsRouter);
 router.use(referralRouter);
 router.use(whatsappRouter);
 router.use(metaRouter);
+router.use(shopeeRouter);
+router.use(mlRouter);
 
 export default router;
