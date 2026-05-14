@@ -8,6 +8,7 @@ import {
   Clock,
   MessageSquare,
   Phone,
+  Instagram,
   Menu,
   X,
   LogOut,
@@ -38,6 +39,7 @@ const navItems = [
   { href: "/admin/feedback", label: "Feedback", icon: MessageSquare },
   { href: "/admin/launch-checklist", label: "Checklist de Lançamento", icon: Rocket },
   { href: "/admin/whatsapp", label: "WhatsApp", icon: Phone },
+  { href: "/admin/meta", label: "Meta (IG + FB)", icon: Instagram },
 ];
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");

@@ -16,6 +16,7 @@ import userAnalyticsRouter from "./userAnalytics.js";
 import referralRouter from "./referral.js";
 import adminGrowthRouter from "./adminGrowth.js";
 import whatsappRouter from "./whatsapp.js";
+import metaRouter from "./meta.js";
 
 const router: IRouter = Router();
 
@@ -36,5 +37,6 @@ router.use(promptsRouter);
 router.use(userAnalyticsRouter);
 router.use(referralRouter);
 router.use(whatsappRouter);
+router.use(metaRouter);
 
 export default router;

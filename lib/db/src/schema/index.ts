@@ -10,3 +10,7 @@ export * from "./referrals";
 export * from "./referralUses";
 export * from "./whatsappConfig";
 export * from "./whatsappEvents";
+export * from "./metaConfig";
+export * from "./metaEvents";
+export * from "./metaPages";
+export * from "./metaInstagramAccounts";
