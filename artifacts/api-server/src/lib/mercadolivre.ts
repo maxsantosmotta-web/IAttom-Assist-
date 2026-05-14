@@ -4,11 +4,28 @@ import {
   type TokenInfo,
 } from "./integrations/index.js";
 
-const ML_API_BASE   = "https://api.mercadolibre.com";
-const ML_AUTH_BASE  = "https://auth.mercadolibre.com.br/authorization";
-const ML_TOKEN_URL  = "https://api.mercadolibre.com/oauth/token";
+const ML_API_BASE  = "https://api.mercadolibre.com";
+const ML_AUTH_BASE = "https://auth.mercadolibre.com.br/authorization";
+const ML_TOKEN_URL = "https://api.mercadolibre.com/oauth/token";
 
-// ─── OAuth ─────────────────────────────────────────────────────────────────────
+// ─── ML-specific error with HTTP status ───────────────────────────────────────
+
+export class MLApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly body: string = "",
+  ) {
+    super(message);
+    this.name = "MLApiError";
+  }
+  get isUnauthorized() { return this.status === 401; }
+  get isForbidden()    { return this.status === 403; }
+  get isNotFound()     { return this.status === 404; }
+  get isRateLimit()    { return this.status === 429; }
+}
+
+// ─── OAuth URL ─────────────────────────────────────────────────────────────────
 
 export function generateMLOAuthUrl(appId: string, redirectUri: string): string {
   const params = new URLSearchParams({
@@ -54,8 +71,11 @@ export async function exchangeMLCode(
 
   const data = (await res.json()) as MLTokenResponse;
 
-  if (data.error) {
-    LoggerManager.error(`Token exchange failed: ${data.error} — ${data.message ?? ""}`, "ml");
+  if (!res.ok || data.error) {
+    LoggerManager.error(
+      `Token exchange failed (${res.status}): ${data.error ?? "unknown"} — ${data.message ?? ""}`,
+      "ml",
+    );
   } else {
     LoggerManager.info(`Token exchange success — user_id: ${data.user_id}`, "ml");
   }
@@ -83,8 +103,11 @@ export async function refreshMLToken(
 
   const data = (await res.json()) as MLTokenResponse;
 
-  if (data.error) {
-    LoggerManager.error(`Token refresh failed: ${data.error} — ${data.message ?? ""}`, "ml");
+  if (!res.ok || data.error) {
+    LoggerManager.error(
+      `Token refresh failed (${res.status}): ${data.error ?? "unknown"} — ${data.message ?? ""}`,
+      "ml",
+    );
   } else {
     LoggerManager.info("Token refreshed successfully", "ml");
   }
@@ -108,7 +131,7 @@ export async function getMLUserInfo(accessToken: string): Promise<MLUserInfo> {
   return mlGet<MLUserInfo>("/users/me", accessToken);
 }
 
-// ─── Products (real implementation) ──────────────────────────────────────────
+// ─── Products (real) ──────────────────────────────────────────────────────────
 
 export interface MLProductSummary {
   id: string;
@@ -136,7 +159,6 @@ export async function getMLItems(
 ): Promise<MLProductSummary[]> {
   LoggerManager.info(`Fetching items for user ${userId}`, "ml");
 
-  // Step 1: get item IDs
   const search = await mlGet<MLItemsSearch>(
     `/users/${userId}/items/search?limit=50&offset=0`,
     accessToken,
@@ -148,7 +170,7 @@ export async function getMLItems(
     return [];
   }
 
-  // Step 2: batch-fetch item details (max 20 per request)
+  // Batch-fetch details (max 20 per request)
   const items: MLProductSummary[] = [];
   for (let i = 0; i < ids.length; i += 20) {
     const batch = ids.slice(i, i + 20);
@@ -165,7 +187,7 @@ export async function getMLItems(
   return items;
 }
 
-// ─── Orders (real implementation) ─────────────────────────────────────────────
+// ─── Orders (real) ────────────────────────────────────────────────────────────
 
 export interface MLOrderSummary {
   id: number;
@@ -196,7 +218,7 @@ export async function getMLOrders(
   return orders;
 }
 
-// ─── Generic authenticated GET ─────────────────────────────────────────────────
+// ─── Generic authenticated GET — throws MLApiError with HTTP status ────────────
 
 export async function mlGet<T>(path: string, accessToken: string): Promise<T> {
   const res = await fetch(`${ML_API_BASE}${path}`, {
@@ -205,14 +227,14 @@ export async function mlGet<T>(path: string, accessToken: string): Promise<T> {
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    LoggerManager.warn(`ML API error ${res.status} at ${path}: ${body}`, "ml");
-    throw new Error(`ML API ${res.status}: ${body}`);
+    LoggerManager.warn(`ML API ${res.status} at ${path}: ${body.slice(0, 200)}`, "ml");
+    throw new MLApiError(`ML API ${res.status}`, res.status, body);
   }
 
   return (await res.json()) as T;
 }
 
-// ─── TokenManager integration — build refresh function for scheduleRefresh ────
+// ─── TokenManager integration ─────────────────────────────────────────────────
 
 export function buildMLRefreshFn(
   appId: string,
@@ -223,7 +245,9 @@ export function buildMLRefreshFn(
     if (!current.refreshToken) throw new Error("No refresh token available");
 
     const tokens = await refreshMLToken(appId, clientSecret, current.refreshToken);
-    if (tokens.error) throw new Error(`ML refresh: ${tokens.error}`);
+    if (tokens.error || !tokens.access_token) {
+      throw new Error(`ML refresh: ${tokens.error ?? "no access_token"}`);
+    }
 
     const expiresAt = tokens.expires_in
       ? new Date(Date.now() + tokens.expires_in * 1000)
@@ -233,14 +257,12 @@ export function buildMLRefreshFn(
 
     return {
       integrationId: "ml",
-      accessToken: tokens.access_token!,
-      refreshToken: tokens.refresh_token ?? current.refreshToken,
+      accessToken:   tokens.access_token,
+      refreshToken:  tokens.refresh_token ?? current.refreshToken,
       expiresAt,
     };
   };
 }
-
-// ─── Register token in TokenManager after OAuth ───────────────────────────────
 
 export function registerMLToken(
   accessToken: string,
@@ -253,7 +275,7 @@ export function registerMLToken(
   TokenManager.setToken({
     integrationId: "ml",
     accessToken,
-    refreshToken,
+    refreshToken:  refreshToken || undefined, // coerce "" to undefined
     expiresAt,
   });
 

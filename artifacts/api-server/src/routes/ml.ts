@@ -18,35 +18,54 @@ import {
   getMLItems,
   getMLOrders,
   registerMLToken,
+  MLApiError,
 } from "../lib/mercadolivre.js";
 import {
   LoggerManager,
   EventManager,
   IntegrationManager,
+  TokenManager,
   WebhookManager,
   NotificationManager,
 } from "../lib/integrations/index.js";
 
 const router: IRouter = Router();
 
-// ─── Frontend redirect after OAuth ───────────────────────────────────────────
-const BASE_PATH = process.env.BASE_PATH ?? "";
+// ─── Redirect target after OAuth ──────────────────────────────────────────────
+// BASE_PATH is the server-side base prefix (e.g. "" in production root deployment).
+// The frontend SPA handles /admin/mercado-livre via client-side routing.
+const BASE_PATH = (process.env.BASE_PATH ?? "").replace(/\/$/, "");
+
+// ─── Helper — upsert onNewToken callback ──────────────────────────────────────
+async function persistNewToken(
+  configId: number,
+  accessToken: string,
+  refreshToken: string,
+  expiresAt: Date | undefined,
+): Promise<void> {
+  await db.update(mlConfig)
+    .set({
+      accessToken,
+      refreshToken,
+      tokenExpiry: expiresAt ?? null,
+      updatedAt:   new Date(),
+    })
+    .where(eq(mlConfig.id, configId));
+}
 
 // ─── PUBLIC: Receive ML notifications (webhook) ──────────────────────────────
 router.post("/ml/notifications", (req, res): void => {
-  const payload = req.body as Record<string, unknown>;
-  const topic   = (payload["topic"]   as string | undefined) ?? "unknown";
+  const payload  = req.body as Record<string, unknown>;
+  const topic    = (payload["topic"]    as string | undefined) ?? "unknown";
   const resource = (payload["resource"] as string | undefined) ?? "";
-  const userId  = String((payload["user_id"] as number | undefined) ?? "");
+  const userId   = String((payload["user_id"] as number | undefined) ?? "");
 
   req.log.info({ topic, resource, userId }, "ml: notification received");
 
-  // Normalize and push to EventManager
   const partial = WebhookManager.normalizeML(payload);
-  const ev = WebhookManager.buildEvent(partial);
+  const ev      = WebhookManager.buildEvent(partial);
   EventManager.push(ev);
 
-  // Persist to DB
   db.insert(mlEvents)
     .values({ topic, resource, userId, payload })
     .then(() => {
@@ -62,29 +81,33 @@ router.post("/ml/notifications", (req, res): void => {
 
 // ─── PUBLIC: OAuth callback ───────────────────────────────────────────────────
 router.get("/ml/oauth-callback", async (req, res): Promise<void> => {
-  const code  = req.query["code"] as string | undefined;
+  const code  = req.query["code"]  as string | undefined;
   const error = req.query["error"] as string | undefined;
 
+  // ML authorization denied
   if (error) {
-    LoggerManager.error(`OAuth callback error: ${error}`, "ml");
+    LoggerManager.error(`OAuth callback denied: ${error}`, "ml");
     res.redirect(`${BASE_PATH}/admin/mercado-livre?ml_error=${encodeURIComponent(error)}`);
     return;
   }
 
   if (!code) {
-    res.status(400).send("Parâmetro 'code' ausente.");
+    req.log.warn("ml: OAuth callback missing code");
+    res.status(400).send(
+      "<html><body><p>Parâmetro 'code' ausente. Volte e tente novamente.</p></body></html>",
+    );
     return;
   }
 
   const [config] = await db.select().from(mlConfig).limit(1);
   if (!config?.appId || !config.clientSecret) {
-    LoggerManager.error("OAuth callback: ML credentials not configured", "ml");
+    LoggerManager.error("OAuth callback: credentials not configured", "ml");
     res.redirect(`${BASE_PATH}/admin/mercado-livre?ml_error=not_configured`);
     return;
   }
 
   try {
-    // Exchange code for tokens
+    // 1 — Exchange code → tokens
     const tokens = await exchangeMLCode(
       config.appId,
       config.clientSecret,
@@ -93,75 +116,80 @@ router.get("/ml/oauth-callback", async (req, res): Promise<void> => {
     );
 
     if (tokens.error || !tokens.access_token) {
-      LoggerManager.error(`Code exchange failed: ${tokens.error}`, "ml");
-      res.redirect(`${BASE_PATH}/admin/mercado-livre?ml_error=${encodeURIComponent(tokens.error ?? "exchange_failed")}`);
+      const errCode = encodeURIComponent(tokens.error ?? "exchange_failed");
+      LoggerManager.error(`Code exchange failed: ${tokens.error} — ${tokens.message ?? ""}`, "ml");
+      res.redirect(`${BASE_PATH}/admin/mercado-livre?ml_error=${errCode}`);
       return;
     }
 
-    // Fetch user info for nickname
+    // 2 — Fetch nickname
     let nickname = "";
+    let mlUserId = tokens.user_id ? String(tokens.user_id) : (config.userId ?? "");
     try {
       const userInfo = await getMLUserInfo(tokens.access_token);
       nickname = userInfo.nickname;
-      LoggerManager.info(`User info fetched: ${nickname} (${userInfo.id})`, "ml");
+      mlUserId = String(userInfo.id);
+      LoggerManager.info(`User info: ${nickname} (${mlUserId})`, "ml");
     } catch (e) {
-      LoggerManager.warn(`Could not fetch user info: ${e instanceof Error ? e.message : String(e)}`, "ml");
+      LoggerManager.warn(
+        `Could not fetch /users/me: ${e instanceof Error ? e.message : String(e)}`,
+        "ml",
+      );
     }
 
     const expiresAt = tokens.expires_in
       ? new Date(Date.now() + tokens.expires_in * 1000)
       : undefined;
 
-    // Save to DB
-    const updates = {
-      accessToken:  tokens.access_token,
-      refreshToken: tokens.refresh_token ?? config.refreshToken ?? "",
-      tokenExpiry:  expiresAt ?? null,
-      userId:       String(tokens.user_id ?? config.userId ?? ""),
-      nickname,
-      isActive:     true,
-      updatedAt:    new Date(),
-    };
+    const newRefreshToken = tokens.refresh_token || config.refreshToken || "";
 
-    if (config.id) {
-      await db.update(mlConfig).set(updates).where(eq(mlConfig.id, config.id));
-    }
+    // 3 — Persist to DB
+    await db.update(mlConfig)
+      .set({
+        accessToken:  tokens.access_token,
+        refreshToken: newRefreshToken,
+        tokenExpiry:  expiresAt ?? null,
+        userId:       mlUserId,
+        nickname,
+        isActive:     true,
+        updatedAt:    new Date(),
+      })
+      .where(eq(mlConfig.id, config.id));
 
-    // Register token in global TokenManager
+    req.log.info({ mlUserId, nickname }, "ml: OAuth success — tokens saved");
+    LoggerManager.info(`OAuth complete — ${nickname} (${mlUserId})`, "ml");
+
+    // 4 — Register with TokenManager + schedule automatic refresh
     registerMLToken(
       tokens.access_token,
-      tokens.refresh_token ?? config.refreshToken ?? undefined,
+      newRefreshToken || undefined,
       expiresAt,
       config.appId,
       config.clientSecret,
       async (newToken, newExpiry) => {
-        const [cfg] = await db.select().from(mlConfig).limit(1);
-        if (!cfg) throw new Error("ML config not found");
-        await db.update(mlConfig).set({
-          accessToken:  newToken.access_token ?? cfg.accessToken ?? "",
-          refreshToken: newToken.refresh_token ?? cfg.refreshToken ?? "",
-          tokenExpiry:  newExpiry ?? null,
-          updatedAt:    new Date(),
-        }).where(eq(mlConfig.id, cfg.id));
+        await persistNewToken(
+          config.id,
+          newToken.access_token ?? "",
+          newToken.refresh_token ?? newRefreshToken,
+          newExpiry,
+        );
       },
     );
 
-    // Trigger health monitor refresh
+    // 5 — Update global health state
     void IntegrationManager.checkHealth().catch(() => undefined);
-
     NotificationManager.success(
       "Mercado Livre conectado",
-      `Conta ${nickname || "sem nome"} conectada com sucesso.`,
+      `Conta ${nickname || mlUserId} autenticada com sucesso.`,
       "ml",
     );
 
-    LoggerManager.info(`OAuth complete — user: ${nickname || tokens.user_id}`, "ml");
     res.redirect(`${BASE_PATH}/admin/mercado-livre?ml_connected=1`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     LoggerManager.error(`OAuth callback exception: ${msg}`, "ml");
-    req.log.error({ err }, "ml: OAuth callback failed");
-    res.redirect(`${BASE_PATH}/admin/mercado-livre?ml_error=${encodeURIComponent("oauth_exception")}`);
+    req.log.error({ err }, "ml: OAuth callback exception");
+    res.redirect(`${BASE_PATH}/admin/mercado-livre?ml_error=oauth_exception`);
   }
 });
 
@@ -173,7 +201,7 @@ router.get("/ml/config", requireAdmin, async (_req, res): Promise<void> => {
     return;
   }
 
-  const now = new Date();
+  const now         = new Date();
   const tokenExpired = config.tokenExpiry ? config.tokenExpiry < now : false;
 
   res.json({
@@ -193,9 +221,10 @@ router.get("/ml/config", requireAdmin, async (_req, res): Promise<void> => {
 });
 
 // ─── ADMIN: Save config ───────────────────────────────────────────────────────
+// clientSecret is optional when updating (leave empty to keep existing value).
 const configSchema = z.object({
   appId:        z.string().min(1),
-  clientSecret: z.string().min(1),
+  clientSecret: z.string().optional(),
   redirectUri:  z.string().min(1),
   siteId:       z.string().optional(),
 });
@@ -206,15 +235,35 @@ router.post("/ml/config", requireAdmin, async (req, res): Promise<void> => {
     res.status(400).json({ error: "invalid payload", issues: parsed.error.issues });
     return;
   }
+
   const { appId, clientSecret, redirectUri, siteId } = parsed.data;
   const [existing] = await db.select().from(mlConfig).limit(1);
 
   if (existing) {
+    // Only overwrite clientSecret if a non-empty value was provided
+    const secretToSave = clientSecret?.trim() ? clientSecret.trim() : existing.clientSecret;
+
     await db.update(mlConfig)
-      .set({ appId, clientSecret, redirectUri, siteId: siteId ?? "MLB", updatedAt: new Date() })
+      .set({
+        appId,
+        clientSecret: secretToSave,
+        redirectUri,
+        siteId:    siteId ?? existing.siteId ?? "MLB",
+        updatedAt: new Date(),
+      })
       .where(eq(mlConfig.id, existing.id));
   } else {
-    await db.insert(mlConfig).values({ appId, clientSecret, redirectUri, siteId: siteId ?? "MLB" });
+    // First time save — clientSecret is mandatory
+    if (!clientSecret?.trim()) {
+      res.status(400).json({ error: "Client Secret é obrigatório no primeiro cadastro." });
+      return;
+    }
+    await db.insert(mlConfig).values({
+      appId,
+      clientSecret: clientSecret.trim(),
+      redirectUri,
+      siteId: siteId ?? "MLB",
+    });
   }
 
   LoggerManager.info(`Config saved — appId: ${appId}`, "ml");
@@ -225,15 +274,19 @@ router.post("/ml/config", requireAdmin, async (req, res): Promise<void> => {
 router.get("/ml/oauth-url", requireAdmin, async (_req, res): Promise<void> => {
   const [config] = await db.select().from(mlConfig).limit(1);
   if (!config?.appId || !config.redirectUri) {
-    res.status(400).json({ error: "Salve as credenciais antes de gerar o link OAuth." });
+    res.status(400).json({ error: "Salve as credenciais (App ID e URI de callback) antes de gerar o link." });
+    return;
+  }
+  if (!config.clientSecret) {
+    res.status(400).json({ error: "Client Secret não encontrado. Salve as credenciais completas." });
     return;
   }
   const url = generateMLOAuthUrl(config.appId, config.redirectUri);
-  LoggerManager.info("OAuth URL generated", "ml");
+  LoggerManager.info(`OAuth URL generated for app ${config.appId}`, "ml");
   res.json({ url, redirectUri: config.redirectUri });
 });
 
-// ─── ADMIN: Disconnect (revoke tokens) ───────────────────────────────────────
+// ─── ADMIN: Disconnect ────────────────────────────────────────────────────────
 router.post("/ml/disconnect", requireAdmin, async (req, res): Promise<void> => {
   const [config] = await db.select().from(mlConfig).limit(1);
   if (!config) {
@@ -253,16 +306,13 @@ router.post("/ml/disconnect", requireAdmin, async (req, res): Promise<void> => {
     })
     .where(eq(mlConfig.id, config.id));
 
-  // Remove from TokenManager
-  const { TokenManager } = await import("../lib/integrations/index.js");
+  // Remove from global TokenManager (static import — guaranteed same singleton)
   TokenManager.removeToken("ml");
 
-  // Refresh health
   void IntegrationManager.checkHealth().catch(() => undefined);
-
-  NotificationManager.info("Mercado Livre desconectado", "Tokens removidos com sucesso.", "ml");
-  LoggerManager.info("Account disconnected", "ml");
-  req.log.info("ml: disconnected");
+  NotificationManager.info("Mercado Livre desconectado", "Tokens removidos.", "ml");
+  LoggerManager.info("Account disconnected — tokens cleared", "ml");
+  req.log.info("ml: account disconnected");
   res.json({ ok: true });
 });
 
@@ -270,38 +320,47 @@ router.post("/ml/disconnect", requireAdmin, async (req, res): Promise<void> => {
 router.post("/ml/refresh-token", requireAdmin, async (req, res): Promise<void> => {
   const [config] = await db.select().from(mlConfig).limit(1);
   if (!config?.refreshToken) {
-    res.status(400).json({ error: "Sem refresh token disponível. Reconecte a conta." });
+    res.status(400).json({
+      error: "Refresh token não disponível. Reconecte a conta usando o fluxo OAuth.",
+    });
     return;
   }
 
   try {
-    const tokens = await refreshMLToken(config.appId, config.clientSecret, config.refreshToken);
+    const tokens = await refreshMLToken(
+      config.appId,
+      config.clientSecret,
+      config.refreshToken,
+    );
 
     if (tokens.error || !tokens.access_token) {
-      LoggerManager.error(`Manual refresh failed: ${tokens.error}`, "ml");
-      res.status(400).json({ error: tokens.error ?? "Falha ao renovar token." });
+      const msg = tokens.message
+        ? `${tokens.error}: ${tokens.message}`
+        : (tokens.error ?? "Resposta inválida do Mercado Livre.");
+      LoggerManager.error(`Manual refresh failed: ${msg}`, "ml");
+      res.status(400).json({ error: msg });
       return;
     }
 
-    const expiresAt = tokens.expires_in
+    const expiresAt      = tokens.expires_in
       ? new Date(Date.now() + tokens.expires_in * 1000)
       : undefined;
+    const newRefreshToken = tokens.refresh_token || config.refreshToken;
 
     await db.update(mlConfig)
       .set({
         accessToken:  tokens.access_token,
-        refreshToken: tokens.refresh_token ?? config.refreshToken,
+        refreshToken: newRefreshToken,
         tokenExpiry:  expiresAt ?? null,
         updatedAt:    new Date(),
       })
       .where(eq(mlConfig.id, config.id));
 
-    // Update TokenManager
-    const { TokenManager } = await import("../lib/integrations/index.js");
+    // Update global TokenManager (static import)
     TokenManager.setToken({
       integrationId: "ml",
       accessToken:   tokens.access_token,
-      refreshToken:  tokens.refresh_token ?? config.refreshToken,
+      refreshToken:  newRefreshToken || undefined,
       expiresAt,
     });
 
@@ -311,15 +370,15 @@ router.post("/ml/refresh-token", requireAdmin, async (req, res): Promise<void> =
     const msg = err instanceof Error ? err.message : String(err);
     LoggerManager.error(`Manual refresh exception: ${msg}`, "ml");
     req.log.error({ err }, "ml: refresh-token failed");
-    res.status(500).json({ error: "Erro interno ao renovar token." });
+    res.status(500).json({ error: "Erro interno ao renovar token. Tente reconectar." });
   }
 });
 
-// ─── ADMIN: Sync products (real) ──────────────────────────────────────────────
+// ─── ADMIN: Sync products ─────────────────────────────────────────────────────
 router.post("/ml/sync-products", requireAdmin, async (req, res): Promise<void> => {
   const [config] = await db.select().from(mlConfig).limit(1);
   if (!config?.isActive || !config.accessToken) {
-    res.status(503).json({ error: "Mercado Livre não autenticado." });
+    res.status(503).json({ error: "Mercado Livre não autenticado. Conecte uma conta primeiro." });
     return;
   }
   if (!config.userId) {
@@ -335,28 +394,28 @@ router.post("/ml/sync-products", requireAdmin, async (req, res): Promise<void> =
       await db.insert(mlProducts)
         .values({
           mlItemId:          item.id,
-          title:             item.title ?? "",
-          price:             String(item.price ?? "0"),
+          title:             item.title             ?? "",
+          price:             String(item.price      ?? "0"),
           availableQuantity: item.available_quantity ?? 0,
-          status:            item.status ?? "unknown",
-          categoryId:        item.category_id ?? "",
-          permalink:         item.permalink ?? "",
+          status:            item.status            ?? "unknown",
+          categoryId:        item.category_id       ?? "",
+          permalink:         item.permalink         ?? "",
           syncedAt:          new Date(),
         })
         .onConflictDoUpdate({
           target: mlProducts.mlItemId,
           set: {
-            title:             item.title ?? "",
-            price:             String(item.price ?? "0"),
+            title:             item.title             ?? "",
+            price:             String(item.price      ?? "0"),
             availableQuantity: item.available_quantity ?? 0,
-            status:            item.status ?? "unknown",
+            status:            item.status            ?? "unknown",
             syncedAt:          sql`now()`,
           },
         });
       synced++;
     }
 
-    LoggerManager.info(`Sync products complete — ${synced} items`, "ml");
+    LoggerManager.info(`Sync products done — ${synced} items`, "ml");
     req.log.info({ synced }, "ml: sync-products complete");
     res.json({ ok: true, synced });
   } catch (err) {
@@ -364,21 +423,22 @@ router.post("/ml/sync-products", requireAdmin, async (req, res): Promise<void> =
     LoggerManager.error(`Sync products failed: ${msg}`, "ml");
     req.log.error({ err }, "ml: sync-products failed");
 
-    // Check if token expired (401)
-    if (msg.includes("401")) {
-      IntegrationManager.recordError("ml", "Token expirado — reconecte a conta.");
-      res.status(401).json({ error: "Token expirado. Reconecte a conta do Mercado Livre." });
+    if (err instanceof MLApiError && err.isUnauthorized) {
+      IntegrationManager.recordError("ml", "Token expirado durante sync de anúncios.");
+      res.status(401).json({ error: "Token expirado. Renove o token ou reconecte a conta." });
+    } else if (err instanceof MLApiError && err.isForbidden) {
+      res.status(403).json({ error: "Sem permissão. Verifique os escopos do app no painel ML." });
     } else {
       res.status(500).json({ error: msg });
     }
   }
 });
 
-// ─── ADMIN: Sync orders (real) ────────────────────────────────────────────────
+// ─── ADMIN: Sync orders ───────────────────────────────────────────────────────
 router.post("/ml/sync-orders", requireAdmin, async (req, res): Promise<void> => {
   const [config] = await db.select().from(mlConfig).limit(1);
   if (!config?.isActive || !config.accessToken) {
-    res.status(503).json({ error: "Mercado Livre não autenticado." });
+    res.status(503).json({ error: "Mercado Livre não autenticado. Conecte uma conta primeiro." });
     return;
   }
   if (!config.userId) {
@@ -394,25 +454,25 @@ router.post("/ml/sync-orders", requireAdmin, async (req, res): Promise<void> => 
       await db.insert(mlOrders)
         .values({
           mlOrderId:     String(order.id),
-          status:        order.status ?? "unknown",
+          status:        order.status              ?? "unknown",
           totalAmount:   String(order.total_amount ?? "0"),
-          buyerNickname: order.buyer?.nickname ?? "",
+          buyerNickname: order.buyer?.nickname     ?? "",
           dateCreated:   order.date_created ? new Date(order.date_created) : null,
           syncedAt:      new Date(),
         })
         .onConflictDoUpdate({
           target: mlOrders.mlOrderId,
           set: {
-            status:        order.status ?? "unknown",
+            status:        order.status              ?? "unknown",
             totalAmount:   String(order.total_amount ?? "0"),
-            buyerNickname: order.buyer?.nickname ?? "",
+            buyerNickname: order.buyer?.nickname     ?? "",
             syncedAt:      sql`now()`,
           },
         });
       synced++;
     }
 
-    LoggerManager.info(`Sync orders complete — ${synced} orders`, "ml");
+    LoggerManager.info(`Sync orders done — ${synced} orders`, "ml");
     req.log.info({ synced }, "ml: sync-orders complete");
     res.json({ ok: true, synced });
   } catch (err) {
@@ -420,9 +480,11 @@ router.post("/ml/sync-orders", requireAdmin, async (req, res): Promise<void> => 
     LoggerManager.error(`Sync orders failed: ${msg}`, "ml");
     req.log.error({ err }, "ml: sync-orders failed");
 
-    if (msg.includes("401")) {
-      IntegrationManager.recordError("ml", "Token expirado — reconecte a conta.");
-      res.status(401).json({ error: "Token expirado. Reconecte a conta do Mercado Livre." });
+    if (err instanceof MLApiError && err.isUnauthorized) {
+      IntegrationManager.recordError("ml", "Token expirado durante sync de pedidos.");
+      res.status(401).json({ error: "Token expirado. Renove o token ou reconecte a conta." });
+    } else if (err instanceof MLApiError && err.isForbidden) {
+      res.status(403).json({ error: "Sem permissão. Verifique os escopos do app no painel ML." });
     } else {
       res.status(500).json({ error: msg });
     }
@@ -431,19 +493,31 @@ router.post("/ml/sync-orders", requireAdmin, async (req, res): Promise<void> => 
 
 // ─── ADMIN: List products ─────────────────────────────────────────────────────
 router.get("/ml/products", requireAdmin, async (_req, res): Promise<void> => {
-  const products = await db.select().from(mlProducts).orderBy(desc(mlProducts.syncedAt)).limit(100);
+  const products = await db
+    .select()
+    .from(mlProducts)
+    .orderBy(desc(mlProducts.syncedAt))
+    .limit(100);
   res.json(products);
 });
 
 // ─── ADMIN: List orders ───────────────────────────────────────────────────────
 router.get("/ml/orders", requireAdmin, async (_req, res): Promise<void> => {
-  const orders = await db.select().from(mlOrders).orderBy(desc(mlOrders.syncedAt)).limit(100);
+  const orders = await db
+    .select()
+    .from(mlOrders)
+    .orderBy(desc(mlOrders.syncedAt))
+    .limit(100);
   res.json(orders);
 });
 
 // ─── ADMIN: List events ───────────────────────────────────────────────────────
 router.get("/ml/events", requireAdmin, async (_req, res): Promise<void> => {
-  const events = await db.select().from(mlEvents).orderBy(desc(mlEvents.receivedAt)).limit(50);
+  const events = await db
+    .select()
+    .from(mlEvents)
+    .orderBy(desc(mlEvents.receivedAt))
+    .limit(50);
   res.json(events);
 });
 
