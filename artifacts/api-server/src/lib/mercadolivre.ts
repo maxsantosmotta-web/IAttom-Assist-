@@ -5,7 +5,7 @@ import {
 } from "./integrations/index.js";
 
 const ML_API_BASE  = "https://api.mercadolibre.com";
-const ML_AUTH_BASE = "https://auth.mercadolibre.com.br/authorization";
+const ML_AUTH_BASE = "https://auth.mercadolivre.com/authorization";
 const ML_TOKEN_URL = "https://api.mercadolibre.com/oauth/token";
 
 // ─── ML-specific error with HTTP status ───────────────────────────────────────
