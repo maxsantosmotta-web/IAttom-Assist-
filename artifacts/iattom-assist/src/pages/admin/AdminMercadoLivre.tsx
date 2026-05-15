@@ -120,6 +120,8 @@ export function AdminMercadoLivre() {
   const [oauthLoading, setOauthLoading]   = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [refreshingToken, setRefreshingToken] = useState(false);
+  const [autoRefreshing, setAutoRefreshing]   = useState(false);
+  const [tokenExpiredBanner, setTokenExpiredBanner] = useState(false);
   const [syncResult, setSyncResult]       = useState<{ products?: number; orders?: number }>({});
   const [errorMsg, setErrorMsg]           = useState<string | null>(null);
   const [banner, setBanner]               = useState<"connected" | "error" | null>(null);
@@ -183,7 +185,28 @@ export function AdminMercadoLivre() {
         apiFetch<MLProductItem[]>("/api/ml/products"),
         apiFetch<MLOrderItem[]>("/api/ml/orders"),
       ]);
-      setConfig(cfg);
+
+      // ── Auto-refresh silencioso se token expirado ──────────────────
+      if (cfg.tokenExpired && cfg.isActive) {
+        setAutoRefreshing(true);
+        try {
+          await apiFetch("/api/ml/refresh-token", { method: "POST" });
+          // Refresh ok — reload config to clear expired flag
+          const refreshedCfg = await apiFetch<MLConfigData>("/api/ml/config");
+          setConfig(refreshedCfg);
+          setTokenExpiredBanner(false);
+        } catch {
+          // Refresh failed — exibe mensagem orientando a reconectar
+          setConfig(cfg);
+          setTokenExpiredBanner(true);
+        } finally {
+          setAutoRefreshing(false);
+        }
+      } else {
+        setConfig(cfg);
+        if (!cfg.tokenExpired) setTokenExpiredBanner(false);
+      }
+
       setProducts(prods);
       setOrders(ords);
       if (cfg.configured) {
@@ -343,7 +366,7 @@ export function AdminMercadoLivre() {
       );
       setTestItemResult({ ok: true, id: r.item.id, permalink: r.item.permalink, status: r.item.status });
       toast({
-        title: "Anúncio de teste criado",
+        title: "Anúncio criado",
         description: `ID: ${r.item.id ?? "—"} — Status: ${r.item.status ?? "—"}`,
       });
       await loadAll();
@@ -439,9 +462,14 @@ export function AdminMercadoLivre() {
                 </div>
                 <div className="flex items-center gap-3 flex-wrap mt-0.5">
                   <span className="text-[11px] text-zinc-500 font-mono">User ID: {config.userId}</span>
-                  {timeLeft && (
-                    <span className={`text-[11px] font-medium ${tokenExpired ? "text-red-400" : "text-zinc-400"}`}>
+                  {timeLeft && !tokenExpired && (
+                    <span className="text-[11px] font-medium text-zinc-400">
                       Token: {timeLeft}
+                    </span>
+                  )}
+                  {autoRefreshing && (
+                    <span className="text-[11px] text-amber-400/70 flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" />Renovando token...
                     </span>
                   )}
                   <span className="text-[11px] text-zinc-600">Site: {config.siteId}</span>
@@ -468,6 +496,24 @@ export function AdminMercadoLivre() {
                 </Button>
               </div>
             </div>
+
+            {/* ── Token expirado — banner de orientação ──────────── */}
+            {tokenExpiredBanner && !autoRefreshing && (
+              <div className="mt-3 flex items-start gap-2.5 bg-amber-500/8 border border-amber-500/25 rounded-lg px-3 py-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-px" />
+                <p className="text-xs text-amber-300 leading-relaxed flex-1">
+                  Sua conexão com o Mercado Livre expirou. Clique em{" "}
+                  <button
+                    onClick={() => void handleRefreshToken()}
+                    disabled={refreshingToken}
+                    className="font-semibold underline underline-offset-2 hover:text-amber-200 transition-colors disabled:opacity-50"
+                  >
+                    Renovar token
+                  </button>{" "}
+                  para reconectar.
+                </p>
+              </div>
+            )}
 
             {/* stats row */}
             <div className="grid grid-cols-3 gap-3 mt-4">
@@ -637,7 +683,7 @@ export function AdminMercadoLivre() {
                 className="h-7 px-2.5 text-zinc-500 hover:text-amber-400 gap-1.5 text-xs border border-white/6 whitespace-nowrap">
                 {creatingTestItem
                   ? <><Loader2 className="w-3 h-3 animate-spin" />Criando...</>
-                  : <><Zap className="w-3 h-3" />Criar anúncio teste</>
+                  : <><Zap className="w-3 h-3" />Criar anúncio</>
                 }
               </Button>
               <Button size="sm" variant="ghost" onClick={() => void handleSyncProducts()}
