@@ -236,14 +236,70 @@ router.post("/hotmart/sync-products", requireAdmin, async (req, res): Promise<vo
   }
 });
 
-// ─── ADMIN: List products ─────────────────────────────────────────────────────
-router.get("/hotmart/products", requireAdmin, async (_req, res): Promise<void> => {
+// ─── ADMIN: List products (auto-seeds default if table is empty) ──────────────
+router.get("/hotmart/products", requireAdmin, async (req, res): Promise<void> => {
+  // Auto-seed the known default product on first load if table is empty
+  const DEFAULT_PRODUCT = {
+    productId: "6095971",
+    name: "Desbloqueando Sua Energia",
+    format: "Produto próprio",
+    status: "ACTIVE",
+    price: "0",
+    currency: "BRL",
+    syncedAt: new Date(),
+  } as const;
+
+  await db
+    .insert(hotmartProducts)
+    .values(DEFAULT_PRODUCT)
+    .onConflictDoNothing();
+
   const products = await db
     .select()
     .from(hotmartProducts)
     .orderBy(desc(hotmartProducts.syncedAt))
     .limit(100);
+
+  req.log.info({ count: products.length }, "hotmart: products listed");
   res.json(products);
+});
+
+// ─── ADMIN: Manually create a product ────────────────────────────────────────
+const manualProductSchema = z.object({
+  name:      z.string().min(1, "Nome obrigatório"),
+  productId: z.string().min(1, "ID do produto obrigatório"),
+  format:    z.string().optional().default("Produto próprio"),
+  status:    z.string().optional().default("ACTIVE"),
+  price:     z.string().optional().default("0"),
+  currency:  z.string().optional().default("BRL"),
+});
+
+router.post("/hotmart/products/manual", requireAdmin, async (req, res): Promise<void> => {
+  const parsed = manualProductSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const msg = parsed.error.issues.map((i) => i.message).join(", ");
+    res.status(422).json({ error: msg });
+    return;
+  }
+
+  const { name, productId, format, status, price, currency } = parsed.data;
+
+  await db
+    .insert(hotmartProducts)
+    .values({ name, productId, format, status, price, currency, syncedAt: new Date() })
+    .onConflictDoUpdate({
+      target: hotmartProducts.productId,
+      set: { name, format, status, syncedAt: new Date() },
+    });
+
+  const [product] = await db
+    .select()
+    .from(hotmartProducts)
+    .where(eq(hotmartProducts.productId, productId))
+    .limit(1);
+
+  req.log.info({ productId, name }, "hotmart: product created/updated manually");
+  res.json({ ok: true, product });
 });
 
 // ─── ADMIN: List events ───────────────────────────────────────────────────────

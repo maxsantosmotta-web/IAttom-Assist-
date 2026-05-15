@@ -137,6 +137,15 @@ export function AdminHotmart() {
   const [eventsLoading, setEventsLoading] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [manualForm, setManualForm] = useState({
+    name: "",
+    productId: "",
+    format: "Produto próprio",
+    status: "ACTIVE",
+  });
+  const [savingManual, setSavingManual] = useState(false);
+  const [manualResult, setManualResult] = useState<{ ok?: boolean; error?: string } | null>(null);
 
   const [form, setForm] = useState({
     clientId: "",
@@ -229,6 +238,25 @@ export function AdminHotmart() {
       setSyncResult({ error: msg });
     } finally {
       setSyncingProducts(false);
+    }
+  };
+
+  const handleAddManual = async () => {
+    setSavingManual(true);
+    setManualResult(null);
+    try {
+      await apiFetch("/api/hotmart/products/manual", {
+        method: "POST",
+        body: JSON.stringify(manualForm),
+      });
+      setManualResult({ ok: true });
+      setShowManualForm(false);
+      setManualForm({ name: "", productId: "", format: "Produto próprio", status: "ACTIVE" });
+      await loadAll();
+    } catch (err) {
+      setManualResult({ error: err instanceof Error ? err.message : "Erro ao salvar." });
+    } finally {
+      setSavingManual(false);
     }
   };
 
@@ -511,13 +539,113 @@ export function AdminHotmart() {
           )}
         </CardHeader>
         <CardContent>
+          {/* ── Manual product form ── */}
+          {showManualForm && (
+            <div className="mb-4 p-4 bg-white/4 border border-white/10 rounded-lg space-y-3">
+              <p className="text-xs font-semibold text-white">Cadastrar produto manualmente</p>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="text-[10px] text-zinc-500">Nome do produto</label>
+                  <input
+                    className={inputClass}
+                    placeholder="Ex: Meu Curso Digital"
+                    value={manualForm.name}
+                    onChange={(e) => setManualForm((f) => ({ ...f, name: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-zinc-500">ID do produto Hotmart</label>
+                  <input
+                    className={inputClass}
+                    placeholder="Ex: 6095971"
+                    value={manualForm.productId}
+                    onChange={(e) => setManualForm((f) => ({ ...f, productId: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-zinc-500">Tipo</label>
+                  <select
+                    className={inputClass}
+                    value={manualForm.format}
+                    onChange={(e) => setManualForm((f) => ({ ...f, format: e.target.value }))}
+                  >
+                    <option value="Produto próprio">Produto próprio</option>
+                    <option value="Afiliado">Afiliado</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-zinc-500">Status</label>
+                  <select
+                    className={inputClass}
+                    value={manualForm.status}
+                    onChange={(e) => setManualForm((f) => ({ ...f, status: e.target.value }))}
+                  >
+                    <option value="ACTIVE">Ativo</option>
+                    <option value="INACTIVE">Inativo</option>
+                  </select>
+                </div>
+              </div>
+
+              {manualResult?.error && (
+                <p className="text-[11px] text-red-400 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3 h-3 shrink-0" />{manualResult.error}
+                </p>
+              )}
+
+              <div className="flex items-center gap-2 pt-1">
+                <Button
+                  size="sm"
+                  onClick={() => void handleAddManual()}
+                  disabled={savingManual || !manualForm.name.trim() || !manualForm.productId.trim()}
+                  className="h-7 px-3 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 text-xs gap-1.5"
+                >
+                  {savingManual ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                  {savingManual ? "Salvando..." : "Salvar produto"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => { setShowManualForm(false); setManualResult(null); }}
+                  className="h-7 px-3 text-zinc-500 hover:text-white text-xs"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+
           {products.length === 0 ? (
             <div className="text-center py-8 text-zinc-600 text-sm">
               <Package className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              Nenhum produto sincronizado. Salve as credenciais e clique em "Sincronizar Produtos".
+              <p>Nenhum produto sincronizado.</p>
+              {!showManualForm && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowManualForm(true)}
+                  className="mt-3 h-7 px-3 text-primary/70 hover:text-primary border border-primary/20 hover:border-primary/40 text-xs gap-1.5"
+                >
+                  <Save className="w-3 h-3" />
+                  Cadastrar produto manualmente
+                </Button>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
+              {!showManualForm && (
+                <div className="flex justify-end mb-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setShowManualForm(true)}
+                    className="h-6 px-2 text-zinc-600 hover:text-primary text-[10px] gap-1 border border-white/5 hover:border-primary/30"
+                  >
+                    <Save className="w-3 h-3" />
+                    Adicionar manualmente
+                  </Button>
+                </div>
+              )}
               {products.map((p) => (
                 <div key={p.id} className="flex items-center gap-3 bg-white/3 border border-white/5 rounded-lg px-3 py-2.5">
                   <div className="flex-1 min-w-0">
