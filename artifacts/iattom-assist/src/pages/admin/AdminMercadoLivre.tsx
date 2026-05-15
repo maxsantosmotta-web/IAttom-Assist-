@@ -22,6 +22,13 @@ import {
   ShieldX,
   RotateCcw,
   Zap,
+  Info,
+  X,
+  Tag,
+  DollarSign,
+  CalendarDays,
+  Boxes,
+  Layers,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -127,6 +134,7 @@ export function AdminMercadoLivre() {
   const [errorMsg, setErrorMsg]           = useState<string | null>(null);
   const [banner, setBanner]               = useState<"connected" | "error" | null>(null);
   const [connecting, setConnecting]       = useState(false);
+  const [selectedProduct, setSelectedProduct]   = useState<MLProductItem | null>(null);
   const [creatingTestItem, setCreatingTestItem] = useState(false);
   const [testItemResult, setTestItemResult]     = useState<{
     ok: boolean; id?: string; permalink?: string; status?: string; error?: string;
@@ -786,20 +794,32 @@ export function AdminMercadoLivre() {
           ) : (
             <div className="space-y-2">
               {products.map((p) => (
-                <div key={p.id} className="flex items-center gap-3 bg-white/3 border border-white/5 rounded-lg px-3 py-2.5">
+                <div
+                  key={p.id}
+                  onClick={() => setSelectedProduct(p)}
+                  className="group flex items-center gap-3 bg-white/3 hover:bg-white/6 border border-white/5 hover:border-primary/25 rounded-lg px-3 py-2.5 cursor-pointer transition-colors"
+                >
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white truncate">{p.title || "—"}</p>
+                    <p className="text-sm font-medium text-white truncate group-hover:text-primary/90 transition-colors">
+                      {p.title || "—"}
+                    </p>
                     <p className="text-[10px] text-zinc-600 font-mono">{p.mlItemId}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs text-zinc-400">R$ {p.price}</span>
-                    <span className="text-[10px] text-zinc-600">{p.availableQuantity} un.</span>
+                    <span className="text-xs text-zinc-400 hidden sm:inline">R$ {p.price}</span>
+                    <span className="text-[10px] text-zinc-600 hidden sm:inline">{p.availableQuantity} un.</span>
                     <Badge className={`text-[10px] ${statusColor(p.status)}`}>{p.status ?? "—"}</Badge>
                     {p.permalink && (
-                      <a href={p.permalink} target="_blank" rel="noopener noreferrer">
+                      <a
+                        href={p.permalink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <ExternalLink className="w-3 h-3 text-zinc-600 hover:text-zinc-300 transition-colors" />
                       </a>
                     )}
+                    <Info className="w-3.5 h-3.5 text-zinc-600 group-hover:text-primary/60 transition-colors shrink-0" />
                   </div>
                 </div>
               ))}
@@ -902,6 +922,116 @@ export function AdminMercadoLivre() {
           "Geração de descrição de anúncio com IA",
         ]}
       />
+
+      {/* ─── MODAL DETALHES DO ANÚNCIO ─────────────────────────────────── */}
+      {selectedProduct && (() => {
+        const p = selectedProduct;
+
+        const fmtDate = (d: string | null | undefined) =>
+          d
+            ? new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
+            : "Não informado";
+        const val = (v: string | number | null | undefined) =>
+          v !== null && v !== undefined && String(v).trim() !== "" ? String(v) : "Não informado";
+
+        // Infer origin from how the item was created:
+        // items created via "Criar anúncio" have a valid ML item ID starting with "MLB"
+        // vs items synced from API vs items with IDs that look like ML IDs
+        const origem = p.mlItemId?.startsWith("MLB")
+          ? "Sincronizado / Criado pelo IAttom"
+          : "Importado";
+
+        const fields: Array<{ icon: React.ElementType; label: string; value: string; span?: number; link?: string; badge?: string | null }> = [
+          { icon: Tag,          label: "ID Mercado Livre",      value: val(p.mlItemId),         span: 2 },
+          { icon: DollarSign,   label: "Preço",                 value: p.price && p.price !== "0" ? `R$ ${p.price}` : "Não informado" },
+          { icon: Boxes,        label: "Estoque",               value: p.availableQuantity !== null && p.availableQuantity !== undefined ? `${p.availableQuantity} unidades` : "Não informado" },
+          { icon: Layers,       label: "Status",                value: "", badge: p.status },
+          { icon: Package,      label: "Origem",                value: origem },
+          { icon: Link2,        label: "Link do anúncio",       value: p.permalink ? "Ver no Mercado Livre" : "Não informado", link: p.permalink ?? undefined, span: 2 },
+          { icon: CalendarDays, label: "Sincronizado em",       value: fmtDate(p.syncedAt),     span: 2 },
+        ];
+
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onClick={() => setSelectedProduct(null)}
+          >
+            {/* backdrop */}
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+
+            {/* panel */}
+            <div
+              className="relative z-10 w-full max-w-md bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* header */}
+              <div className="flex items-start gap-3 px-5 pt-5 pb-4 border-b border-white/8">
+                <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0 mt-0.5">
+                  <ShoppingCart className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white leading-snug">{val(p.title)}</p>
+                  <p className="text-[10px] text-zinc-500 font-mono mt-0.5">{p.mlItemId}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedProduct(null)}
+                  className="text-zinc-600 hover:text-white transition-colors mt-0.5 shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* body */}
+              <div className="px-5 py-4 space-y-3">
+                <div className="grid grid-cols-2 gap-2.5">
+                  {fields.map(({ icon: Icon, label, value, span, link, badge }) => (
+                    <div
+                      key={label}
+                      className={`bg-white/3 border border-white/6 rounded-lg px-3 py-2.5 ${span === 2 ? "col-span-2" : ""}`}
+                    >
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Icon className="w-3 h-3 text-primary/50 shrink-0" />
+                        <p className="text-[9px] text-zinc-500 uppercase tracking-wide">{label}</p>
+                      </div>
+                      {badge !== undefined ? (
+                        <Badge className={`text-[10px] ${statusColor(badge)}`}>
+                          {badge ?? "Não informado"}
+                        </Badge>
+                      ) : link ? (
+                        <a
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                        >
+                          {value}
+                          <ExternalLink className="w-3 h-3 shrink-0" />
+                        </a>
+                      ) : (
+                        <p className={`text-xs font-medium leading-snug ${value === "Não informado" ? "text-zinc-600" : "text-white"}`}>
+                          {value}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* footer */}
+              <div className="px-5 pb-4 flex justify-end">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSelectedProduct(null)}
+                  className="h-7 px-4 text-zinc-500 hover:text-white border border-white/8 text-xs"
+                >
+                  Fechar
+                </Button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
