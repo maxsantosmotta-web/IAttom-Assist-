@@ -88,33 +88,54 @@ export async function getHotmartProducts(
     "Content-Type": "application/json",
   };
 
-  // ── Fetch own products ────────────────────────────────────────────────────
-  logger.info({ environment, url: `${base}/products/api/v2/products` }, "hotmart: fetching own products");
-  let ownItems: HotmartProductSummary[] = [];
+  // Helper: read text, try parse as JSON, log body for debugging, never throw
+  async function safeFetch(url: string): Promise<HotmartProductSummary[]> {
+    let res: Response;
+    try {
+      res = await fetch(url, { headers });
+    } catch (networkErr) {
+      logger.warn({ url, err: networkErr }, "hotmart: network error fetching products");
+      return [];
+    }
 
-  const ownRes = await fetch(`${base}/products/api/v2/products`, { headers });
-  if (ownRes.ok) {
-    const data = (await ownRes.json()) as HotmartProductsResponse;
-    ownItems = data.items ?? [];
-    logger.info({ count: ownItems.length }, "hotmart: own products fetched");
-  } else {
-    const text = await ownRes.text().catch(() => "");
-    logger.warn({ status: ownRes.status, body: text.slice(0, 200) }, "hotmart: own products endpoint error");
+    const raw = await res.text().catch(() => "");
+    logger.info(
+      { url, status: res.status, bodyPreview: raw.slice(0, 300) },
+      "hotmart: products raw response",
+    );
+
+    if (!res.ok) {
+      logger.warn({ url, status: res.status }, "hotmart: products endpoint non-2xx");
+      return [];
+    }
+
+    if (!raw.trim()) {
+      logger.warn({ url }, "hotmart: products response body is empty — no products or no permission");
+      return [];
+    }
+
+    let parsed: HotmartProductsResponse;
+    try {
+      parsed = JSON.parse(raw) as HotmartProductsResponse;
+    } catch {
+      logger.warn({ url, raw: raw.slice(0, 300) }, "hotmart: products response is not valid JSON");
+      return [];
+    }
+
+    const items = parsed.items ?? [];
+    logger.info({ url, count: items.length }, "hotmart: products fetched ok");
+    return items;
   }
+
+  // ── Fetch own products ────────────────────────────────────────────────────
+  const ownUrl = `${base}/products/api/v2/products`;
+  logger.info({ environment, url: ownUrl }, "hotmart: fetching own products");
+  const ownItems = await safeFetch(ownUrl);
 
   // ── Fetch affiliate products ──────────────────────────────────────────────
-  logger.info({ environment }, "hotmart: fetching affiliate products");
-  let affiliateItems: HotmartProductSummary[] = [];
-
-  const affRes = await fetch(`${base}/products/api/v2/products/affiliates`, { headers });
-  if (affRes.ok) {
-    const data = (await affRes.json()) as HotmartProductsResponse;
-    affiliateItems = data.items ?? [];
-    logger.info({ count: affiliateItems.length }, "hotmart: affiliate products fetched");
-  } else {
-    const text = await affRes.text().catch(() => "");
-    logger.warn({ status: affRes.status, body: text.slice(0, 200) }, "hotmart: affiliate products endpoint error");
-  }
+  const affUrl = `${base}/products/api/v2/products/affiliates`;
+  logger.info({ environment, url: affUrl }, "hotmart: fetching affiliate products");
+  const affiliateItems = await safeFetch(affUrl);
 
   // Merge, de-duplicate by product.id
   const seen = new Set<number>();

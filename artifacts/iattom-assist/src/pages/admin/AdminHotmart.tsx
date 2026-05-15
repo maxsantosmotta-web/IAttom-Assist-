@@ -67,7 +67,14 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
     credentials: "include",
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) {
+    let detail = `HTTP ${res.status}`;
+    try {
+      const body = (await res.json()) as { error?: string };
+      if (body?.error) detail = body.error;
+    } catch { /* ignore */ }
+    throw new Error(detail);
+  }
   return res.json() as Promise<T>;
 }
 
@@ -117,7 +124,7 @@ export function AdminHotmart() {
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "ok" | "error">("idle");
   const [syncingProducts, setSyncingProducts] = useState(false);
-  const [syncResult, setSyncResult] = useState<{ synced?: number; error?: string } | null>(null);
+  const [syncResult, setSyncResult] = useState<{ synced?: number; error?: string; message?: string } | null>(null);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
@@ -202,14 +209,15 @@ export function AdminHotmart() {
     setSyncingProducts(true);
     setSyncResult(null);
     try {
-      const data = await apiFetch<{ ok: boolean; synced: number }>("/api/hotmart/sync-products", { method: "POST" });
-      setSyncResult({ synced: data.synced });
+      const data = await apiFetch<{ ok: boolean; synced: number; message?: string }>("/api/hotmart/sync-products", { method: "POST" });
+      setSyncResult({ synced: data.synced, message: data.message });
       await loadAll();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro ao sincronizar.";
       setSyncResult({ error: msg });
     } finally {
-      setSyncingProducts(false); }
+      setSyncingProducts(false);
+    }
   };
 
   const eventColor = (type: string | null | undefined) =>
@@ -442,8 +450,11 @@ export function AdminHotmart() {
               <Package className="w-4 h-4 text-primary/70 shrink-0" />
               Produtos Digitais
               <Badge className="bg-white/5 text-zinc-400 border-white/10 text-[10px] font-normal">{products.length}</Badge>
-              {syncResult?.synced !== undefined && (
+              {syncResult?.synced !== undefined && syncResult.synced > 0 && (
                 <span className="text-[10px] text-emerald-400">{syncResult.synced} sincronizados</span>
+              )}
+              {syncResult?.synced === 0 && (
+                <span className="text-[10px] text-zinc-400">Nenhum produto encontrado</span>
               )}
             </CardTitle>
             <Button size="sm" variant="ghost" onClick={() => void handleSyncProducts()}
