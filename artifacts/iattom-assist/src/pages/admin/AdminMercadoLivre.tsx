@@ -120,8 +120,9 @@ export function AdminMercadoLivre() {
   const [oauthLoading, setOauthLoading]   = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [refreshingToken, setRefreshingToken] = useState(false);
-  const [autoRefreshing, setAutoRefreshing]   = useState(false);
+  const [autoRefreshing, setAutoRefreshing]       = useState(false);
   const [tokenExpiredBanner, setTokenExpiredBanner] = useState(false);
+  const [noRefreshToken, setNoRefreshToken]         = useState(false);
   const [syncResult, setSyncResult]       = useState<{ products?: number; orders?: number }>({});
   const [errorMsg, setErrorMsg]           = useState<string | null>(null);
   const [banner, setBanner]               = useState<"connected" | "error" | null>(null);
@@ -195,10 +196,13 @@ export function AdminMercadoLivre() {
           const refreshedCfg = await apiFetch<MLConfigData>("/api/ml/config");
           setConfig(refreshedCfg);
           setTokenExpiredBanner(false);
-        } catch {
+        } catch (e) {
           // Refresh failed — exibe mensagem orientando a reconectar
+          const msg = e instanceof Error ? e.message : "";
+          const isNoToken = msg.toLowerCase().includes("refresh token") || msg.toLowerCase().includes("não disponível");
           setConfig(cfg);
           setTokenExpiredBanner(true);
+          if (isNoToken) setNoRefreshToken(true);
         } finally {
           setAutoRefreshing(false);
         }
@@ -325,14 +329,25 @@ export function AdminMercadoLivre() {
     setRefreshingToken(true);
     try {
       await apiFetch("/api/ml/refresh-token", { method: "POST" });
-      toast({ title: "Token renovado", description: "Acesso ao Mercado Livre reativado por mais 6 horas." });
+      toast({ title: "Token renovado", description: "Acesso ao Mercado Livre reativado com sucesso." });
+      setNoRefreshToken(false);
+      setTokenExpiredBanner(false);
       await loadAll();
     } catch (e) {
-      toast({
-        title: "Falha ao renovar token",
-        description: e instanceof Error ? e.message : "Reconecte a conta manualmente.",
-        variant: "destructive",
-      });
+      const msg = e instanceof Error ? e.message : "";
+      const isNoToken = msg.toLowerCase().includes("refresh token") || msg.toLowerCase().includes("não disponível");
+      if (isNoToken) {
+        // Sem refresh token — orientar reconexão sem erro técnico
+        setNoRefreshToken(true);
+        setTokenExpiredBanner(true);
+      } else {
+        toast({
+          title: "Falha ao renovar token",
+          description: "Reconecte sua conta Mercado Livre.",
+          variant: "destructive",
+        });
+        setTokenExpiredBanner(true);
+      }
     } finally { setRefreshingToken(false); }
   };
 
@@ -445,50 +460,67 @@ export function AdminMercadoLivre() {
       {config?.isActive && (
         <Card className="bg-white/3 border-white/8">
           <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-4">
-              {/* avatar placeholder */}
-              <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
-                <User className="w-5 h-5 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-base font-semibold text-white truncate">
-                    {config.nickname || "Conta Mercado Livre"}
-                  </p>
-                  {isConnected
-                    ? <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    : <ShieldX    className="w-4 h-4 text-red-400" />
-                  }
+            {/* ── header row: avatar + info + actions ── */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+              {/* avatar + info */}
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                  <User className="w-4 h-4 text-primary" />
                 </div>
-                <div className="flex items-center gap-3 flex-wrap mt-0.5">
-                  <span className="text-[11px] text-zinc-500 font-mono">User ID: {config.userId}</span>
-                  {timeLeft && !tokenExpired && (
-                    <span className="text-[11px] font-medium text-zinc-400">
-                      Token: {timeLeft}
-                    </span>
-                  )}
-                  {autoRefreshing && (
-                    <span className="text-[11px] text-amber-400/70 flex items-center gap-1">
-                      <Loader2 className="w-3 h-3 animate-spin" />Renovando token...
-                    </span>
-                  )}
-                  <span className="text-[11px] text-zinc-600">Site: {config.siteId}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-semibold text-white truncate">
+                      {config.nickname || "Conta Mercado Livre"}
+                    </p>
+                    {isConnected
+                      ? <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      : <ShieldX    className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                    }
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                    <span className="text-[10px] text-zinc-500 font-mono">ID: {config.userId}</span>
+                    {timeLeft && !tokenExpired && (
+                      <span className="text-[10px] font-medium text-zinc-400">Token: {timeLeft}</span>
+                    )}
+                    {autoRefreshing && (
+                      <span className="text-[10px] text-amber-400/70 flex items-center gap-1">
+                        <Loader2 className="w-2.5 h-2.5 animate-spin" />Renovando...
+                      </span>
+                    )}
+                    <span className="text-[10px] text-zinc-600">Site: {config.siteId}</span>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {tokenExpired && (
-                  <Button size="sm" variant="ghost" onClick={() => void handleRefreshToken()}
-                    disabled={refreshingToken}
-                    className="h-7 px-2.5 text-amber-400 hover:text-amber-300 border border-amber-500/20 gap-1.5 text-xs">
-                    {refreshingToken
-                      ? <Loader2 className="w-3 h-3 animate-spin" />
-                      : <RotateCcw className="w-3 h-3" />}
-                    Renovar token
-                  </Button>
+
+              {/* action buttons */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {tokenExpired && !autoRefreshing && (
+                  noRefreshToken ? (
+                    <Button size="sm" variant="ghost"
+                      onClick={() => void handleConnect()}
+                      disabled={connecting}
+                      className="h-7 px-2.5 text-amber-400 hover:text-amber-300 border border-amber-500/20 gap-1.5 text-xs whitespace-nowrap">
+                      {connecting
+                        ? <Loader2 className="w-3 h-3 animate-spin" />
+                        : <RotateCcw className="w-3 h-3" />}
+                      Reconectar conta
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="ghost"
+                      onClick={() => void handleRefreshToken()}
+                      disabled={refreshingToken}
+                      className="h-7 px-2.5 text-amber-400 hover:text-amber-300 border border-amber-500/20 gap-1.5 text-xs whitespace-nowrap">
+                      {refreshingToken
+                        ? <Loader2 className="w-3 h-3 animate-spin" />
+                        : <RotateCcw className="w-3 h-3" />}
+                      Renovar token
+                    </Button>
+                  )
                 )}
-                <Button size="sm" variant="ghost" onClick={() => void handleDisconnect()}
+                <Button size="sm" variant="ghost"
+                  onClick={() => void handleDisconnect()}
                   disabled={disconnecting}
-                  className="h-7 px-2.5 text-red-400 hover:text-red-300 border border-red-500/20 gap-1.5 text-xs">
+                  className="h-7 px-2.5 text-red-400 hover:text-red-300 border border-red-500/20 gap-1.5 text-xs whitespace-nowrap">
                   {disconnecting
                     ? <Loader2 className="w-3 h-3 animate-spin" />
                     : <LogOut className="w-3 h-3" />}
@@ -500,32 +532,39 @@ export function AdminMercadoLivre() {
             {/* ── Token expirado — banner de orientação ──────────── */}
             {tokenExpiredBanner && !autoRefreshing && (
               <div className="mt-3 flex items-start gap-2.5 bg-amber-500/8 border border-amber-500/25 rounded-lg px-3 py-2.5">
-                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-px" />
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-300 leading-relaxed flex-1">
-                  Sua conexão com o Mercado Livre expirou. Clique em{" "}
-                  <button
-                    onClick={() => void handleRefreshToken()}
-                    disabled={refreshingToken}
-                    className="font-semibold underline underline-offset-2 hover:text-amber-200 transition-colors disabled:opacity-50"
-                  >
-                    Renovar token
-                  </button>{" "}
-                  para reconectar.
+                  {noRefreshToken
+                    ? <>Sua conexão expirou. <button
+                        onClick={() => void handleConnect()}
+                        disabled={connecting}
+                        className="font-semibold underline underline-offset-2 hover:text-amber-200 transition-colors disabled:opacity-50">
+                        Reconecte sua conta Mercado Livre
+                      </button> para continuar.</>
+                    : <>Sua conexão com o Mercado Livre expirou. Clique em{" "}
+                        <button
+                          onClick={() => void handleRefreshToken()}
+                          disabled={refreshingToken}
+                          className="font-semibold underline underline-offset-2 hover:text-amber-200 transition-colors disabled:opacity-50">
+                          Renovar token
+                        </button>{" "}
+                        para reconectar.</>
+                  }
                 </p>
               </div>
             )}
 
             {/* stats row */}
-            <div className="grid grid-cols-3 gap-3 mt-4">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-4">
               {[
-                { label: "Anúncios sincronizados", value: products.length, icon: Package },
-                { label: "Pedidos sincronizados",  value: orders.length,   icon: ClipboardList },
-                { label: "Notificações recebidas", value: events.length,   icon: MessageSquare },
+                { label: "Anúncios",    value: products.length, icon: Package },
+                { label: "Pedidos",     value: orders.length,   icon: ClipboardList },
+                { label: "Notificações", value: events.length,  icon: MessageSquare },
               ].map(({ label, value, icon: Icon }) => (
-                <div key={label} className="bg-white/3 border border-white/6 rounded-lg px-3 py-2.5 text-center">
-                  <Icon className="w-4 h-4 text-primary/60 mx-auto mb-1" />
-                  <p className="text-lg font-bold text-white">{value}</p>
-                  <p className="text-[10px] text-zinc-500">{label}</p>
+                <div key={label} className="bg-white/3 border border-white/6 rounded-lg px-2 py-2 sm:px-3 sm:py-2.5 text-center">
+                  <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary/60 mx-auto mb-1" />
+                  <p className="text-base sm:text-lg font-bold text-white">{value}</p>
+                  <p className="text-[9px] sm:text-[10px] text-zinc-500 leading-tight">{label}</p>
                 </div>
               ))}
             </div>
@@ -677,21 +716,30 @@ export function AdminMercadoLivre() {
               )}
             </CardTitle>
             <div className="flex items-center gap-2 flex-wrap shrink-0">
-              <Button size="sm" variant="ghost"
-                onClick={() => void handleCreateTestItem()}
-                disabled={creatingTestItem || !config?.isActive || config?.tokenExpired}
-                className="h-7 px-2.5 text-zinc-500 hover:text-amber-400 gap-1.5 text-xs border border-white/6 whitespace-nowrap">
-                {creatingTestItem
-                  ? <><Loader2 className="w-3 h-3 animate-spin" />Criando...</>
-                  : <><Zap className="w-3 h-3" />Criar anúncio</>
-                }
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => void handleSyncProducts()}
-                disabled={syncingProducts || !config?.isActive || config?.tokenExpired}
-                className="h-7 px-2.5 text-zinc-500 hover:text-white gap-1.5 text-xs whitespace-nowrap">
-                <RefreshCw className={`w-3 h-3 ${syncingProducts ? "animate-spin" : ""}`} />
-                {syncingProducts ? "Sincronizando..." : "Sincronizar"}
-              </Button>
+              <span title={config?.tokenExpired ? "Reconecte sua conta para continuar" : undefined}>
+                <Button size="sm" variant="ghost"
+                  onClick={() => void handleCreateTestItem()}
+                  disabled={creatingTestItem || !config?.isActive || config?.tokenExpired}
+                  className="h-7 px-2.5 gap-1.5 text-xs border border-white/6 whitespace-nowrap
+                    text-zinc-500 hover:text-amber-400
+                    disabled:opacity-40 disabled:pointer-events-none">
+                  {creatingTestItem
+                    ? <><Loader2 className="w-3 h-3 animate-spin" />Criando...</>
+                    : <><Zap className="w-3 h-3" />Criar anúncio</>
+                  }
+                </Button>
+              </span>
+              <span title={config?.tokenExpired ? "Reconecte sua conta para continuar" : undefined}>
+                <Button size="sm" variant="ghost"
+                  onClick={() => void handleSyncProducts()}
+                  disabled={syncingProducts || !config?.isActive || config?.tokenExpired}
+                  className="h-7 px-2.5 gap-1.5 text-xs whitespace-nowrap
+                    text-zinc-500 hover:text-white
+                    disabled:opacity-40 disabled:pointer-events-none">
+                  <RefreshCw className={`w-3 h-3 ${syncingProducts ? "animate-spin" : ""}`} />
+                  {syncingProducts ? "Sincronizando..." : "Sincronizar"}
+                </Button>
+              </span>
             </div>
           </div>
         </CardHeader>
