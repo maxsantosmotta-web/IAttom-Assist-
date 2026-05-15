@@ -1,10 +1,14 @@
 import crypto from "crypto";
 import { logger } from "./logger.js";
 
+// OAuth token URL (same for sandbox and production)
+const HOTMART_TOKEN_URL = "https://api-sec-vlc.hotmart.com/security/oauth/token";
+
+// REST API base — DIFFERENT from the OAuth domain
+// Sandbox: https://sandbox.hotmart.com
+// Production: https://developers.hotmart.com
 const HOTMART_API_BASE_SANDBOX = "https://sandbox.hotmart.com";
-const HOTMART_API_BASE_PROD = "https://api-sec-vlc.hotmart.com";
-const HOTMART_TOKEN_URL_SANDBOX = "https://api-sec-vlc.hotmart.com/security/oauth/token";
-const HOTMART_TOKEN_URL_PROD = "https://api-sec-vlc.hotmart.com/security/oauth/token";
+const HOTMART_API_BASE_PROD    = "https://developers.hotmart.com";
 
 // ─── Webhook signature verification ──────────────────────────────────────────
 
@@ -34,10 +38,10 @@ export async function getHotmartAccessToken(
   basicToken: string,
   environment: string,
 ): Promise<HotmartTokenResponse> {
-  const url = environment === "production" ? HOTMART_TOKEN_URL_PROD : HOTMART_TOKEN_URL_SANDBOX;
+  // Token URL is always api-sec-vlc.hotmart.com regardless of environment
   logger.info({ environment }, "hotmart: fetching access token");
 
-  const res = await fetch(`${url}?grant_type=client_credentials`, {
+  const res = await fetch(`${HOTMART_TOKEN_URL}?grant_type=client_credentials`, {
     method: "POST",
     headers: {
       Authorization: `Basic ${basicToken}`,
@@ -45,6 +49,12 @@ export async function getHotmartAccessToken(
     },
     body: JSON.stringify({ client_id: clientId, client_secret: clientSecret }),
   });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    logger.warn({ status: res.status, body: text.slice(0, 200) }, "hotmart: token request failed");
+    return { error: `HTTP ${res.status}` };
+  }
 
   return (await res.json()) as HotmartTokenResponse;
 }
@@ -73,22 +83,51 @@ export async function getHotmartProducts(
   environment: string,
 ): Promise<HotmartProductSummary[]> {
   const base = getHotmartApiBase(environment);
-  logger.info({ environment }, "hotmart: fetching products");
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    "Content-Type": "application/json",
+  };
 
-  const res = await fetch(`${base}/product/api/v2/products`, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-  });
+  // ── Fetch own products ────────────────────────────────────────────────────
+  logger.info({ environment, url: `${base}/products/api/v2/products` }, "hotmart: fetching own products");
+  let ownItems: HotmartProductSummary[] = [];
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Hotmart products API ${res.status}: ${text}`);
+  const ownRes = await fetch(`${base}/products/api/v2/products`, { headers });
+  if (ownRes.ok) {
+    const data = (await ownRes.json()) as HotmartProductsResponse;
+    ownItems = data.items ?? [];
+    logger.info({ count: ownItems.length }, "hotmart: own products fetched");
+  } else {
+    const text = await ownRes.text().catch(() => "");
+    logger.warn({ status: ownRes.status, body: text.slice(0, 200) }, "hotmart: own products endpoint error");
   }
 
-  const data = (await res.json()) as HotmartProductsResponse;
-  return data.items ?? [];
+  // ── Fetch affiliate products ──────────────────────────────────────────────
+  logger.info({ environment }, "hotmart: fetching affiliate products");
+  let affiliateItems: HotmartProductSummary[] = [];
+
+  const affRes = await fetch(`${base}/products/api/v2/products/affiliates`, { headers });
+  if (affRes.ok) {
+    const data = (await affRes.json()) as HotmartProductsResponse;
+    affiliateItems = data.items ?? [];
+    logger.info({ count: affiliateItems.length }, "hotmart: affiliate products fetched");
+  } else {
+    const text = await affRes.text().catch(() => "");
+    logger.warn({ status: affRes.status, body: text.slice(0, 200) }, "hotmart: affiliate products endpoint error");
+  }
+
+  // Merge, de-duplicate by product.id
+  const seen = new Set<number>();
+  const merged: HotmartProductSummary[] = [];
+  for (const item of [...ownItems, ...affiliateItems]) {
+    if (!seen.has(item.product.id)) {
+      seen.add(item.product.id);
+      merged.push(item);
+    }
+  }
+
+  logger.info({ total: merged.length }, "hotmart: products merged (own + affiliates)");
+  return merged;
 }
 
 // ─── Sales ────────────────────────────────────────────────────────────────────
@@ -116,7 +155,8 @@ export async function getHotmartSales(
   const base = getHotmartApiBase(environment);
   logger.info({ environment }, "hotmart: fetching sales history");
 
-  const res = await fetch(`${base}/sales/api/v1/sales/history?max_results=50`, {
+  // Correct path: /payments/api/v1/sales/history (not /sales/api/v1)
+  const res = await fetch(`${base}/payments/api/v1/sales/history?max_results=50`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
@@ -125,7 +165,8 @@ export async function getHotmartSales(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`Hotmart sales API ${res.status}: ${text}`);
+    logger.warn({ status: res.status, body: text.slice(0, 200) }, "hotmart: sales history error");
+    return [];  // graceful — don't throw
   }
 
   const data = (await res.json()) as HotmartSalesResponse;
@@ -163,7 +204,8 @@ export async function getHotmartSubscriptions(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`Hotmart subscriptions API ${res.status}: ${text}`);
+    logger.warn({ status: res.status, body: text.slice(0, 200) }, "hotmart: subscriptions error");
+    return [];  // graceful — don't throw
   }
 
   const data = (await res.json()) as HotmartSubscriptionsResponse;
