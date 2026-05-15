@@ -19,6 +19,12 @@ import {
   RotateCcw,
   CreditCard,
   AlertCircle,
+  Rocket,
+  PlusCircle,
+  Send,
+  FileText,
+  Link,
+  Image,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -146,6 +152,15 @@ export function AdminHotmart() {
   });
   const [savingManual, setSavingManual] = useState(false);
   const [manualResult, setManualResult] = useState<{ ok?: boolean; error?: string } | null>(null);
+  const [showOfferForm, setShowOfferForm] = useState(false);
+  const [offerForm, setOfferForm] = useState({
+    title: "",
+    description: "",
+    price: "",
+    creative: "",
+    checkoutUrl: "",
+  });
+  const [offerSaved, setOfferSaved] = useState(false);
 
   const [form, setForm] = useState({
     clientId: "",
@@ -482,60 +497,44 @@ export function AdminHotmart() {
         </CardContent>
       </Card>
 
-      {/* ─── PRODUTOS ──────────────────────────────────────────────────── */}
+      {/* ─── OFERTAS ───────────────────────────────────────────────────── */}
       <Card className="bg-white/3 border-white/8">
         <CardHeader className="pb-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-sm font-semibold text-white flex items-center gap-2 flex-wrap">
-              <Package className="w-4 h-4 text-primary/70 shrink-0" />
-              Produtos Digitais
+              <Rocket className="w-4 h-4 text-primary/70 shrink-0" />
+              Ofertas Hotmart
               <Badge className="bg-white/5 text-zinc-400 border-white/10 text-[10px] font-normal">{products.length}</Badge>
               {syncResult?.synced !== undefined && syncResult.synced > 0 && (
-                <span className="text-[10px] text-emerald-400">{syncResult.synced} sincronizados</span>
-              )}
-              {syncResult?.synced === 0 && (
-                <span className="text-[10px] text-zinc-400">Nenhum produto encontrado</span>
+                <span className="text-[10px] text-emerald-400">{syncResult.synced} importados</span>
               )}
             </CardTitle>
-            <Button size="sm" variant="ghost" onClick={() => void handleSyncProducts()}
-              disabled={syncingProducts || !config?.isActive}
-              className="h-7 px-2.5 text-zinc-500 hover:text-white gap-1.5 text-xs whitespace-nowrap shrink-0">
-              <RefreshCw className={`w-3 h-3 ${syncingProducts ? "animate-spin" : ""}`} />
-              {syncingProducts ? "Sincronizando..." : "Sincronizar Produtos"}
-            </Button>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => void handleSyncProducts()}
+                disabled={syncingProducts || !config?.isActive}
+                className="h-7 px-2 text-zinc-600 hover:text-zinc-400 gap-1 text-[10px] whitespace-nowrap"
+              >
+                <RefreshCw className={`w-3 h-3 ${syncingProducts ? "animate-spin" : ""}`} />
+                {syncingProducts ? "Importando..." : "Importar"}
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => { setShowOfferForm(true); setOfferSaved(false); }}
+                disabled={!config?.isActive}
+                className="h-7 px-3 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 text-xs gap-1.5 whitespace-nowrap"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                Criar Oferta Hotmart
+              </Button>
+            </div>
           </div>
           {syncResult?.error && (
             <p className="text-[11px] text-red-400 mt-1 flex items-center gap-1.5">
               <AlertTriangle className="w-3 h-3 shrink-0" />{syncResult.error}
             </p>
-          )}
-          {syncResult?.message && syncResult.synced === 0 && (
-            <p className="text-[11px] text-amber-400/80 mt-1 flex items-start gap-1.5">
-              <AlertTriangle className="w-3 h-3 shrink-0 mt-px" />{syncResult.message}
-            </p>
-          )}
-          {syncResult?.diagnostics && syncResult.diagnostics.length > 0 && (
-            <div className="mt-2 space-y-1">
-              {syncResult.diagnostics.map((d) => {
-                const isOk = d.result === "ok";
-                const isEmpty = d.result === "empty";
-                const isError = d.result === "error" || d.result === "network_error";
-                return (
-                  <div key={d.label} className="flex items-center gap-2 text-[10px]">
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isOk ? "bg-emerald-400" : isEmpty ? "bg-zinc-500" : "bg-red-400"}`} />
-                    <span className={`font-medium ${isOk ? "text-emerald-400" : isEmpty ? "text-zinc-500" : "text-red-400"}`}>
-                      {d.label}:
-                    </span>
-                    <span className={`${isOk ? "text-emerald-400" : isEmpty ? "text-zinc-500" : "text-red-400"}`}>
-                      {isOk ? `${d.count} encontrado${d.count !== 1 ? "s" : ""}` : isEmpty ? "vazio (sem produtos ou sem permissão)" : `erro HTTP ${d.status}${d.errorDetail ? ` — ${d.errorDetail.slice(0, 60)}` : ""}`}
-                    </span>
-                    {isError && (
-                      <span className="text-zinc-600">({d.url.split("/").slice(-3).join("/")})</span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
           )}
         </CardHeader>
         <CardContent>
@@ -615,32 +614,104 @@ export function AdminHotmart() {
             </div>
           )}
 
+          {/* ── Criar Oferta form ── */}
+          {showOfferForm && (
+            <div className="mb-4 p-4 bg-white/4 border border-primary/20 rounded-xl space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-white flex items-center gap-2">
+                  <Rocket className="w-3.5 h-3.5 text-primary" />
+                  Nova Oferta Hotmart
+                </p>
+                <Button size="sm" variant="ghost"
+                  onClick={() => { setShowOfferForm(false); setOfferSaved(false); }}
+                  className="h-6 w-6 p-0 text-zinc-600 hover:text-white">
+                  <BadgeX className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+
+              {offerSaved ? (
+                <div className="flex flex-col items-center py-4 gap-2 text-center">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+                  <p className="text-sm font-medium text-white">Oferta preparada com sucesso.</p>
+                  <p className="text-[11px] text-zinc-500">Publicação automática na Hotmart disponível em breve.</p>
+                  <Button size="sm" variant="ghost"
+                    onClick={() => { setShowOfferForm(false); setOfferSaved(false); }}
+                    className="mt-1 h-7 px-3 text-zinc-500 hover:text-white text-xs">
+                    Fechar
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-1 sm:col-span-2">
+                      <label className="text-[10px] text-zinc-500 flex items-center gap-1"><FileText className="w-3 h-3" />Título da oferta</label>
+                      <input className={inputClass} placeholder="Ex: Desbloqueando Sua Energia — Edição Premium"
+                        value={offerForm.title}
+                        onChange={(e) => setOfferForm((f) => ({ ...f, title: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1 sm:col-span-2">
+                      <label className="text-[10px] text-zinc-500 flex items-center gap-1"><FileText className="w-3 h-3" />Descrição</label>
+                      <textarea rows={3} className={`${inputClass} resize-none`}
+                        placeholder="Descreva o produto, benefícios e para quem é..."
+                        value={offerForm.description}
+                        onChange={(e) => setOfferForm((f) => ({ ...f, description: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-zinc-500 flex items-center gap-1"><CreditCard className="w-3 h-3" />Preço (R$)</label>
+                      <input className={inputClass} placeholder="Ex: 197,00" type="text"
+                        value={offerForm.price}
+                        onChange={(e) => setOfferForm((f) => ({ ...f, price: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-zinc-500 flex items-center gap-1"><Link className="w-3 h-3" />URL de checkout</label>
+                      <input className={inputClass} placeholder="https://pay.hotmart.com/..."
+                        value={offerForm.checkoutUrl}
+                        onChange={(e) => setOfferForm((f) => ({ ...f, checkoutUrl: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1 sm:col-span-2">
+                      <label className="text-[10px] text-zinc-500 flex items-center gap-1"><Image className="w-3 h-3" />Criativo (descrição ou URL da imagem)</label>
+                      <input className={inputClass} placeholder="Ex: Banner horizontal fundo escuro, texto dourado"
+                        value={offerForm.creative}
+                        onChange={(e) => setOfferForm((f) => ({ ...f, creative: e.target.value }))} />
+                    </div>
+                  </div>
+
+                  <div className="pt-1 flex items-center gap-2">
+                    <Button size="sm"
+                      disabled={!offerForm.title.trim()}
+                      onClick={() => setOfferSaved(true)}
+                      className="h-7 px-3 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 text-xs gap-1.5">
+                      <Send className="w-3 h-3" />
+                      Preparar Oferta
+                    </Button>
+                    <span className="text-[10px] text-zinc-600">Publicação automática disponível em breve</span>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {products.length === 0 ? (
             <div className="text-center py-8 text-zinc-600 text-sm">
-              <Package className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              <p>Nenhum produto sincronizado.</p>
-              {!showManualForm && (
-                <Button
-                  size="sm"
-                  variant="ghost"
+              <Rocket className="w-8 h-8 mx-auto mb-3 text-primary/30" />
+              <p className="text-zinc-400 font-medium">Pronto para publicar novos produtos na Hotmart.</p>
+              <p className="text-[11px] text-zinc-600 mt-1">Clique em "Criar Oferta Hotmart" para começar.</p>
+              {!showManualForm && !showOfferForm && (
+                <Button size="sm" variant="ghost"
                   onClick={() => setShowManualForm(true)}
-                  className="mt-3 h-7 px-3 text-primary/70 hover:text-primary border border-primary/20 hover:border-primary/40 text-xs gap-1.5"
-                >
+                  className="mt-3 h-7 px-3 text-zinc-600 hover:text-zinc-400 border border-white/8 text-xs gap-1.5">
                   <Save className="w-3 h-3" />
-                  Cadastrar produto manualmente
+                  Cadastrar ID do produto existente
                 </Button>
               )}
             </div>
           ) : (
             <div className="space-y-2">
-              {!showManualForm && (
+              {!showManualForm && !showOfferForm && (
                 <div className="flex justify-end mb-1">
-                  <Button
-                    size="sm"
-                    variant="ghost"
+                  <Button size="sm" variant="ghost"
                     onClick={() => setShowManualForm(true)}
-                    className="h-6 px-2 text-zinc-600 hover:text-primary text-[10px] gap-1 border border-white/5 hover:border-primary/30"
-                  >
+                    className="h-6 px-2 text-zinc-600 hover:text-primary text-[10px] gap-1 border border-white/5 hover:border-primary/30">
                     <Save className="w-3 h-3" />
                     Adicionar manualmente
                   </Button>
