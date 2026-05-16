@@ -75,7 +75,6 @@ export function Analytics() {
         className="flex items-start justify-between gap-4"
       >
         <div className="space-y-1">
-          <p className="text-[10px] text-primary font-bold tracking-widest uppercase">Insights</p>
           <h2 className="text-2xl font-black tracking-tight text-white">Seus Dados</h2>
           <p className="text-sm text-zinc-500">Uso e desempenho no seu espaço de trabalho</p>
         </div>
