@@ -73,7 +73,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 const inputClass =
-  "w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary/50 transition-colors";
+  "w-full bg-white/5 border border-white/10 rounded-xl px-4 h-12 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary/50 focus:bg-white/8 transition-colors";
 
 const EVENT_ICONS: Record<string, React.ReactNode> = {
   "order.approved": <ShoppingBag className="w-3 h-3" />,
@@ -201,14 +201,14 @@ export function AdminKiwify() {
   return (
     <div className="p-6 space-y-6 max-w-4xl">
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-        <div className="flex items-center gap-3 mb-1">
+        <div className="flex flex-wrap items-center gap-2 mb-2">
           <Zap className="w-5 h-5 text-primary" />
           <h1 className="text-xl font-bold text-white">Kiwify</h1>
           {config?.isActive
             ? <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px]">Ativo</Badge>
             : <Badge className="bg-zinc-700/40 text-zinc-500 border-zinc-600/30 text-[10px]">Não configurado</Badge>}
         </div>
-        <p className="text-sm text-zinc-500 ml-8">Integração com a API da Kiwify — produtos digitais, afiliados e assinaturas.</p>
+        <p className="text-sm text-zinc-500 ml-7 leading-relaxed">Integração com a API da Kiwify — produtos digitais, afiliados e assinaturas.</p>
       </motion.div>
 
       {/* ─── ESTATÍSTICAS DE EVENTOS ──────────────────────────────────── */}
@@ -299,10 +299,11 @@ export function AdminKiwify() {
                   {saveStatus === "ok" && <span className="flex items-center gap-1.5 text-xs text-emerald-400"><CheckCircle2 className="w-3.5 h-3.5" />Salvo com sucesso.</span>}
                   {saveStatus === "error" && <span className="flex items-center gap-1.5 text-xs text-red-400"><AlertTriangle className="w-3.5 h-3.5" />Erro ao salvar.</span>}
                 </div>
-                <Button size="sm" onClick={() => void handleSave()}
+                <Button
+                  onClick={() => void handleSave()}
                   disabled={saving || !form.storeId || !form.clientId || (!form.clientSecret && !config?.configured) || !form.webhookSecret}
-                  className="bg-primary text-black hover:bg-primary/90 gap-2">
-                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  className="h-11 bg-primary text-black hover:bg-primary/90 inline-flex items-center justify-center gap-2 px-5">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   {saving ? "Salvando..." : "Salvar credenciais"}
                 </Button>
               </div>
@@ -320,14 +321,17 @@ export function AdminKiwify() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center gap-2">
-            <code className="flex-1 bg-black/30 border border-white/8 rounded-lg px-3 py-2 text-xs text-zinc-300 font-mono break-all">
+          <div className="flex flex-col gap-2">
+            <code className="w-full bg-black/30 border border-white/8 rounded-xl px-4 py-3 text-xs text-zinc-300 font-mono break-all overflow-hidden block leading-relaxed">
               {webhookEndpoint}
             </code>
-            <Button size="icon" variant="ghost" className="shrink-0 h-8 w-8 text-zinc-500 hover:text-white"
-              onClick={() => copyToClipboard(webhookEndpoint)}>
+            <button
+              className="self-end inline-flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-zinc-400 hover:text-white hover:border-white/20 transition-colors font-medium"
+              onClick={() => copyToClipboard(webhookEndpoint)}
+            >
               <Copy className="w-3.5 h-3.5" />
-            </Button>
+              Copiar URL
+            </button>
           </div>
           <div className="bg-primary/5 border border-primary/15 rounded-lg p-3">
             <p className="text-xs font-medium text-primary mb-1.5">Como configurar no painel Kiwify</p>

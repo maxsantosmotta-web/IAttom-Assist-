@@ -146,7 +146,7 @@ export function AdminWhatsApp() {
   };
 
   const inputClass =
-    "w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary/50 focus:bg-white/8 transition-colors";
+    "w-full bg-white/5 border border-white/10 rounded-xl px-4 h-12 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary/50 focus:bg-white/8 transition-colors";
 
   return (
     <div className="p-6 space-y-6 max-w-4xl">
@@ -155,7 +155,7 @@ export function AdminWhatsApp() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <div className="flex items-center gap-3 mb-1">
+        <div className="flex flex-wrap items-center gap-2 mb-2">
           <Phone className="w-5 h-5 text-primary" />
           <h1 className="text-xl font-bold text-white">WhatsApp Cloud API</h1>
           {config?.isActive ? (
@@ -168,7 +168,7 @@ export function AdminWhatsApp() {
             </Badge>
           )}
         </div>
-        <p className="text-sm text-zinc-500 ml-8">
+        <p className="text-sm text-zinc-500 ml-7 leading-relaxed">
           Configure a integração com a WhatsApp Business Cloud API via Meta Developers.
         </p>
       </motion.div>
@@ -283,12 +283,11 @@ export function AdminWhatsApp() {
                   )}
                 </div>
                 <Button
-                  size="sm"
                   onClick={() => void handleSave()}
                   disabled={saving || !form.businessAccountId || !form.phoneNumberId || !form.verifyToken}
-                  className="bg-primary text-black hover:bg-primary/90 gap-2"
+                  className="h-11 bg-primary text-black hover:bg-primary/90 inline-flex items-center justify-center gap-2 px-5"
                 >
-                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   {saving ? "Salvando..." : "Salvar configuração"}
                 </Button>
               </div>
@@ -306,18 +305,17 @@ export function AdminWhatsApp() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center gap-2">
-            <code className="flex-1 bg-black/30 border border-white/8 rounded-lg px-3 py-2 text-xs text-zinc-300 font-mono break-all">
+          <div className="flex flex-col gap-2">
+            <code className="w-full bg-black/30 border border-white/8 rounded-xl px-4 py-3 text-xs text-zinc-300 font-mono break-all overflow-hidden block leading-relaxed">
               {webhookEndpoint}
             </code>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="shrink-0 h-8 w-8 text-zinc-500 hover:text-white"
+            <button
+              className="self-end inline-flex items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-zinc-400 hover:text-white hover:border-white/20 transition-colors font-medium"
               onClick={() => copyToClipboard(webhookEndpoint)}
             >
               <Copy className="w-3.5 h-3.5" />
-            </Button>
+              Copiar URL
+            </button>
           </div>
           <div className="bg-primary/5 border border-primary/15 rounded-lg p-3 space-y-1.5">
             <p className="text-xs font-medium text-primary">Como configurar no Meta Developers</p>
@@ -384,15 +382,14 @@ export function AdminWhatsApp() {
               )}
             </div>
             <Button
-              size="sm"
               onClick={() => void handleTestSend()}
               disabled={testStatus === "sending" || !config?.isActive || !testTo}
-              className="bg-primary text-black hover:bg-primary/90 gap-2"
+              className="h-11 bg-primary text-black hover:bg-primary/90 inline-flex items-center justify-center gap-2 px-5"
             >
               {testStatus === "sending" ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <Send className="w-3.5 h-3.5" />
+                <Send className="w-4 h-4" />
               )}
               {testStatus === "sending" ? "Enviando..." : "Enviar teste"}
             </Button>
