@@ -302,6 +302,15 @@ router.post("/hotmart/products/manual", requireAdmin, async (req, res): Promise<
   res.json({ ok: true, product });
 });
 
+// ─── ADMIN: Delete product ────────────────────────────────────────────────────
+router.delete("/hotmart/products/:id", requireAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(req.params["id"] as string, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
+  await db.delete(hotmartProducts).where(eq(hotmartProducts.id, id));
+  req.log.info({ id }, "hotmart: product deleted");
+  res.json({ ok: true });
+});
+
 // ─── ADMIN: List events ───────────────────────────────────────────────────────
 router.get("/hotmart/events", requireAdmin, async (_req, res): Promise<void> => {
   const events = await db

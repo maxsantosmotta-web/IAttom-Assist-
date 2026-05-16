@@ -32,6 +32,7 @@ import {
   CalendarDays,
   Boxes,
   Receipt,
+  Trash2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -175,6 +176,8 @@ export function AdminHotmart() {
   const [savingManual, setSavingManual] = useState(false);
   const [manualResult, setManualResult] = useState<{ ok?: boolean; error?: string } | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<HotmartProductItem | null>(null);
+  const [confirmDeleteProduct, setConfirmDeleteProduct] = useState<HotmartProductItem | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState(false);
   const [showOfferForm, setShowOfferForm] = useState(false);
   const [offerForm, setOfferForm] = useState({
     title: "",
@@ -277,6 +280,17 @@ export function AdminHotmart() {
     } finally {
       setSyncingProducts(false);
     }
+  };
+
+  const handleDeleteProduct = async (product: HotmartProductItem) => {
+    setDeletingProduct(true);
+    try {
+      await apiFetch(`/api/hotmart/products/${product.id}`, { method: "DELETE" });
+      setProducts((prev) => prev.filter((p) => p.id !== product.id));
+      setConfirmDeleteProduct(null);
+    } catch (err) {
+      console.error("hotmart delete error", err);
+    } finally { setDeletingProduct(false); }
   };
 
   const handleAddManual = async () => {
@@ -763,6 +777,13 @@ export function AdminHotmart() {
                       {translateHotmartStatus(p.status)}
                     </Badge>
                     <Info className="w-3.5 h-3.5 text-zinc-600 group-hover:text-primary/60 transition-colors shrink-0" />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setConfirmDeleteProduct(p); }}
+                      className="p-1 rounded text-zinc-700 hover:text-red-400 transition-colors shrink-0"
+                      title="Excluir produto"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -1056,6 +1077,36 @@ export function AdminHotmart() {
           </div>
         );
       })()}
+
+      {/* ─── CONFIRM DELETE DIALOG ──────────────────────────────────── */}
+      {confirmDeleteProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 className="text-base font-semibold text-white mb-2">Excluir produto</h3>
+            <p className="text-sm text-zinc-400 mb-1">Deseja excluir este produto?</p>
+            <p className="text-sm font-medium text-zinc-300 truncate mb-5">
+              {confirmDeleteProduct.name ?? confirmDeleteProduct.productId}
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmDeleteProduct(null)}
+                disabled={deletingProduct}
+                className="px-4 py-2 text-sm rounded-lg bg-white/5 border border-white/10 text-zinc-400 hover:text-white hover:bg-white/8 transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => void handleDeleteProduct(confirmDeleteProduct)}
+                disabled={deletingProduct}
+                className="px-4 py-2 text-sm rounded-lg bg-red-500/15 border border-red-500/25 text-red-400 hover:bg-red-500/25 hover:text-red-300 transition-colors disabled:opacity-50 inline-flex items-center gap-2"
+              >
+                {deletingProduct && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
