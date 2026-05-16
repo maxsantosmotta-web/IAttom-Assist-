@@ -5,6 +5,8 @@ import {
 } from "@workspace/api-client-react";
 import { useUser } from "@clerk/react";
 
+const GLOBAL_BETA = import.meta.env.VITE_GLOBAL_BETA_MODE === "true";
+
 export function PlanGate({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { isSignedIn, isLoaded } = useUser();
@@ -35,6 +37,9 @@ export function PlanGate({ children }: { children: React.ReactNode }) {
 
   // Has an active paid subscription — access granted
   if (subscription?.hasSubscription === true) return <>{children}</>;
+
+  // Global beta mode: bypass plan restriction temporarily
+  if (GLOBAL_BETA) return <>{children}</>;
 
   // No active subscription → force to billing/plans screen
   return <Redirect to="/dashboard/billing" />;

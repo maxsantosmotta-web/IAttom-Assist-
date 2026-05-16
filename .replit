@@ -79,3 +79,5 @@ channel = "stable-25_05"
 
 [userenv.shared]
 ADMIN_EMAIL = "maxsantosmotta@gmail.com"
+GLOBAL_BETA_MODE = "true"
+VITE_GLOBAL_BETA_MODE = "true"

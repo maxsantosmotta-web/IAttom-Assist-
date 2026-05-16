@@ -8,6 +8,8 @@ import type { FeatureKey } from "@/lib/credits";
 import { FEATURE_COSTS, PLAN_CREDITS } from "@/lib/credits";
 import { PlanComparisonModal } from "@/components/PlanComparisonModal";
 
+const GLOBAL_BETA = import.meta.env.VITE_GLOBAL_BETA_MODE === "true";
+
 interface CreditsGateProps {
   feature: FeatureKey;
   onSuccess: (charge: () => void) => void;
@@ -51,7 +53,8 @@ export function CreditsGate({ feature, onSuccess, disabled, children }: CreditsG
 
   const trigger = () => {
     if (disabled) return;
-    if (me?.role === "admin") {
+    // Global beta mode or admin: bypass credit validation entirely
+    if (GLOBAL_BETA || me?.role === "admin") {
       onSuccess(() => {});
       return;
     }

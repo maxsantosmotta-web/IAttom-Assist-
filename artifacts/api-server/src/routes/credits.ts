@@ -77,6 +77,11 @@ router.post("/credits/use", requireAuth, async (req, res): Promise<void> => {
       res.status(404).json({ error: "User not found" });
       return;
     }
+    if (process.env.GLOBAL_BETA_MODE === "true") {
+      req.log.info({ clerkUserId, feature }, "credits/use: global beta bypass — insufficient credits ignored");
+      res.json(UseCreditsResponse.parse({ creditsUsed: 0, newBalance: result.balance ?? 0, transactionId: 0 }));
+      return;
+    }
     res.status(402).json({
       error: "insufficient_credits",
       balance: result.balance,
