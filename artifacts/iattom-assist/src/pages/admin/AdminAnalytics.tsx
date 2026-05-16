@@ -145,11 +145,19 @@ export function AdminAnalytics() {
     fill: FEATURE_COLORS[i % FEATURE_COLORS.length],
   }));
 
-  const planRevenueDisplay = (analytics?.planRevenue ?? []).map((p) => ({
-    ...p,
-    plan: PLAN_DISPLAY_NAMES[p.plan?.toLowerCase() ?? ""] ?? p.plan,
-  }));
-  const revenueData = planRevenueDisplay.filter((p) => p.users > 0);
+  const FIXED_PLAN_ORDER = [
+    { plan: "Start", key: "free" },
+    { plan: "Completo", key: "business" },
+    { plan: "Premium", key: "premium" },
+    { plan: "Pro", key: "pro" },
+  ];
+  const planRevenueDisplay = FIXED_PLAN_ORDER.map(({ plan, key }) => {
+    const found = (analytics?.planRevenue ?? []).find(
+      (p) => p.plan?.toLowerCase() === key
+    );
+    return { plan, mrr: found?.mrr ?? 0, users: found?.users ?? 0 };
+  });
+  const revenueData = planRevenueDisplay;
 
   const planBar = growthStats
     ? [
@@ -163,7 +171,6 @@ export function AdminAnalytics() {
   return (
     <div className="space-y-8">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Insights</p>
         <h2 className="text-2xl font-bold text-white mb-1">Análises</h2>
         <p className="text-muted-foreground text-sm">Crescimento, receita, ativação e análise de cancelamentos.</p>
       </motion.div>
