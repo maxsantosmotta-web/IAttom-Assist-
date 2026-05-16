@@ -141,19 +141,19 @@ export function AdminUsers() {
 
       <motion.div
         initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
-        className="flex flex-wrap gap-3"
+        className="flex flex-wrap items-center gap-3"
       >
-        <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="relative w-full sm:flex-1 sm:min-w-48 min-w-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           <Input
             placeholder="Pesquisar por nome ou e-mail"
-            className="pl-10 bg-[#111111] border-white/5 focus-visible:ring-primary/50"
+            className="pl-10 bg-[#111111] border-white/5 focus-visible:ring-primary/50 w-full"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <Select value={planFilter} onValueChange={setPlanFilter}>
-          <SelectTrigger className="w-36 bg-[#111111] border-white/5">
+          <SelectTrigger className="flex-1 min-w-[130px] sm:flex-none sm:w-36 bg-[#111111] border-white/5">
             <SelectValue placeholder="Todos os Planos" />
           </SelectTrigger>
           <SelectContent className="bg-[#111111] border-white/10">
@@ -165,7 +165,7 @@ export function AdminUsers() {
           </SelectContent>
         </Select>
         <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-32 bg-[#111111] border-white/5">
+          <SelectTrigger className="flex-1 min-w-[120px] sm:flex-none sm:w-32 bg-[#111111] border-white/5">
             <SelectValue placeholder="Todas as Funções" />
           </SelectTrigger>
           <SelectContent className="bg-[#111111] border-white/10">
@@ -174,8 +174,8 @@ export function AdminUsers() {
             <SelectItem value="admin">Admin</SelectItem>
           </SelectContent>
         </Select>
-        <div className="flex items-center gap-1.5 text-sm text-muted-foreground ml-auto">
-          <Users className="w-4 h-4" />
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground w-full sm:w-auto sm:ml-auto">
+          <Users className="w-4 h-4 shrink-0" />
           <span>{isLoading ? "..." : data?.total ?? 0} usuários</span>
         </div>
       </motion.div>
@@ -186,14 +186,14 @@ export function AdminUsers() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/5">
-                  <th className="text-left px-5 py-3 text-xs text-muted-foreground font-medium">Usuário</th>
-                  <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Função</th>
-                  <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Plano</th>
-                  <th className="text-right px-4 py-3 text-xs text-muted-foreground font-medium">Créditos</th>
-                  <th className="text-right px-4 py-3 text-xs text-muted-foreground font-medium">Projetos</th>
-                  <th className="text-right px-4 py-3 text-xs text-muted-foreground font-medium">Ações</th>
-                  <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Cadastro</th>
-                  <th className="px-4 py-3"></th>
+                  <th className="text-left px-5 py-3.5 text-xs text-muted-foreground font-medium whitespace-nowrap">Usuário</th>
+                  <th className="text-left px-4 py-3.5 text-xs text-muted-foreground font-medium whitespace-nowrap">Função</th>
+                  <th className="text-left px-4 py-3.5 text-xs text-muted-foreground font-medium whitespace-nowrap">Plano</th>
+                  <th className="text-right px-4 py-3.5 text-xs text-muted-foreground font-medium whitespace-nowrap">Créditos</th>
+                  <th className="text-right px-4 py-3.5 text-xs text-muted-foreground font-medium whitespace-nowrap">Projetos</th>
+                  <th className="text-right px-4 py-3.5 text-xs text-muted-foreground font-medium whitespace-nowrap">Ações</th>
+                  <th className="text-left px-4 py-3.5 text-xs text-muted-foreground font-medium whitespace-nowrap">Cadastro</th>
+                  <th className="px-4 py-3.5"></th>
                 </tr>
               </thead>
               <tbody>
