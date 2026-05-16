@@ -668,15 +668,15 @@ export function AdminLaunchChecklist() {
                       <p className={`text-sm font-semibold leading-snug ${isDone ? "text-emerald-400 line-through decoration-emerald-400/40" : "text-white"}`}>
                         {step.label}
                       </p>
-                      <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap min-w-0">
                         {step.link && (
                           <Link href={step.link}>
                             <a
                               target={step.link.startsWith("/dashboard") || step.link.startsWith("/admin") || step.link.startsWith("/sign") ? undefined : "_blank"}
-                              className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-zinc-400 hover:text-primary hover:border-primary/30 transition-colors font-medium"
+                              className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-zinc-400 hover:text-primary hover:border-primary/30 transition-colors font-medium max-w-[180px]"
                             >
-                              <ExternalLink className="w-3 h-3" />
-                              {step.linkLabel}
+                              <ExternalLink className="w-3 h-3 shrink-0" />
+                              <span className="truncate">{step.linkLabel}</span>
                             </a>
                           </Link>
                         )}

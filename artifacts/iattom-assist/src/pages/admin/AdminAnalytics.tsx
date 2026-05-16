@@ -19,7 +19,7 @@ const ORANGE = "#fb923c";
 const ROSE = "#fb7185";
 const AMBER = "#fbbf24";
 
-const PIE_COLORS = [GOLD, PURPLE, EMERALD];
+const PIE_COLORS = [GOLD, PURPLE, EMERALD, BLUE];
 const FEATURE_COLORS = [GOLD, PURPLE, EMERALD, BLUE, ORANGE, ROSE, AMBER];
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -48,11 +48,28 @@ const FEATURE_NAME_MAP: Record<string, string> = {
   "Video Script": "Roteiro de Vídeo",
 };
 
+const PLAN_DISPLAY_NAMES: Record<string, string> = {
+  free: "Start",
+  start: "Start",
+  pro: "Pro",
+  business: "Completo",
+  completo: "Completo",
+  premium: "Premium",
+  agency: "Pro",
+};
+
 const PLAN_MRR_LABEL: Record<string, string> = {
-  free: "MRR Gratuito",
-  pro: "MRR PRO",
-  business: "MRR Empresarial",
-  agency: "MRR Agência",
+  free: "MRR Start",
+  start: "MRR Start",
+  Start: "MRR Start",
+  pro: "MRR Pro",
+  Pro: "MRR Pro",
+  business: "MRR Completo",
+  completo: "MRR Completo",
+  Completo: "MRR Completo",
+  premium: "MRR Premium",
+  Premium: "MRR Premium",
+  agency: "MRR Pro",
 };
 
 const PieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
@@ -128,7 +145,11 @@ export function AdminAnalytics() {
     fill: FEATURE_COLORS[i % FEATURE_COLORS.length],
   }));
 
-  const revenueData = analytics?.planRevenue.filter((p) => p.users > 0) ?? [];
+  const planRevenueDisplay = (analytics?.planRevenue ?? []).map((p) => ({
+    ...p,
+    plan: PLAN_DISPLAY_NAMES[p.plan?.toLowerCase() ?? ""] ?? p.plan,
+  }));
+  const revenueData = planRevenueDisplay.filter((p) => p.users > 0);
 
   const planBar = growthStats
     ? [
@@ -323,17 +344,17 @@ export function AdminAnalytics() {
                 <>
                   <ResponsiveContainer width="100%" height={180}>
                     <PieChart>
-                      <Pie data={analytics?.planRevenue ?? []} dataKey="mrr" nameKey="plan" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={<PieLabel />}>
-                        {(analytics?.planRevenue ?? []).map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} stroke="none" />)}
+                      <Pie data={planRevenueDisplay} dataKey="mrr" nameKey="plan" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={<PieLabel />}>
+                        {planRevenueDisplay.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} stroke="none" />)}
                       </Pie>
                       <Tooltip content={<CustomTooltip />} />
                       <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, color: "#71717a" }} />
                     </PieChart>
                   </ResponsiveContainer>
-                  <div className="grid grid-cols-3 gap-2 mt-2">
-                    {analytics?.planRevenue.map((p, i) => (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+                    {planRevenueDisplay.map((p, i) => (
                       <div key={p.plan} className="text-center">
-                        <p className="text-sm font-bold" style={{ color: PIE_COLORS[i] }}>${p.mrr.toLocaleString()}</p>
+                        <p className="text-sm font-bold" style={{ color: PIE_COLORS[i % PIE_COLORS.length] }}>${p.mrr.toLocaleString()}</p>
                         <p className="text-[10px] text-muted-foreground">{PLAN_MRR_LABEL[p.plan] ?? `${p.plan} MRR`}</p>
                       </div>
                     ))}

@@ -85,6 +85,7 @@ const PURCHASE_EVENT_COLORS: Record<string, string> = {
 const EVENT_LABELS: Record<string, string> = {
   PURCHASE_APPROVED: "Compra Aprovada",
   "order.approved": "Compra Aprovada",
+  PURCHASE_COMPLETE: "Compra Concluída",
   PURCHASE_BILLET_PRINTED: "Boleto/Pix",
   "order.waiting_payment": "Aguardando",
   PURCHASE_REFUNDED: "Reembolso",
@@ -95,10 +96,14 @@ const EVENT_LABELS: Record<string, string> = {
   "order.canceled": "Cancelado",
   PURCHASE_ABANDONED: "Abandono",
   "order.abandoned": "Abandono",
+  PURCHASE_OUT_OF_SHOPPING_CART: "Fora do carrinho",
+  SWITCH_PLAN: "Troca de plano",
   SUBSCRIPTION_ACTIVE: "Assinatura",
   "subscription.active": "Assinatura",
-  SUBSCRIPTION_CANCELED: "Assin. Cancelada",
-  "subscription.canceled": "Assin. Cancelada",
+  SUBSCRIPTION_CANCELED: "Assin. cancelada",
+  "subscription.canceled": "Assin. cancelada",
+  SUBSCRIPTION_CANCELLATION: "Assin. cancelada",
+  CLUB_FIRST_ACCESS: "Primeiro acesso",
   message: "Mensagem",
   messages: "Mensagem",
   comments: "Comentário",
@@ -141,25 +146,25 @@ function GlobalEventRow({ ev }: { ev: IntegrationEvent }) {
       : "—";
 
   return (
-    <div className="flex items-center gap-2.5 bg-white/2 border border-white/5 rounded-lg px-3 py-2 hover:bg-white/3 transition-colors">
-      <Badge className={`text-[9px] shrink-0 font-medium ${PLATFORM_COLORS[ev.platform]}`}>
-        {ev.platformLabel}
-      </Badge>
-      <Badge className={`flex items-center gap-1 text-[9px] shrink-0 ${eventColor(ev.eventType)}`}>
-        {eventIcon(ev.eventType)}
-        {eventLabel(ev.eventType)}
-      </Badge>
-      <span className="text-xs text-zinc-400 truncate flex-1 min-w-0">
-        {ev.primaryText || ev.secondaryText || "—"}
-      </span>
-      {ev.value && (
-        <span className="text-xs text-zinc-500 shrink-0">
-          R$ {ev.value}
+    <div className="flex flex-col gap-1 bg-white/2 border border-white/5 rounded-lg px-3 py-2 hover:bg-white/3 transition-colors overflow-hidden">
+      <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+        <Badge className={`text-[9px] font-medium ${PLATFORM_COLORS[ev.platform]}`}>
+          {ev.platformLabel}
+        </Badge>
+        <Badge className={`flex items-center gap-1 text-[9px] ${eventColor(ev.eventType)}`}>
+          {eventIcon(ev.eventType)}
+          {eventLabel(ev.eventType)}
+        </Badge>
+        <span className="text-xs text-zinc-400 truncate min-w-0 flex-1">
+          {ev.primaryText || ev.secondaryText || "—"}
         </span>
-      )}
-      <span className="text-[10px] text-zinc-700 shrink-0 tabular-nums">
-        {formatDate(ev.receivedAt)}
-      </span>
+      </div>
+      <div className="flex items-center gap-2 min-w-0">
+        {ev.value && (
+          <span className="text-xs text-zinc-500">R$ {ev.value}</span>
+        )}
+        <span className="text-[10px] text-zinc-700 tabular-nums ml-auto">{formatDate(ev.receivedAt)}</span>
+      </div>
     </div>
   );
 }
@@ -185,9 +190,9 @@ export function AdminIntegrations() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-3">
-            <Wifi className="w-5 h-5 text-primary" />
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <Wifi className="w-5 h-5 text-primary shrink-0" />
             <h1 className="text-xl font-bold text-white">Integrações</h1>
             {!loading && (
               <div className="flex items-center gap-2">
@@ -204,13 +209,13 @@ export function AdminIntegrations() {
             size="sm"
             variant="ghost"
             onClick={() => { refetch(); refetchEvents(); }}
-            className="h-7 px-2.5 text-zinc-500 hover:text-white gap-1.5 text-xs"
+            className="shrink-0 h-7 px-2.5 text-zinc-500 hover:text-white gap-1.5 text-xs"
           >
             <RefreshCw className="w-3 h-3" />
             Atualizar
           </Button>
         </div>
-        <p className="text-sm text-zinc-500 ml-8">
+        <p className="text-sm text-zinc-500 ml-7 leading-relaxed">
           Visão consolidada de todas as integrações e feed global de eventos.
         </p>
       </motion.div>
