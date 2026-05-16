@@ -640,7 +640,7 @@ export function AdminLaunchChecklist() {
               <motion.div
                 key={step.id}
                 variants={itemVariants}
-                className={`rounded-xl border p-4 transition-colors ${
+                className={`rounded-2xl border p-4 sm:p-5 transition-colors ${
                   isDone
                     ? "bg-emerald-500/5 border-emerald-500/15"
                     : "bg-[#111111] border-white/5 hover:border-white/10"
@@ -664,16 +664,16 @@ export function AdminLaunchChecklist() {
                   </button>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-3 flex-wrap">
-                      <p className={`text-sm font-semibold ${isDone ? "text-emerald-400 line-through decoration-emerald-400/40" : "text-white"}`}>
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <p className={`text-sm font-semibold leading-snug ${isDone ? "text-emerald-400 line-through decoration-emerald-400/40" : "text-white"}`}>
                         {step.label}
                       </p>
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap">
                         {step.link && (
                           <Link href={step.link}>
                             <a
                               target={step.link.startsWith("/dashboard") || step.link.startsWith("/admin") || step.link.startsWith("/sign") ? undefined : "_blank"}
-                              className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-zinc-400 hover:text-primary hover:border-primary/30 transition-colors font-medium"
+                              className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-zinc-400 hover:text-primary hover:border-primary/30 transition-colors font-medium"
                             >
                               <ExternalLink className="w-3 h-3" />
                               {step.linkLabel}
@@ -682,7 +682,7 @@ export function AdminLaunchChecklist() {
                         )}
                         <button
                           onClick={() => toggleTestStep(step.id)}
-                          className={`text-[11px] px-2.5 py-1 rounded-md border font-medium transition-colors ${
+                          className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors whitespace-nowrap ${
                             isDone
                               ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400"
                               : "bg-primary/10 border-primary/20 text-primary hover:bg-primary/20"
@@ -692,7 +692,7 @@ export function AdminLaunchChecklist() {
                         </button>
                       </div>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                    <p className="text-xs text-muted-foreground mt-2.5 leading-relaxed">
                       {step.description}
                     </p>
                   </div>

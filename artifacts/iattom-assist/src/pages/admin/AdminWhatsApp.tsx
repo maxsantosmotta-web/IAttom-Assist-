@@ -196,16 +196,16 @@ export function AdminWhatsApp() {
                   </label>
                   <input
                     className={inputClass}
-                    placeholder="ex: 123456789012345"
+                    placeholder="Ex.: 123456789012345"
                     value={form.businessAccountId}
                     onChange={(e) => setForm((f) => ({ ...f, businessAccountId: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-zinc-400">Phone Number ID</label>
+                  <label className="text-xs font-medium text-zinc-400">ID do número</label>
                   <input
                     className={inputClass}
-                    placeholder="ex: 987654321098765"
+                    placeholder="Ex.: 987654321098765"
                     value={form.phoneNumberId}
                     onChange={(e) => setForm((f) => ({ ...f, phoneNumberId: e.target.value }))}
                   />
@@ -213,7 +213,7 @@ export function AdminWhatsApp() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-400">Access Token</label>
+                <label className="text-xs font-medium text-zinc-400">Token de acesso</label>
                 <div className="relative">
                   <input
                     className={inputClass + " pr-10"}
@@ -243,10 +243,10 @@ export function AdminWhatsApp() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-zinc-400">Verify Token</label>
+                  <label className="text-xs font-medium text-zinc-400">Token de verificação</label>
                   <input
                     className={inputClass}
-                    placeholder="ex: meu_token_secreto_123"
+                    placeholder="Ex.: meu_token_secreto_123"
                     value={form.verifyToken}
                     onChange={(e) => setForm((f) => ({ ...f, verifyToken: e.target.value }))}
                   />
@@ -256,7 +256,7 @@ export function AdminWhatsApp() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-zinc-400">
-                    Webhook URL (referência)
+                    URL do webhook (referência)
                   </label>
                   <input
                     className={inputClass}
@@ -353,7 +353,7 @@ export function AdminWhatsApp() {
               <label className="text-xs font-medium text-zinc-400">Número destino</label>
               <input
                 className={inputClass}
-                placeholder="ex: 5511999998888"
+                placeholder="Ex.: 5511999998888"
                 value={testTo}
                 onChange={(e) => setTestTo(e.target.value)}
               />

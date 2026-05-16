@@ -265,13 +265,13 @@ export function AdminMeta() {
                   <label className="text-xs font-medium text-zinc-400">App ID</label>
                   <input
                     className={inputClass}
-                    placeholder="ex: 123456789012345"
+                    placeholder="Ex.: 123456789012345"
                     value={form.appId}
                     onChange={(e) => setForm((f) => ({ ...f, appId: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-zinc-400">App Secret</label>
+                  <label className="text-xs font-medium text-zinc-400">Segredo do app</label>
                   <div className="relative">
                     <input
                       className={inputClass + " pr-10"}
@@ -297,7 +297,7 @@ export function AdminMeta() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-400">User Access Token</label>
+                <label className="text-xs font-medium text-zinc-400">Token de acesso</label>
                 <div className="relative">
                   <input
                     className={inputClass + " pr-10"}
@@ -321,10 +321,10 @@ export function AdminMeta() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-zinc-400">Verify Token</label>
+                  <label className="text-xs font-medium text-zinc-400">Token de verificação</label>
                   <input
                     className={inputClass}
-                    placeholder="ex: meu_token_secreto_meta"
+                    placeholder="Ex.: meu_token_secreto_meta"
                     value={form.verifyToken}
                     onChange={(e) => setForm((f) => ({ ...f, verifyToken: e.target.value }))}
                   />
@@ -334,7 +334,7 @@ export function AdminMeta() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-zinc-400">
-                    Webhook URL (referência)
+                    URL do webhook (referência)
                   </label>
                   <input
                     className={inputClass}

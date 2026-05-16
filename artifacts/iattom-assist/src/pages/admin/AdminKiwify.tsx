@@ -247,7 +247,7 @@ export function AdminKiwify() {
                 <p className="text-xs font-medium text-primary mb-1.5">Onde encontrar as credenciais</p>
                 <ol className="text-[11px] text-zinc-400 space-y-1 list-decimal list-inside">
                   <li>Acesse <strong className="text-zinc-300">app.kiwify.com.br</strong> → Configurações → Integrações → API.</li>
-                  <li>Copie o <strong className="text-zinc-300">Store ID</strong>, <strong className="text-zinc-300">Client ID</strong> e <strong className="text-zinc-300">Client Secret</strong>.</li>
+                  <li>Copie o <strong className="text-zinc-300">ID da loja</strong>, <strong className="text-zinc-300">ID do cliente</strong> e <strong className="text-zinc-300">Segredo do cliente</strong>.</li>
                   <li>Em "Webhooks", crie um novo webhook e copie o <strong className="text-zinc-300">Webhook Secret</strong> gerado.</li>
                   <li>Cole a URL do webhook abaixo no campo de URL do painel Kiwify.</li>
                 </ol>
@@ -255,20 +255,20 @@ export function AdminKiwify() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-zinc-400">Store ID</label>
-                  <input className={inputClass} placeholder="ex: sua_loja_id"
+                  <label className="text-xs font-medium text-zinc-400">ID da loja</label>
+                  <input className={inputClass} placeholder="Ex.: sua_loja_id"
                     value={form.storeId} onChange={(e) => setForm((f) => ({ ...f, storeId: e.target.value }))} />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-zinc-400">Client ID</label>
-                  <input className={inputClass} placeholder="ex: client_abc123"
+                  <label className="text-xs font-medium text-zinc-400">ID do cliente</label>
+                  <input className={inputClass} placeholder="Ex.: client_abc123"
                     value={form.clientId} onChange={(e) => setForm((f) => ({ ...f, clientId: e.target.value }))} />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-zinc-400">Client Secret</label>
+                  <label className="text-xs font-medium text-zinc-400">Segredo do cliente</label>
                   <div className="relative">
                     <input className={inputClass + " pr-10"} type={showSecret ? "text" : "password"}
                       placeholder={config?.configured ? "Novo secret para substituir" : "xxxxxxxx..."}
@@ -283,7 +283,7 @@ export function AdminKiwify() {
                   <label className="text-xs font-medium text-zinc-400">Webhook Secret</label>
                   <div className="relative">
                     <input className={inputClass + " pr-10"} type={showWebhookSecret ? "text" : "password"}
-                      placeholder="ex: whsec_..."
+                      placeholder="Ex.: whsec_..."
                       value={form.webhookSecret} onChange={(e) => setForm((f) => ({ ...f, webhookSecret: e.target.value }))} />
                     <button type="button" onClick={() => setShowWebhookSecret((v) => !v)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors">
@@ -393,7 +393,7 @@ export function AdminKiwify() {
                     {p.type && <Badge className="bg-zinc-700/40 text-zinc-400 border-zinc-600/30 text-[10px]">{p.type}</Badge>}
                     <span className="text-xs text-zinc-400">R$ {p.price}</span>
                     <Badge className={`text-[10px] ${p.status === "active" ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" : "bg-zinc-700/40 text-zinc-500 border-zinc-600/30"}`}>
-                      {p.status ?? "—"}
+                      {({ active: "Ativo", inactive: "Inativo", paused: "Pausado" } as Record<string, string>)[p.status ?? ""] ?? p.status ?? "—"}
                     </Badge>
                   </div>
                 </div>
