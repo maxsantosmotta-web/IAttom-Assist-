@@ -7,17 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface HotmartEventItem {
-  id: number;
-  eventType?: string | null;
-  buyerEmail?: string | null;
-  value?: string | null;
-  currency?: string | null;
-  receivedAt?: string | null;
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -31,37 +20,58 @@ async function apiFetch<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-const fmtDate = (d: string | null | undefined) =>
-  d ? new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
+interface HotmartUserConnection {
+  id: number;
+  clerkUserId: string;
+  userEmail?: string | null;
+  userName?: string | null;
+  expiresAt?: string | null;
+  createdAt: string;
+}
+
 export function AdminHotmart() {
-  const [events, setEvents]               = useState<HotmartEventItem[]>([]);
-  const [loadingEvents, setLoadingEvents] = useState(false);
+  const [connections, setConnections]     = useState<HotmartUserConnection[]>([]);
+  const [loadingConns, setLoadingConns]   = useState(false);
   const [lastUpdated, setLastUpdated]     = useState<Date | null>(null);
   const [refreshing, setRefreshing]       = useState(false);
 
-  const loadEvents = useCallback(async () => {
-    setLoadingEvents(true);
-    try { setEvents(await apiFetch<HotmartEventItem[]>("/api/hotmart/events")); }
-    catch { setEvents([]); }
-    finally { setLoadingEvents(false); }
+  const loadConnections = useCallback(async () => {
+    setLoadingConns(true);
+    try {
+      const data = await apiFetch<HotmartUserConnection[]>("/api/hotmart/user-connections");
+      setConnections(data);
+    } catch {
+      setConnections([]);
+    } finally {
+      setLoadingConns(false);
+    }
   }, []);
 
   const handleRefreshAll = useCallback(async () => {
     setRefreshing(true);
-    await loadEvents();
+    await loadConnections();
     setLastUpdated(new Date());
     setRefreshing(false);
-  }, [loadEvents]);
+  }, [loadConnections]);
 
   useEffect(() => { void handleRefreshAll(); }, [handleRefreshAll]);
 
+  const expired = connections.filter(
+    c => c.expiresAt && new Date(c.expiresAt) < new Date()
+  ).length;
+
+  const expiringSoon = connections.filter(c => {
+    if (!c.expiresAt) return false;
+    const diff = new Date(c.expiresAt).getTime() - Date.now();
+    return diff > 0 && diff < 7 * 24 * 3_600_000;
+  }).length;
+
   const kpis = [
-    { label: "Usuários Conectados", value: "—", icon: Users,    color: "text-red-400"     },
-    { label: "Conexões Ativas",     value: "—", icon: Activity, color: "text-emerald-400" },
-    { label: "Tokens Expirando",    value: "—", icon: Clock,    color: "text-amber-400"   },
+    { label: "Usuários Conectados", value: connections.length > 0 ? String(connections.length) : "—", icon: Users,    color: "text-red-400"     },
+    { label: "Conexões Ativas",     value: connections.length > 0 ? String(connections.length - expired) : "—", icon: Activity, color: "text-emerald-400" },
+    { label: "Tokens Expirando",    value: connections.length > 0 ? String(expiringSoon + expired) : "—", icon: Clock,    color: "text-amber-400"   },
     { label: "Última Atualização",  value: lastUpdated ? lastUpdated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—", icon: BarChart2, color: "text-zinc-400" },
   ];
 
@@ -111,61 +121,70 @@ export function AdminHotmart() {
       {/* ─── Usuários Conectados ──────────────────────────────────── */}
       <Card className="bg-white/3 border-white/8">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-            <Users className="w-4 h-4 text-zinc-500" />
-            Usuários Conectados
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-white/3 border border-white/8 flex items-center justify-center mb-1">
-              <Flame className="w-4 h-4 text-zinc-700" />
-            </div>
-            <p className="text-sm text-zinc-500">Nenhum usuário conectado à Hotmart.</p>
-            <p className="text-[11px] text-zinc-700">As conexões aparecerão aqui após o usuário autenticar sua conta.</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ─── Eventos ─────────────────────────────────────────────── */}
-      <Card className="bg-white/3 border-white/8">
-        <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-              <Activity className="w-4 h-4 text-zinc-500" />
-              Eventos Recentes (Webhooks)
+              <Users className="w-4 h-4 text-zinc-500" />
+              Usuários Conectados
+              {!loadingConns && connections.length > 0 && (
+                <span className="text-[11px] font-normal text-zinc-500">
+                  ({connections.length} {connections.length === 1 ? "ativo" : "ativos"})
+                </span>
+              )}
             </CardTitle>
-            <Button size="sm" variant="ghost" onClick={() => void loadEvents()} disabled={loadingEvents}
+            <Button size="sm" variant="ghost" onClick={() => void loadConnections()} disabled={loadingConns}
               className="h-7 px-2 text-zinc-600 hover:text-white">
-              {loadingEvents ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              {loadingConns
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <RefreshCw className="w-3.5 h-3.5" />}
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
-          {loadingEvents ? (
-            <div className="flex items-center gap-2 text-zinc-500 text-sm py-4">
-              <Loader2 className="w-4 h-4 animate-spin" />Carregando...
+        <CardContent className="p-0">
+          {loadingConns ? (
+            <div className="flex items-center gap-2 text-zinc-500 text-sm px-5 py-6">
+              <Loader2 className="w-4 h-4 animate-spin shrink-0" />Carregando conexões...
             </div>
-          ) : events.length === 0 ? (
-            <p className="text-xs text-zinc-600 text-center py-6">
-              Nenhum evento registrado. Os webhooks da Hotmart aparecerão aqui.
-            </p>
+          ) : connections.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center gap-2 px-5">
+              <div className="w-10 h-10 rounded-full bg-white/3 border border-white/8 flex items-center justify-center mb-1">
+                <Flame className="w-4 h-4 text-zinc-700" />
+              </div>
+              <p className="text-sm text-zinc-500">Nenhum usuário conectado à Hotmart.</p>
+              <p className="text-[11px] text-zinc-700 max-w-xs">
+                As conexões aparecerão aqui após o usuário autenticar sua conta.
+              </p>
+            </div>
           ) : (
-            <div className="max-h-[280px] overflow-y-auto divide-y divide-white/5">
-              {events.slice(0, 50).map(ev => (
-                <div key={ev.id} className="py-2.5 flex items-start gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-white font-medium truncate">{ev.eventType ?? "—"}</p>
-                    {ev.buyerEmail && <p className="text-[10px] text-zinc-500 truncate">{ev.buyerEmail}</p>}
-                    {ev.value && (
-                      <p className="text-[10px] text-emerald-400/70">
-                        {ev.currency ?? "BRL"} {ev.value}
-                      </p>
-                    )}
+            <div className="max-h-[480px] overflow-y-auto divide-y divide-white/5">
+              {connections.map(conn => {
+                const displayName = conn.userName || conn.userEmail || conn.clerkUserId;
+                const isExpired   = conn.expiresAt ? new Date(conn.expiresAt) < new Date() : false;
+                const isSoon      = conn.expiresAt
+                  ? !isExpired && new Date(conn.expiresAt).getTime() - Date.now() < 7 * 24 * 3_600_000
+                  : false;
+                return (
+                  <div key={conn.id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-white/2 transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-red-500/10 border border-red-500/15 flex items-center justify-center shrink-0">
+                      <Flame className="w-3.5 h-3.5 text-red-400/60" />
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <p className="text-xs font-semibold text-white truncate">{displayName}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {isExpired ? (
+                          <Badge className="bg-red-500/15 text-red-400 border-red-500/30 text-[9px] px-1.5 py-0">Token expirado</Badge>
+                        ) : isSoon ? (
+                          <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-[9px] px-1.5 py-0">Expirando em breve</Badge>
+                        ) : (
+                          <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[9px] px-1.5 py-0">Ativo</Badge>
+                        )}
+                        <span className="text-[10px] text-zinc-600">
+                          {conn.createdAt ? new Date(conn.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-[10px] text-zinc-600 shrink-0 pt-0.5">{fmtDate(ev.receivedAt)}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

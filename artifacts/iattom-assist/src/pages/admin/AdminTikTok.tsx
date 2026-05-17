@@ -1,192 +1,207 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
-  Music2, AlertCircle, Users, Activity, Zap,
-  BarChart2, RefreshCw, Info, X,
+  Music2, RefreshCw, Loader2, Users, Activity, Clock, BarChart2,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
 
-function InformativeModal({ title, description, onClose }: {
-  title: string; description: string; onClose: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-[#111111] border border-white/10 rounded-xl w-full max-w-md p-6 space-y-4"
-      >
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Info className="w-4 h-4 text-primary" />
-            </div>
-            <p className="text-sm font-semibold text-white">{title}</p>
-          </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-white">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-        <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
-        <Button onClick={onClose} className="w-full bg-primary text-black hover:bg-primary/90 font-semibold">
-          Entendido
-        </Button>
-      </motion.div>
-    </div>
-  );
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface TikTokUserConnection {
+  id: number;
+  clerkUserId: string;
+  displayName?: string | null;
+  userEmail?: string | null;
+  expiresAt?: string | null;
+  createdAt: string;
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+async function apiFetch<T>(path: string): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<T>;
+}
+
+const fmtDate = (d: string | null | undefined) =>
+  d
+    ? new Date(d).toLocaleString("pt-BR", {
+        day: "2-digit", month: "2-digit", year: "2-digit",
+        hour: "2-digit", minute: "2-digit",
+      })
+    : "—";
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export function AdminTikTok() {
-  const { toast } = useToast();
-  const [modal, setModal] = useState<{ title: string; description: string } | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const [connections, setConnections]       = useState<TikTokUserConnection[]>([]);
+  const [loadingConns, setLoadingConns]     = useState(false);
+  const [lastUpdated, setLastUpdated]       = useState<Date | null>(null);
+  const [refreshing, setRefreshing]         = useState(false);
 
-  const handleRefresh = async () => {
+  const loadConnections = useCallback(async () => {
+    setLoadingConns(true);
+    try {
+      const data = await apiFetch<TikTokUserConnection[]>("/api/tiktok/user-connections");
+      setConnections(data);
+    } catch {
+      setConnections([]);
+    } finally {
+      setLoadingConns(false);
+    }
+  }, []);
+
+  const handleRefreshAll = useCallback(async () => {
     setRefreshing(true);
-    await new Promise((r) => setTimeout(r, 800));
+    await loadConnections();
+    setLastUpdated(new Date());
     setRefreshing(false);
-    toast({ description: "Função preparada para próxima etapa — nenhuma conta TikTok conectada ainda." });
-  };
+  }, [loadConnections]);
 
-  const handleSetup = () => {
-    setModal({
-      title: "Configurar Integração TikTok",
-      description:
-        "Para ativar a integração TikTok, acesse o TikTok Developer Portal (developers.tiktok.com), crie um app, obtenha o Client Key e Client Secret e configure o redirect URI. Em seguida, adicione as credenciais nas variáveis de ambiente da plataforma (TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET). Após configuração, usuários poderão conectar suas contas.",
-    });
-  };
+  useEffect(() => { void handleRefreshAll(); }, [handleRefreshAll]);
+
+  const expired = connections.filter(
+    c => c.expiresAt && new Date(c.expiresAt) < new Date()
+  ).length;
+
+  const expiringSoon = connections.filter(c => {
+    if (!c.expiresAt) return false;
+    const diff = new Date(c.expiresAt).getTime() - Date.now();
+    return diff > 0 && diff < 7 * 24 * 3_600_000;
+  }).length;
 
   const kpis = [
-    { icon: Users,    label: "Contas Conectadas",  value: "0",        color: "text-violet-400" },
-    { icon: Activity, label: "Eventos (30d)",       value: "0",        color: "text-blue-400"   },
-    { icon: Zap,      label: "Status Global",       value: "Inativo",  color: "text-yellow-400" },
-    { icon: BarChart2,label: "Campanhas Ativas",    value: "0",        color: "text-emerald-400" },
+    { label: "Usuários Conectados", value: connections.length > 0 ? String(connections.length) : "—", icon: Users,    color: "text-violet-400"  },
+    { label: "Conexões Ativas",     value: connections.length > 0 ? String(connections.length - expired) : "—", icon: Activity, color: "text-emerald-400" },
+    { label: "Tokens Expirando",    value: connections.length > 0 ? String(expiringSoon + expired) : "—", icon: Clock,    color: "text-amber-400"   },
+    { label: "Última Atualização",  value: lastUpdated ? lastUpdated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—", icon: BarChart2, color: "text-zinc-400" },
   ];
 
   return (
-    <div className="space-y-6">
-      {modal && (
-        <InformativeModal title={modal.title} description={modal.description} onClose={() => setModal(null)} />
-      )}
+    <div className="p-6 space-y-6 max-w-4xl">
 
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      {/* ─── Header ──────────────────────────────────────────────── */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
               <Music2 className="w-5 h-5 text-violet-400" />
             </div>
             <div>
               <h1 className="text-lg font-bold text-white">TikTok</h1>
-              <p className="text-xs text-muted-foreground">Monitoramento global da integração TikTok</p>
+              <p className="text-xs text-zinc-500">Monitoramento de conexões dos usuários com o TikTok.</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px]">Monitoramento ativo</Badge>
             <Button
               size="sm"
               variant="outline"
-              onClick={handleRefresh}
+              onClick={() => void handleRefreshAll()}
               disabled={refreshing}
-              className="border-white/10 text-muted-foreground hover:text-white"
+              className="border-white/10 text-zinc-400 hover:text-white h-8 gap-1.5 text-xs"
             >
-              {refreshing ? <RefreshCw className="w-3.5 h-3.5 animate-spin mr-2" /> : <RefreshCw className="w-3.5 h-3.5 mr-2" />}
+              {refreshing
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <RefreshCw className="w-3.5 h-3.5" />}
               Atualizar
             </Button>
-            <Button
-              size="sm"
-              onClick={handleSetup}
-              className="bg-primary text-black hover:bg-primary/90 font-semibold"
-            >
-              Configurar Integração
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ─── KPIs ────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {kpis.map(({ label, value, icon: Icon, color }) => (
+          <Card key={label} className="bg-white/3 border-white/8">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] text-zinc-500 uppercase tracking-wider leading-tight">{label}</p>
+                <Icon className={`w-3.5 h-3.5 ${color} shrink-0`} />
+              </div>
+              <p className="text-2xl font-bold text-white">{value}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* ─── Usuários Conectados ──────────────────────────────────── */}
+      <Card className="bg-white/3 border-white/8">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+              <Users className="w-4 h-4 text-zinc-500" />
+              Usuários Conectados
+              {!loadingConns && connections.length > 0 && (
+                <span className="text-[11px] font-normal text-zinc-500">
+                  ({connections.length} {connections.length === 1 ? "ativo" : "ativos"})
+                </span>
+              )}
+            </CardTitle>
+            <Button size="sm" variant="ghost" onClick={() => void loadConnections()} disabled={loadingConns}
+              className="h-7 px-2 text-zinc-600 hover:text-white">
+              {loadingConns
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <RefreshCw className="w-3.5 h-3.5" />}
             </Button>
           </div>
-        </div>
-
-        {/* Status Banner */}
-        <div className="flex items-center gap-3 p-4 rounded-lg bg-yellow-950/20 border border-yellow-500/20 mb-5">
-          <AlertCircle className="w-4 h-4 text-yellow-400 shrink-0" />
-          <div>
-            <p className="text-sm font-semibold text-yellow-400">Integração não configurada</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Configure as credenciais TikTok Developer para ativar a integração. Clique em "Configurar Integração" para instruções.
-            </p>
-          </div>
-          <Badge className="ml-auto bg-yellow-500/15 text-yellow-400 border-yellow-500/30 text-xs shrink-0">Inativo</Badge>
-        </div>
-
-        {/* KPIs */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-          {kpis.map(({ icon: Icon, label, value, color }) => (
-            <Card key={label} className="bg-[#111111] border-white/[0.06]">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">{label}</p>
-                  <Icon className={`w-3.5 h-3.5 ${color}`} />
-                </div>
-                <p className="text-2xl font-bold text-white">{value}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Connected Accounts */}
-        <Card className="bg-[#111111] border-white/[0.06] mb-4">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-              <Users className="w-4 h-4 text-muted-foreground" />
-              Contas Conectadas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <Music2 className="w-10 h-10 text-white/10 mb-3" />
-              <p className="text-sm font-semibold text-muted-foreground">Nenhuma conta conectada</p>
-              <p className="text-xs text-muted-foreground/60 mt-1 max-w-xs">
-                Após configurar a integração, os usuários que conectarem suas contas TikTok aparecerão aqui.
+        </CardHeader>
+        <CardContent className="p-0">
+          {loadingConns ? (
+            <div className="flex items-center gap-2 text-zinc-500 text-sm px-5 py-6">
+              <Loader2 className="w-4 h-4 animate-spin shrink-0" />Carregando conexões...
+            </div>
+          ) : connections.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center gap-2 px-5">
+              <div className="w-10 h-10 rounded-full bg-white/3 border border-white/8 flex items-center justify-center mb-1">
+                <Music2 className="w-4 h-4 text-zinc-700" />
+              </div>
+              <p className="text-sm text-zinc-500">Nenhum usuário conectado ao TikTok.</p>
+              <p className="text-[11px] text-zinc-700 max-w-xs">
+                As conexões aparecerão aqui após o usuário autenticar sua conta TikTok.
               </p>
-              <Button
-                size="sm"
-                onClick={handleSetup}
-                variant="outline"
-                className="mt-4 border-white/10 text-muted-foreground hover:text-white"
-              >
-                Ver instruções de configuração
-              </Button>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Events */}
-        <Card className="bg-[#111111] border-white/[0.06]">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                <Activity className="w-4 h-4 text-muted-foreground" />
-                Eventos Recentes
-              </CardTitle>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="text-muted-foreground hover:text-white h-7 px-2"
-              >
-                {refreshing
-                  ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  : <RefreshCw className="w-3.5 h-3.5" />}
-              </Button>
+          ) : (
+            <div className="max-h-[480px] overflow-y-auto divide-y divide-white/5">
+              {connections.map(conn => {
+                const displayName  = conn.displayName || conn.userEmail || conn.clerkUserId;
+                const isExpired    = conn.expiresAt ? new Date(conn.expiresAt) < new Date() : false;
+                const isSoon       = conn.expiresAt
+                  ? !isExpired && new Date(conn.expiresAt).getTime() - Date.now() < 7 * 24 * 3_600_000
+                  : false;
+                return (
+                  <div key={conn.id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-white/2 transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-violet-500/10 border border-violet-500/15 flex items-center justify-center shrink-0">
+                      <Music2 className="w-3.5 h-3.5 text-violet-400/60" />
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <p className="text-xs font-semibold text-white truncate">{displayName}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {isExpired ? (
+                          <Badge className="bg-red-500/15 text-red-400 border-red-500/30 text-[9px] px-1.5 py-0">Token expirado</Badge>
+                        ) : isSoon ? (
+                          <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-[9px] px-1.5 py-0">Expirando em breve</Badge>
+                        ) : (
+                          <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[9px] px-1.5 py-0">Ativo</Badge>
+                        )}
+                        <span className="text-[10px] text-zinc-600">Conectado em {fmtDate(conn.createdAt)}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground/60 text-center py-6">
-              Nenhum evento registrado. Os webhooks e eventos TikTok aparecerão aqui após a configuração.
-            </p>
-          </CardContent>
-        </Card>
-      </motion.div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
