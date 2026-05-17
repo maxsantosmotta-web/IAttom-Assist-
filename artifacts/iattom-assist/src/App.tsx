@@ -64,6 +64,7 @@ const AdminKiwify = lazy(() => import("@/pages/admin/AdminKiwify").then((m) => (
 const AdminIntegrations = lazy(() => import("@/pages/admin/AdminIntegrations").then((m) => ({ default: m.AdminIntegrations })));
 const AdminTrash = lazy(() => import("@/pages/admin/AdminTrash").then((m) => ({ default: m.AdminTrash })));
 const AdminTikTok = lazy(() => import("@/pages/admin/AdminTikTok").then((m) => ({ default: m.AdminTikTok })));
+const AdminApiConfig = lazy(() => import("@/pages/admin/AdminApiConfig").then((m) => ({ default: m.AdminApiConfig })));
 
 function PageLoader() {
   return (
@@ -295,6 +296,7 @@ function ProtectedAdmin() {
                 <Route path="/admin/kiwify" component={AdminKiwify} />
                 <Route path="/admin/trash" component={AdminTrash} />
                 <Route path="/admin/tiktok" component={AdminTikTok} />
+                <Route path="/admin/api-config" component={AdminApiConfig} />
                 <Route component={NotFound} />
               </Switch>
             </Suspense>

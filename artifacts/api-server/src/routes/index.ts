@@ -24,6 +24,7 @@ import kiwifyRouter from "./kiwify.js";
 import integrationsRouter from "./integrations.js";
 import trashRouter from "./trash.js";
 import mlUserRouter from "./mlUserRoutes.js";
+import adminApiConfigRouter from "./adminApiConfig.js";
 
 const router: IRouter = Router();
 
@@ -52,5 +53,6 @@ router.use(kiwifyRouter);
 router.use(integrationsRouter);
 router.use(trashRouter);
 router.use(mlUserRouter);
+router.use(adminApiConfigRouter);
 
 export default router;

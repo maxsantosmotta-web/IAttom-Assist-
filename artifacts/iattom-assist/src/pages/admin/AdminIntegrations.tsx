@@ -46,12 +46,12 @@ interface IntegrationMeta {
 }
 
 const INTEGRATIONS: IntegrationMeta[] = [
-  { id: "whatsapp", icon: Phone, iconColor: "text-emerald-400", href: "/admin/whatsapp", description: "WhatsApp Cloud API — mensagens e automações" },
-  { id: "meta", icon: Instagram, iconColor: "text-pink-400", href: "/admin/meta", description: "Instagram Business + Facebook Pages" },
-  { id: "shopee", icon: ShoppingBag, iconColor: "text-orange-400", href: "/admin/shopee", description: "Shopee Open Platform — produtos e pedidos" },
-  { id: "ml", icon: ShoppingCart, iconColor: "text-yellow-400", href: "/admin/mercado-livre", description: "Mercado Livre API — anúncios e pedidos" },
-  { id: "hotmart", icon: Flame, iconColor: "text-red-400", href: "/admin/hotmart", description: "Hotmart — produtos digitais e assinaturas" },
-  { id: "kiwify", icon: Zap, iconColor: "text-violet-400", href: "/admin/kiwify", description: "Kiwify — produtos digitais e checkout" },
+  { id: "whatsapp", icon: Phone, iconColor: "text-emerald-400", href: "/admin/api-config?integration=whatsapp", description: "WhatsApp Cloud API — mensagens e automações" },
+  { id: "meta", icon: Instagram, iconColor: "text-pink-400", href: "/admin/api-config?integration=meta", description: "Instagram Business + Facebook Pages" },
+  { id: "shopee", icon: ShoppingBag, iconColor: "text-orange-400", href: "/admin/api-config?integration=shopee", description: "Shopee Open Platform — produtos e pedidos" },
+  { id: "ml", icon: ShoppingCart, iconColor: "text-yellow-400", href: "/admin/api-config?integration=ml", description: "Mercado Livre API — anúncios e pedidos" },
+  { id: "hotmart", icon: Flame, iconColor: "text-red-400", href: "/admin/api-config?integration=hotmart", description: "Hotmart — produtos digitais e assinaturas" },
+  { id: "kiwify", icon: Zap, iconColor: "text-violet-400", href: "/admin/api-config?integration=kiwify", description: "Kiwify — produtos digitais e checkout" },
 ];
 
 // ─── Event display helpers ────────────────────────────────────────────────────
