@@ -117,6 +117,35 @@ export async function getShopeeOrders(
   return [];
 }
 
+// ─── Code → Token exchange ────────────────────────────────────────────────────
+
+export async function exchangeShopeeCode(
+  partnerId: string,
+  partnerKey: string,
+  code: string,
+  shopId: string,
+): Promise<ShopeeTokenResponse> {
+  const path = "/api/v2/auth/token/get";
+  const timestamp = Math.floor(Date.now() / 1000);
+  const sign = generateShopeeSign(partnerId, partnerKey, path, timestamp);
+
+  logger.info({ shopId }, "shopee: exchanging auth code for token");
+
+  const res = await fetch(`${SHOPEE_API_BASE}/auth/token/get`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      code,
+      shop_id: Number(shopId),
+      partner_id: Number(partnerId),
+      sign,
+      timestamp,
+    }),
+  });
+
+  return (await res.json()) as ShopeeTokenResponse;
+}
+
 // ─── Webhook signature verification ──────────────────────────────────────────
 
 export function verifyShopeeWebhook(partnerKey: string, body: string, authorization: string): boolean {

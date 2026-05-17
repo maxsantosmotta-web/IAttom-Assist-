@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
 import { z } from "zod/v4";
@@ -9,10 +10,24 @@ import {
   shopeeEvents,
 } from "@workspace/db";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
+import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
 import {
   generateShopeeOAuthUrl,
+  exchangeShopeeCode,
   verifyShopeeWebhook,
 } from "../lib/shopee.js";
+import {
+  getShopeeConnection,
+  saveShopeeConnection,
+  disconnectShopee,
+} from "../services/platforms/shopeeConnectionService.js";
+
+function getFrontendBase(): string {
+  const basePath = process.env.BASE_PATH ?? "";
+  const domain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
+  if (domain) return `https://${domain}${basePath}`;
+  return `http://localhost:80${basePath}`;
+}
 
 const router: IRouter = Router();
 
@@ -47,6 +62,127 @@ router.get("/shopee/status", async (_req, res): Promise<void> => {
     shopId: config.shopId || null,
     updatedAt: config.updatedAt,
   });
+});
+
+// ─── USER: Per-user connection status ────────────────────────────────────────
+router.get("/shopee/me/status", requireAuth, async (req, res): Promise<void> => {
+  const { clerkUserId } = req as AuthenticatedRequest;
+
+  const [config] = await db.select().from(shopeeConfig).limit(1);
+  const platformConfigured = !!(config?.partnerId && config?.partnerKey && config?.redirectUrl && config?.isActive);
+
+  const conn = await getShopeeConnection(clerkUserId);
+  if (!conn) {
+    res.json({ connected: false, platformConfigured });
+    return;
+  }
+
+  res.json({
+    connected: true,
+    platformConfigured,
+    connectionId: conn.id,
+    shopId: conn.platformUserId || null,
+    platformUsername: conn.platformUsername || null,
+    connectedAt: conn.createdAt,
+  });
+});
+
+// ─── USER: Start OAuth — browser redirect to Shopee ──────────────────────────
+router.get("/shopee/oauth/start", requireAuth, async (req, res): Promise<void> => {
+  const { clerkUserId } = req as AuthenticatedRequest;
+  const frontendBase = getFrontendBase();
+
+  const [config] = await db.select().from(shopeeConfig).limit(1);
+  if (!config?.partnerId || !config?.partnerKey || !config?.redirectUrl || !config?.isActive) {
+    res.redirect(
+      `${frontendBase}/dashboard/shopee?shopee_error=${encodeURIComponent("Credenciais Shopee não configuradas. Configure no painel administrativo.")}`,
+    );
+    return;
+  }
+
+  const secret = process.env.SESSION_SECRET ?? "iattom_shopee_state";
+  const stateHmac = crypto.createHmac("sha256", secret).update(clerkUserId).digest("hex");
+  const state = `${stateHmac}.${clerkUserId}`;
+
+  const callbackUrl = `${config.redirectUrl}?uid=${encodeURIComponent(clerkUserId)}&state=${encodeURIComponent(state)}`;
+  const oauthUrl = generateShopeeOAuthUrl(config.partnerId, config.partnerKey, callbackUrl);
+
+  req.log.info({ clerkUserId }, "shopee: starting OAuth flow");
+  res.redirect(oauthUrl);
+});
+
+// ─── USER: OAuth callback — receives code+shop_id from Shopee ────────────────
+router.get("/shopee/oauth/callback", async (req, res): Promise<void> => {
+  const { code, shop_id, uid, state } = req.query as Record<string, string>;
+  const frontendBase = getFrontendBase();
+
+  if (!code || !shop_id || !uid || !state) {
+    res.redirect(
+      `${frontendBase}/dashboard/shopee?shopee_error=${encodeURIComponent("Parâmetros inválidos no callback Shopee.")}`,
+    );
+    return;
+  }
+
+  const secret = process.env.SESSION_SECRET ?? "iattom_shopee_state";
+  const expectedHmac = crypto.createHmac("sha256", secret).update(uid).digest("hex");
+  const expectedState = `${expectedHmac}.${uid}`;
+  if (state !== expectedState) {
+    res.redirect(
+      `${frontendBase}/dashboard/shopee?shopee_error=${encodeURIComponent("Estado de segurança inválido. Tente novamente.")}`,
+    );
+    return;
+  }
+
+  const [config] = await db.select().from(shopeeConfig).limit(1);
+  if (!config?.partnerId || !config?.partnerKey) {
+    res.redirect(
+      `${frontendBase}/dashboard/shopee?shopee_error=${encodeURIComponent("Configuração Shopee não encontrada.")}`,
+    );
+    return;
+  }
+
+  try {
+    const tokenResp = await exchangeShopeeCode(config.partnerId, config.partnerKey, code, shop_id);
+
+    if (tokenResp.error || !tokenResp.access_token) {
+      const msg = tokenResp.message ?? tokenResp.error ?? "Falha ao trocar código por token.";
+      req.log.warn({ uid, shop_id, error: msg }, "shopee: token exchange failed");
+      res.redirect(
+        `${frontendBase}/dashboard/shopee?shopee_error=${encodeURIComponent(msg)}`,
+      );
+      return;
+    }
+
+    const expiresAt = tokenResp.expire_in
+      ? new Date(Date.now() + tokenResp.expire_in * 1000)
+      : undefined;
+
+    await saveShopeeConnection(uid, {
+      platformUserId: shop_id,
+      accessToken: tokenResp.access_token,
+      refreshToken: tokenResp.refresh_token ?? "",
+      expiresAt,
+    });
+
+    req.log.info({ clerkUserId: uid, shop_id }, "shopee: user connected successfully");
+    res.redirect(`${frontendBase}/dashboard/shopee?shopee_connected=1`);
+  } catch (err) {
+    req.log.error({ err, uid, shop_id }, "shopee: oauth callback error");
+    res.redirect(
+      `${frontendBase}/dashboard/shopee?shopee_error=${encodeURIComponent("Falha na autenticação com a Shopee. Tente novamente.")}`,
+    );
+  }
+});
+
+// ─── USER: Disconnect own Shopee account ──────────────────────────────────────
+router.post("/shopee/me/disconnect", requireAuth, async (req, res): Promise<void> => {
+  const { clerkUserId } = req as AuthenticatedRequest;
+  const conn = await getShopeeConnection(clerkUserId);
+  if (conn) {
+    await disconnectShopee(clerkUserId, conn.id);
+  }
+  req.log.info({ clerkUserId }, "shopee: user disconnected own account");
+  res.json({ ok: true });
 });
 
 // ─── ADMIN: Get config ───────────────────────────────────────────────────────

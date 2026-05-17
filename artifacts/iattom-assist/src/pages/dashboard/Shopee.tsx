@@ -4,7 +4,7 @@ import {
   ShoppingBag, Plus, Copy, Trash2, ExternalLink, Loader2,
   Link2, Tag, X, Info, AlertCircle, CheckCircle2,
   RefreshCw, Package, ClipboardList, Store, Search, Image,
-  Video, Megaphone, Zap, BarChart2, WifiOff,
+  Video, Megaphone, Zap, BarChart2, WifiOff, LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -342,7 +342,7 @@ function ContaSection({
 }
 
 /* ─── AbaMinhaContaLoja ─────────────────────────────────────── */
-function AbaMinhaContaLoja() {
+function AbaMinhaContaLoja({ connected, onConnect }: { connected: boolean; onConnect: () => void }) {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [modal, setModal] = useState<{ title: string; description: string } | null>(null);
@@ -377,6 +377,25 @@ function AbaMinhaContaLoja() {
       "A criação de anúncios diretamente via API Shopee Seller Center está preparada para a próxima etapa da plataforma. Você será notificado assim que estiver disponível.",
     );
   };
+
+  if (!connected) {
+    return (
+      <Card className="bg-[#111111] border-white/[0.06]">
+        <CardContent className="flex flex-col items-center justify-center py-16 text-center gap-4">
+          <div className="w-14 h-14 rounded-full bg-orange-500/5 border border-orange-500/15 flex items-center justify-center mb-1">
+            <Store className="w-6 h-6 text-orange-400/30" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-muted-foreground">Conecte sua conta Shopee para sincronizar produtos, anúncios e pedidos.</p>
+            <p className="text-xs text-muted-foreground/50">A aba Afiliado funciona normalmente sem conexão.</p>
+          </div>
+          <Button onClick={onConnect} className="bg-orange-500 hover:bg-orange-400 text-white font-semibold gap-2">
+            <Link2 className="w-4 h-4" /> Conectar Shopee
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -441,26 +460,103 @@ function AbaMinhaContaLoja() {
 
 /* ─── types ─────────────────────────────────────────────────── */
 interface ShopeeStatus {
-  configured: boolean;
+  connected: boolean;
+  platformConfigured: boolean;
+  connectionId?: number;
   shopId?: string | null;
-  updatedAt?: string | null;
+  platformUsername?: string | null;
+  connectedAt?: string | null;
 }
+
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 /* ─── Shopee (root) ─────────────────────────────────────────── */
 export function Shopee() {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"afiliado" | "conta">("afiliado");
   const [status, setStatus] = useState<ShopeeStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [showDisconnect, setShowDisconnect] = useState(false);
+
+  const loadStatus = useCallback(async () => {
+    try {
+      const r = await fetch(`${BASE}/api/shopee/me/status`, { credentials: "include" });
+      const data = await r.json() as ShopeeStatus;
+      setStatus(data);
+    } catch {
+      setStatus({ connected: false, platformConfigured: false });
+    } finally {
+      setLoadingStatus(false);
+    }
+  }, []);
+
+  useEffect(() => { void loadStatus(); }, [loadStatus]);
 
   useEffect(() => {
-    fetch("/api/shopee/status")
-      .then(r => r.json() as Promise<ShopeeStatus>)
-      .then(data => { setStatus(data); setLoadingStatus(false); })
-      .catch(() => { setStatus({ configured: false }); setLoadingStatus(false); });
-  }, []);
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("shopee_connected") === "1") {
+      toast({ description: "Conta Shopee conectada com sucesso." });
+      window.history.replaceState({}, "", window.location.pathname);
+      void loadStatus();
+    } else if (params.get("shopee_error")) {
+      const errMsg = decodeURIComponent(params.get("shopee_error") ?? "Erro desconhecido");
+      toast({ variant: "destructive", description: errMsg });
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [toast, loadStatus]);
+
+  const handleConnect = () => {
+    window.location.href = `${BASE}/api/shopee/oauth/start`;
+  };
+
+  const handleDisconnect = async () => {
+    setDisconnecting(true);
+    try {
+      await fetch(`${BASE}/api/shopee/me/disconnect`, { method: "POST", credentials: "include" });
+      toast({ description: "Conta Shopee desconectada." });
+      setShowDisconnect(false);
+      void loadStatus();
+    } catch {
+      toast({ variant: "destructive", description: "Falha ao desconectar. Tente novamente." });
+    } finally {
+      setDisconnecting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
+      {/* Disconnect confirm modal */}
+      {showDisconnect && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+            className="bg-[#111111] border border-white/10 rounded-xl w-full max-w-sm p-6 space-y-5"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
+                <AlertCircle className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Desconectar conta Shopee</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Sua conexão com a Shopee será removida.</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Button onClick={() => void handleDisconnect()} disabled={disconnecting}
+                className="w-full bg-red-600 hover:bg-red-500 text-white font-semibold">
+                {disconnecting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Confirmar desconexão
+              </Button>
+              <Button variant="outline" onClick={() => setShowDisconnect(false)}
+                className="w-full border-white/10 text-muted-foreground hover:text-white">
+                Cancelar
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
 
         {/* ─── Header premium ─────────────────────────────────── */}
@@ -477,7 +573,7 @@ export function Shopee() {
             </div>
           </div>
 
-          {/* Status real da plataforma */}
+          {/* Status / ação */}
           <div className="flex items-center gap-2 shrink-0">
             <AnimatePresence mode="wait">
               {loadingStatus ? (
@@ -486,17 +582,33 @@ export function Shopee() {
                     <Loader2 className="w-3 h-3 animate-spin" /> Verificando...
                   </Badge>
                 </motion.div>
-              ) : status?.configured ? (
-                <motion.div key="connected" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-end gap-0.5">
-                  <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 gap-1.5">
-                    <CheckCircle2 className="w-3 h-3" /> Conectado pela plataforma
+              ) : status?.connected ? (
+                <motion.div key="connected" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
+                  <div className="flex flex-col items-end gap-0.5">
+                    <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 gap-1.5">
+                      <CheckCircle2 className="w-3 h-3" /> Conta conectada
+                    </Badge>
+                    {status.shopId && (
+                      <span className="text-[10px] text-muted-foreground/60">Shop ID: {status.shopId}</span>
+                    )}
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => setShowDisconnect(true)}
+                    className="h-7 px-2 border-red-500/30 text-red-400 hover:bg-red-500/10 gap-1 text-xs">
+                    <LogOut className="w-3 h-3" /> Desconectar
+                  </Button>
+                </motion.div>
+              ) : status?.platformConfigured ? (
+                <motion.div key="not-connected" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
+                  <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 gap-1.5">
+                    <WifiOff className="w-3 h-3" /> Não conectado
                   </Badge>
-                  {status.shopId && (
-                    <span className="text-[10px] text-muted-foreground/60">Shop ID: {status.shopId}</span>
-                  )}
+                  <Button size="sm" onClick={handleConnect}
+                    className="h-7 px-3 bg-orange-500 hover:bg-orange-400 text-white font-semibold text-xs gap-1.5">
+                    <Link2 className="w-3 h-3" /> Conectar Shopee
+                  </Button>
                 </motion.div>
               ) : (
-                <motion.div key="unconfigured" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
+                <motion.div key="unconfigured" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                   <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 gap-1.5">
                     <WifiOff className="w-3 h-3" /> Aguardando configuração
                   </Badge>
@@ -506,14 +618,27 @@ export function Shopee() {
           </div>
         </div>
 
-        {/* Banner informativo quando não configurado */}
-        {!loadingStatus && !status?.configured && (
+        {/* Banner: plataforma sem credenciais */}
+        {!loadingStatus && !status?.platformConfigured && (
           <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/5 border border-amber-500/15 mb-2">
             <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-amber-300">Conexão Shopee aguardando configuração das credenciais oficiais.</p>
               <p className="text-xs text-amber-400/70 mt-0.5">
-                As funcionalidades de Minha Conta estarão disponíveis após a ativação. A aba Afiliado funciona normalmente sem conexão.
+                As funcionalidades de Minha Conta estarão disponíveis após a configuração pelo administrador. A aba Afiliado funciona normalmente.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Banner: credenciais OK mas usuário não conectou */}
+        {!loadingStatus && status?.platformConfigured && !status?.connected && (
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-500/5 border border-blue-500/15 mb-2">
+            <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-blue-300">Conecte sua conta Shopee para acessar Minha Conta.</p>
+              <p className="text-xs text-blue-400/70 mt-0.5">
+                Clique em "Conectar Shopee" acima para autorizar o acesso via OAuth. A aba Afiliado funciona sem conexão.
               </p>
             </div>
           </div>
@@ -539,7 +664,10 @@ export function Shopee() {
         </div>
 
         {/* ─── Tab content ────────────────────────────────────── */}
-        {activeTab === "afiliado" ? <AbaAfiliado /> : <AbaMinhaContaLoja />}
+        {activeTab === "afiliado"
+          ? <AbaAfiliado />
+          : <AbaMinhaContaLoja connected={status?.connected ?? false} onConnect={handleConnect} />
+        }
       </motion.div>
     </div>
   );
