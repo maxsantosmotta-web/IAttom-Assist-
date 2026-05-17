@@ -89,7 +89,7 @@ router.get("/ml/oauth-callback", async (req, res): Promise<void> => {
   // ML authorization denied
   if (error) {
     LoggerManager.error(`OAuth callback denied: ${error}`, "ml");
-    res.redirect(`${BASE_PATH}/admin/mercado-livre?ml_error=${encodeURIComponent(error)}`);
+    res.redirect(`${BASE_PATH}/dashboard/mercado-livre?ml_error=${encodeURIComponent(error)}`);
     return;
   }
 
@@ -104,7 +104,7 @@ router.get("/ml/oauth-callback", async (req, res): Promise<void> => {
   const [config] = await db.select().from(mlConfig).limit(1);
   if (!config?.appId || !config.clientSecret) {
     LoggerManager.error("OAuth callback: credentials not configured", "ml");
-    res.redirect(`${BASE_PATH}/admin/mercado-livre?ml_error=not_configured`);
+    res.redirect(`${BASE_PATH}/dashboard/mercado-livre?ml_error=not_configured`);
     return;
   }
 
@@ -120,7 +120,7 @@ router.get("/ml/oauth-callback", async (req, res): Promise<void> => {
     if (tokens.error || !tokens.access_token) {
       const errCode = encodeURIComponent(tokens.error ?? "exchange_failed");
       LoggerManager.error(`Code exchange failed: ${tokens.error} — ${tokens.message ?? ""}`, "ml");
-      res.redirect(`${BASE_PATH}/admin/mercado-livre?ml_error=${errCode}`);
+      res.redirect(`${BASE_PATH}/dashboard/mercado-livre?ml_error=${errCode}`);
       return;
     }
 
@@ -186,12 +186,12 @@ router.get("/ml/oauth-callback", async (req, res): Promise<void> => {
       "ml",
     );
 
-    res.redirect(`${BASE_PATH}/admin/mercado-livre?ml_connected=1`);
+    res.redirect(`${BASE_PATH}/dashboard/mercado-livre?ml_connected=1`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     LoggerManager.error(`OAuth callback exception: ${msg}`, "ml");
     req.log.error({ err }, "ml: OAuth callback exception");
-    res.redirect(`${BASE_PATH}/admin/mercado-livre?ml_error=oauth_exception`);
+    res.redirect(`${BASE_PATH}/dashboard/mercado-livre?ml_error=oauth_exception`);
   }
 });
 

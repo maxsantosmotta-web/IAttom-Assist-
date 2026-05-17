@@ -367,6 +367,20 @@ export function MercadoLivre() {
     void loadEvents();
   }, [loadStatus, loadListings, loadEvents]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("ml_connected") === "1") {
+      toast({ description: "Conta Mercado Livre conectada com sucesso." });
+      window.history.replaceState({}, "", window.location.pathname);
+      void loadStatus();
+      void loadListings();
+    } else if (params.get("ml_error")) {
+      const errMsg = decodeURIComponent(params.get("ml_error") ?? "Erro desconhecido");
+      toast({ variant: "destructive", description: `Falha ao conectar Mercado Livre: ${errMsg}` });
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [toast, loadStatus, loadListings]);
+
   const handleSync = async () => {
     setSyncing(true);
     try {
