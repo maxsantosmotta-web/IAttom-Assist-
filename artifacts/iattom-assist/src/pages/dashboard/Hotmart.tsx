@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Flame, Loader2, X, Info, Package, ClipboardList,
-  RefreshCw, ShoppingBag, BarChart2, TrendingUp, Link2,
-  DollarSign, Tag, ChevronDown, ChevronUp, AlertCircle,
-  CheckCircle2, ExternalLink,
+  RefreshCw, ShoppingBag, BarChart2, DollarSign, Link2,
+  Tag, ChevronDown, ChevronUp, AlertCircle, TrendingUp,
+  CheckCircle2, ExternalLink, WifiOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -119,6 +119,21 @@ const EVENT_COLORS: Record<string, string> = {
   SUBSCRIPTION_ACTIVE: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
 };
 
+function thirtyDaysAgo() {
+  const d = new Date();
+  d.setDate(d.getDate() - 30);
+  return d;
+}
+
+function revenueIn30d(events: HotmartEvent[]): string {
+  const cutoff = thirtyDaysAgo();
+  const total = events
+    .filter(e => e.eventType === "PURCHASE_APPROVED" && e.receivedAt && new Date(e.receivedAt) >= cutoff)
+    .reduce((sum, e) => sum + parseFloat(e.value ?? "0"), 0);
+  if (total === 0) return "R$ 0";
+  return total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
 export function Hotmart() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
@@ -129,6 +144,7 @@ export function Hotmart() {
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [modal, setModal] = useState<{ title: string; description: string; action?: { label: string; onClick: () => void } } | null>(null);
 
   const showInfo = (
@@ -140,18 +156,11 @@ export function Hotmart() {
   const handleLoadProducts = async () => {
     setLoadingProducts(true);
     try {
-      const data = await apiFetch<HotmartProduct[]>("/api/hotmart/products");
+      const data = await apiFetch<HotmartProduct[]>("/api/hotmart/user/products");
       setProducts(data);
     } catch (err) {
-      const e = err as { status?: number };
-      if (e.status === 403 || e.status === 401) {
-        showInfo(
-          "Acesso Restrito",
-          "A listagem de produtos Hotmart é gerenciada pelo administrador da plataforma. Solicite ao administrador que sincronize os produtos.",
-        );
-      } else {
-        toast({ variant: "destructive", description: "Não foi possível carregar os produtos." });
-      }
+      const msg = err instanceof Error ? err.message : "Erro ao carregar produtos.";
+      toast({ variant: "destructive", description: msg });
     } finally {
       setLoadingProducts(false);
     }
@@ -160,10 +169,11 @@ export function Hotmart() {
   const handleLoadEvents = async () => {
     setLoadingEvents(true);
     try {
-      const data = await apiFetch<HotmartEvent[]>("/api/hotmart/events");
+      const data = await apiFetch<HotmartEvent[]>("/api/hotmart/user/sales");
       setEvents(data);
-    } catch {
-      toast({ description: "Histórico de eventos disponível após configuração da integração." });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao carregar vendas.";
+      toast({ variant: "destructive", description: msg });
     } finally {
       setLoadingEvents(false);
     }
@@ -171,24 +181,29 @@ export function Hotmart() {
 
   const handleSync = async () => {
     setSyncing(true);
+    setSyncError(null);
     try {
-      const data = await apiFetch<{ ok: boolean; synced: number }>("/api/hotmart/sync-products", { method: "POST" });
-      toast({ description: `Sincronização concluída — ${data.synced} produto(s) atualizados.` });
+      const data = await apiFetch<{ ok: boolean; synced: number }>("/api/hotmart/user/sync", { method: "POST" });
+      if (data.synced === 0) {
+        toast({ description: "Sincronização concluída — nenhum produto novo encontrado." });
+      } else {
+        toast({ description: `Sincronização concluída — ${data.synced} produto(s) atualizados.` });
+      }
       void handleLoadProducts();
     } catch (err) {
-      const e = err as { status?: number };
-      if (e.status === 403 || e.status === 401) {
-        showInfo(
-          "Sincronização Hotmart",
-          "A sincronização de produtos é uma operação administrativa. Solicite ao administrador da plataforma que realize a sincronização no painel ADM.",
-        );
-      } else {
-        toast({ variant: "destructive", description: err instanceof Error ? err.message : "Falha na sincronização." });
-      }
+      const msg = err instanceof Error ? err.message : "Falha na sincronização.";
+      setSyncError(msg);
+      toast({ variant: "destructive", description: msg });
     } finally {
       setSyncing(false);
     }
   };
+
+  useEffect(() => {
+    void handleLoadProducts();
+    void handleLoadEvents();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCreateCampaign = (product?: HotmartProduct) => {
     sessionStorage.setItem(
@@ -244,23 +259,37 @@ export function Hotmart() {
           </div>
         </div>
 
+        {/* Sync error banner */}
+        {syncError && (
+          <div className="flex items-start gap-2.5 p-3 rounded-lg bg-red-500/8 border border-red-500/20 mb-5">
+            <WifiOff className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-red-400 mb-0.5">Falha na conexão com a Hotmart</p>
+              <p className="text-xs text-red-400/70 leading-relaxed">{syncError}</p>
+            </div>
+            <button onClick={() => setSyncError(null)} className="text-red-400/50 hover:text-red-400 shrink-0">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
         {/* Status Card */}
         <Card className="bg-[#111111] border-white/[0.06] mb-5">
           <CardContent className="p-4">
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span className="text-sm font-semibold text-white">Integração disponível</span>
+                <span className="text-sm font-semibold text-white">Integração ativa</span>
               </div>
               <p className="text-xs text-muted-foreground/70">
-                Hotmart está integrado à plataforma. Produtos e vendas são gerenciados pelo administrador.
+                Conectada via credenciais da plataforma. Produtos e vendas são carregados diretamente da API Hotmart.
               </p>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => showInfo(
                   "Como funciona a integração Hotmart",
-                  "O administrador da plataforma conectou a conta Hotmart e sincroniza os produtos digitais. Você pode criar campanhas, visualizar produtos disponíveis e acompanhar suas vendas. Para sincronizar novos produtos, solicite ao administrador.",
+                  "Os produtos são sincronizados diretamente da API Hotmart. Clique em Sincronizar para buscar novos produtos. As vendas chegam via webhook Hotmart e são exibidas em tempo real.",
                 )}
                 className="border-white/10 text-muted-foreground hover:text-white ml-auto text-xs h-7"
               >
@@ -272,24 +301,34 @@ export function Hotmart() {
         </Card>
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-          {[
-            { icon: Package, label: "Produtos", value: String(products.length), color: "text-orange-400" },
-            { icon: ShoppingBag, label: "Vendas (30d)", value: String(events.filter((e) => e.eventType === "PURCHASE_APPROVED").length), color: "text-emerald-400" },
-            { icon: BarChart2, label: "Eventos", value: String(events.length), color: "text-blue-400" },
-            { icon: TrendingUp, label: "Status", value: "Ativo", color: "text-primary" },
-          ].map(({ icon: Icon, label, value, color }) => (
-            <Card key={label} className="bg-[#111111] border-white/[0.06]">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">{label}</p>
-                  <Icon className={`w-3.5 h-3.5 ${color}`} />
-                </div>
-                <p className="text-xl font-bold text-white">{value}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {(() => {
+          const approvedIn30d = events.filter(e => e.eventType === "PURCHASE_APPROVED" && e.receivedAt && new Date(e.receivedAt) >= thirtyDaysAgo()).length;
+          const kpis = [
+            { icon: Package,    label: "Produtos",     value: String(products.length),  color: "text-orange-400",  loading: loadingProducts },
+            { icon: ShoppingBag, label: "Vendas (30d)", value: String(approvedIn30d),    color: "text-emerald-400", loading: loadingEvents  },
+            { icon: DollarSign, label: "Receita (30d)", value: revenueIn30d(events),     color: "text-primary",     loading: loadingEvents  },
+            { icon: BarChart2,  label: "Eventos",      value: String(events.length),    color: "text-blue-400",    loading: loadingEvents  },
+          ];
+          return (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+              {kpis.map(({ icon: Icon, label, value, color, loading }) => (
+                <Card key={label} className="bg-[#111111] border-white/[0.06]">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">{label}</p>
+                      <Icon className={`w-3.5 h-3.5 ${color}`} />
+                    </div>
+                    {loading ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    ) : (
+                      <p className="text-xl font-bold text-white">{value}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* Products */}
         <Card className="bg-[#111111] border-white/[0.06] mb-4">
@@ -321,11 +360,12 @@ export function Hotmart() {
                 <Package className="w-10 h-10 text-white/10 mb-3" />
                 <p className="text-sm font-semibold text-muted-foreground">Nenhum produto carregado</p>
                 <p className="text-xs text-muted-foreground/60 mt-1 max-w-xs">
-                  Clique no ícone de atualizar para carregar os produtos Hotmart sincronizados.
+                  Clique em "Carregar Produtos" para buscar seus produtos diretamente da API Hotmart.
                 </p>
-                <Button size="sm" onClick={() => void handleLoadProducts()}
-                  disabled={loadingProducts}
-                  className="mt-4 bg-primary text-black hover:bg-primary/90 font-semibold">
+                <Button size="sm" onClick={() => void handleSync()}
+                  disabled={syncing}
+                  className="mt-4 bg-primary text-black hover:bg-primary/90 font-semibold gap-1.5">
+                  {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                   Carregar Produtos
                 </Button>
               </div>
@@ -380,7 +420,7 @@ export function Hotmart() {
                 Vendas Recentes
                 {events.length > 0 && (
                   <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-xs">
-                    {events.filter((e) => e.eventType === "PURCHASE_APPROVED").length} aprovadas
+                    {events.filter(e => e.eventType === "PURCHASE_APPROVED" && e.receivedAt && new Date(e.receivedAt) >= thirtyDaysAgo()).length} aprovadas (30d)
                   </Badge>
                 )}
               </CardTitle>
@@ -403,17 +443,23 @@ export function Hotmart() {
                 <ShoppingBag className="w-8 h-8 text-white/10 mb-2" />
                 <p className="text-sm font-semibold text-muted-foreground">Nenhuma venda registrada</p>
                 <p className="text-xs text-muted-foreground/60 mt-1">
-                  As vendas aparecem aqui após a configuração do webhook Hotmart.
+                  As vendas chegam via webhook Hotmart. Configure o webhook apontando para a URL da plataforma.
                 </p>
                 <Button size="sm" onClick={() => void handleLoadEvents()}
                   variant="outline"
-                  className="mt-3 border-white/10 text-muted-foreground hover:text-white text-xs h-7">
+                  disabled={loadingEvents}
+                  className="mt-3 border-white/10 text-muted-foreground hover:text-white text-xs h-7 gap-1.5">
+                  {loadingEvents ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                   Verificar vendas
                 </Button>
               </div>
             ) : (
               <div className="space-y-2">
-                {events.slice(0, 10).map((ev) => (
+                {events.slice(0, 20).map((ev) => {
+                  const fmt = ev.receivedAt
+                    ? new Date(ev.receivedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+                    : null;
+                  return (
                   <div key={ev.id}
                     className="flex items-center gap-3 p-3 rounded-lg bg-[#0d0d0d] border border-white/5">
                     <Badge className={`text-xs border shrink-0 ${EVENT_COLORS[ev.eventType ?? ""] ?? "bg-zinc-700/40 text-zinc-400 border-zinc-600/30"}`}>
@@ -427,13 +473,15 @@ export function Hotmart() {
                         <p className="text-[10px] text-muted-foreground font-mono">{ev.transactionId}</p>
                       )}
                     </div>
-                    {ev.value && (
-                      <span className="text-xs font-semibold text-primary shrink-0">
-                        R$ {ev.value}
-                      </span>
-                    )}
+                    <div className="flex flex-col items-end gap-0.5 shrink-0">
+                      {ev.value && parseFloat(ev.value) > 0 && (
+                        <span className="text-xs font-semibold text-primary">R$ {ev.value}</span>
+                      )}
+                      {fmt && <span className="text-[10px] text-muted-foreground tabular-nums">{fmt}</span>}
+                    </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>

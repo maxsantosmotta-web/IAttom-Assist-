@@ -9,6 +9,7 @@ import {
   trashItems,
 } from "@workspace/db";
 import { requireAdmin, type AdminRequest } from "../middlewares/requireAdmin.js";
+import { requireAuth } from "../middlewares/requireAuth.js";
 import {
   verifyHotmartWebhook,
   getHotmartAccessToken,
@@ -363,6 +364,98 @@ router.get("/hotmart/events", requireAdmin, async (_req, res): Promise<void> => 
     .orderBy(desc(hotmartEvents.receivedAt))
     .limit(100);
   res.json(events);
+});
+
+// ─── USER: List products from DB ─────────────────────────────────────────────
+router.get("/hotmart/user/products", requireAuth, async (req, res): Promise<void> => {
+  const products = await db
+    .select()
+    .from(hotmartProducts)
+    .where(isNull(hotmartProducts.deletedAt))
+    .orderBy(desc(hotmartProducts.syncedAt))
+    .limit(100);
+  req.log.info({ count: products.length }, "hotmart user: products listed");
+  res.json(products);
+});
+
+// ─── USER: List sales/events from DB ─────────────────────────────────────────
+router.get("/hotmart/user/sales", requireAuth, async (req, res): Promise<void> => {
+  const events = await db
+    .select()
+    .from(hotmartEvents)
+    .orderBy(desc(hotmartEvents.receivedAt))
+    .limit(100);
+  req.log.info({ count: events.length }, "hotmart user: sales listed");
+  res.json(events);
+});
+
+// ─── USER: Sync products from Hotmart API ────────────────────────────────────
+router.post("/hotmart/user/sync", requireAuth, async (req, res): Promise<void> => {
+  const [config] = await db.select().from(hotmartConfig).limit(1);
+
+  if (!config?.clientId || !config?.clientSecret || !config?.basicToken) {
+    res.status(503).json({
+      error: "Credenciais Hotmart ainda não configuradas. Solicite ao administrador que configure as credenciais no painel ADM.",
+    });
+    return;
+  }
+
+  try {
+    const token = await getHotmartAccessToken(
+      config.clientId,
+      config.clientSecret,
+      config.basicToken,
+      config.environment,
+    );
+
+    if (token.error || !token.access_token) {
+      res.status(401).json({
+        error: `Autenticação Hotmart falhou: ${token.error ?? "resposta sem access_token"}`,
+      });
+      return;
+    }
+
+    const { items, diagnostics } = await getHotmartProducts(token.access_token, config.environment);
+
+    if (items.length === 0) {
+      req.log.info({ diagnostics }, "hotmart user: sync — zero products");
+      res.json({ ok: true, synced: 0, diagnostics });
+      return;
+    }
+
+    let synced = 0;
+    for (const item of items) {
+      await db
+        .insert(hotmartProducts)
+        .values({
+          productId: String(item.product.id),
+          name:      item.product.name   ?? "",
+          format:    item.product.format ?? "",
+          status:    item.product.status ?? "ACTIVE",
+          price:     String(item.price?.value ?? 0),
+          currency:  item.price?.currency_code ?? "BRL",
+          syncedAt:  new Date(),
+        })
+        .onConflictDoUpdate({
+          target: hotmartProducts.productId,
+          set: {
+            name:     item.product.name   ?? "",
+            format:   item.product.format ?? "",
+            status:   item.product.status ?? "ACTIVE",
+            price:    String(item.price?.value ?? 0),
+            syncedAt: new Date(),
+          },
+        });
+      synced++;
+    }
+
+    req.log.info({ synced }, "hotmart user: sync complete");
+    res.json({ ok: true, synced });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    req.log.error({ err }, "hotmart user: sync error");
+    res.status(500).json({ error: `Falha na sincronização: ${msg}` });
+  }
 });
 
 export default router;
