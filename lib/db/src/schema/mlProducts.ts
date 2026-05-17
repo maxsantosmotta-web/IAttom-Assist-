@@ -9,6 +9,7 @@ export const mlProducts = pgTable("ml_products", {
   status: text("status").default("active"),
   categoryId: text("category_id").default(""),
   permalink: text("permalink").default(""),
+  clerkUserId: text("clerk_user_id"),
   syncedAt: timestamp("synced_at").defaultNow(),
   deletedAt: timestamp("deleted_at"),
 });

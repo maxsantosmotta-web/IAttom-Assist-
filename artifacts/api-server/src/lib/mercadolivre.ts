@@ -27,12 +27,13 @@ export class MLApiError extends Error {
 
 // ─── OAuth URL ─────────────────────────────────────────────────────────────────
 
-export function generateMLOAuthUrl(appId: string, redirectUri: string): string {
+export function generateMLOAuthUrl(appId: string, redirectUri: string, state?: string): string {
   const params = new URLSearchParams({
     response_type: "code",
     client_id:     appId,
     redirect_uri:  redirectUri,
   });
+  if (state) params.set("state", state);
   return `${ML_AUTH_BASE}?${params.toString()}`;
 }
 

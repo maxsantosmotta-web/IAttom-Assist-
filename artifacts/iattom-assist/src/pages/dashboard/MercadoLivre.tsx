@@ -445,9 +445,16 @@ export function MercadoLivre() {
             <p className="text-sm text-muted-foreground">Deseja desconectar esta conta?</p>
             <div className="space-y-2">
               <Button
-                onClick={() => {
-                  setShowDisconnect(false);
-                  toast({ description: "Desconexão preparada para próxima etapa." });
+                onClick={async () => {
+                  try {
+                    await apiFetch<{ ok: boolean }>("/api/me/ml/disconnect", { method: "POST" });
+                    setShowDisconnect(false);
+                    toast({ description: "Conta Mercado Livre desconectada." });
+                    void loadStatus();
+                  } catch {
+                    setShowDisconnect(false);
+                    toast({ variant: "destructive", description: "Falha ao desconectar. Tente novamente." });
+                  }
                 }}
                 className="w-full bg-red-600 hover:bg-red-500 text-white font-semibold"
               >

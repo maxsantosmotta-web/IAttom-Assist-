@@ -8,6 +8,7 @@ import {
   mlOrders,
   mlEvents,
   trashItems,
+  userMlConnections,
 } from "@workspace/db";
 import { requireAdmin, type AdminRequest } from "../middlewares/requireAdmin.js";
 import { maskSecret } from "../lib/integrationUtils.js";
@@ -85,6 +86,8 @@ router.post("/ml/notifications", (req, res): void => {
 router.get("/ml/oauth-callback", async (req, res): Promise<void> => {
   const code  = req.query["code"]  as string | undefined;
   const error = req.query["error"] as string | undefined;
+  const state = req.query["state"] as string | undefined;
+  const clerkUserIdFromState = state?.startsWith("user:") ? state.slice(5) : null;
 
   // ML authorization denied
   if (error) {
@@ -160,6 +163,39 @@ router.get("/ml/oauth-callback", async (req, res): Promise<void> => {
 
     req.log.info({ mlUserId, nickname }, "ml: OAuth success — tokens saved");
     LoggerManager.info(`OAuth complete — ${nickname} (${mlUserId})`, "ml");
+
+    // 3b — If user OAuth flow, save per-user connection to userMlConnections
+    if (clerkUserIdFromState) {
+      const [existingConn] = await db
+        .select({ id: userMlConnections.id })
+        .from(userMlConnections)
+        .where(eq(userMlConnections.clerkUserId, clerkUserIdFromState))
+        .limit(1);
+      if (existingConn) {
+        await db.update(userMlConnections)
+          .set({
+            platformUserId:   mlUserId,
+            platformUsername: nickname,
+            accessToken:      tokens.access_token,
+            refreshToken:     newRefreshToken,
+            expiresAt:        expiresAt ?? null,
+            isActive:         true,
+            updatedAt:        new Date(),
+          })
+          .where(eq(userMlConnections.clerkUserId, clerkUserIdFromState));
+      } else {
+        await db.insert(userMlConnections).values({
+          clerkUserId:      clerkUserIdFromState,
+          platformUserId:   mlUserId,
+          platformUsername: nickname,
+          accessToken:      tokens.access_token,
+          refreshToken:     newRefreshToken,
+          expiresAt:        expiresAt ?? null,
+          isActive:         true,
+        });
+      }
+      req.log.info({ clerkUserIdFromState, mlUserId }, "ml: user connection saved to userMlConnections");
+    }
 
     // 4 — Register with TokenManager + schedule automatic refresh
     registerMLToken(
