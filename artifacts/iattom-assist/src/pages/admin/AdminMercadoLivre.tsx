@@ -552,7 +552,7 @@ export function AdminMercadoLivre() {
           <ShoppingCart className="w-5 h-5 text-primary" />
           <h1 className="text-xl font-bold text-white">Mercado Livre</h1>
           {isConnected
-            ? <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px]">Conectado</Badge>
+            ? <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px]">Conexão admin ativa</Badge>
             : tokenExpired
               ? <Badge className="bg-red-500/15 text-red-400 border-red-500/30 text-[10px]">Token expirado</Badge>
               : <Badge className="bg-zinc-700/40 text-zinc-500 border-zinc-600/30 text-[10px]">Não conectado</Badge>
