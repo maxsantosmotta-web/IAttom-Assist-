@@ -678,7 +678,7 @@ export function MercadoLivre() {
                 {
                   key: "title",  icon: FileText, color: "text-blue-400",   bg: "bg-blue-500/8 border-blue-500/15",
                   label: "Melhorar Título",
-                  desc:  "A IA vai reescrever o título do seu anúncio com palavras-chave estratégicas e mais cliques.",
+                  desc:  "Reescreva o título do seu anúncio com palavras-chave estratégicas e mais cliques.",
                 },
                 {
                   key: "desc",   icon: FileText, color: "text-violet-400", bg: "bg-violet-500/8 border-violet-500/15",
@@ -698,7 +698,7 @@ export function MercadoLivre() {
                 {
                   key: "img",    icon: Image,    color: "text-pink-400",   bg: "bg-pink-500/8 border-pink-500/15",
                   label: "Otimizar Imagem",
-                  desc:  "Gere sugestões de composição visual e melhore a imagem principal do anúncio com IA.",
+                  desc:  "Gere sugestões de composição visual e melhore a imagem principal do anúncio.",
                 },
               ].map(({ key, icon: Icon, color, bg, label, desc }) => (
                 <button
@@ -733,7 +733,7 @@ export function MercadoLivre() {
               {[
                 {
                   label: "Criar campanha Mercado Livre", icon: Megaphone,
-                  desc:  "Monte uma campanha completa com a IA usando o contexto dos seus anúncios.",
+                  desc:  "Monte uma campanha completa usando o contexto dos seus anúncios.",
                   action: () => handleCreateCampaign(),
                   highlight: true,
                 },
@@ -785,7 +785,7 @@ export function MercadoLivre() {
                 { label: "Visitas",    icon: Eye,        value: "—", color: "text-blue-400"    },
                 { label: "Vendas",     icon: TrendingUp, value: "—", color: "text-emerald-400" },
                 { label: "Potencial",  icon: Star,       value: "—", color: "text-amber-400"   },
-                { label: "Score IA",   icon: Zap,        value: "—", color: "text-primary"     },
+                { label: "Otimização", icon: Zap,        value: "—", color: "text-primary"     },
               ].map(({ label, icon: Icon, value, color }) => (
                 <div key={label} className="p-3 rounded-xl bg-white/3 border border-white/6 text-center">
                   <Icon className={`w-4 h-4 ${color} mx-auto mb-1.5`} />
