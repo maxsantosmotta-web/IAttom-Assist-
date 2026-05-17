@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Zap, RefreshCw, Loader2, Users, Activity, Clock, BarChart2,
@@ -7,57 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface KiwifyEventItem {
-  id: number;
-  eventType?: string | null;
-  orderId?: string | null;
-  buyerEmail?: string | null;
-  value?: string | null;
-  currency?: string | null;
-  receivedAt?: string | null;
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
-
-async function apiFetch<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json() as Promise<T>;
-}
-
-const fmtDate = (d: string | null | undefined) =>
-  d ? new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
-
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export function AdminKiwify() {
-  const [events, setEvents]               = useState<KiwifyEventItem[]>([]);
-  const [loadingEvents, setLoadingEvents] = useState(false);
-  const [lastUpdated, setLastUpdated]     = useState<Date | null>(null);
-  const [refreshing, setRefreshing]       = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [refreshing, setRefreshing]   = useState(false);
 
-  const loadEvents = useCallback(async () => {
-    setLoadingEvents(true);
-    try { setEvents(await apiFetch<KiwifyEventItem[]>("/api/kiwify/events")); }
-    catch { setEvents([]); }
-    finally { setLoadingEvents(false); }
-  }, []);
-
-  const handleRefreshAll = useCallback(async () => {
+  const handleRefreshAll = async () => {
     setRefreshing(true);
-    await loadEvents();
+    await new Promise(r => setTimeout(r, 600));
     setLastUpdated(new Date());
     setRefreshing(false);
-  }, [loadEvents]);
-
-  useEffect(() => { void handleRefreshAll(); }, [handleRefreshAll]);
+  };
 
   const kpis = [
     { label: "Usuários Conectados", value: "—", icon: Users,    color: "text-violet-400"  },
@@ -118,58 +77,15 @@ export function AdminKiwify() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
+          <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
             <div className="w-10 h-10 rounded-full bg-white/3 border border-white/8 flex items-center justify-center mb-1">
               <Zap className="w-4 h-4 text-zinc-700" />
             </div>
             <p className="text-sm text-zinc-500">Nenhum usuário conectado à Kiwify.</p>
-            <p className="text-[11px] text-zinc-700">As conexões aparecerão aqui após o usuário autenticar sua conta.</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ─── Eventos ─────────────────────────────────────────────── */}
-      <Card className="bg-white/3 border-white/8">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-              <Activity className="w-4 h-4 text-zinc-500" />
-              Eventos Recentes (Webhooks)
-            </CardTitle>
-            <Button size="sm" variant="ghost" onClick={() => void loadEvents()} disabled={loadingEvents}
-              className="h-7 px-2 text-zinc-600 hover:text-white">
-              {loadingEvents ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loadingEvents ? (
-            <div className="flex items-center gap-2 text-zinc-500 text-sm py-4">
-              <Loader2 className="w-4 h-4 animate-spin" />Carregando...
-            </div>
-          ) : events.length === 0 ? (
-            <p className="text-xs text-zinc-600 text-center py-6">
-              Nenhum evento registrado. Os webhooks da Kiwify aparecerão aqui.
+            <p className="text-[11px] text-zinc-700 max-w-xs">
+              As conexões aparecerão aqui após o usuário autenticar sua conta.
             </p>
-          ) : (
-            <div className="max-h-[280px] overflow-y-auto divide-y divide-white/5">
-              {events.slice(0, 50).map(ev => (
-                <div key={ev.id} className="py-2.5 flex items-start gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-white font-medium truncate">{ev.eventType ?? "—"}</p>
-                    {ev.buyerEmail && <p className="text-[10px] text-zinc-500 truncate">{ev.buyerEmail}</p>}
-                    {ev.value && (
-                      <p className="text-[10px] text-emerald-400/70">
-                        {ev.currency ?? "BRL"} {ev.value}
-                        {ev.orderId && <span className="text-zinc-600 ml-1">· #{ev.orderId}</span>}
-                      </p>
-                    )}
-                  </div>
-                  <p className="text-[10px] text-zinc-600 shrink-0 pt-0.5">{fmtDate(ev.receivedAt)}</p>
-                </div>
-              ))}
-            </div>
-          )}
+          </div>
         </CardContent>
       </Card>
     </div>

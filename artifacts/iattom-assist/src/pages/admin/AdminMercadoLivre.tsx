@@ -24,14 +24,6 @@ interface UserMlConnectionItem {
   userName?: string | null;
 }
 
-interface MLEventItem {
-  id: number;
-  topic?: string | null;
-  resource?: string | null;
-  userId?: string | null;
-  receivedAt?: string | null;
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -51,14 +43,14 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 const fmtTokenExpiry = (d: string | null | undefined) => {
   if (!d) return null;
-  const dt = new Date(d);
+  const dt   = new Date(d);
   const diff = dt.getTime() - Date.now();
   if (diff <= 0) return "Expirado";
   const days = Math.floor(diff / 86_400_000);
-  const h = Math.floor(diff / 3_600_000);
-  const m = Math.floor((diff % 3_600_000) / 60_000);
+  const h    = Math.floor(diff / 3_600_000);
+  const m    = Math.floor((diff % 3_600_000) / 60_000);
   if (days > 1) return `${days}d restantes`;
-  if (h > 0) return `${h}h ${m}min restantes`;
+  if (h > 0)   return `${h}h ${m}min restantes`;
   return `${m}min restantes`;
 };
 
@@ -77,10 +69,9 @@ export function AdminMercadoLivre() {
   } | null>(null);
   const [disconnecting, setDisconnecting]         = useState(false);
   const [disconnectingUser, setDisconnectingUser] = useState<string | null>(null);
-  const [events, setEvents]                       = useState<MLEventItem[]>([]);
-  const [loadingEvents, setLoadingEvents]         = useState(false);
   const [search, setSearch]                       = useState("");
   const [lastUpdated, setLastUpdated]             = useState<Date | null>(null);
+  const [refreshing, setRefreshing]               = useState(false);
 
   const loadUserConnections = useCallback(async () => {
     setLoadingUserConns(true);
@@ -92,16 +83,11 @@ export function AdminMercadoLivre() {
     finally { setLoadingUserConns(false); }
   }, []);
 
-  const loadEvents = useCallback(async () => {
-    setLoadingEvents(true);
-    try { setEvents(await apiFetch<MLEventItem[]>("/api/ml/events")); }
-    catch { setEvents([]); }
-    finally { setLoadingEvents(false); }
-  }, []);
-
   const handleRefreshAll = useCallback(async () => {
-    await Promise.all([loadUserConnections(), loadEvents()]);
-  }, [loadUserConnections, loadEvents]);
+    setRefreshing(true);
+    await loadUserConnections();
+    setRefreshing(false);
+  }, [loadUserConnections]);
 
   useEffect(() => { void handleRefreshAll(); }, [handleRefreshAll]);
 
@@ -118,7 +104,7 @@ export function AdminMercadoLivre() {
         toast({ title: "Erro ao desconectar", description: e instanceof Error ? e.message : "Tente novamente.", variant: "destructive" });
       } finally { setDisconnecting(false); }
     } else {
-      const uid = confirmDisconnect.clerkUserId!;
+      const uid   = confirmDisconnect.clerkUserId!;
       const label = confirmDisconnect.label;
       setDisconnectingUser(uid);
       setConfirmDisconnect(null);
@@ -148,10 +134,10 @@ export function AdminMercadoLivre() {
     : userConnections;
 
   const kpis = [
-    { label: "Usuários Conectados",  value: String(userConnections.length),           icon: Users,    color: "text-amber-400"   },
-    { label: "Conexões Ativas",      value: String(userConnections.length - expired),  icon: Activity, color: "text-emerald-400" },
-    { label: "Tokens Expirando",     value: String(expiringSoon + expired),            icon: Clock,    color: "text-red-400"     },
-    { label: "Última Atualização",   value: lastUpdated ? lastUpdated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—", icon: BarChart2, color: "text-zinc-400" },
+    { label: "Usuários Conectados", value: String(userConnections.length),           icon: Users,    color: "text-amber-400"   },
+    { label: "Conexões Ativas",     value: String(userConnections.length - expired), icon: Activity, color: "text-emerald-400" },
+    { label: "Tokens Expirando",    value: String(expiringSoon + expired),            icon: Clock,    color: "text-red-400"     },
+    { label: "Última Atualização",  value: lastUpdated ? lastUpdated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—", icon: BarChart2, color: "text-zinc-400" },
   ];
 
   return (
@@ -173,9 +159,9 @@ export function AdminMercadoLivre() {
             <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px]">Monitoramento ativo</Badge>
             <Button size="sm" variant="outline"
               onClick={() => void handleRefreshAll()}
-              disabled={loadingUserConns || loadingEvents}
+              disabled={refreshing || loadingUserConns}
               className="border-white/10 text-zinc-400 hover:text-white h-8 gap-1.5 text-xs">
-              {(loadingUserConns || loadingEvents) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              {(refreshing || loadingUserConns) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
               Atualizar
             </Button>
           </div>
@@ -197,14 +183,14 @@ export function AdminMercadoLivre() {
         ))}
       </div>
 
-      {/* ─── Conexões de Usuários ────────────────────────────────── */}
+      {/* ─── Usuários Conectados ──────────────────────────────────── */}
       <Card className="bg-white/3 border-white/8">
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
             <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
               <User className="w-4 h-4 text-primary/70" />
-              Conexões de Usuários
-              {!loadingUserConns && (
+              Usuários Conectados
+              {!loadingUserConns && userConnections.length > 0 && (
                 <span className="text-[11px] font-normal text-zinc-500">
                   ({userConnections.length} {userConnections.length === 1 ? "ativo" : "ativos"})
                 </span>
@@ -232,20 +218,20 @@ export function AdminMercadoLivre() {
               <Loader2 className="w-4 h-4 animate-spin shrink-0" />Carregando conexões...
             </div>
           ) : filteredConnections.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 px-5 py-8 text-center">
+            <div className="flex flex-col items-center justify-center py-10 text-center gap-2 px-5">
               <div className="w-10 h-10 rounded-full bg-white/3 border border-white/8 flex items-center justify-center mb-1">
                 <User className="w-4 h-4 text-zinc-700" />
               </div>
               <p className="text-sm text-zinc-500">
                 {search ? "Nenhuma conexão encontrada para esta busca." : "Nenhum usuário conectado ao Mercado Livre."}
               </p>
-              <p className="text-[11px] text-zinc-700">
+              <p className="text-[11px] text-zinc-700 max-w-xs">
                 {search ? "Tente buscar por outro nome ou email." : "As conexões aparecerão aqui após o usuário autenticar sua conta."}
               </p>
             </div>
           ) : (
             <div className="max-h-[480px] overflow-y-auto divide-y divide-white/5">
-              {filteredConnections.map((conn) => {
+              {filteredConnections.map(conn => {
                 const displayName  = conn.userName || conn.userEmail || conn.clerkUserId;
                 const displayEmail = conn.userName && conn.userEmail ? conn.userEmail : null;
                 const isExpired    = conn.expiresAt ? new Date(conn.expiresAt) < new Date() : false;
@@ -296,45 +282,6 @@ export function AdminMercadoLivre() {
                   </div>
                 );
               })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ─── Notificações / Eventos ───────────────────────────────── */}
-      <Card className="bg-white/3 border-white/8">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-              <Activity className="w-4 h-4 text-zinc-500" />
-              Notificações Recebidas
-            </CardTitle>
-            <Button size="sm" variant="ghost" onClick={() => void loadEvents()} disabled={loadingEvents}
-              className="h-7 px-2 text-zinc-600 hover:text-white">
-              {loadingEvents ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loadingEvents ? (
-            <div className="flex items-center gap-2 text-zinc-500 text-sm py-4">
-              <Loader2 className="w-4 h-4 animate-spin" />Carregando...
-            </div>
-          ) : events.length === 0 ? (
-            <p className="text-xs text-zinc-600 text-center py-6">
-              Nenhuma notificação recebida. Os webhooks do Mercado Livre aparecerão aqui.
-            </p>
-          ) : (
-            <div className="max-h-[280px] overflow-y-auto divide-y divide-white/5">
-              {events.slice(0, 50).map(ev => (
-                <div key={ev.id} className="py-2.5 flex items-start gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-white font-medium truncate">{ev.topic ?? "—"}</p>
-                    <p className="text-[10px] text-zinc-500 font-mono truncate">{ev.resource ?? "—"}</p>
-                  </div>
-                  <p className="text-[10px] text-zinc-600 shrink-0 pt-0.5">{fmtDate(ev.receivedAt)}</p>
-                </div>
-              ))}
             </div>
           )}
         </CardContent>
