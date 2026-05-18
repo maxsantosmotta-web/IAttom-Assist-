@@ -188,6 +188,8 @@ const CHECKLIST_ITEMS: { id: IntegrationId; icon: typeof ShoppingBag; iconColor:
   { id: "kiwify",   icon: Zap,          iconColor: "text-violet-400",  label: "Kiwify — produtos digitais e checkout"             },
 ];
 
+/* TikTok is per-user OAuth (not a platform webhook) — handled separately in render */
+
 /* ─── Event feed helpers ─────────────────────────────────────── */
 const PLATFORM_COLORS: Record<string, string> = {
   whatsapp: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
@@ -196,6 +198,7 @@ const PLATFORM_COLORS: Record<string, string> = {
   ml:       "bg-yellow-500/15 text-yellow-500 border-yellow-500/30",
   hotmart:  "bg-red-500/15 text-red-400 border-red-500/30",
   kiwify:   "bg-violet-500/15 text-violet-400 border-violet-500/30",
+  tiktok:   "bg-cyan-500/15 text-cyan-400 border-cyan-500/30",
 };
 
 const EVENT_LABELS: Record<string, string> = {
@@ -347,7 +350,9 @@ export function AdminApiConfig() {
   const tabDot = (id: IntegrationKey): string => {
     const cfg = configs?.[id];
     if (!cfg?.configured) return "bg-zinc-600";
-    if (id === "tiktok") return "bg-amber-400";
+    if (id === "tiktok") {
+      return cfg.isActive ? "bg-emerald-400" : "bg-amber-400";
+    }
     const st = statuses.find(s => s.id === (id as IntegrationId));
     if (st?.tokenExpired) return "bg-red-400";
     if (st?.isActive) return "bg-emerald-400";
@@ -773,6 +778,27 @@ export function AdminApiConfig() {
                   </div>
                 );
               })}
+              {/* TikTok — per-user OAuth, status derived from admin config */}
+              {(() => {
+                const tt = configs?.tiktok;
+                const ttActive = tt?.isActive ?? false;
+                const ttConfigured = tt?.configured ?? false;
+                return (
+                  <div className="flex items-center gap-3 bg-white/2 border border-white/5 rounded-lg px-3 py-2.5">
+                    <Video className="w-3.5 h-3.5 shrink-0 text-cyan-400" />
+                    <span className="text-xs text-zinc-300 flex-1">TikTok — conteúdo, shop e anúncios</span>
+                    <Badge className={`text-[9px] shrink-0 ${
+                      ttActive
+                        ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                        : ttConfigured
+                          ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                          : "bg-zinc-700/40 text-zinc-600 border-zinc-700"
+                    }`}>
+                      {ttActive ? "Conectado ativo" : ttConfigured ? "Configurado" : "Pendente"}
+                    </Badge>
+                  </div>
+                );
+              })()}
             </div>
           </CardContent>
         </Card>

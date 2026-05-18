@@ -7,7 +7,7 @@ export function generateTikTokOAuthUrl(
   redirectUri: string,
   state: string,
 ): string {
-  const scopes = "user.info.basic,user.info.profile,video.list";
+  const scopes = "user.info.basic";
   const params = new URLSearchParams({
     client_key: clientKey,
     scope: scopes,

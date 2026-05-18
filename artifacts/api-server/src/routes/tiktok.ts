@@ -1,7 +1,9 @@
 import crypto from "crypto";
 import { Router, type IRouter } from "express";
-import { db, tiktokConfig } from "@workspace/db";
+import { eq, desc } from "drizzle-orm";
+import { db, tiktokConfig, userTiktokConnections } from "@workspace/db";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
+import { requireAdmin } from "../middlewares/requireAdmin.js";
 import {
   generateTikTokOAuthUrl,
   exchangeTikTokCode,
@@ -184,6 +186,31 @@ router.get("/tiktok/oauth/callback", async (req, res): Promise<void> => {
       `${frontendBase}/dashboard/tiktok?tiktok_error=${encodeURIComponent(msg)}`,
     );
   }
+});
+
+// ─── ADMIN: All active TikTok user connections ────────────────────────────────
+router.get("/tiktok/user-connections", requireAdmin, async (req, res): Promise<void> => {
+  const rows = await db
+    .select({
+      id: userTiktokConnections.id,
+      clerkUserId: userTiktokConnections.clerkUserId,
+      platformUsername: userTiktokConnections.platformUsername,
+      expiresAt: userTiktokConnections.expiresAt,
+      createdAt: userTiktokConnections.createdAt,
+    })
+    .from(userTiktokConnections)
+    .where(eq(userTiktokConnections.isActive, true))
+    .orderBy(desc(userTiktokConnections.createdAt));
+
+  res.json(
+    rows.map((c) => ({
+      id: c.id,
+      clerkUserId: c.clerkUserId,
+      displayName: c.platformUsername || null,
+      expiresAt: c.expiresAt?.toISOString() ?? null,
+      createdAt: c.createdAt.toISOString(),
+    })),
+  );
 });
 
 // ─── USER: Disconnect own TikTok account ─────────────────────────────────────
