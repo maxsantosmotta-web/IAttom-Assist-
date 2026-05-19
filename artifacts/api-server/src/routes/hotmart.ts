@@ -389,6 +389,46 @@ router.get("/hotmart/user/sales", requireAuth, async (req, res): Promise<void> =
   res.json(events);
 });
 
+// ─── USER: Integration status ────────────────────────────────────────────────
+router.get("/hotmart/user/integration-status", requireAuth, async (_req, res): Promise<void> => {
+  const [config] = await db.select().from(hotmartConfig).limit(1);
+  res.json({
+    configured: !!(config?.clientId && config?.clientSecret && config?.basicToken),
+    isActive: config?.isActive ?? false,
+    environment: config?.environment ?? "sandbox",
+  });
+});
+
+// ─── USER: Disconnect Hotmart ─────────────────────────────────────────────────
+router.post("/hotmart/user/disconnect", requireAuth, async (req, res): Promise<void> => {
+  const [config] = await db.select().from(hotmartConfig).limit(1);
+  if (!config) {
+    res.json({ ok: true });
+    return;
+  }
+  await db.update(hotmartConfig)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(eq(hotmartConfig.id, config.id));
+  req.log.info({ configId: config.id }, "hotmart: user triggered disconnect");
+  res.json({ ok: true });
+});
+
+// ─── USER: Reconnect Hotmart ──────────────────────────────────────────────────
+router.post("/hotmart/user/reconnect", requireAuth, async (req, res): Promise<void> => {
+  const [config] = await db.select().from(hotmartConfig).limit(1);
+  if (!config?.clientId || !config?.clientSecret || !config?.basicToken) {
+    res.status(503).json({
+      error: "Credenciais Hotmart não configuradas. Solicite ao administrador que configure as credenciais.",
+    });
+    return;
+  }
+  await db.update(hotmartConfig)
+    .set({ isActive: true, updatedAt: new Date() })
+    .where(eq(hotmartConfig.id, config.id));
+  req.log.info({ configId: config.id }, "hotmart: user triggered reconnect");
+  res.json({ ok: true });
+});
+
 // ─── USER: Sync products from Hotmart API ────────────────────────────────────
 router.post("/hotmart/user/sync", requireAuth, async (req, res): Promise<void> => {
   const [config] = await db.select().from(hotmartConfig).limit(1);

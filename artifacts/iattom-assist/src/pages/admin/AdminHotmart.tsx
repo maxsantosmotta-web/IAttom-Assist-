@@ -2,18 +2,21 @@ import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Flame, RefreshCw, Loader2, Users, Activity, Clock, BarChart2,
+  Settings, WifiOff, CheckCircle2, ExternalLink,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLocation } from "wouter";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-async function apiFetch<T>(path: string): Promise<T> {
+async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
+    ...init,
+    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
     credentials: "include",
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -32,10 +35,38 @@ interface HotmartUserConnection {
 }
 
 export function AdminHotmart() {
-  const [connections, setConnections]     = useState<HotmartUserConnection[]>([]);
-  const [loadingConns, setLoadingConns]   = useState(false);
-  const [lastUpdated, setLastUpdated]     = useState<Date | null>(null);
-  const [refreshing, setRefreshing]       = useState(false);
+  const [, navigate] = useLocation();
+  const [connections, setConnections]           = useState<HotmartUserConnection[]>([]);
+  const [loadingConns, setLoadingConns]         = useState(false);
+  const [lastUpdated, setLastUpdated]           = useState<Date | null>(null);
+  const [refreshing, setRefreshing]             = useState(false);
+  const [hotmartActive, setHotmartActive]       = useState<boolean | null>(null);
+  const [hotmartConfigured, setHotmartConfigured] = useState(false);
+  const [disconnectConfirm, setDisconnectConfirm] = useState(false);
+  const [disconnecting, setDisconnecting]       = useState(false);
+
+  const loadHotmartStatus = useCallback(async () => {
+    try {
+      const data = await apiFetch<{ configured: boolean; isActive: boolean }>("/api/hotmart/user/integration-status");
+      setHotmartConfigured(data.configured);
+      setHotmartActive(data.isActive);
+    } catch {
+      setHotmartActive(null);
+    }
+  }, []);
+
+  const handleAdminDisconnect = useCallback(async () => {
+    setDisconnecting(true);
+    setDisconnectConfirm(false);
+    try {
+      await apiFetch("/api/hotmart/user/disconnect", { method: "POST" });
+      setHotmartActive(false);
+    } catch {
+      // no-op — user will see unchanged status
+    } finally {
+      setDisconnecting(false);
+    }
+  }, []);
 
   const loadConnections = useCallback(async () => {
     setLoadingConns(true);
@@ -51,10 +82,10 @@ export function AdminHotmart() {
 
   const handleRefreshAll = useCallback(async () => {
     setRefreshing(true);
-    await loadConnections();
+    await Promise.all([loadConnections(), loadHotmartStatus()]);
     setLastUpdated(new Date());
     setRefreshing(false);
-  }, [loadConnections]);
+  }, [loadConnections, loadHotmartStatus]);
 
   useEffect(() => { void handleRefreshAll(); }, [handleRefreshAll]);
 
@@ -78,6 +109,41 @@ export function AdminHotmart() {
   return (
     <div className="p-6 space-y-6 max-w-4xl">
 
+      {/* ─── Disconnect Confirmation Modal ───────────────────────── */}
+      {disconnectConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-[#111111] border border-white/10 rounded-xl w-full max-w-md p-6 space-y-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center">
+                <WifiOff className="w-4 h-4 text-red-400" />
+              </div>
+              <p className="text-sm font-semibold text-white">Desconectar Hotmart?</p>
+            </div>
+            <p className="text-sm text-zinc-400 leading-relaxed">
+              A integração Hotmart será desativada para toda a plataforma. Produtos e eventos salvos não serão apagados.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => void handleAdminDisconnect()}
+                disabled={disconnecting}
+                className="flex-1 bg-red-600 hover:bg-red-500 text-white font-semibold"
+              >
+                {disconnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : null}
+                Desconectar
+              </Button>
+              <Button onClick={() => setDisconnectConfirm(false)} variant="outline"
+                className="border-white/10 text-zinc-400 hover:text-white">
+                Cancelar
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* ─── Header ──────────────────────────────────────────────── */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
@@ -90,8 +156,33 @@ export function AdminHotmart() {
               <p className="text-xs text-zinc-500">Monitoramento de conexões dos usuários com a Hotmart.</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px]">Monitoramento ativo</Badge>
+          <div className="flex items-center gap-2 flex-wrap">
+            {hotmartActive === true && (
+              <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px]">
+                <CheckCircle2 className="w-2.5 h-2.5 mr-1" />Ativa
+              </Badge>
+            )}
+            {hotmartActive === false && (
+              <Badge className="bg-zinc-500/15 text-zinc-400 border-zinc-500/30 text-[10px]">
+                <WifiOff className="w-2.5 h-2.5 mr-1" />Desconectada
+              </Badge>
+            )}
+            <Button size="sm" variant="outline"
+              onClick={() => navigate("/admin/integrations")}
+              className="border-white/10 text-zinc-400 hover:text-white h-8 gap-1.5 text-xs">
+              <Settings className="w-3.5 h-3.5" />
+              Configurar Hotmart
+              <ExternalLink className="w-3 h-3 opacity-50" />
+            </Button>
+            {hotmartConfigured && hotmartActive && (
+              <Button size="sm" variant="outline"
+                onClick={() => setDisconnectConfirm(true)}
+                disabled={disconnecting}
+                className="border-red-500/30 text-red-400 hover:text-red-300 hover:border-red-400/50 h-8 gap-1.5 text-xs">
+                {disconnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <WifiOff className="w-3.5 h-3.5" />}
+                Desconectar Hotmart
+              </Button>
+            )}
             <Button size="sm" variant="outline"
               onClick={() => void handleRefreshAll()}
               disabled={refreshing}

@@ -125,6 +125,11 @@ export function Hotmart() {
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [modal, setModal] = useState<{ title: string; description: string; action?: { label: string; onClick: () => void } } | null>(null);
+  const [integrationStatus, setIntegrationStatus] = useState<{ configured: boolean; isActive: boolean } | null>(null);
+  const [loadingStatus, setLoadingStatus] = useState(true);
+  const [connecting, setConnecting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
   const showInfo = (
     title: string,
@@ -179,6 +184,7 @@ export function Hotmart() {
   };
 
   useEffect(() => {
+    void handleLoadStatus();
     void handleLoadProducts();
     void handleLoadEvents();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -193,6 +199,47 @@ export function Hotmart() {
     toast({ description: "Dados carregados na criação de campanha." });
   };
 
+  const handleLoadStatus = async () => {
+    setLoadingStatus(true);
+    try {
+      const data = await apiFetch<{ configured: boolean; isActive: boolean }>("/api/hotmart/user/integration-status");
+      setIntegrationStatus(data);
+    } catch {
+      setIntegrationStatus(null);
+    } finally {
+      setLoadingStatus(false);
+    }
+  };
+
+  const handleConnect = async () => {
+    setConnecting(true);
+    try {
+      await apiFetch("/api/hotmart/user/reconnect", { method: "POST" });
+      setIntegrationStatus(s => s ? { ...s, isActive: true } : s);
+      toast({ description: "Hotmart conectada com sucesso." });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Falha ao conectar.";
+      toast({ variant: "destructive", description: msg });
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    setDisconnecting(true);
+    setConfirmDisconnect(false);
+    try {
+      await apiFetch("/api/hotmart/user/disconnect", { method: "POST" });
+      setIntegrationStatus(s => s ? { ...s, isActive: false } : s);
+      toast({ description: "Hotmart desconectada. Dados históricos preservados." });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Falha ao desconectar.";
+      toast({ variant: "destructive", description: msg });
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {modal && (
@@ -202,6 +249,44 @@ export function Hotmart() {
           action={modal.action}
           onClose={() => setModal(null)}
         />
+      )}
+
+      {confirmDisconnect && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-[#111111] border border-white/10 rounded-xl w-full max-w-md p-6 space-y-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center">
+                <WifiOff className="w-4 h-4 text-red-400" />
+              </div>
+              <p className="text-sm font-semibold text-white">Desconectar Hotmart?</p>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              A integração Hotmart será desativada. Produtos e vendas já carregados permanecem salvos.
+              Você pode reconectar a qualquer momento.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => void handleDisconnect()}
+                disabled={disconnecting}
+                className="flex-1 bg-red-600 hover:bg-red-500 text-white font-semibold"
+              >
+                {disconnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : null}
+                Desconectar
+              </Button>
+              <Button
+                onClick={() => setConfirmDisconnect(false)}
+                variant="outline"
+                className="border-white/10 text-muted-foreground hover:text-white"
+              >
+                Cancelar
+              </Button>
+            </div>
+          </motion.div>
+        </div>
       )}
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
@@ -255,27 +340,75 @@ export function Hotmart() {
         {/* Status Card */}
         <Card className="bg-[#111111] border-white/[0.06] mb-5">
           <CardContent className="p-4">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span className="text-sm font-semibold text-white">Integração ativa</span>
+            {loadingStatus ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm">Verificando status...</span>
               </div>
-              <p className="text-xs text-muted-foreground/70">
-                Conectada via credenciais da plataforma. Produtos e vendas são carregados diretamente da API Hotmart.
-              </p>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => showInfo(
-                  "Como funciona a integração Hotmart",
-                  "Os produtos são sincronizados diretamente da API Hotmart. Clique em Sincronizar para buscar novos produtos. As vendas chegam via webhook Hotmart e são exibidas em tempo real.",
-                )}
-                className="border-white/10 text-muted-foreground hover:text-white ml-auto text-xs h-7"
-              >
-                <Info className="w-3 h-3 mr-1.5" />
-                Como funciona
-              </Button>
-            </div>
+            ) : !integrationStatus?.configured ? (
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <WifiOff className="w-4 h-4 text-amber-400" />
+                  <span className="text-sm font-semibold text-white">Aguardando configuração</span>
+                </div>
+                <p className="text-xs text-muted-foreground/70 flex-1">
+                  A integração Hotmart ainda não foi configurada. Solicite ao administrador que configure as credenciais.
+                </p>
+              </div>
+            ) : !integrationStatus.isActive ? (
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <WifiOff className="w-4 h-4 text-zinc-400" />
+                  <span className="text-sm font-semibold text-white">Hotmart desconectada</span>
+                </div>
+                <p className="text-xs text-muted-foreground/70 flex-1">
+                  Integração desativada. Dados históricos preservados. Conecte novamente para sincronizar.
+                </p>
+                <Button
+                  size="sm"
+                  onClick={() => void handleConnect()}
+                  disabled={connecting}
+                  className="bg-orange-500 hover:bg-orange-400 text-white font-semibold text-xs h-7 ml-auto"
+                >
+                  {connecting ? <Loader2 className="w-3 h-3 animate-spin mr-1.5" /> : <CheckCircle2 className="w-3 h-3 mr-1.5" />}
+                  Conectar Hotmart
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm font-semibold text-white">Integração ativa</span>
+                </div>
+                <p className="text-xs text-muted-foreground/70 flex-1">
+                  Conectada via credenciais da plataforma. Produtos e vendas carregados diretamente da API Hotmart.
+                </p>
+                <div className="flex items-center gap-2 ml-auto">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => showInfo(
+                      "Como funciona a integração Hotmart",
+                      "Os produtos são sincronizados diretamente da API Hotmart. Clique em Sincronizar para buscar novos produtos. As vendas chegam via webhook Hotmart e são exibidas em tempo real.",
+                    )}
+                    className="border-white/10 text-muted-foreground hover:text-white text-xs h-7"
+                  >
+                    <Info className="w-3 h-3 mr-1.5" />
+                    Como funciona
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setConfirmDisconnect(true)}
+                    disabled={disconnecting}
+                    className="border-red-500/30 text-red-400 hover:text-red-300 hover:border-red-400/50 text-xs h-7"
+                  >
+                    {disconnecting ? <Loader2 className="w-3 h-3 animate-spin mr-1.5" /> : <WifiOff className="w-3 h-3 mr-1.5" />}
+                    Desconectar
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -1,0 +1,296 @@
+CORREÇÃO CIRÚRGICA ÚNICA — TIKTOK + MERCADO LIVRE + HOTMART
+
+Executar somente as correções abaixo.
+Não fazer refatoração geral.
+Não alterar layout geral.
+Não alterar sidebar.
+Não alterar créditos.
+Não alterar Shopee.
+Não alterar Kiwify.
+Não alterar WhatsApp.
+Não alterar Instagram/Facebook.
+Não criar mocks.
+Não modificar fluxos já validados.
+
+OBJETIVO:
+
+1. Fazer a conexão TikTok OAuth funcionar corretamente.
+
+
+2. Corrigir falso status “Conectado ativo” do TikTok.
+
+
+3. Corrigir persistência/refresh do Mercado Livre após restart.
+
+
+4. Adicionar botões funcionais Conectar/Configurar e Desconectar na Hotmart.
+
+
+
+━━━━━━━━━━━━━━━━━━━━
+
+1. CORRIGIR TIKTOK OAUTH — REDIRECT URI
+━━━━━━━━━━━━━━━━━━━━
+
+
+
+Problema identificado:
+O OAuth TikTok está montado corretamente, usando client_key, scope, response_type=code e state.
+A falha provável/diagnosticada está no redirect_uri salvo em tiktok_config.redirect_uri, que pode estar diferente do redirect_uri cadastrado no TikTok Developers.
+
+Correção:
+
+Garantir que o OAuth TikTok use sempre o redirect_uri salvo em tiktok_config.redirect_uri.
+
+No painel ADMIN da integração TikTok, exibir claramente o redirect_uri atual usado pelo sistema.
+
+Adicionar campo editável para o admin salvar manualmente o redirect_uri correto.
+
+Não sobrescrever automaticamente com window.location.origin se já existir redirect_uri salvo.
+
+Evitar salvar domínio temporário .replit.dev quando a produção usa .replit.app.
+
+Exibir alerta textual no ADMIN:
+“Este redirect_uri deve ser idêntico ao cadastrado no TikTok Developers.”
+
+Manter client_key, client_secret, scope=user.info.basic, response_type=code e state como já estão.
+
+Após salvar, o botão “Conectar TikTok” no USER deve usar exatamente esse redirect_uri salvo.
+
+
+Critério de sucesso:
+Ao clicar em “Conectar TikTok”, a autorização real do TikTok deve abrir sem erro de client_key/redirect_uri.
+
+━━━━━━━━━━━━━━━━━━━━
+2. CORRIGIR CHECKLIST TIKTOK — FALSO POSITIVO
+━━━━━━━━━━━━━━━━━━━━
+
+Problema identificado:
+O checklist ADM mostra “Conectado ativo” quando o admin apenas salva clientKey + clientSecret, porque isActive é definido como true no save das credenciais.
+
+Correção:
+
+Remover a lógica que seta isActive=true automaticamente ao salvar credenciais TikTok.
+
+Status correto:
+
+Pendente: sem clientKey ou sem clientSecret.
+
+Configurado: clientKey + clientSecret salvos, mas sem OAuth concluído/token salvo.
+
+Conectado ativo: somente se existir access_token TikTok válido salvo após OAuth real.
+
+
+O checklist deve verificar conexão real em user_tiktok_connections ou tabela equivalente de tokens/conexões TikTok.
+
+Enquanto o OAuth não concluir com sucesso, TikTok deve aparecer como “Configurado”, não “Conectado ativo”.
+
+
+Critério de sucesso:
+TikTok só aparece “Conectado ativo” depois do usuário concluir OAuth real.
+
+━━━━━━━━━━━━━━━━━━━━
+3. CORRIGIR MERCADO LIVRE — TOKENMANAGER APÓS RESTART
+━━━━━━━━━━━━━━━━━━━━
+
+Problema identificado:
+Mercado Livre funciona, OAuth salva tokens no DB e refreshMLToken existe.
+O erro está no TokenManager in-memory, que perde os tokens após restart/deploy e não reidrata os tokens salvos no DB.
+
+Correção:
+
+Criar rotina de startup para carregar tokens válidos do DB ao iniciar o servidor.
+
+Re-registrar no TokenManager:
+
+tokens globais de mlConfig, se existirem e estiverem ativos
+
+tokens por usuário de userMlConnections, se existirem e estiverem ativos
+
+
+Se access_token estiver expirado, usar refresh_token salvo para renovar automaticamente.
+
+Persistir novo access_token, refresh_token e expiresAt/tokenExpiry no DB após refresh.
+
+Não alterar o fluxo OAuth atual do Mercado Livre.
+
+Não alterar tela USER/Admin do Mercado Livre, exceto se necessário para refletir status real.
+
+
+Critério de sucesso:
+Depois de restart/deploy, Mercado Livre continua reconhecendo tokens salvos e consegue renovar sem exigir nova conexão manual.
+
+━━━━━━━━━━━━━━━━━━━━
+4. HOTMART — BOTÕES CONECTAR/CONFIGURAR E DESCONECTAR
+━━━━━━━━━━━━━━━━━━━━
+
+Contexto:
+Hotmart usa Client Credentials, não OAuth por usuário.
+A arquitetura está correta e não deve ser transformada em OAuth.
+
+Correção:
+Adicionar na tela USER Hotmart botões funcionais:
+
+“Conectar/Configurar Hotmart”
+
+“Desconectar Hotmart”
+
+
+Comportamento:
+
+“Conectar/Configurar Hotmart” deve abrir o fluxo/tela/modal existente de configuração de credenciais Hotmart ou direcionar para a área correta de configuração.
+
+“Desconectar Hotmart” deve desativar a integração Hotmart com confirmação antes de executar.
+
+Ao desconectar:
+
+marcar hotmartConfig.isActive=false
+
+não apagar histórico de eventos/vendas já recebidos
+
+não apagar produtos já sincronizados, salvo se já existir regra interna para isso
+
+
+Após desconectar, a tela deve mostrar status de Hotmart não configurado/desativado.
+
+Após configurar credenciais novamente, deve voltar ao estado configurado/ativo conforme lógica atual.
+
+
+Importante:
+Não transformar Hotmart em OAuth.
+Não criar mock.
+Não apagar dados históricos.
+
+Critério de sucesso:
+Usuário consegue configurar e desconectar Hotmart por botões reais e clicáveis.
+
+━━━━━━━━━━━━━━━━━━━━
+5. NÃO ALTERAR
+━━━━━━━━━━━━━━━━━━━━
+
+Não alterar:
+
+Shopee
+
+Kiwify
+
+WhatsApp
+
+Instagram/Facebook
+
+Sidebar
+
+Créditos
+
+Auth/Clerk
+
+Layout geral
+
+Design premium
+
+Mercado Livre OAuth já funcional
+
+Hotmart Client Credentials
+
+Dados históricos
+
+
+━━━━━━━━━━━━━━━━━━━━
+RESULTADO FINAL ESPERADO
+━━━━━━━━━━━━━━━━━━━━
+
+TikTok OAuth conecta usando redirect_uri correto.
+
+TikTok checklist não mostra mais falso “Conectado ativo”.
+
+Mercado Livre mantém/renova token após restart.
+
+Hotmart ganha botões funcionais de Conectar/Configurar e Desconectar.
+
+Nenhum módulo já validado deve quebrar.
+
+
+4. HOTMART — BOTÕES NO ADM E NO USER
+
+
+
+Contexto:
+Hotmart usa Client Credentials, não OAuth por usuário.
+Não transformar Hotmart em OAuth.
+
+ADM HOTMART:
+Adicionar/garantir botões funcionais:
+
+“Configurar Hotmart”
+
+“Desconectar Hotmart”
+
+
+Comportamento no ADM:
+
+“Configurar Hotmart” abre a área técnica de credenciais Hotmart.
+
+“Desconectar Hotmart” abre modal de confirmação.
+
+Ao confirmar, marcar hotmartConfig.isActive=false.
+
+Não apagar histórico de eventos, vendas ou produtos.
+
+Não alterar layout geral do ADM.
+
+
+USER HOTMART:
+Adicionar/garantir botões funcionais:
+
+“Conectar Hotmart”
+
+“Desconectar Hotmart”
+
+
+Comportamento no USER:
+
+“Conectar Hotmart” deve levar ao fluxo permitido para ativar/configurar Hotmart.
+
+“Desconectar Hotmart” deve abrir modal de confirmação.
+
+Se a Hotmart estiver desativada, mostrar estado claro:
+“Hotmart desconectada/configuração pendente.”
+
+Não exibir conexão ativa se hotmartConfig.isActive=false.
+
+
+IMPORTANTE:
+
+ADM = configuração técnica.
+
+USER = ação operacional.
+
+Não criar OAuth Hotmart.
+
+Não apagar dados históricos.
+
+
+OBSERVAÇÃO IMPORTANTE — HOTMART ADM VS USER
+
+HOTMART ADM:
+Os botões:
+
+“Configurar Hotmart”
+
+“Desconectar Hotmart”
+
+
+devem existir apenas no painel ADMIN, pois são funções técnicas da integração.
+
+HOTMART USER:
+Os botões:
+
+“Conectar Hotmart”
+
+“Desconectar Hotmart”
+
+
+devem existir apenas na visão USER, como ações operacionais do usuário.
+
+Não misturar funções ADMIN com USER.
+Não transformar Hotmart em OAuth.

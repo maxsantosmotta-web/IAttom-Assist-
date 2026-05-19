@@ -4,7 +4,7 @@ import {
   Settings2, Save, Trash2, CheckCircle2,
   Loader2, Eye, EyeOff, ShoppingBag, ShoppingCart, Flame,
   Zap, Phone, Instagram, Video, Copy, ExternalLink, Info,
-  Shield, RefreshCw, TrendingUp, Clock, Wifi,
+  Shield, RefreshCw, TrendingUp, Clock, Wifi, AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -671,6 +671,14 @@ export function AdminApiConfig() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-500/8 border border-amber-500/20">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-300/80 leading-relaxed">
+                        O <strong className="text-amber-300">Redirect URI</strong> abaixo deve ser{" "}
+                        <strong className="text-amber-300">idêntico</strong> ao cadastrado no TikTok for Developers.
+                        Se você acessou este painel em ambiente de desenvolvimento (.replit.dev), ajuste o campo para o domínio de produção (.replit.app) antes de salvar.
+                      </p>
+                    </div>
                     <CallbackBox url={tiktokForm.redirectUri || `${origin}${BASE}/api/tiktok/oauth/callback`} label="Callback URL — cadastre no TikTok for Developers" />
                     <div className="grid sm:grid-cols-2 gap-4">
                       <PlainInput label="Client Key" name="clientKey" value={tiktokForm.clientKey}

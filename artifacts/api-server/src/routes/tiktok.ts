@@ -62,7 +62,7 @@ router.get("/tiktok/oauth/start", requireAuth, async (req, res): Promise<void> =
   const frontendBase = getFrontendBase();
 
   const [config] = await db.select().from(tiktokConfig).limit(1);
-  if (!config?.clientKey || !config?.clientSecret || !config?.redirectUri || !config?.isActive) {
+  if (!config?.clientKey || !config?.clientSecret || !config?.redirectUri) {
     res.redirect(
       `${frontendBase}/dashboard/tiktok?tiktok_error=${encodeURIComponent(
         "TikTok não configurado. Solicite ao administrador que configure as credenciais na aba Integrações.",

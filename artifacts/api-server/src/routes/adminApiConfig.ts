@@ -9,6 +9,7 @@ import {
   metaConfig,
   whatsappConfig,
   tiktokConfig,
+  userTiktokConnections,
 } from "@workspace/db";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
 
@@ -26,7 +27,7 @@ function isMasked(val: string | undefined): boolean {
 
 // ─── GET all configs (masked) ─────────────────────────────────────────────────
 router.get("/admin/integrations/config", requireAdmin, async (_req, res): Promise<void> => {
-  const [shopee, ml, hotmart, kiwify, meta, whatsapp, tiktok] = await Promise.all([
+  const [shopee, ml, hotmart, kiwify, meta, whatsapp, tiktok, tiktokConns] = await Promise.all([
     db.select().from(shopeeConfig).limit(1),
     db.select().from(mlConfig).limit(1),
     db.select().from(hotmartConfig).limit(1),
@@ -34,6 +35,10 @@ router.get("/admin/integrations/config", requireAdmin, async (_req, res): Promis
     db.select().from(metaConfig).limit(1),
     db.select().from(whatsappConfig).limit(1),
     db.select().from(tiktokConfig).limit(1),
+    db.select({ id: userTiktokConnections.id })
+      .from(userTiktokConnections)
+      .where(eq(userTiktokConnections.isActive, true))
+      .limit(1),
   ]);
 
   const s = shopee[0];
@@ -104,7 +109,7 @@ router.get("/admin/integrations/config", requireAdmin, async (_req, res): Promis
     },
     tiktok: {
       configured: !!(tt?.clientKey && tt?.clientSecret),
-      isActive: tt?.isActive ?? false,
+      isActive: tiktokConns.length > 0,
       clientKey: tt?.clientKey ?? "",
       clientSecret: mask(tt?.clientSecret),
       redirectUri: tt?.redirectUri ?? "",

@@ -2,6 +2,7 @@ import { runMigrations } from "stripe-replit-sync";
 import app from "./app.js";
 import { logger } from "./lib/logger.js";
 import { getStripeSync } from "./lib/stripeClient.js";
+import { rehydrateMLTokens } from "./lib/mlTokenStartup.js";
 
 async function initStripe() {
   const databaseUrl = process.env.DATABASE_URL;
@@ -66,6 +67,7 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 await initStripe();
+await rehydrateMLTokens();
 
 const server = app.listen(port, () => {
   logger.info({ port }, "Server listening");
