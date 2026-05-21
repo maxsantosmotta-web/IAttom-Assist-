@@ -23,51 +23,47 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface HotmartPlatformConfig {
+  configured: boolean;
+  isActive: boolean;
+  environment?: string;
+  updatedAt?: string;
+}
 
 interface HotmartUserConnection {
   id: number;
   clerkUserId: string;
-  userEmail?: string | null;
-  userName?: string | null;
+  platformUserId?: string | null;
+  platformUsername?: string | null;
   expiresAt?: string | null;
+  isActive: boolean;
   createdAt: string;
+  updatedAt: string;
 }
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function AdminHotmart() {
   const [, navigate] = useLocation();
-  const [connections, setConnections]           = useState<HotmartUserConnection[]>([]);
-  const [loadingConns, setLoadingConns]         = useState(false);
-  const [lastUpdated, setLastUpdated]           = useState<Date | null>(null);
-  const [refreshing, setRefreshing]             = useState(false);
-  const [hotmartActive, setHotmartActive]       = useState<boolean | null>(null);
-  const [hotmartConfigured, setHotmartConfigured] = useState(false);
-  const [disconnectConfirm, setDisconnectConfirm] = useState(false);
-  const [disconnecting, setDisconnecting]       = useState(false);
+  const [connections, setConnections]         = useState<HotmartUserConnection[]>([]);
+  const [loadingConns, setLoadingConns]       = useState(false);
+  const [lastUpdated, setLastUpdated]         = useState<Date | null>(null);
+  const [refreshing, setRefreshing]           = useState(false);
+  const [platformConfig, setPlatformConfig]   = useState<HotmartPlatformConfig | null>(null);
 
-  const loadHotmartStatus = useCallback(async () => {
+  // ── Load platform-level config status (admin route) ──────────────────────────
+  const loadPlatformStatus = useCallback(async () => {
     try {
-      const data = await apiFetch<{ configured: boolean; isActive: boolean }>("/api/hotmart/user/integration-status");
-      setHotmartConfigured(data.configured);
-      setHotmartActive(data.isActive);
+      const data = await apiFetch<HotmartPlatformConfig>("/api/hotmart/config");
+      setPlatformConfig(data);
     } catch {
-      setHotmartActive(null);
+      setPlatformConfig(null);
     }
   }, []);
 
-  const handleAdminDisconnect = useCallback(async () => {
-    setDisconnecting(true);
-    setDisconnectConfirm(false);
-    try {
-      await apiFetch("/api/hotmart/user/disconnect", { method: "POST" });
-      setHotmartActive(false);
-    } catch {
-      // no-op — user will see unchanged status
-    } finally {
-      setDisconnecting(false);
-    }
-  }, []);
-
+  // ── Load per-user connection list (monitoring) ────────────────────────────────
   const loadConnections = useCallback(async () => {
     setLoadingConns(true);
     try {
@@ -82,67 +78,59 @@ export function AdminHotmart() {
 
   const handleRefreshAll = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([loadConnections(), loadHotmartStatus()]);
+    await Promise.all([loadConnections(), loadPlatformStatus()]);
     setLastUpdated(new Date());
     setRefreshing(false);
-  }, [loadConnections, loadHotmartStatus]);
+  }, [loadConnections, loadPlatformStatus]);
 
   useEffect(() => { void handleRefreshAll(); }, [handleRefreshAll]);
 
-  const expired = connections.filter(
-    c => c.expiresAt && new Date(c.expiresAt) < new Date()
+  const activeConnections = connections.filter(c => c.isActive);
+
+  const expired = activeConnections.filter(
+    c => c.expiresAt && new Date(c.expiresAt) < new Date(),
   ).length;
 
-  const expiringSoon = connections.filter(c => {
+  const expiringSoon = activeConnections.filter(c => {
     if (!c.expiresAt) return false;
     const diff = new Date(c.expiresAt).getTime() - Date.now();
     return diff > 0 && diff < 7 * 24 * 3_600_000;
   }).length;
 
   const kpis = [
-    { label: "Usuários Conectados", value: connections.length > 0 ? String(connections.length) : "—", icon: Users,    color: "text-red-400"     },
-    { label: "Conexões Ativas",     value: connections.length > 0 ? String(connections.length - expired) : "—", icon: Activity, color: "text-emerald-400" },
-    { label: "Tokens Expirando",    value: connections.length > 0 ? String(expiringSoon + expired) : "—", icon: Clock,    color: "text-amber-400"   },
-    { label: "Última Atualização",  value: lastUpdated ? lastUpdated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—", icon: BarChart2, color: "text-zinc-400" },
+    {
+      label: "Usuários Conectados",
+      value: activeConnections.length > 0 ? String(activeConnections.length) : "0",
+      icon: Users,
+      color: "text-red-400",
+    },
+    {
+      label: "Conexões Ativas",
+      value: activeConnections.length > 0 ? String(activeConnections.length - expired) : "0",
+      icon: Activity,
+      color: "text-emerald-400",
+    },
+    {
+      label: "Tokens Expirando",
+      value: activeConnections.length > 0 ? String(expiringSoon + expired) : "0",
+      icon: Clock,
+      color: "text-amber-400",
+    },
+    {
+      label: "Última Atualização",
+      value: lastUpdated
+        ? lastUpdated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+        : "—",
+      icon: BarChart2,
+      color: "text-zinc-400",
+    },
   ];
+
+  const isPlatformConfigured = platformConfig?.configured ?? false;
+  const isPlatformActive     = platformConfig?.isActive ?? false;
 
   return (
     <div className="p-6 space-y-6 max-w-4xl">
-
-      {/* ─── Disconnect Confirmation Modal ───────────────────────── */}
-      {disconnectConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-[#111111] border border-white/10 rounded-xl w-full max-w-md p-6 space-y-4"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center">
-                <WifiOff className="w-4 h-4 text-red-400" />
-              </div>
-              <p className="text-sm font-semibold text-white">Desconectar Hotmart?</p>
-            </div>
-            <p className="text-sm text-zinc-400 leading-relaxed">
-              A integração Hotmart será desativada para toda a plataforma. Produtos e eventos salvos não serão apagados.
-            </p>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => void handleAdminDisconnect()}
-                disabled={disconnecting}
-                className="flex-1 bg-red-600 hover:bg-red-500 text-white font-semibold"
-              >
-                {disconnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : null}
-                Desconectar
-              </Button>
-              <Button onClick={() => setDisconnectConfirm(false)} variant="outline"
-                className="border-white/10 text-zinc-400 hover:text-white">
-                Cancelar
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
 
       {/* ─── Header ──────────────────────────────────────────────── */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -157,14 +145,17 @@ export function AdminHotmart() {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {hotmartActive === true && (
+            {isPlatformConfigured && isPlatformActive ? (
               <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px]">
-                <CheckCircle2 className="w-2.5 h-2.5 mr-1" />Ativa
+                <CheckCircle2 className="w-2.5 h-2.5 mr-1" />Plataforma Configurada
               </Badge>
-            )}
-            {hotmartActive === false && (
+            ) : isPlatformConfigured ? (
+              <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-[10px]">
+                <WifiOff className="w-2.5 h-2.5 mr-1" />Credenciais Inativas
+              </Badge>
+            ) : (
               <Badge className="bg-zinc-500/15 text-zinc-400 border-zinc-500/30 text-[10px]">
-                <WifiOff className="w-2.5 h-2.5 mr-1" />Desconectada
+                <WifiOff className="w-2.5 h-2.5 mr-1" />Não Configurada
               </Badge>
             )}
             <Button size="sm" variant="outline"
@@ -174,15 +165,6 @@ export function AdminHotmart() {
               Configurar Hotmart
               <ExternalLink className="w-3 h-3 opacity-50" />
             </Button>
-            {hotmartConfigured && hotmartActive && (
-              <Button size="sm" variant="outline"
-                onClick={() => setDisconnectConfirm(true)}
-                disabled={disconnecting}
-                className="border-red-500/30 text-red-400 hover:text-red-300 hover:border-red-400/50 h-8 gap-1.5 text-xs">
-                {disconnecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <WifiOff className="w-3.5 h-3.5" />}
-                Desconectar Hotmart
-              </Button>
-            )}
             <Button size="sm" variant="outline"
               onClick={() => void handleRefreshAll()}
               disabled={refreshing}
@@ -193,6 +175,14 @@ export function AdminHotmart() {
           </div>
         </div>
       </motion.div>
+
+      {/* ─── Platform status note ─────────────────────────────────── */}
+      {!isPlatformConfigured && (
+        <div className="rounded-lg bg-amber-500/8 border border-amber-500/20 px-4 py-3 text-xs text-amber-400/80 leading-relaxed">
+          As credenciais da plataforma Hotmart ainda não foram configuradas.
+          Configure em <span className="font-semibold">Integrações</span> para que usuários possam autorizar suas contas.
+        </div>
+      )}
 
       {/* ─── KPIs ────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -216,9 +206,9 @@ export function AdminHotmart() {
             <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
               <Users className="w-4 h-4 text-zinc-500" />
               Usuários Conectados
-              {!loadingConns && connections.length > 0 && (
+              {!loadingConns && activeConnections.length > 0 && (
                 <span className="text-[11px] font-normal text-zinc-500">
-                  ({connections.length} {connections.length === 1 ? "ativo" : "ativos"})
+                  ({activeConnections.length} {activeConnections.length === 1 ? "ativo" : "ativos"})
                 </span>
               )}
             </CardTitle>
@@ -235,20 +225,20 @@ export function AdminHotmart() {
             <div className="flex items-center gap-2 text-zinc-500 text-sm px-5 py-6">
               <Loader2 className="w-4 h-4 animate-spin shrink-0" />Carregando conexões...
             </div>
-          ) : connections.length === 0 ? (
+          ) : activeConnections.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-center gap-2 px-5">
               <div className="w-10 h-10 rounded-full bg-white/3 border border-white/8 flex items-center justify-center mb-1">
                 <Flame className="w-4 h-4 text-zinc-700" />
               </div>
               <p className="text-sm text-zinc-500">Nenhum usuário conectado à Hotmart.</p>
               <p className="text-[11px] text-zinc-700 max-w-xs">
-                As conexões aparecerão aqui após o usuário autenticar sua conta.
+                As conexões aparecerão aqui após usuários autorizarem suas contas Hotmart.
               </p>
             </div>
           ) : (
             <div className="max-h-[480px] overflow-y-auto divide-y divide-white/5">
-              {connections.map(conn => {
-                const displayName = conn.userName || conn.userEmail || conn.clerkUserId;
+              {activeConnections.map(conn => {
+                const displayName = conn.platformUsername || conn.platformUserId || conn.clerkUserId;
                 const isExpired   = conn.expiresAt ? new Date(conn.expiresAt) < new Date() : false;
                 const isSoon      = conn.expiresAt
                   ? !isExpired && new Date(conn.expiresAt).getTime() - Date.now() < 7 * 24 * 3_600_000
@@ -269,7 +259,12 @@ export function AdminHotmart() {
                           <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[9px] px-1.5 py-0">Ativo</Badge>
                         )}
                         <span className="text-[10px] text-zinc-600">
-                          {conn.createdAt ? new Date(conn.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"}
+                          {conn.createdAt
+                            ? new Date(conn.createdAt).toLocaleString("pt-BR", {
+                                day: "2-digit", month: "2-digit", year: "2-digit",
+                                hour: "2-digit", minute: "2-digit",
+                              })
+                            : "—"}
                         </span>
                       </div>
                     </div>

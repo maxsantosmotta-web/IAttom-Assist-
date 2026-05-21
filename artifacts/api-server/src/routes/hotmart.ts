@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { Router, type IRouter } from "express";
 import { eq, desc, isNull, isNotNull, and } from "drizzle-orm";
 import { z } from "zod/v4";
@@ -6,28 +7,59 @@ import {
   hotmartConfig,
   hotmartProducts,
   hotmartEvents,
+  userHotmartConnections,
   trashItems,
 } from "@workspace/db";
 import { requireAdmin, type AdminRequest } from "../middlewares/requireAdmin.js";
-import { requireAuth } from "../middlewares/requireAuth.js";
+import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
 import {
   verifyHotmartWebhook,
   getHotmartAccessToken,
   getHotmartProducts,
+  getHotmartAuthorizationUrl,
+  exchangeHotmartCode,
 } from "../lib/hotmart.js";
 
 const router: IRouter = Router();
 
-// ─── PUBLIC: Receive Hotmart webhook events ──────────────────────────────────
+// ─── OAuth state store (in-memory, 10-min TTL) ───────────────────────────────
+// Ephemeral by design — OAuth states are valid for a short window only.
+interface OAuthState {
+  clerkUserId: string;
+  expiresAt: number;
+}
+const oauthStates = new Map<string, OAuthState>();
+
+function pruneExpiredStates(): void {
+  const now = Date.now();
+  for (const [key, val] of oauthStates) {
+    if (val.expiresAt < now) oauthStates.delete(key);
+  }
+}
+
+function getRedirectUri(req: { headers: { host?: string } }): string {
+  // Use REPLIT_DOMAINS if available (dev preview), fallback to custom domain
+  const domains = process.env.REPLIT_DOMAINS ?? "";
+  const first = domains.split(",")[0]?.trim();
+  if (first) return `https://${first}/api/hotmart/oauth/callback`;
+  return "https://iattomassist.com.br/api/hotmart/oauth/callback";
+}
+
+function getFrontendBase(): string {
+  const domains = process.env.REPLIT_DOMAINS ?? "";
+  const first = domains.split(",")[0]?.trim();
+  if (first) return `https://${first}`;
+  return "https://iattomassist.com.br";
+}
+
+// ─── PUBLIC: Receive Hotmart webhook events ───────────────────────────────────
 router.post("/hotmart/webhook", (req, res): void => {
   const payload = req.body as Record<string, unknown>;
 
-  // Hotmart sends the token in the hottok query param or X-Hotmart-Webhook-Token header
   const receivedToken =
     (req.query["hottok"] as string | undefined) ??
     (req.headers["x-hotmart-webhook-token"] as string | undefined);
 
-  // Validate token asynchronously — still accept to avoid blocking Hotmart retries
   db.select()
     .from(hotmartConfig)
     .limit(1)
@@ -53,10 +85,15 @@ router.post("/hotmart/webhook", (req, res): void => {
         productId: String((product?.id as number | undefined) ?? ""),
         buyerEmail: (buyer?.email as string | undefined) ?? null,
         buyerName: (buyer?.name as string | undefined) ?? null,
-        value: String((purchase as Record<string, unknown> | undefined)?.price !== undefined
-          ? ((purchase?.price as Record<string, unknown>)?.value ?? "")
-          : ""),
-        currency: (((purchase as Record<string, unknown> | undefined)?.price as Record<string, unknown> | undefined)?.currency_code as string | undefined) ?? "BRL",
+        value: String(
+          (purchase as Record<string, unknown> | undefined)?.price !== undefined
+            ? ((purchase?.price as Record<string, unknown>)?.value ?? "")
+            : "",
+        ),
+        currency:
+          (((purchase as Record<string, unknown> | undefined)
+            ?.price as Record<string, unknown> | undefined)
+            ?.currency_code as string | undefined) ?? "BRL",
         payload,
       });
     })
@@ -69,15 +106,118 @@ router.post("/hotmart/webhook", (req, res): void => {
     });
 });
 
-// ─── ADMIN: Get config ────────────────────────────────────────────────────────
+// ─── PUBLIC: OAuth callback (Hotmart redirects here after user authorizes) ────
+router.get("/hotmart/oauth/callback", async (req, res): Promise<void> => {
+  pruneExpiredStates();
+
+  const code  = req.query["code"]  as string | undefined;
+  const state = req.query["state"] as string | undefined;
+  const error = req.query["error"] as string | undefined;
+
+  const frontendBase = getFrontendBase();
+  const hotmartRoute = `/dashboard/hotmart`;
+
+  // OAuth error from Hotmart
+  if (error) {
+    req.log.warn({ error }, "hotmart: oauth callback — authorization denied");
+    res.redirect(`${frontendBase}${hotmartRoute}?hotmart_error=${encodeURIComponent(error)}`);
+    return;
+  }
+
+  // Missing params
+  if (!code || !state) {
+    req.log.warn("hotmart: oauth callback — missing code or state");
+    res.redirect(`${frontendBase}${hotmartRoute}?hotmart_error=${encodeURIComponent("Parâmetros inválidos no retorno da Hotmart.")}`);
+    return;
+  }
+
+  // Validate state
+  const stateData = oauthStates.get(state);
+  if (!stateData || stateData.expiresAt < Date.now()) {
+    req.log.warn({ state }, "hotmart: oauth callback — invalid or expired state");
+    oauthStates.delete(state);
+    res.redirect(`${frontendBase}${hotmartRoute}?hotmart_error=${encodeURIComponent("Sessão expirada. Tente conectar novamente.")}`);
+    return;
+  }
+
+  const { clerkUserId } = stateData;
+  oauthStates.delete(state);
+
+  // Fetch platform config
+  const [config] = await db.select().from(hotmartConfig).limit(1);
+  if (!config?.clientId || !config?.clientSecret || !config?.basicToken) {
+    req.log.error({ clerkUserId }, "hotmart: oauth callback — platform not configured");
+    res.redirect(`${frontendBase}${hotmartRoute}?hotmart_error=${encodeURIComponent("Credenciais da plataforma não configuradas.")}`);
+    return;
+  }
+
+  // Exchange code for user tokens
+  const redirectUri = getRedirectUri(req);
+  const tokens = await exchangeHotmartCode(
+    config.clientId,
+    config.clientSecret,
+    config.basicToken,
+    code,
+    redirectUri,
+  );
+
+  if (tokens.error || !tokens.access_token) {
+    const detail = tokens.error_description ?? tokens.error ?? "sem access_token";
+    req.log.error({ clerkUserId, detail }, "hotmart: oauth callback — token exchange failed");
+    res.redirect(`${frontendBase}${hotmartRoute}?hotmart_error=${encodeURIComponent(`Falha ao obter token: ${detail}`)}`);
+    return;
+  }
+
+  // Calculate expiry
+  const expiresAt = tokens.expires_in
+    ? new Date(Date.now() + tokens.expires_in * 1000)
+    : null;
+
+  // Save (upsert) per-user connection
+  const [existing] = await db
+    .select()
+    .from(userHotmartConnections)
+    .where(eq(userHotmartConnections.clerkUserId, clerkUserId))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .update(userHotmartConnections)
+      .set({
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token ?? existing.refreshToken,
+        expiresAt: expiresAt ?? existing.expiresAt,
+        scopes: tokens.scope ?? existing.scopes,
+        isActive: true,
+        updatedAt: new Date(),
+      })
+      .where(eq(userHotmartConnections.id, existing.id));
+  } else {
+    await db.insert(userHotmartConnections).values({
+      clerkUserId,
+      platformUserId: "",
+      platformUsername: "",
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token ?? "",
+      expiresAt: expiresAt,
+      scopes: tokens.scope ?? "",
+      isActive: true,
+    });
+  }
+
+  req.log.info({ clerkUserId }, "hotmart: oauth callback — connection saved");
+  res.redirect(`${frontendBase}${hotmartRoute}?hotmart_connected=1`);
+});
+
+// ─── ADMIN: Get platform config ───────────────────────────────────────────────
 router.get("/hotmart/config", requireAdmin, async (_req, res): Promise<void> => {
   const [config] = await db.select().from(hotmartConfig).limit(1);
   if (!config) {
-    res.json({ configured: false });
+    res.json({ configured: false, isActive: false });
     return;
   }
   res.json({
-    configured: true,
+    configured: !!(config.clientId && config.clientSecret && config.basicToken),
     clientId: config.clientId,
     clientSecret: config.clientSecret ? "••••••••" + config.clientSecret.slice(-4) : "",
     basicToken: config.basicToken ? "••••" : "",
@@ -134,7 +274,7 @@ router.post("/hotmart/config", requireAdmin, async (req, res): Promise<void> => 
   res.json({ ok: true });
 });
 
-// ─── ADMIN: Test connection ───────────────────────────────────────────────────
+// ─── ADMIN: Test platform connection ─────────────────────────────────────────
 router.post("/hotmart/test", requireAdmin, async (req, res): Promise<void> => {
   const [config] = await db.select().from(hotmartConfig).limit(1);
   if (!config?.isActive) {
@@ -188,17 +328,15 @@ router.post("/hotmart/sync-products", requireAdmin, async (req, res): Promise<vo
       return;
     }
 
-    // getHotmartProducts never throws — returns items + diagnostics per endpoint
     const { items, diagnostics } = await getHotmartProducts(token.access_token, config.environment);
 
     if (items.length === 0) {
-      req.log.info({ diagnostics }, "hotmart: sync-products — zero products across all endpoints");
+      req.log.info({ diagnostics }, "hotmart: sync-products — zero products");
       res.json({
         ok: true,
         synced: 0,
         diagnostics,
-        message:
-          "Nenhum produto encontrado nesta credencial. Verifique se esta conta possui produtos próprios ou afiliações com permissão API.",
+        message: "Nenhum produto encontrado nesta credencial.",
       });
       return;
     }
@@ -209,20 +347,20 @@ router.post("/hotmart/sync-products", requireAdmin, async (req, res): Promise<vo
         .insert(hotmartProducts)
         .values({
           productId: String(item.product.id),
-          name:      item.product.name    ?? "",
-          format:    item.product.format  ?? "",
-          status:    item.product.status  ?? "ACTIVE",
-          price:     String(item.price?.value ?? 0),
-          currency:  item.price?.currency_code ?? "BRL",
-          syncedAt:  new Date(),
+          name: item.product.name ?? "",
+          format: item.product.format ?? "",
+          status: item.product.status ?? "ACTIVE",
+          price: String(item.price?.value ?? 0),
+          currency: item.price?.currency_code ?? "BRL",
+          syncedAt: new Date(),
         })
         .onConflictDoUpdate({
           target: hotmartProducts.productId,
           set: {
-            name:     item.product.name   ?? "",
-            format:   item.product.format ?? "",
-            status:   item.product.status ?? "ACTIVE",
-            price:    String(item.price?.value ?? 0),
+            name: item.product.name ?? "",
+            format: item.product.format ?? "",
+            status: item.product.status ?? "ACTIVE",
+            price: String(item.price?.value ?? 0),
             syncedAt: new Date(),
           },
         });
@@ -238,9 +376,8 @@ router.post("/hotmart/sync-products", requireAdmin, async (req, res): Promise<vo
   }
 });
 
-// ─── ADMIN: List products (auto-seeds default if table is empty) ──────────────
+// ─── ADMIN: List products ─────────────────────────────────────────────────────
 router.get("/hotmart/products", requireAdmin, async (req, res): Promise<void> => {
-  // Auto-seed the known default product on first load if table is empty
   const DEFAULT_PRODUCT = {
     productId: "6095971",
     name: "Desbloqueando Sua Energia",
@@ -251,10 +388,7 @@ router.get("/hotmart/products", requireAdmin, async (req, res): Promise<void> =>
     syncedAt: new Date(),
   } as const;
 
-  await db
-    .insert(hotmartProducts)
-    .values(DEFAULT_PRODUCT)
-    .onConflictDoNothing();
+  await db.insert(hotmartProducts).values(DEFAULT_PRODUCT).onConflictDoNothing();
 
   const products = await db
     .select()
@@ -269,12 +403,12 @@ router.get("/hotmart/products", requireAdmin, async (req, res): Promise<void> =>
 
 // ─── ADMIN: Manually create a product ────────────────────────────────────────
 const manualProductSchema = z.object({
-  name:      z.string().min(1, "Nome obrigatório"),
+  name: z.string().min(1, "Nome obrigatório"),
   productId: z.string().min(1, "ID do produto obrigatório"),
-  format:    z.string().optional().default("Produto próprio"),
-  status:    z.string().optional().default("ACTIVE"),
-  price:     z.string().optional().default("0"),
-  currency:  z.string().optional().default("BRL"),
+  format: z.string().optional().default("Produto próprio"),
+  status: z.string().optional().default("ACTIVE"),
+  price: z.string().optional().default("0"),
+  currency: z.string().optional().default("BRL"),
 });
 
 router.post("/hotmart/products/manual", requireAdmin, async (req, res): Promise<void> => {
@@ -336,7 +470,7 @@ router.delete("/hotmart/products/:id/permanent", requireAdmin, async (req, res):
   res.json({ ok: true });
 });
 
-// ─── ADMIN: Soft delete product (move to trash) ───────────────────────────────
+// ─── ADMIN: Soft delete product ───────────────────────────────────────────────
 router.delete("/hotmart/products/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = parseInt(req.params["id"] as string, 10);
   if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
@@ -366,99 +500,232 @@ router.get("/hotmart/events", requireAdmin, async (_req, res): Promise<void> => 
   res.json(events);
 });
 
-// ─── USER: List products from DB ─────────────────────────────────────────────
+// ─── ADMIN: List per-user connections (monitoring only) ───────────────────────
+router.get("/hotmart/user-connections", requireAdmin, async (_req, res): Promise<void> => {
+  const connections = await db
+    .select({
+      id: userHotmartConnections.id,
+      clerkUserId: userHotmartConnections.clerkUserId,
+      platformUserId: userHotmartConnections.platformUserId,
+      platformUsername: userHotmartConnections.platformUsername,
+      expiresAt: userHotmartConnections.expiresAt,
+      isActive: userHotmartConnections.isActive,
+      createdAt: userHotmartConnections.createdAt,
+      updatedAt: userHotmartConnections.updatedAt,
+    })
+    .from(userHotmartConnections)
+    .orderBy(desc(userHotmartConnections.createdAt))
+    .limit(200);
+  res.json(connections);
+});
+
+// ─── USER: Start OAuth flow ───────────────────────────────────────────────────
+router.get("/hotmart/user/oauth/start", requireAuth, async (req, res): Promise<void> => {
+  const clerkUserId = (req as AuthenticatedRequest).clerkUserId;
+
+  const [config] = await db.select().from(hotmartConfig).limit(1);
+  if (!config?.clientId || !config?.clientSecret || !config?.basicToken) {
+    res.status(503).json({
+      error: "Credenciais Hotmart não configuradas. Solicite ao administrador.",
+    });
+    return;
+  }
+
+  pruneExpiredStates();
+
+  // Generate a secure random state token
+  const state = crypto.randomBytes(32).toString("hex");
+  oauthStates.set(state, {
+    clerkUserId,
+    expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+  });
+
+  const redirectUri = getRedirectUri(req);
+  const authUrl = getHotmartAuthorizationUrl(config.clientId, redirectUri, state);
+
+  req.log.info({ clerkUserId }, "hotmart: OAuth flow started");
+  res.json({ url: authUrl });
+});
+
+// ─── USER: Integration status (per-user) ─────────────────────────────────────
+router.get("/hotmart/user/integration-status", requireAuth, async (req, res): Promise<void> => {
+  const clerkUserId = (req as AuthenticatedRequest).clerkUserId;
+
+  // Also check if platform is configured at all
+  const [platformConfig] = await db.select().from(hotmartConfig).limit(1);
+  const platformConfigured = !!(platformConfig?.clientId && platformConfig?.clientSecret && platformConfig?.basicToken);
+
+  const [conn] = await db
+    .select()
+    .from(userHotmartConnections)
+    .where(
+      and(
+        eq(userHotmartConnections.clerkUserId, clerkUserId),
+        eq(userHotmartConnections.isActive, true),
+      ),
+    )
+    .limit(1);
+
+  if (!conn) {
+    res.json({
+      configured: platformConfigured,
+      isActive: false,
+      platformUsername: null,
+      connectedAt: null,
+      tokenExpired: false,
+    });
+    return;
+  }
+
+  const tokenExpired = conn.expiresAt ? conn.expiresAt < new Date() : false;
+
+  res.json({
+    configured: platformConfigured,
+    isActive: true,
+    platformUsername: conn.platformUsername ?? null,
+    connectedAt: conn.createdAt,
+    tokenExpired,
+  });
+});
+
+// ─── USER: Disconnect (per-user) ──────────────────────────────────────────────
+router.post("/hotmart/user/disconnect", requireAuth, async (req, res): Promise<void> => {
+  const clerkUserId = (req as AuthenticatedRequest).clerkUserId;
+
+  await db
+    .update(userHotmartConnections)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(eq(userHotmartConnections.clerkUserId, clerkUserId));
+
+  req.log.info({ clerkUserId }, "hotmart: user disconnected");
+  res.json({ ok: true });
+});
+
+// ─── USER: Reconnect — reactivate existing connection if tokens present ───────
+router.post("/hotmart/user/reconnect", requireAuth, async (req, res): Promise<void> => {
+  const clerkUserId = (req as AuthenticatedRequest).clerkUserId;
+
+  const [conn] = await db
+    .select()
+    .from(userHotmartConnections)
+    .where(eq(userHotmartConnections.clerkUserId, clerkUserId))
+    .limit(1);
+
+  if (!conn || !conn.accessToken) {
+    // No existing connection — must go through OAuth
+    res.status(400).json({ error: "oauth_required" });
+    return;
+  }
+
+  await db
+    .update(userHotmartConnections)
+    .set({ isActive: true, updatedAt: new Date() })
+    .where(eq(userHotmartConnections.id, conn.id));
+
+  req.log.info({ clerkUserId }, "hotmart: user reconnected (existing token)");
+  res.json({ ok: true });
+});
+
+// ─── USER: List products (requires active per-user connection) ────────────────
 router.get("/hotmart/user/products", requireAuth, async (req, res): Promise<void> => {
+  const clerkUserId = (req as AuthenticatedRequest).clerkUserId;
+
+  const [conn] = await db
+    .select()
+    .from(userHotmartConnections)
+    .where(
+      and(
+        eq(userHotmartConnections.clerkUserId, clerkUserId),
+        eq(userHotmartConnections.isActive, true),
+      ),
+    )
+    .limit(1);
+
+  if (!conn) {
+    res.json([]);
+    return;
+  }
+
   const products = await db
     .select()
     .from(hotmartProducts)
     .where(isNull(hotmartProducts.deletedAt))
     .orderBy(desc(hotmartProducts.syncedAt))
     .limit(100);
-  req.log.info({ count: products.length }, "hotmart user: products listed");
+
+  req.log.info({ count: products.length, clerkUserId }, "hotmart user: products listed");
   res.json(products);
 });
 
-// ─── USER: List sales/events from DB ─────────────────────────────────────────
+// ─── USER: List sales/events (requires active per-user connection) ────────────
 router.get("/hotmart/user/sales", requireAuth, async (req, res): Promise<void> => {
+  const clerkUserId = (req as AuthenticatedRequest).clerkUserId;
+
+  const [conn] = await db
+    .select()
+    .from(userHotmartConnections)
+    .where(
+      and(
+        eq(userHotmartConnections.clerkUserId, clerkUserId),
+        eq(userHotmartConnections.isActive, true),
+      ),
+    )
+    .limit(1);
+
+  if (!conn) {
+    res.json([]);
+    return;
+  }
+
   const events = await db
     .select()
     .from(hotmartEvents)
     .orderBy(desc(hotmartEvents.receivedAt))
     .limit(100);
-  req.log.info({ count: events.length }, "hotmart user: sales listed");
+
+  req.log.info({ count: events.length, clerkUserId }, "hotmart user: sales listed");
   res.json(events);
 });
 
-// ─── USER: Integration status ────────────────────────────────────────────────
-router.get("/hotmart/user/integration-status", requireAuth, async (_req, res): Promise<void> => {
-  const [config] = await db.select().from(hotmartConfig).limit(1);
-  res.json({
-    configured: !!(config?.clientId && config?.clientSecret && config?.basicToken),
-    isActive: config?.isActive ?? false,
-    environment: config?.environment ?? "sandbox",
-  });
-});
-
-// ─── USER: Disconnect Hotmart ─────────────────────────────────────────────────
-router.post("/hotmart/user/disconnect", requireAuth, async (req, res): Promise<void> => {
-  const [config] = await db.select().from(hotmartConfig).limit(1);
-  if (!config) {
-    res.json({ ok: true });
-    return;
-  }
-  await db.update(hotmartConfig)
-    .set({ isActive: false, updatedAt: new Date() })
-    .where(eq(hotmartConfig.id, config.id));
-  req.log.info({ configId: config.id }, "hotmart: user triggered disconnect");
-  res.json({ ok: true });
-});
-
-// ─── USER: Reconnect Hotmart ──────────────────────────────────────────────────
-router.post("/hotmart/user/reconnect", requireAuth, async (req, res): Promise<void> => {
-  const [config] = await db.select().from(hotmartConfig).limit(1);
-  if (!config?.clientId || !config?.clientSecret || !config?.basicToken) {
-    res.status(503).json({
-      error: "Credenciais Hotmart não configuradas. Solicite ao administrador que configure as credenciais.",
-    });
-    return;
-  }
-  await db.update(hotmartConfig)
-    .set({ isActive: true, updatedAt: new Date() })
-    .where(eq(hotmartConfig.id, config.id));
-  req.log.info({ configId: config.id }, "hotmart: user triggered reconnect");
-  res.json({ ok: true });
-});
-
-// ─── USER: Sync products from Hotmart API ────────────────────────────────────
+// ─── USER: Sync products from Hotmart API (uses per-user token) ───────────────
 router.post("/hotmart/user/sync", requireAuth, async (req, res): Promise<void> => {
-  const [config] = await db.select().from(hotmartConfig).limit(1);
+  const clerkUserId = (req as AuthenticatedRequest).clerkUserId;
 
-  if (!config?.clientId || !config?.clientSecret || !config?.basicToken) {
-    res.status(503).json({
-      error: "Credenciais Hotmart ainda não configuradas. Solicite ao administrador que configure as credenciais no painel ADM.",
+  const [conn] = await db
+    .select()
+    .from(userHotmartConnections)
+    .where(
+      and(
+        eq(userHotmartConnections.clerkUserId, clerkUserId),
+        eq(userHotmartConnections.isActive, true),
+      ),
+    )
+    .limit(1);
+
+  if (!conn || !conn.accessToken) {
+    res.status(403).json({
+      error: "Conta Hotmart não conectada. Clique em Conectar Hotmart para autorizar.",
     });
     return;
   }
+
+  // Check token expiry
+  if (conn.expiresAt && conn.expiresAt < new Date()) {
+    res.status(401).json({
+      error: "Token expirado. Reconecte sua conta Hotmart para continuar.",
+    });
+    return;
+  }
+
+  // Use platform config to determine environment
+  const [platformConfig] = await db.select().from(hotmartConfig).limit(1);
+  const environment = platformConfig?.environment ?? "sandbox";
 
   try {
-    const token = await getHotmartAccessToken(
-      config.clientId,
-      config.clientSecret,
-      config.basicToken,
-      config.environment,
-    );
-
-    if (token.error || !token.access_token) {
-      res.status(401).json({
-        error: `Autenticação Hotmart falhou: ${token.error ?? "resposta sem access_token"}`,
-      });
-      return;
-    }
-
-    const { items, diagnostics } = await getHotmartProducts(token.access_token, config.environment);
+    const { items, diagnostics } = await getHotmartProducts(conn.accessToken, environment);
 
     if (items.length === 0) {
-      req.log.info({ diagnostics }, "hotmart user: sync — zero products");
+      req.log.info({ diagnostics, clerkUserId }, "hotmart user: sync — zero products");
       res.json({ ok: true, synced: 0, diagnostics });
       return;
     }
@@ -469,31 +736,31 @@ router.post("/hotmart/user/sync", requireAuth, async (req, res): Promise<void> =
         .insert(hotmartProducts)
         .values({
           productId: String(item.product.id),
-          name:      item.product.name   ?? "",
-          format:    item.product.format ?? "",
-          status:    item.product.status ?? "ACTIVE",
-          price:     String(item.price?.value ?? 0),
-          currency:  item.price?.currency_code ?? "BRL",
-          syncedAt:  new Date(),
+          name: item.product.name ?? "",
+          format: item.product.format ?? "",
+          status: item.product.status ?? "ACTIVE",
+          price: String(item.price?.value ?? 0),
+          currency: item.price?.currency_code ?? "BRL",
+          syncedAt: new Date(),
         })
         .onConflictDoUpdate({
           target: hotmartProducts.productId,
           set: {
-            name:     item.product.name   ?? "",
-            format:   item.product.format ?? "",
-            status:   item.product.status ?? "ACTIVE",
-            price:    String(item.price?.value ?? 0),
+            name: item.product.name ?? "",
+            format: item.product.format ?? "",
+            status: item.product.status ?? "ACTIVE",
+            price: String(item.price?.value ?? 0),
             syncedAt: new Date(),
           },
         });
       synced++;
     }
 
-    req.log.info({ synced }, "hotmart user: sync complete");
+    req.log.info({ synced, clerkUserId }, "hotmart user: sync complete");
     res.json({ ok: true, synced });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    req.log.error({ err }, "hotmart user: sync error");
+    req.log.error({ err, clerkUserId }, "hotmart user: sync error");
     res.status(500).json({ error: `Falha na sincronização: ${msg}` });
   }
 });
