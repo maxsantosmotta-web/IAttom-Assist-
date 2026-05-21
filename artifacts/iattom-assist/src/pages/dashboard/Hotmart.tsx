@@ -125,7 +125,13 @@ export function Hotmart() {
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [modal, setModal] = useState<{ title: string; description: string; action?: { label: string; onClick: () => void } } | null>(null);
-  const [integrationStatus, setIntegrationStatus] = useState<{ configured: boolean; isActive: boolean } | null>(null);
+  const [integrationStatus, setIntegrationStatus] = useState<{
+    configured: boolean;
+    isActive: boolean;
+    platformUsername?: string | null;
+    connectedAt?: string | null;
+    tokenExpired?: boolean;
+  } | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -184,6 +190,20 @@ export function Hotmart() {
   };
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const connected = params.get("hotmart_connected");
+    const oauthError = params.get("hotmart_error");
+    if (connected === "1") {
+      toast({ description: "Hotmart conectada com sucesso." });
+      const url = new URL(window.location.href);
+      url.searchParams.delete("hotmart_connected");
+      window.history.replaceState({}, "", url.toString());
+    } else if (oauthError) {
+      toast({ variant: "destructive", description: `Falha ao conectar Hotmart: ${oauthError}` });
+      const url = new URL(window.location.href);
+      url.searchParams.delete("hotmart_error");
+      window.history.replaceState({}, "", url.toString());
+    }
     void handleLoadStatus();
     void handleLoadProducts();
     void handleLoadEvents();
@@ -214,6 +234,13 @@ export function Hotmart() {
   const handleConnect = async () => {
     setConnecting(true);
     try {
+      const data = await apiFetch<{ authUrl?: string; needsOAuth?: boolean; error?: string }>(
+        "/api/hotmart/user/oauth/start",
+      );
+      if (data.authUrl) {
+        window.location.href = data.authUrl;
+        return;
+      }
       await apiFetch("/api/hotmart/user/reconnect", { method: "POST" });
       setIntegrationStatus(s => s ? { ...s, isActive: true } : s);
       toast({ description: "Hotmart conectada com sucesso." });

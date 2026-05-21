@@ -47,26 +47,18 @@ export function AdminHotmart() {
 
   const loadHotmartStatus = useCallback(async () => {
     try {
-      const data = await apiFetch<{ configured: boolean; isActive: boolean }>("/api/hotmart/user/integration-status");
+      const data = await apiFetch<{ configured: boolean; isActive: boolean }>("/api/hotmart/config");
       setHotmartConfigured(data.configured);
-      setHotmartActive(data.isActive);
+      setHotmartActive(data.isActive ?? false);
     } catch {
       setHotmartActive(null);
     }
   }, []);
 
-  const handleAdminDisconnect = useCallback(async () => {
-    setDisconnecting(true);
+  const handleAdminDisconnect = useCallback(() => {
     setDisconnectConfirm(false);
-    try {
-      await apiFetch("/api/hotmart/user/disconnect", { method: "POST" });
-      setHotmartActive(false);
-    } catch {
-      // no-op — user will see unchanged status
-    } finally {
-      setDisconnecting(false);
-    }
-  }, []);
+    navigate("/admin/integrations");
+  }, [navigate]);
 
   const loadConnections = useCallback(async () => {
     setLoadingConns(true);

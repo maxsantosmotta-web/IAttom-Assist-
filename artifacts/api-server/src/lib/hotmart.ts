@@ -2,7 +2,8 @@ import crypto from "crypto";
 import { logger } from "./logger.js";
 
 // OAuth token URL (same for sandbox and production)
-const HOTMART_TOKEN_URL = "https://api-sec-vlc.hotmart.com/security/oauth/token";
+const HOTMART_TOKEN_URL  = "https://api-sec-vlc.hotmart.com/security/oauth/token";
+const HOTMART_AUTH_URL   = "https://api-sec-vlc.hotmart.com/security/oauth/authorize";
 
 // REST API base — DIFFERENT from the OAuth domain
 // Sandbox: https://sandbox.hotmart.com
@@ -31,6 +32,62 @@ export interface HotmartTokenResponse {
   expires_in?: number;
   error?: string;
 }
+
+// ─── Per-user OAuth authorization URL ────────────────────────────────────────
+
+export function getHotmartAuthorizationUrl(
+  clientId: string,
+  redirectUri: string,
+  state: string,
+): string {
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: "code",
+    state,
+  });
+  return `${HOTMART_AUTH_URL}?${params.toString()}`;
+}
+
+// ─── Authorization code exchange ──────────────────────────────────────────────
+
+export interface HotmartCodeTokenResponse {
+  access_token?: string;
+  refresh_token?: string;
+  token_type?: string;
+  expires_in?: number;
+  error?: string;
+  error_description?: string;
+}
+
+export async function exchangeHotmartCode(
+  basicToken: string,
+  code: string,
+  redirectUri: string,
+): Promise<HotmartCodeTokenResponse> {
+  logger.info("hotmart: exchanging authorization code for per-user tokens");
+  const body = new URLSearchParams({
+    grant_type: "authorization_code",
+    code,
+    redirect_uri: redirectUri,
+  });
+  const res = await fetch(HOTMART_TOKEN_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${basicToken}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: body.toString(),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    logger.warn({ status: res.status, body: text.slice(0, 200) }, "hotmart: code exchange failed");
+    return { error: `HTTP ${res.status}`, error_description: text.slice(0, 200) };
+  }
+  return (await res.json()) as HotmartCodeTokenResponse;
+}
+
+// ─── Client credentials token ─────────────────────────────────────────────────
 
 export async function getHotmartAccessToken(
   clientId: string,
