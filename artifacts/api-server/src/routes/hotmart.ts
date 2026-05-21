@@ -37,18 +37,13 @@ function pruneExpiredStates(): void {
   }
 }
 
-function getRedirectUri(req: { headers: { host?: string } }): string {
-  // Use REPLIT_DOMAINS if available (dev preview), fallback to custom domain
-  const domains = process.env.REPLIT_DOMAINS ?? "";
-  const first = domains.split(",")[0]?.trim();
-  if (first) return `https://${first}/api/hotmart/oauth/callback`;
+function getRedirectUri(_req?: { headers: { host?: string } }): string {
+  // Always use the production domain — REPLIT_DOMAINS must not be used here
+  // because the redirect_uri must match exactly what is registered in Hotmart Developers
   return "https://iattomassist.com.br/api/hotmart/oauth/callback";
 }
 
 function getFrontendBase(): string {
-  const domains = process.env.REPLIT_DOMAINS ?? "";
-  const first = domains.split(",")[0]?.trim();
-  if (first) return `https://${first}`;
   return "https://iattomassist.com.br";
 }
 
