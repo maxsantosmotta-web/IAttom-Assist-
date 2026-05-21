@@ -538,7 +538,16 @@ router.get("/hotmart/user/oauth/start", requireAuth, async (req, res): Promise<v
   const redirectUri = getRedirectUri(req);
   const authUrl = getHotmartAuthorizationUrl(config.clientId, redirectUri, state);
 
-  req.log.info({ clerkUserId }, "hotmart: OAuth flow started");
+  // Log full URL for debugging — state is ephemeral/short-lived so safe to log partially
+  req.log.info(
+    {
+      clerkUserId,
+      authUrl,
+      clientId: config.clientId,
+      redirectUri,
+    },
+    "hotmart: OAuth flow started",
+  );
   res.json({ url: authUrl });
 });
 
