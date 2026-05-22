@@ -182,28 +182,7 @@ export function Hotmart() {
     }
   };
 
-  // ── Detect OAuth return params on mount ──────────────────────────────────────
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const connected = params.get("hotmart_connected");
-    const errMsg    = params.get("hotmart_error");
-
-    if (connected === "1") {
-      // Clean up URL without triggering a full navigation
-      window.history.replaceState({}, "", window.location.pathname);
-      toast({ description: "Hotmart conectada com sucesso." });
-      void handleLoadStatus().then(() => {
-        void handleLoadProducts();
-        void handleLoadEvents();
-      });
-      return;
-    }
-
-    if (errMsg) {
-      window.history.replaceState({}, "", window.location.pathname);
-      toast({ variant: "destructive", description: decodeURIComponent(errMsg) });
-    }
-
     void handleLoadStatus();
     void handleLoadProducts();
     void handleLoadEvents();
@@ -219,38 +198,20 @@ export function Hotmart() {
     toast({ description: "Dados carregados na criação de campanha." });
   };
 
-  // ── Connect: start real Hotmart OAuth flow ───────────────────────────────────
   const handleConnect = async () => {
     setConnecting(true);
     try {
-      // First try to reactivate an existing connection (token still present but isActive=false)
-      try {
-        await apiFetch("/api/hotmart/user/reconnect", { method: "POST" });
-        setIntegrationStatus(s => s ? { ...s, isActive: true } : s);
-        toast({ description: "Hotmart reativada com sucesso." });
-        void handleLoadProducts();
-        void handleLoadEvents();
-        return;
-      } catch (reconnectErr) {
-        // If error is "oauth_required" (no existing token), proceed to OAuth
-        const err = reconnectErr as { message?: string };
-        if (!err.message?.includes("oauth_required")) {
-          // Unexpected error — surface it
-          toast({ variant: "destructive", description: err.message ?? "Falha ao reconectar." });
-          return;
-        }
-      }
-
-      // No existing token — start OAuth authorization flow
-      const data = await apiFetch<{ url: string }>("/api/hotmart/user/oauth/start");
-      // Redirect user to Hotmart authorization page
-      window.location.href = data.url;
+      await apiFetch("/api/hotmart/user/connect", { method: "POST" });
+      setIntegrationStatus(s => s ? { ...s, isActive: true } : s);
+      toast({ description: "Hotmart conectada com sucesso." });
+      void handleLoadProducts();
+      void handleLoadEvents();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Falha ao iniciar autorização.";
+      const msg = err instanceof Error ? err.message : "Configure a Hotmart no painel ADM.";
       toast({ variant: "destructive", description: msg });
+    } finally {
       setConnecting(false);
     }
-    // Note: setConnecting(false) not called on OAuth redirect path — page navigates away
   };
 
   const handleDisconnect = async () => {

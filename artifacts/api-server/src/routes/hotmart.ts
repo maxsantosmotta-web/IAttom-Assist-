@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import { Router, type IRouter } from "express";
 import { eq, desc, isNull, isNotNull, and } from "drizzle-orm";
 import { z } from "zod/v4";
@@ -16,36 +15,10 @@ import {
   verifyHotmartWebhook,
   getHotmartAccessToken,
   getHotmartProducts,
-  getHotmartAuthorizationUrl,
-  exchangeHotmartCode,
 } from "../lib/hotmart.js";
 
 const router: IRouter = Router();
 
-// ─── OAuth state store (in-memory, 10-min TTL) ───────────────────────────────
-// Ephemeral by design — OAuth states are valid for a short window only.
-interface OAuthState {
-  clerkUserId: string;
-  expiresAt: number;
-}
-const oauthStates = new Map<string, OAuthState>();
-
-function pruneExpiredStates(): void {
-  const now = Date.now();
-  for (const [key, val] of oauthStates) {
-    if (val.expiresAt < now) oauthStates.delete(key);
-  }
-}
-
-function getRedirectUri(_req?: { headers: { host?: string } }): string {
-  // Always use the production domain — REPLIT_DOMAINS must not be used here
-  // because the redirect_uri must match exactly what is registered in Hotmart Developers
-  return "https://iattomassist.com.br/api/hotmart/oauth/callback";
-}
-
-function getFrontendBase(): string {
-  return "https://iattomassist.com.br";
-}
 
 // ─── PUBLIC: Receive Hotmart webhook events ───────────────────────────────────
 router.post("/hotmart/webhook", (req, res): void => {
@@ -101,107 +74,9 @@ router.post("/hotmart/webhook", (req, res): void => {
     });
 });
 
-// ─── PUBLIC: OAuth callback (Hotmart redirects here after user authorizes) ────
-router.get("/hotmart/oauth/callback", async (req, res): Promise<void> => {
-  pruneExpiredStates();
-
-  const code  = req.query["code"]  as string | undefined;
-  const state = req.query["state"] as string | undefined;
-  const error = req.query["error"] as string | undefined;
-
-  const frontendBase = getFrontendBase();
-  const hotmartRoute = `/dashboard/hotmart`;
-
-  // OAuth error from Hotmart
-  if (error) {
-    req.log.warn({ error }, "hotmart: oauth callback — authorization denied");
-    res.redirect(`${frontendBase}${hotmartRoute}?hotmart_error=${encodeURIComponent(error)}`);
-    return;
-  }
-
-  // Missing params
-  if (!code || !state) {
-    req.log.warn("hotmart: oauth callback — missing code or state");
-    res.redirect(`${frontendBase}${hotmartRoute}?hotmart_error=${encodeURIComponent("Parâmetros inválidos no retorno da Hotmart.")}`);
-    return;
-  }
-
-  // Validate state
-  const stateData = oauthStates.get(state);
-  if (!stateData || stateData.expiresAt < Date.now()) {
-    req.log.warn({ state }, "hotmart: oauth callback — invalid or expired state");
-    oauthStates.delete(state);
-    res.redirect(`${frontendBase}${hotmartRoute}?hotmart_error=${encodeURIComponent("Sessão expirada. Tente conectar novamente.")}`);
-    return;
-  }
-
-  const { clerkUserId } = stateData;
-  oauthStates.delete(state);
-
-  // Fetch platform config
-  const [config] = await db.select().from(hotmartConfig).limit(1);
-  if (!config?.clientId || !config?.clientSecret || !config?.basicToken) {
-    req.log.error({ clerkUserId }, "hotmart: oauth callback — platform not configured");
-    res.redirect(`${frontendBase}${hotmartRoute}?hotmart_error=${encodeURIComponent("Credenciais da plataforma não configuradas.")}`);
-    return;
-  }
-
-  // Exchange code for user tokens
-  const redirectUri = getRedirectUri(req);
-  const tokens = await exchangeHotmartCode(
-    config.clientId,
-    config.clientSecret,
-    config.basicToken,
-    code,
-    redirectUri,
-  );
-
-  if (tokens.error || !tokens.access_token) {
-    const detail = tokens.error_description ?? tokens.error ?? "sem access_token";
-    req.log.error({ clerkUserId, detail }, "hotmart: oauth callback — token exchange failed");
-    res.redirect(`${frontendBase}${hotmartRoute}?hotmart_error=${encodeURIComponent(`Falha ao obter token: ${detail}`)}`);
-    return;
-  }
-
-  // Calculate expiry
-  const expiresAt = tokens.expires_in
-    ? new Date(Date.now() + tokens.expires_in * 1000)
-    : null;
-
-  // Save (upsert) per-user connection
-  const [existing] = await db
-    .select()
-    .from(userHotmartConnections)
-    .where(eq(userHotmartConnections.clerkUserId, clerkUserId))
-    .limit(1);
-
-  if (existing) {
-    await db
-      .update(userHotmartConnections)
-      .set({
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token ?? existing.refreshToken,
-        expiresAt: expiresAt ?? existing.expiresAt,
-        scopes: tokens.scope ?? existing.scopes,
-        isActive: true,
-        updatedAt: new Date(),
-      })
-      .where(eq(userHotmartConnections.id, existing.id));
-  } else {
-    await db.insert(userHotmartConnections).values({
-      clerkUserId,
-      platformUserId: "",
-      platformUsername: "",
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token ?? "",
-      expiresAt: expiresAt,
-      scopes: tokens.scope ?? "",
-      isActive: true,
-    });
-  }
-
-  req.log.info({ clerkUserId }, "hotmart: oauth callback — connection saved");
-  res.redirect(`${frontendBase}${hotmartRoute}?hotmart_connected=1`);
+// ─── PUBLIC: OAuth callback — deprecated, redirect to dashboard ──────────────
+router.get("/hotmart/oauth/callback", (_req, res): void => {
+  res.redirect("https://iattomassist.com.br/dashboard/hotmart");
 });
 
 // ─── ADMIN: Get platform config ───────────────────────────────────────────────
@@ -514,41 +389,42 @@ router.get("/hotmart/user-connections", requireAdmin, async (_req, res): Promise
   res.json(connections);
 });
 
-// ─── USER: Start OAuth flow ───────────────────────────────────────────────────
-router.get("/hotmart/user/oauth/start", requireAuth, async (req, res): Promise<void> => {
+// ─── USER: Connect — activate using ADM central credentials ──────────────────
+router.post("/hotmart/user/connect", requireAuth, async (req, res): Promise<void> => {
   const clerkUserId = (req as AuthenticatedRequest).clerkUserId;
 
   const [config] = await db.select().from(hotmartConfig).limit(1);
   if (!config?.clientId || !config?.clientSecret || !config?.basicToken) {
-    res.status(503).json({
-      error: "Credenciais Hotmart não configuradas. Solicite ao administrador.",
-    });
+    res.status(503).json({ error: "Configure a Hotmart no painel ADM." });
     return;
   }
 
-  pruneExpiredStates();
+  const [existing] = await db
+    .select()
+    .from(userHotmartConnections)
+    .where(eq(userHotmartConnections.clerkUserId, clerkUserId))
+    .limit(1);
 
-  // Generate a secure random state token
-  const state = crypto.randomBytes(32).toString("hex");
-  oauthStates.set(state, {
-    clerkUserId,
-    expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
-  });
-
-  const redirectUri = getRedirectUri(req);
-  const authUrl = getHotmartAuthorizationUrl(config.clientId, redirectUri, state);
-
-  // Log full URL for debugging — state is ephemeral/short-lived so safe to log partially
-  req.log.info(
-    {
+  if (existing) {
+    await db
+      .update(userHotmartConnections)
+      .set({ isActive: true, updatedAt: new Date() })
+      .where(eq(userHotmartConnections.id, existing.id));
+  } else {
+    await db.insert(userHotmartConnections).values({
       clerkUserId,
-      authUrl,
-      clientId: config.clientId,
-      redirectUri,
-    },
-    "hotmart: OAuth flow started",
-  );
-  res.json({ url: authUrl });
+      platformUserId: "",
+      platformUsername: "",
+      accessToken: "",
+      refreshToken: "",
+      expiresAt: null,
+      scopes: "",
+      isActive: true,
+    });
+  }
+
+  req.log.info({ clerkUserId }, "hotmart: user connected via ADM credentials");
+  res.json({ ok: true });
 });
 
 // ─── USER: Integration status (per-user) ─────────────────────────────────────
@@ -605,30 +481,6 @@ router.post("/hotmart/user/disconnect", requireAuth, async (req, res): Promise<v
   res.json({ ok: true });
 });
 
-// ─── USER: Reconnect — reactivate existing connection if tokens present ───────
-router.post("/hotmart/user/reconnect", requireAuth, async (req, res): Promise<void> => {
-  const clerkUserId = (req as AuthenticatedRequest).clerkUserId;
-
-  const [conn] = await db
-    .select()
-    .from(userHotmartConnections)
-    .where(eq(userHotmartConnections.clerkUserId, clerkUserId))
-    .limit(1);
-
-  if (!conn || !conn.accessToken) {
-    // No existing connection — must go through OAuth
-    res.status(400).json({ error: "oauth_required" });
-    return;
-  }
-
-  await db
-    .update(userHotmartConnections)
-    .set({ isActive: true, updatedAt: new Date() })
-    .where(eq(userHotmartConnections.id, conn.id));
-
-  req.log.info({ clerkUserId }, "hotmart: user reconnected (existing token)");
-  res.json({ ok: true });
-});
 
 // ─── USER: List products (requires active per-user connection) ────────────────
 router.get("/hotmart/user/products", requireAuth, async (req, res): Promise<void> => {
@@ -691,7 +543,7 @@ router.get("/hotmart/user/sales", requireAuth, async (req, res): Promise<void> =
   res.json(events);
 });
 
-// ─── USER: Sync products from Hotmart API (uses per-user token) ───────────────
+// ─── USER: Sync products using ADM central credentials ───────────────────────
 router.post("/hotmart/user/sync", requireAuth, async (req, res): Promise<void> => {
   const clerkUserId = (req as AuthenticatedRequest).clerkUserId;
 
@@ -706,27 +558,34 @@ router.post("/hotmart/user/sync", requireAuth, async (req, res): Promise<void> =
     )
     .limit(1);
 
-  if (!conn || !conn.accessToken) {
-    res.status(403).json({
-      error: "Conta Hotmart não conectada. Clique em Conectar Hotmart para autorizar.",
-    });
+  if (!conn) {
+    res.status(403).json({ error: "Conta Hotmart não conectada. Clique em Conectar Hotmart." });
     return;
   }
 
-  // Check token expiry
-  if (conn.expiresAt && conn.expiresAt < new Date()) {
-    res.status(401).json({
-      error: "Token expirado. Reconecte sua conta Hotmart para continuar.",
-    });
-    return;
-  }
-
-  // Use platform config to determine environment
   const [platformConfig] = await db.select().from(hotmartConfig).limit(1);
-  const environment = platformConfig?.environment ?? "sandbox";
+  if (!platformConfig?.clientId || !platformConfig?.clientSecret || !platformConfig?.basicToken) {
+    res.status(503).json({ error: "Configure a Hotmart no painel ADM." });
+    return;
+  }
+
+  const environment = platformConfig.environment ?? "sandbox";
 
   try {
-    const { items, diagnostics } = await getHotmartProducts(conn.accessToken, environment);
+    const token = await getHotmartAccessToken(
+      platformConfig.clientId,
+      platformConfig.clientSecret,
+      platformConfig.basicToken,
+      environment,
+    );
+
+    if (!token.access_token) {
+      req.log.warn({ clerkUserId }, "hotmart user: sync — ADM token fetch failed");
+      res.json({ ok: true, synced: 0 });
+      return;
+    }
+
+    const { items, diagnostics } = await getHotmartProducts(token.access_token, environment);
 
     if (items.length === 0) {
       req.log.info({ diagnostics, clerkUserId }, "hotmart user: sync — zero products");
