@@ -348,6 +348,19 @@ router.delete("/hotmart/products/:id", requireAdmin, async (req, res): Promise<v
   res.json({ ok: true });
 });
 
+// ─── ADMIN: One-time mock data purge ──────────────────────────────────────────
+router.post("/hotmart/purge-mock-data", requireAdmin, async (_req, res): Promise<void> => {
+  const deletedEvents = await db
+    .delete(hotmartEvents)
+    .where(eq(hotmartEvents.buyerName, "Teste Comprador"))
+    .returning({ id: hotmartEvents.id });
+  const deletedProducts = await db
+    .delete(hotmartProducts)
+    .where(eq(hotmartProducts.productId, "6095971"))
+    .returning({ id: hotmartProducts.id });
+  res.json({ ok: true, deletedEvents: deletedEvents.length, deletedProducts: deletedProducts.length });
+});
+
 // ─── ADMIN: List events ───────────────────────────────────────────────────────
 router.get("/hotmart/events", requireAdmin, async (_req, res): Promise<void> => {
   const events = await db
