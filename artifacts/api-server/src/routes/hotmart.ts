@@ -511,33 +511,30 @@ router.get("/hotmart/user/products", requireAuth, async (req, res): Promise<void
   res.json(products);
 });
 
-// ─── USER: List sales/events (requires active per-user connection) ────────────
+// ─── USER: List sales/events (filtered by user's claimed product_ids) ─────────
 router.get("/hotmart/user/sales", requireAuth, async (req, res): Promise<void> => {
   const clerkUserId = (req as AuthenticatedRequest).clerkUserId;
 
-  const [conn] = await db
-    .select()
-    .from(userHotmartConnections)
-    .where(
-      and(
-        eq(userHotmartConnections.clerkUserId, clerkUserId),
-        eq(userHotmartConnections.isActive, true),
-      ),
-    )
-    .limit(1);
+  const claims = await db
+    .select({ productId: userHotmartProductClaims.productId })
+    .from(userHotmartProductClaims)
+    .where(eq(userHotmartProductClaims.clerkUserId, clerkUserId));
 
-  if (!conn) {
+  if (claims.length === 0) {
     res.json([]);
     return;
   }
 
+  const claimedIds = claims.map((c) => c.productId);
+
   const events = await db
     .select()
     .from(hotmartEvents)
+    .where(inArray(hotmartEvents.productId, claimedIds))
     .orderBy(desc(hotmartEvents.receivedAt))
     .limit(100);
 
-  req.log.info({ count: events.length, clerkUserId }, "hotmart user: sales listed");
+  req.log.info({ count: events.length, clerkUserId }, "hotmart user: sales listed by claims");
   res.json(events);
 });
 
