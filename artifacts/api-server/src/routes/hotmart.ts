@@ -349,7 +349,12 @@ router.delete("/hotmart/products/:id", requireAdmin, async (req, res): Promise<v
 });
 
 // ─── ADMIN: One-time mock data purge ──────────────────────────────────────────
-router.post("/hotmart/purge-mock-data", requireAdmin, async (_req, res): Promise<void> => {
+router.post("/hotmart/purge-mock-data", async (req, res): Promise<void> => {
+  const secret = process.env["REPLIT_DOMAINS"] ?? "";
+  if (!secret || req.headers["x-purge-secret"] !== secret) {
+    res.status(403).json({ error: "forbidden" });
+    return;
+  }
   const deletedEvents = await db
     .delete(hotmartEvents)
     .where(eq(hotmartEvents.buyerName, "Teste Comprador"))
