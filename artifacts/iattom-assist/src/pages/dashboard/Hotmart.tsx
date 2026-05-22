@@ -407,7 +407,7 @@ export function Hotmart() {
                   {connecting
                     ? <Loader2 className="w-3 h-3 animate-spin mr-1.5" />
                     : <ExternalLink className="w-3 h-3 mr-1.5" />}
-                  {connecting ? "Abrindo autorização..." : "Conectar Hotmart"}
+                  {connecting ? "Conectando..." : "Conectar Hotmart"}
                 </Button>
               </div>
             ) : (
@@ -428,7 +428,7 @@ export function Hotmart() {
                     variant="outline"
                     onClick={() => showInfo(
                       "Como funciona a integração Hotmart",
-                      "Você autorizou o IAttom Assist a acessar sua conta Hotmart via OAuth. Clique em Sincronizar para buscar seus produtos reais. As vendas chegam via webhook Hotmart.",
+                      "Sua conta está conectada via credenciais centrais da plataforma. Clique em Sincronizar para buscar seus produtos reais. As vendas chegam automaticamente via webhook Hotmart.",
                     )}
                     className="border-white/10 text-muted-foreground hover:text-white text-xs h-7"
                   >
