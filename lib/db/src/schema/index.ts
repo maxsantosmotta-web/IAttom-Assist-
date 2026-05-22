@@ -33,6 +33,7 @@ export * from "./trashItems";
 export * from "./userMetaConnections";
 export * from "./userWhatsappConnections";
 export * from "./userHotmartConnections";
+export * from "./userHotmartProductClaims";
 export * from "./userKiwifyConnections";
 export * from "./userShopeeConnections";
 export * from "./userMlConnections";

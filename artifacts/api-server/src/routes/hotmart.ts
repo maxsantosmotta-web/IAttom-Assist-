@@ -7,6 +7,7 @@ import {
   hotmartProducts,
   hotmartEvents,
   userHotmartConnections,
+  userHotmartProductClaims,
   trashItems,
 } from "@workspace/db";
 import { requireAdmin, type AdminRequest } from "../middlewares/requireAdmin.js";
@@ -627,6 +628,68 @@ router.post("/hotmart/user/sync", requireAuth, async (req, res): Promise<void> =
     req.log.error({ err, clerkUserId }, "hotmart user: sync error");
     res.status(500).json({ error: `Falha na sincronização: ${msg}` });
   }
+});
+
+// ─── USER: List claimed products ─────────────────────────────────────────────
+router.get("/hotmart/user/claimed-products", requireAuth, async (req, res): Promise<void> => {
+  const clerkUserId = (req as AuthenticatedRequest).clerkUserId;
+
+  const claims = await db
+    .select()
+    .from(userHotmartProductClaims)
+    .where(eq(userHotmartProductClaims.clerkUserId, clerkUserId))
+    .orderBy(desc(userHotmartProductClaims.createdAt));
+
+  req.log.info({ count: claims.length, clerkUserId }, "hotmart user: claimed-products listed");
+  res.json(claims);
+});
+
+// ─── USER: Claim a product ────────────────────────────────────────────────────
+const claimProductSchema = z.object({
+  productId: z.string().min(1, "productId obrigatório"),
+});
+
+router.post("/hotmart/user/claim-product", requireAuth, async (req, res): Promise<void> => {
+  const clerkUserId = (req as AuthenticatedRequest).clerkUserId;
+
+  const parsed = claimProductSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "productId obrigatório" });
+    return;
+  }
+
+  const { productId } = parsed.data;
+
+  await db
+    .insert(userHotmartProductClaims)
+    .values({ clerkUserId, productId })
+    .onConflictDoNothing();
+
+  req.log.info({ clerkUserId, productId }, "hotmart user: product claimed");
+  res.json({ ok: true, clerkUserId, productId });
+});
+
+// ─── USER: Remove a product claim ────────────────────────────────────────────
+router.delete("/hotmart/user/claim-product/:productId", requireAuth, async (req, res): Promise<void> => {
+  const clerkUserId = (req as AuthenticatedRequest).clerkUserId;
+  const productId = req.params["productId"] as string;
+
+  if (!productId) {
+    res.status(400).json({ error: "productId obrigatório" });
+    return;
+  }
+
+  await db
+    .delete(userHotmartProductClaims)
+    .where(
+      and(
+        eq(userHotmartProductClaims.clerkUserId, clerkUserId),
+        eq(userHotmartProductClaims.productId, productId),
+      ),
+    );
+
+  req.log.info({ clerkUserId, productId }, "hotmart user: product claim removed");
+  res.json({ ok: true });
 });
 
 export default router;
