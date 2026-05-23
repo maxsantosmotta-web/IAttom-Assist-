@@ -216,7 +216,7 @@ export function Hotmart() {
         {/* 2. CONECTAR HOTMART */}
         <div className="flex justify-center">
           <Button
-            onClick={() => toast({ description: "A Hotmart será aberta quando você for publicar seu anúncio." })}
+            onClick={() => window.open("https://app.hotmart.com", "_blank", "noopener,noreferrer")}
             className="bg-orange-500 hover:bg-orange-400 text-white font-semibold px-8"
           >
             Conectar Hotmart
@@ -412,10 +412,20 @@ export function Hotmart() {
         {/* 7. CAMPANHAS SALVAS */}
         <Card className="bg-[#111111] border-white/[0.06]">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-              <FolderOpen className="w-4 h-4 text-muted-foreground" />
-              Campanhas Salvas
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                <FolderOpen className="w-4 h-4 text-muted-foreground" />
+                Campanhas Salvas
+              </CardTitle>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleRefreshCampaigns}
+                className="text-muted-foreground hover:text-white h-7 px-2"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {savedCampaigns.length === 0 ? (
