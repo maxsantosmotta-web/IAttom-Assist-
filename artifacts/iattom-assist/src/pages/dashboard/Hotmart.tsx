@@ -249,8 +249,8 @@ export function Hotmart() {
 
   const handleSelectCampaignForAd = (campaign: SavedCampaign) => {
     setShowAdSelector(false);
-    window.open("https://app.hotmart.com", "_blank", "noopener,noreferrer");
-    toast({ description: `Hotmart aberta. Publique "${campaign.title}" manualmente.` });
+    window.open("https://editor.pages.hotmart.com", "_blank", "noopener,noreferrer");
+    toast({ description: `Editor Hotmart aberto. Publique "${campaign.title}".` });
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -500,19 +500,11 @@ export function Hotmart() {
                 <p className="text-sm font-semibold text-muted-foreground">Nenhuma campanha salva ainda</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {savedCampaigns.map((campaign) => (
+              <div className="max-h-[168px] overflow-y-auto space-y-1.5 pr-1">
+                {savedCampaigns.slice(0, 10).map((campaign) => (
                   <div key={campaign.id}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-[#0d0d0d] border border-white/5">
-                    <p className="flex-1 text-sm text-white truncate">{campaign.title}</p>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => downloadCampaign(campaign)}
-                      className="text-muted-foreground hover:text-white h-7 px-2 shrink-0"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                    </Button>
+                    className="px-3 py-2.5 rounded-lg bg-[#0d0d0d] border border-white/5">
+                    <p className="text-sm text-white truncate">{campaign.title}</p>
                   </div>
                 ))}
               </div>

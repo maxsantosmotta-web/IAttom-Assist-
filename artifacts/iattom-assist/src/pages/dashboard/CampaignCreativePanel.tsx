@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Sparkles, Loader2, Copy, Image, AlertCircle, RefreshCw, Palette, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +14,8 @@ interface CampaignCreativePanelProps {
   uniqueAngle?: string;
   instagramCopy?: string;
   channels?: string[];
+  autoStart?: boolean;
+  onResult?: (result: CreativeIdeasResult) => void;
 }
 
 function InlineConceptCard({ concept }: { concept: CreativeConcept }) {
@@ -103,13 +105,24 @@ export function CampaignCreativePanel({
   uniqueAngle,
   instagramCopy,
   channels,
+  autoStart,
+  onResult,
 }: CampaignCreativePanelProps) {
   const { status, result, error, generate, reset } = useAiStream<CreativeIdeasResult>();
   const [started, setStarted] = useState(false);
+  const triggerRef = useRef<(() => void) | null>(null);
+  const autoStartFired = useRef(false);
 
   const isGenerating = status === "generating";
   const isDone = status === "done";
   const isError = status === "error";
+
+  useEffect(() => {
+    if (autoStart && !autoStartFired.current && triggerRef.current && !isGenerating && !isDone) {
+      autoStartFired.current = true;
+      triggerRef.current();
+    }
+  });
 
   const buildPrompt = () =>
     [
@@ -131,7 +144,10 @@ export function CampaignCreativePanel({
       product,
       targetAudience: audience || undefined,
     }).then((res) => {
-      if (res !== null) charge();
+      if (res !== null) {
+        charge();
+        onResult?.(res);
+      }
     });
   };
 
@@ -156,19 +172,23 @@ export function CampaignCreativePanel({
 
       {!started && !isDone && !isGenerating && !isError && (
         <CreditsGate feature="creative" onSuccess={runGenerate}>
-          {({ trigger, isLoading }) => (
-            <Button
-              onClick={trigger}
-              disabled={isLoading || isGenerating}
-              className="bg-primary text-black hover:bg-primary/90 font-semibold w-full"
-            >
-              {isLoading ? (
-                <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Preparando...</>
-              ) : (
-                <><Sparkles className="w-4 h-4 mr-2" /> Gerar Criativo da Campanha</>
-              )}
-            </Button>
-          )}
+          {({ trigger, isLoading }) => {
+            triggerRef.current = trigger;
+            if (autoStart) return null;
+            return (
+              <Button
+                onClick={trigger}
+                disabled={isLoading || isGenerating}
+                className="bg-primary text-black hover:bg-primary/90 font-semibold w-full"
+              >
+                {isLoading ? (
+                  <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Preparando...</>
+                ) : (
+                  <><Sparkles className="w-4 h-4 mr-2" /> Gerar Criativo da Campanha</>
+                )}
+              </Button>
+            );
+          }}
         </CreditsGate>
       )}
 

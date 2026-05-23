@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CreditsGate } from "@/components/CreditsGate";
 import { useAiStream } from "@/hooks/useAiStream";
 import { CampaignCreativePanel } from "@/pages/dashboard/CampaignCreativePanel";
-import type { CampaignResult } from "@/types/ai";
+import type { CampaignResult, CreativeIdeasResult } from "@/types/ai";
 
 const platformIcons: Record<string, string> = {
   facebook: "fb", instagram: "ig", google: "g", email: "em", tiktok: "tk",
@@ -326,6 +326,7 @@ export function CreateCampaign() {
   const { toast } = useToast();
 
   const [campaignData, setCampaignData] = useState<CampaignResult | null>(null);
+  const [creativeResult, setCreativeResult] = useState<CreativeIdeasResult | null>(null);
   const [refineInputs, setRefineInputs] = useState<Record<string, string>>({});
   const [refiningBlock, setRefiningBlock] = useState<string | null>(null);
 
@@ -352,6 +353,7 @@ export function CreateCampaign() {
   const handleReset = () => {
     reset();
     setCampaignData(null);
+    setCreativeResult(null);
     setRefineInputs({});
     setRefiningBlock(null);
   };
@@ -414,7 +416,7 @@ export function CreateCampaign() {
     toast({ description: "Copiado para a área de transferência" });
   };
 
-  const handleSaveCampaign = () => {
+  const handleSaveAndDownload = () => {
     if (!campaignData) return;
     const title = product.trim()
       ? `${product.trim()}${goal ? ` — ${goal}` : ""}`
@@ -449,11 +451,12 @@ export function CreateCampaign() {
       });
     }
     if (campaignData.launchTimeline) lines.push(`\nCRONOGRAMA:\n${campaignData.launchTimeline}`);
-
     const content = lines.join("\n");
+
     const structuredData = JSON.stringify({
       briefing: { product: product.trim(), goal, mode, audience },
       result: campaignData,
+      creatives: creativeResult ?? null,
     });
     const entry = {
       id: crypto.randomUUID(),
@@ -464,27 +467,23 @@ export function CreateCampaign() {
       data: structuredData,
       createdAt: new Date().toISOString(),
     };
-
     try {
       const raw = localStorage.getItem("iattom_saved_items_v1");
       const existing = raw ? (JSON.parse(raw) as object[]) : [];
       existing.unshift(entry);
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
-      toast({ description: "Campanha salva com sucesso." });
-    } catch {
-      toast({ description: "Erro ao salvar.", variant: "destructive" });
-    }
-  };
+    } catch {}
 
-  const handleDownloadPackage = () => {
-    if (!campaignData) return;
-    const title = product.trim()
-      ? `${product.trim()}${goal ? ` — ${goal}` : ""}`
-      : campaignData.headline;
     const copyObj = campaignData.copy as Record<string, string>;
+    const creativesSection = creativeResult?.concepts?.length
+      ? `<h2>Criativos</h2>
+${creativeResult.overarchingTheme ? `<div class="field"><div class="label">Tema Criativo</div><div class="value">${escapeHtml(creativeResult.overarchingTheme)}</div></div>` : ""}
+${creativeResult.concepts.map((c, i) => `<div class="creative-card"><h3>Criativo ${i + 1} — ${escapeHtml(c.label)} (${escapeHtml(c.format)})</h3>${c.imageBase64 ? `<img src="data:image/png;base64,${c.imageBase64}" style="max-width:100%;border-radius:8px;margin:8px 0;border:1px solid #eee;">` : ""}<div class="field"><div class="label">Hook</div><div class="value">${escapeHtml(c.copyHook)}</div></div><div class="field"><div class="label">Copy</div><div class="value">${escapeHtml(c.bodyText)}</div></div><div class="field"><div class="label">CTA</div><div class="value">${escapeHtml(c.cta)}</div></div>${c.imagePrompt ? `<div class="field"><div class="label">Prompt IA</div><div class="value">${escapeHtml(c.imagePrompt)}</div></div>` : ""}</div>`).join("")}`
+      : "";
+
     const html = `<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="UTF-8"><title>${escapeHtml(title)}</title>
-<style>body{font-family:Arial,sans-serif;max-width:820px;margin:0 auto;padding:2rem;background:#fff;color:#1a1a1a}h1{font-size:1.5rem;border-bottom:3px solid #C9A84C;padding-bottom:.5rem;margin-bottom:1.5rem}h2{font-size:1rem;color:#C9A84C;margin-top:2rem;margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.05em}h3{font-size:.875rem;color:#555;margin-top:1.25rem;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.05em}.field{margin-bottom:1rem}.label{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:.25rem}.value{font-size:.9rem;white-space:pre-wrap;background:#f9f9f9;padding:.75rem;border-radius:4px;border:1px solid #eee;line-height:1.6}.chip{display:inline-block;background:#f0e8d5;color:#8a6d2a;border-radius:3px;padding:2px 8px;font-size:.8rem;margin:2px}ul{padding-left:1.25rem;margin:0}li{margin-bottom:.5rem;font-size:.9rem;line-height:1.5}.footer{margin-top:3rem;font-size:.7rem;color:#aaa;border-top:1px solid #eee;padding-top:1rem;text-align:center}</style>
+<style>body{font-family:Arial,sans-serif;max-width:820px;margin:0 auto;padding:2rem;background:#fff;color:#1a1a1a}h1{font-size:1.5rem;border-bottom:3px solid #C9A84C;padding-bottom:.5rem;margin-bottom:1.5rem}h2{font-size:1rem;color:#C9A84C;margin-top:2rem;margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.05em}h3{font-size:.875rem;color:#555;margin-top:1.25rem;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.05em}.field{margin-bottom:1rem}.label{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:.25rem}.value{font-size:.9rem;white-space:pre-wrap;background:#f9f9f9;padding:.75rem;border-radius:4px;border:1px solid #eee;line-height:1.6}.chip{display:inline-block;background:#f0e8d5;color:#8a6d2a;border-radius:3px;padding:2px 8px;font-size:.8rem;margin:2px}ul{padding-left:1.25rem;margin:0}li{margin-bottom:.5rem;font-size:.9rem;line-height:1.5}.creative-card{border:1px solid #eee;border-radius:8px;padding:1rem;margin-bottom:1rem;background:#fafafa}.footer{margin-top:3rem;font-size:.7rem;color:#aaa;border-top:1px solid #eee;padding-top:1rem;text-align:center}</style>
 </head><body>
 <h1>${escapeHtml(title)}</h1>
 ${product.trim() ? `<p style="color:#888;font-size:.85rem;">Produto: ${escapeHtml(product)}${goal ? ` · ${escapeHtml(goal)}` : ""}</p>` : ""}
@@ -503,8 +502,10 @@ ${campaignData.objectionHandling ? `<div class="field"><div class="label">Gestã
 <h2>Copy por Plataforma</h2>
 ${Object.entries(copyObj).map(([pl, cp]) => `<div class="field"><h3>${escapeHtml(pl)}</h3><div class="value">${escapeHtml(cp)}</div></div>`).join("")}
 ${campaignData.launchTimeline ? `<h2>Cronograma</h2><div class="field"><div class="value">${escapeHtml(campaignData.launchTimeline)}</div></div>` : ""}
+${creativesSection}
 <div class="footer">Gerado por IAttom Assist &middot; ${new Date().toLocaleDateString("pt-BR")}</div>
 </body></html>`;
+
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -515,7 +516,8 @@ ${campaignData.launchTimeline ? `<h2>Cronograma</h2><div class="field"><div clas
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast({ description: "Pacote HTML baixado com sucesso." });
+
+    toast({ description: "Campanha salva e pacote baixado com sucesso." });
   };
 
   const showResult = isDone && isCampaignComplete(campaignData);
@@ -661,16 +663,10 @@ ${campaignData.launchTimeline ? `<h2>Cronograma</h2><div class="field"><div clas
                   <CardTitle className="text-base text-white">Estratégia de Campanha</CardTitle>
                   <div className="ml-auto flex items-center gap-2">
                     <button
-                      onClick={handleSaveCampaign}
+                      onClick={handleSaveAndDownload}
                       className="text-xs text-primary/80 hover:text-primary transition-colors flex items-center gap-1 border border-primary/20 hover:border-primary/40 rounded px-2 py-1 bg-primary/5 hover:bg-primary/10"
                     >
-                      <Save className="w-3 h-3" /> Salvar
-                    </button>
-                    <button
-                      onClick={handleDownloadPackage}
-                      className="text-xs text-white/70 hover:text-white transition-colors flex items-center gap-1 border border-white/10 hover:border-white/25 rounded px-2 py-1 bg-white/5 hover:bg-white/10"
-                    >
-                      <Download className="w-3 h-3" /> Baixar Pacote
+                      <Download className="w-3 h-3" /> Salvar/Baixar
                     </button>
                     <button onClick={handleReset} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
                       <RefreshCw className="w-3 h-3" /> Nova campanha
@@ -855,6 +851,8 @@ ${campaignData.launchTimeline ? `<h2>Cronograma</h2><div class="field"><div clas
                   uniqueAngle={campaignData.uniqueAngle}
                   instagramCopy={(campaignData.copy as Record<string, string>)?.instagram}
                   channels={campaignData.channels}
+                  autoStart={true}
+                  onResult={(r) => setCreativeResult(r)}
                 />
               </CardContent>
             </Card>
