@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Video, Loader2, Copy, AlertCircle, RefreshCw, Clock, Music, Zap, Film, Share2 } from "lucide-react";
+import { Video, Loader2, Copy, AlertCircle, RefreshCw, Clock, Music, Zap, Film, Share2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +38,34 @@ export function VideoScripts() {
     const text = `${result.title}\n\nHOOKS:\n${hooks}\n\nCENAS:\n${scenes}`;
     navigator.clipboard.writeText(text);
     toast({ description: "Script completo copiado" });
+  };
+
+  const handleSave = () => {
+    if (!result) return;
+    const lines: string[] = [result.title];
+    if (result.duration) lines.push(`Duração: ${result.duration}`);
+    if (result.voiceoverStyle) lines.push(`Narração: ${result.voiceoverStyle}`);
+    if (result.musicMood) lines.push(`Música: ${result.musicMood}`);
+    if (result.editingPace) lines.push(`Edição: ${result.editingPace}`);
+    if (result.hooks?.length) lines.push(`\nHOOKS:\n${result.hooks.join("\n")}`);
+    if (result.viralTrigger) lines.push(`\nGATILHO VIRAL: ${result.viralTrigger}`);
+    if (result.scenes?.length) {
+      const scenes = result.scenes.map((s: ScriptScene, i: number) =>
+        `CENA ${i + 1} (${s.time})\nVisual: ${s.visual}\nNarração: ${s.script}${s.emotion ? `\nEmoção: ${s.emotion}` : ""}`
+      ).join("\n\n");
+      lines.push(`\nCENAS:\n${scenes}`);
+    }
+    const content = lines.join("\n");
+    const title = product.trim() || result.title || "Script gerado";
+    try {
+      const raw = localStorage.getItem("iattom_saved_items_v1");
+      const existing = raw ? (JSON.parse(raw) as object[]) : [];
+      existing.unshift({ id: crypto.randomUUID(), title, type: "video_script", content, createdAt: new Date().toISOString() });
+      localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
+      toast({ description: "Salvo com sucesso." });
+    } catch {
+      toast({ description: "Erro ao salvar.", variant: "destructive" });
+    }
   };
 
   return (
@@ -145,6 +173,7 @@ export function VideoScripts() {
                   </CardTitle>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="border-primary/30 text-primary flex items-center gap-1 text-xs"><Clock className="w-3 h-3" />{result.duration}</Badge>
+                    <button onClick={handleSave} className="text-muted-foreground hover:text-white transition-colors p-1" title="Salvar"><Save className="w-3.5 h-3.5" /></button>
                     <button onClick={copyFull} className="text-muted-foreground hover:text-white transition-colors p-1"><Copy className="w-3.5 h-3.5" /></button>
                     <button onClick={reset} className="text-muted-foreground hover:text-white transition-colors text-xs flex items-center gap-1"><RefreshCw className="w-3 h-3" /></button>
                   </div>

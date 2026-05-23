@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Loader2, Copy, RefreshCw, AlertCircle, Hash, Mail, MessageSquare, Twitter } from "lucide-react";
+import { FileText, Loader2, Copy, RefreshCw, AlertCircle, Hash, Mail, MessageSquare, Twitter, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -54,6 +54,29 @@ export function CreateContent() {
     generate("/api/ai/create-content", { topic, tone: tone || undefined, additionalContext: additionalContext || undefined }).then((res) => {
       if (res !== null) charge();
     });
+  };
+
+  const handleSave = () => {
+    if (!result) return;
+    const lines: string[] = [];
+    if (result.seoTitle) lines.push(`TÍTULO SEO: ${result.seoTitle}`);
+    if (result.seoDescription) lines.push(`META DESCRIÇÃO: ${result.seoDescription}`);
+    if (result.blog) lines.push(`\nBLOG:\n${result.blog}`);
+    if (result.social) lines.push(`\nSOCIAL:\n${result.social}`);
+    if (result.email) lines.push(`\nE-MAIL:\n${result.email}`);
+    if (result.tweetThread) lines.push(`\nTHREAD:\n${result.tweetThread}`);
+    if (result.smsText) lines.push(`\nSMS:\n${result.smsText}`);
+    const content = lines.join("\n");
+    const title = topic.trim() || result.seoTitle || "Conteúdo gerado";
+    try {
+      const raw = localStorage.getItem("iattom_saved_items_v1");
+      const existing = raw ? (JSON.parse(raw) as object[]) : [];
+      existing.unshift({ id: crypto.randomUUID(), title, type: "content", content, createdAt: new Date().toISOString() });
+      localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
+      toast({ description: "Salvo com sucesso." });
+    } catch {
+      toast({ description: "Erro ao salvar.", variant: "destructive" });
+    }
   };
 
   return (
@@ -135,7 +158,10 @@ export function CreateContent() {
           <motion.div key="result" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-white">Pacote de Conteúdo Pronto</h3>
-              <button onClick={reset} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><RefreshCw className="w-3 h-3" /> Novo conteúdo</button>
+              <div className="flex items-center gap-3">
+                <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><Save className="w-3 h-3" /> Salvar</button>
+                <button onClick={reset} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><RefreshCw className="w-3 h-3" /> Novo conteúdo</button>
+              </div>
             </div>
 
             {result.seoTitle && (

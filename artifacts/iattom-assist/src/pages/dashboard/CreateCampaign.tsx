@@ -276,11 +276,21 @@ export function CreateCampaign() {
     toast({ description: "Copiado para a área de transferência" });
   };
 
-  const saveToHotmart = () => {
+  const handleSaveCampaign = () => {
     if (!campaignData) return;
     const title = product.trim()
       ? `${product.trim()}${goal ? ` — ${goal}` : ""}`
       : campaignData.headline;
+
+    const goalLower = goal.toLowerCase();
+    let platform: string | undefined;
+    if (goalLower.includes("hotmart")) platform = "hotmart";
+    else if (goalLower.includes("kiwify")) platform = "kiwify";
+    else if (goalLower.includes("shopee")) platform = "shopee";
+    else if (goalLower.includes("mercado livre")) platform = "mercado_livre";
+    else if (goalLower.includes("whatsapp")) platform = "whatsapp";
+    else if (goalLower.includes("instagram")) platform = "instagram";
+    else if (goalLower.includes("tiktok")) platform = "tiktok";
 
     const lines: string[] = [];
     lines.push(`CAMPANHA: ${campaignData.headline}`);
@@ -296,23 +306,23 @@ export function CreateCampaign() {
     }
     if (campaignData.copy && typeof campaignData.copy === "object") {
       lines.push(`\nCOPY POR PLATAFORMA:`);
-      Object.entries(campaignData.copy as Record<string, string>).forEach(([platform, copy]) => {
-        lines.push(`\n[${platform.toUpperCase()}]\n${copy}`);
+      Object.entries(campaignData.copy as Record<string, string>).forEach(([p, copy]) => {
+        lines.push(`\n[${p.toUpperCase()}]\n${copy}`);
       });
     }
     if (campaignData.launchTimeline) lines.push(`\nCRONOGRAMA:\n${campaignData.launchTimeline}`);
 
     const content = lines.join("\n");
-    const newCampaign = { id: crypto.randomUUID(), title, content };
+    const entry = { id: crypto.randomUUID(), title, type: "campaign", platform, content, createdAt: new Date().toISOString() };
 
     try {
-      const raw = localStorage.getItem("iattom_hotmart_campaigns_v1");
-      const existing: typeof newCampaign[] = raw ? (JSON.parse(raw) as typeof newCampaign[]) : [];
-      existing.unshift(newCampaign);
-      localStorage.setItem("iattom_hotmart_campaigns_v1", JSON.stringify(existing));
-      toast({ description: "Campanha salva no painel Hotmart." });
+      const raw = localStorage.getItem("iattom_saved_items_v1");
+      const existing = raw ? (JSON.parse(raw) as object[]) : [];
+      existing.unshift(entry);
+      localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
+      toast({ description: "Salvo com sucesso." });
     } catch {
-      toast({ description: "Erro ao salvar campanha.", variant: "destructive" });
+      toast({ description: "Erro ao salvar.", variant: "destructive" });
     }
   };
 
@@ -459,10 +469,10 @@ export function CreateCampaign() {
                   <CardTitle className="text-base text-white">Estratégia de Campanha</CardTitle>
                   <div className="ml-auto flex items-center gap-2">
                     <button
-                      onClick={saveToHotmart}
+                      onClick={handleSaveCampaign}
                       className="text-xs text-primary/80 hover:text-primary transition-colors flex items-center gap-1 border border-primary/20 hover:border-primary/40 rounded px-2 py-1 bg-primary/5 hover:bg-primary/10"
                     >
-                      <Save className="w-3 h-3" /> Salvar para Hotmart
+                      <Save className="w-3 h-3" /> Salvar
                     </button>
                     <button onClick={handleReset} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
                       <RefreshCw className="w-3 h-3" /> Nova campanha

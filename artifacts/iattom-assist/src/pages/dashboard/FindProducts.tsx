@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, TrendingUp, Star, DollarSign, BarChart2, Loader2, AlertCircle, RefreshCw, Zap, Users } from "lucide-react";
+import { Search, TrendingUp, Star, DollarSign, BarChart2, Loader2, AlertCircle, RefreshCw, Zap, Users, Save } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import { CreditsGate } from "@/components/CreditsGate";
 import { useAiStream } from "@/hooks/useAiStream";
 import type { FindProductsResult, FoundProduct } from "@/types/ai";
@@ -37,6 +38,7 @@ export function FindProducts() {
   const [query, setQuery] = useState("");
   const [niche, setNiche] = useState("");
   const { status, result, error, generate, reset } = useAiStream<FindProductsResult>();
+  const { toast } = useToast();
 
   const isGenerating = status === "generating";
   const isDone = status === "done";
@@ -51,6 +53,30 @@ export function FindProducts() {
   const handleRetry = () => {
     reset();
     generate("/api/ai/find-products", { query, niche: niche || undefined });
+  };
+
+  const handleSave = () => {
+    if (!result) return;
+    const lines: string[] = [];
+    if (result.marketInsight) lines.push(`VISÃO DE MERCADO:\n${result.marketInsight}`);
+    result.products?.forEach((p: FoundProduct, i: number) => {
+      lines.push(`\n${i + 1}. ${p.name}`);
+      if (p.category) lines.push(`Categoria: ${p.category}`);
+      lines.push(`Demanda: ${p.demand} | Margem: ${p.margin} | Tendência: ${p.trend} | Score: ${p.score}`);
+      if (p.whyNow) lines.push(`Por que agora: ${p.whyNow}`);
+      if (p.keySellingPoints?.length) lines.push(`Diferenciais: ${p.keySellingPoints.join(", ")}`);
+    });
+    const content = lines.join("\n");
+    const title = `Busca: ${query.trim() || "produtos"}`;
+    try {
+      const raw = localStorage.getItem("iattom_saved_items_v1");
+      const existing = raw ? (JSON.parse(raw) as object[]) : [];
+      existing.unshift({ id: crypto.randomUUID(), title, type: "product_discovery", content, createdAt: new Date().toISOString() });
+      localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
+      toast({ description: "Salvo com sucesso." });
+    } catch {
+      toast({ description: "Erro ao salvar.", variant: "destructive" });
+    }
   };
 
   return (
@@ -151,6 +177,9 @@ export function FindProducts() {
               </h3>
               <div className="flex items-center gap-3">
                 <span className="text-xs text-muted-foreground">{result.products?.length ?? 0} encontrados</span>
+                <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
+                  <Save className="w-3 h-3" /> Salvar
+                </button>
                 <button onClick={() => reset()} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
                   <RefreshCw className="w-3 h-3" /> Nova busca
                 </button>

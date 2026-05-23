@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Loader2, Copy, RefreshCw, AlertCircle, Monitor, Smartphone, Image, Palette, Type } from "lucide-react";
+import { Sparkles, Loader2, Copy, RefreshCw, AlertCircle, Monitor, Smartphone, Image, Palette, Type, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -103,6 +103,7 @@ export function CreativeGenerator() {
   const [style, setStyle] = useState("");
   const [targetAudience, setTargetAudience] = useState("");
   const { status, result, error, generate, reset } = useAiStream<CreativeIdeasResult>();
+  const { toast } = useToast();
 
   useEffect(() => {
     const saved = sessionStorage.getItem("iattom_creative_prefill");
@@ -125,6 +126,34 @@ export function CreativeGenerator() {
     generate("/api/ai/creative-ideas", { prompt, style: style || undefined, targetAudience: targetAudience || undefined }).then((res) => {
       if (res !== null) charge();
     });
+  };
+
+  const handleSave = () => {
+    if (!result) return;
+    const lines: string[] = [];
+    if (result.overarchingTheme) lines.push(`TEMA: ${result.overarchingTheme}`);
+    if (result.colorPalette) lines.push(`PALETA: ${result.colorPalette}`);
+    if (result.typographyDirection) lines.push(`TIPOGRAFIA: ${result.typographyDirection}`);
+    result.concepts?.forEach((c: CreativeConcept, i: number) => {
+      lines.push(`\nCONCEITO ${i + 1}: ${c.label}`);
+      if (c.copyHook) lines.push(`Hook: ${c.copyHook}`);
+      if (c.bodyText) lines.push(`Copy: ${c.bodyText}`);
+      if (c.cta) lines.push(`CTA: ${c.cta}`);
+      if (c.visualDirection) lines.push(`Visual: ${c.visualDirection}`);
+      if (c.imagePrompt) lines.push(`Prompt IA: ${c.imagePrompt}`);
+    });
+    if (result.brandVoiceNotes) lines.push(`\nVoz da Marca: ${result.brandVoiceNotes}`);
+    const content = lines.join("\n");
+    const title = prompt.trim() || result.overarchingTheme || "Criativo gerado";
+    try {
+      const raw = localStorage.getItem("iattom_saved_items_v1");
+      const existing = raw ? (JSON.parse(raw) as object[]) : [];
+      existing.unshift({ id: crypto.randomUUID(), title, type: "creative", content, createdAt: new Date().toISOString() });
+      localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
+      toast({ description: "Salvo com sucesso." });
+    } catch {
+      toast({ description: "Erro ao salvar.", variant: "destructive" });
+    }
   };
 
   return (
@@ -222,7 +251,10 @@ export function CreativeGenerator() {
 
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Conceitos Criativos</h3>
-              <button onClick={reset} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><RefreshCw className="w-3 h-3" /> Novos conceitos</button>
+              <div className="flex items-center gap-3">
+                <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><Save className="w-3 h-3" /> Salvar</button>
+                <button onClick={reset} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><RefreshCw className="w-3 h-3" /> Novos conceitos</button>
+              </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">

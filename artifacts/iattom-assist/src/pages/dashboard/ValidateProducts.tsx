@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle, AlertTriangle, TrendingUp, Users, DollarSign, Loader2, AlertCircle, RefreshCw, Lightbulb, Target, Zap } from "lucide-react";
+import { CheckCircle, AlertTriangle, TrendingUp, Users, DollarSign, Loader2, AlertCircle, RefreshCw, Lightbulb, Target, Zap, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import { CreditsGate } from "@/components/CreditsGate";
 import { useAiStream } from "@/hooks/useAiStream";
 import type { ValidationResult } from "@/types/ai";
@@ -49,6 +50,8 @@ export function ValidateProducts() {
   const isDone = status === "done";
   const isError = status === "error";
 
+  const { toast } = useToast();
+
   const runValidation = (charge: () => void) => {
     generate("/api/ai/validate-product", {
       productName,
@@ -57,6 +60,32 @@ export function ValidateProducts() {
     }).then((res) => {
       if (res !== null) charge();
     });
+  };
+
+  const handleSave = () => {
+    if (!result) return;
+    const lines: string[] = [
+      `PRODUTO: ${productName}`,
+      `RESULTADO: ${result.verdict}`,
+      `SCORE: ${result.score}`,
+    ];
+    if (result.recommendation) lines.push(`\nRECOMENDAÇÃO:\n${result.recommendation}`);
+    if (result.strengths?.length) lines.push(`\nPONTOS FORTES:\n${result.strengths.join("\n")}`);
+    if (result.risks?.length) lines.push(`\nRISCOS:\n${result.risks.join("\n")}`);
+    if (result.opportunities?.length) lines.push(`\nOPORTUNIDADES:\n${result.opportunities.join("\n")}`);
+    if (result.launchStrategy) lines.push(`\nESTRATÉGIA:\n${result.launchStrategy}`);
+    if (result.pricingInsight) lines.push(`\nPREÇO:\n${result.pricingInsight}`);
+    const content = lines.join("\n");
+    const title = productName.trim() || "Validação de produto";
+    try {
+      const raw = localStorage.getItem("iattom_saved_items_v1");
+      const existing = raw ? (JSON.parse(raw) as object[]) : [];
+      existing.unshift({ id: crypto.randomUUID(), title, type: "product_validation", content, createdAt: new Date().toISOString() });
+      localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
+      toast({ description: "Salvo com sucesso." });
+    } catch {
+      toast({ description: "Erro ao salvar.", variant: "destructive" });
+    }
   };
 
   const handleRetry = () => {
@@ -258,7 +287,10 @@ export function ValidateProducts() {
               </CardContent>
             </Card>
 
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-3">
+              <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5">
+                <Save className="w-3 h-3" /> Salvar
+              </button>
               <button onClick={reset} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5">
                 <RefreshCw className="w-3 h-3" /> Validar outro produto
               </button>

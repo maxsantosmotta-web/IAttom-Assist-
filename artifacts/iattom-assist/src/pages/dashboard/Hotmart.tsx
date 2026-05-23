@@ -70,15 +70,34 @@ function revenueIn30d(events: HotmartEvent[]): string {
 }
 
 function readSavedCampaigns(): SavedCampaign[] {
+  const items: SavedCampaign[] = [];
+  const seen = new Set<string>();
+  try {
+    const raw = localStorage.getItem("iattom_saved_items_v1");
+    if (raw) {
+      const parsed = JSON.parse(raw) as Array<{ id: string; title: string; type: string; platform?: string; content: string }>;
+      if (Array.isArray(parsed)) {
+        for (const i of parsed) {
+          if (i.platform === "hotmart" && !seen.has(i.id)) {
+            items.push({ id: i.id, title: i.title, content: i.content });
+            seen.add(i.id);
+          }
+        }
+      }
+    }
+  } catch {}
   try {
     const raw = localStorage.getItem("iattom_hotmart_campaigns_v1");
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed as SavedCampaign[];
-  } catch {
-    return [];
-  }
+    if (raw) {
+      const parsed = JSON.parse(raw) as SavedCampaign[];
+      if (Array.isArray(parsed)) {
+        for (const i of parsed) {
+          if (!seen.has(i.id)) { items.push(i); seen.add(i.id); }
+        }
+      }
+    }
+  } catch {}
+  return items;
 }
 
 function downloadCampaign(campaign: SavedCampaign) {
@@ -412,20 +431,10 @@ export function Hotmart() {
         {/* 7. CAMPANHAS SALVAS */}
         <Card className="bg-[#111111] border-white/[0.06]">
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                <FolderOpen className="w-4 h-4 text-muted-foreground" />
-                Campanhas Salvas
-              </CardTitle>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleRefreshCampaigns}
-                className="text-muted-foreground hover:text-white h-7 px-2"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-              </Button>
-            </div>
+            <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+              <FolderOpen className="w-4 h-4 text-muted-foreground" />
+              Campanhas Salvas
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {savedCampaigns.length === 0 ? (
