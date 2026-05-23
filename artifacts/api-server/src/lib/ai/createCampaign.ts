@@ -13,6 +13,7 @@ interface CreateCampaignInput {
 }
 
 export interface CampaignResult {
+  campaignTitle?: string;
   headline: string;
   subheadline: string;
   cta: string;

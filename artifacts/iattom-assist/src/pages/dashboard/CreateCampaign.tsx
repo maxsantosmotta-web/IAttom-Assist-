@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Megaphone, Target, Globe, Loader2, Copy, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Zap, AlertTriangle, Save } from "lucide-react";
+import { Megaphone, Target, Globe, Loader2, Copy, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Zap, AlertTriangle, Save, Download, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -189,6 +189,133 @@ function CopyBlock({ label, content }: { label: string; content: string }) {
   );
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+interface PlatformGuide {
+  name: string;
+  url: string;
+  steps: string[];
+  note: string;
+}
+
+function getPlatformGuide(goal: string, data: CampaignResult): PlatformGuide | null {
+  const g = goal.toLowerCase();
+  const headline = data.headline ?? "";
+  const cta = data.cta ?? "";
+  const copy = data.copy as Record<string, string>;
+
+  if (g.includes("hotmart")) {
+    return {
+      name: "Hotmart",
+      url: "https://app.hotmart.com",
+      steps: [
+        "Acesse app.hotmart.com e faça login na sua conta",
+        "Vá em Meus Produtos e selecione o produto desta campanha",
+        `Em Marketing > Páginas, crie uma nova página com a manchete: "${headline}"`,
+        `Defina o botão de compra com o CTA: "${cta}"`,
+        "Copie os textos de cada plataforma abaixo para os canais correspondentes",
+        "Em Afiliados > Programa de Afiliados, ative o link de afiliado para ampliar alcance",
+        "Acompanhe as conversões em Relatórios > Vendas após publicar",
+      ],
+      note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+    };
+  }
+  if (g.includes("kiwify")) {
+    return {
+      name: "Kiwify",
+      url: "https://app.kiwify.com.br",
+      steps: [
+        "Acesse app.kiwify.com.br e faça login",
+        "Selecione o produto e acesse Configurações > Página de Vendas",
+        `Atualize o título principal com: "${headline}"`,
+        `Configure o botão de compra com: "${cta}"`,
+        "Copie o copy de e-mail e WhatsApp abaixo — principais canais de conversão na Kiwify",
+        "Ative o programa de afiliados em Afiliados > Configurações",
+        "Monitore as vendas em Dashboard > Transações",
+      ],
+      note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+    };
+  }
+  if (g.includes("shopee")) {
+    return {
+      name: "Shopee",
+      url: "https://seller.shopee.com.br",
+      steps: [
+        "Acesse seller.shopee.com.br e faça login no Seller Centre",
+        "Vá em Meus Produtos e selecione o produto",
+        `Atualize o título com palavras-chave baseadas em: "${headline}"`,
+        "Adicione o copy de Instagram desta campanha na descrição do produto",
+        "Configure cupons de desconto em Marketing > Vouchers",
+        "Ative Oferta Relâmpago para aumentar a visibilidade",
+        "Acompanhe a performance em Análise de Dados > Produtos",
+      ],
+      note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+    };
+  }
+  if (g.includes("mercado livre")) {
+    return {
+      name: "Mercado Livre",
+      url: "https://www.mercadolivre.com.br",
+      steps: [
+        "Acesse Mercado Livre e faça login como vendedor",
+        "Vá em Meus Anúncios e selecione o produto",
+        `Atualize o título do anúncio com: "${headline}"`,
+        "Adicione o copy de Facebook desta campanha na descrição",
+        "Configure Produto Patrocinado em Publicidade",
+        "Monitore visitas e conversões em Central do Vendedor",
+      ],
+      note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+    };
+  }
+  if (g.includes("whatsapp")) {
+    return {
+      name: "WhatsApp Business",
+      url: "https://business.whatsapp.com",
+      steps: [
+        "Abra o WhatsApp Business na sua conta",
+        `Crie um Catálogo com o produto e use como título: "${headline}"`,
+        `Envie a primeira mensagem de prospecção usando o copy: "${(copy.instagram ?? cta).slice(0, 100)}"`,
+        "Configure resposta automática com o link de compra",
+        "Crie uma lista de transmissão para clientes interessados",
+        "Use as Mensagens-chave desta campanha em sequência de follow-up",
+      ],
+      note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+    };
+  }
+  if (g.includes("instagram")) {
+    return {
+      name: "Instagram",
+      url: "https://www.instagram.com",
+      steps: [
+        "Acesse o Instagram e vá em Criar > Nova publicação",
+        `Use como legenda o copy de Instagram desta campanha`,
+        `Coloque a manchete "${headline}" nos primeiros 125 caracteres`,
+        "Publique como Reels para maior alcance orgânico",
+        `Use o CTA "${cta}" no caption e no sticker de link nos Stories`,
+        "Acompanhe o desempenho em Insights do perfil",
+      ],
+      note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+    };
+  }
+  if (g.includes("tiktok")) {
+    return {
+      name: "TikTok",
+      url: "https://www.tiktok.com",
+      steps: [
+        "Abra o TikTok e grave um vídeo usando o hook nos primeiros 2 segundos",
+        "Adicione legendas na tela com o texto principal da campanha",
+        `No caption use: "${(copy.tiktok ?? headline).slice(0, 100)}"`,
+        `Finalize em voz com o CTA: "${cta}"`,
+        "Poste entre 18h e 21h para maior alcance orgânico",
+      ],
+      note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+    };
+  }
+  return null;
+}
+
 export function CreateCampaign() {
   const [product, setProduct] = useState("");
   const [audience, setAudience] = useState("");
@@ -210,6 +337,17 @@ export function CreateCampaign() {
   const isBlocked = compatAlert !== null;
 
   useEffect(() => { setBypassCompat(false); }, [product, goal]);
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("iattom_campaign_prefill");
+      if (!raw) return;
+      sessionStorage.removeItem("iattom_campaign_prefill");
+      const prefill = JSON.parse(raw) as { product?: string; goal?: string; platform?: string };
+      if (prefill.product) setProduct(prefill.product);
+      if (prefill.goal) setGoal(prefill.goal);
+    } catch {}
+  }, []);
 
   const handleReset = () => {
     reset();
@@ -306,24 +444,78 @@ export function CreateCampaign() {
     }
     if (campaignData.copy && typeof campaignData.copy === "object") {
       lines.push(`\nCOPY POR PLATAFORMA:`);
-      Object.entries(campaignData.copy as Record<string, string>).forEach(([p, copy]) => {
-        lines.push(`\n[${p.toUpperCase()}]\n${copy}`);
+      Object.entries(campaignData.copy as Record<string, string>).forEach(([p, c]) => {
+        lines.push(`\n[${p.toUpperCase()}]\n${c}`);
       });
     }
     if (campaignData.launchTimeline) lines.push(`\nCRONOGRAMA:\n${campaignData.launchTimeline}`);
 
     const content = lines.join("\n");
-    const entry = { id: crypto.randomUUID(), title, type: "campaign", platform, content, createdAt: new Date().toISOString() };
+    const structuredData = JSON.stringify({
+      briefing: { product: product.trim(), goal, mode, audience },
+      result: campaignData,
+    });
+    const entry = {
+      id: crypto.randomUUID(),
+      title,
+      type: "campaign",
+      platform,
+      content,
+      data: structuredData,
+      createdAt: new Date().toISOString(),
+    };
 
     try {
       const raw = localStorage.getItem("iattom_saved_items_v1");
       const existing = raw ? (JSON.parse(raw) as object[]) : [];
       existing.unshift(entry);
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
-      toast({ description: "Salvo com sucesso." });
+      toast({ description: "Campanha salva com sucesso." });
     } catch {
       toast({ description: "Erro ao salvar.", variant: "destructive" });
     }
+  };
+
+  const handleDownloadPackage = () => {
+    if (!campaignData) return;
+    const title = product.trim()
+      ? `${product.trim()}${goal ? ` — ${goal}` : ""}`
+      : campaignData.headline;
+    const copyObj = campaignData.copy as Record<string, string>;
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8"><title>${escapeHtml(title)}</title>
+<style>body{font-family:Arial,sans-serif;max-width:820px;margin:0 auto;padding:2rem;background:#fff;color:#1a1a1a}h1{font-size:1.5rem;border-bottom:3px solid #C9A84C;padding-bottom:.5rem;margin-bottom:1.5rem}h2{font-size:1rem;color:#C9A84C;margin-top:2rem;margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.05em}h3{font-size:.875rem;color:#555;margin-top:1.25rem;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.05em}.field{margin-bottom:1rem}.label{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:.25rem}.value{font-size:.9rem;white-space:pre-wrap;background:#f9f9f9;padding:.75rem;border-radius:4px;border:1px solid #eee;line-height:1.6}.chip{display:inline-block;background:#f0e8d5;color:#8a6d2a;border-radius:3px;padding:2px 8px;font-size:.8rem;margin:2px}ul{padding-left:1.25rem;margin:0}li{margin-bottom:.5rem;font-size:.9rem;line-height:1.5}.footer{margin-top:3rem;font-size:.7rem;color:#aaa;border-top:1px solid #eee;padding-top:1rem;text-align:center}</style>
+</head><body>
+<h1>${escapeHtml(title)}</h1>
+${product.trim() ? `<p style="color:#888;font-size:.85rem;">Produto: ${escapeHtml(product)}${goal ? ` · ${escapeHtml(goal)}` : ""}</p>` : ""}
+<h2>Manchete</h2>
+<div class="field"><div class="label">Headline</div><div class="value">${escapeHtml(campaignData.headline)}</div></div>
+${campaignData.subheadline ? `<div class="field"><div class="label">Subheadline</div><div class="value">${escapeHtml(campaignData.subheadline)}</div></div>` : ""}
+${campaignData.cta ? `<div class="field"><div class="label">CTA</div><div class="value">${escapeHtml(campaignData.cta)}</div></div>` : ""}
+<h2>Estratégia</h2>
+<div class="field"><div class="label">Público-alvo</div><div class="value">${escapeHtml(campaignData.audience)}</div></div>
+<div class="field"><div class="label">Canais</div><div class="value">${campaignData.channels.map(c => `<span class="chip">${escapeHtml(c)}</span>`).join(" ")}</div></div>
+<div class="field"><div class="label">Orçamento</div><div class="value">${escapeHtml(campaignData.budget)}</div></div>
+${campaignData.uniqueAngle ? `<div class="field"><div class="label">Ângulo Único</div><div class="value">${escapeHtml(campaignData.uniqueAngle)}</div></div>` : ""}
+${campaignData.objectionHandling ? `<div class="field"><div class="label">Gestão de Objeções</div><div class="value">${escapeHtml(campaignData.objectionHandling)}</div></div>` : ""}
+<h2>Mensagens-chave</h2>
+<ul>${campaignData.keyMessages.map(m => `<li>${escapeHtml(m)}</li>`).join("")}</ul>
+<h2>Copy por Plataforma</h2>
+${Object.entries(copyObj).map(([pl, cp]) => `<div class="field"><h3>${escapeHtml(pl)}</h3><div class="value">${escapeHtml(cp)}</div></div>`).join("")}
+${campaignData.launchTimeline ? `<h2>Cronograma</h2><div class="field"><div class="value">${escapeHtml(campaignData.launchTimeline)}</div></div>` : ""}
+<div class="footer">Gerado por IAttom Assist &middot; ${new Date().toLocaleDateString("pt-BR")}</div>
+</body></html>`;
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const slug = product.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") || "campanha";
+    a.download = `campanha-${slug}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast({ description: "Pacote HTML baixado com sucesso." });
   };
 
   const showResult = isDone && isCampaignComplete(campaignData);
@@ -474,6 +666,12 @@ export function CreateCampaign() {
                     >
                       <Save className="w-3 h-3" /> Salvar
                     </button>
+                    <button
+                      onClick={handleDownloadPackage}
+                      className="text-xs text-white/70 hover:text-white transition-colors flex items-center gap-1 border border-white/10 hover:border-white/25 rounded px-2 py-1 bg-white/5 hover:bg-white/10"
+                    >
+                      <Download className="w-3 h-3" /> Baixar Pacote
+                    </button>
                     <button onClick={handleReset} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
                       <RefreshCw className="w-3 h-3" /> Nova campanha
                     </button>
@@ -614,6 +812,39 @@ export function CreateCampaign() {
                     />
                   </div>
                 )}
+
+                {/* Publicação Assistida */}
+                {goal && campaignData && (() => {
+                  const guide = getPlatformGuide(goal, campaignData);
+                  if (!guide) return null;
+                  return (
+                    <div className="border-t border-white/5 pt-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-xs text-primary uppercase tracking-widest font-medium">Publicação Assistida</p>
+                        <a
+                          href={guide.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary/80 hover:text-primary border border-primary/20 hover:border-primary/40 rounded px-2 py-1 bg-primary/5 hover:bg-primary/10 transition-colors flex items-center gap-1"
+                        >
+                          <ExternalLink className="w-3 h-3" /> Abrir {guide.name}
+                        </a>
+                      </div>
+                      <div className="bg-[#0a0a0a] border border-primary/10 rounded-lg p-4 space-y-3">
+                        <p className="text-sm font-semibold text-white">{guide.name}</p>
+                        <ol className="space-y-2">
+                          {guide.steps.map((step, i) => (
+                            <li key={i} className="flex items-start gap-2.5">
+                              <span className="text-primary font-bold text-xs shrink-0 mt-0.5 w-4">{i + 1}.</span>
+                              <p className="text-xs text-muted-foreground leading-relaxed">{step}</p>
+                            </li>
+                          ))}
+                        </ol>
+                        <p className="text-xs text-muted-foreground/50 italic border-t border-white/5 pt-2">{guide.note}</p>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Criativo da Campanha — inline, mesmo pacote */}
                 <CampaignCreativePanel

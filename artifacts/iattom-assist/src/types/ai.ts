@@ -35,6 +35,7 @@ export interface ValidationResult {
 }
 
 export interface CampaignResult {
+  campaignTitle?: string;
   headline: string;
   subheadline: string;
   cta: string;

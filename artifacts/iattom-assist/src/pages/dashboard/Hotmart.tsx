@@ -50,6 +50,7 @@ interface SavedCampaign {
   id: string;
   title: string;
   content?: string;
+  data?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -75,11 +76,11 @@ function readSavedCampaigns(): SavedCampaign[] {
   try {
     const raw = localStorage.getItem("iattom_saved_items_v1");
     if (raw) {
-      const parsed = JSON.parse(raw) as Array<{ id: string; title: string; type: string; platform?: string; content: string }>;
+      const parsed = JSON.parse(raw) as Array<{ id: string; title: string; type: string; platform?: string; content?: string; data?: string }>;
       if (Array.isArray(parsed)) {
         for (const i of parsed) {
           if (i.platform === "hotmart" && !seen.has(i.id)) {
-            items.push({ id: i.id, title: i.title, content: i.content });
+            items.push({ id: i.id, title: i.title, content: i.content, data: i.data });
             seen.add(i.id);
           }
         }
@@ -101,6 +102,62 @@ function readSavedCampaigns(): SavedCampaign[] {
 }
 
 function downloadCampaign(campaign: SavedCampaign) {
+  const esc = (s?: string) =>
+    (s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  if (campaign.data) {
+    try {
+      const parsed = JSON.parse(campaign.data) as {
+        briefing?: { product?: string; goal?: string; mode?: string; audience?: string };
+        result?: {
+          headline?: string;
+          subheadline?: string;
+          cta?: string;
+          audience?: string;
+          channels?: string[];
+          budget?: string;
+          copy?: Record<string, string>;
+          keyMessages?: string[];
+          launchTimeline?: string;
+          uniqueAngle?: string;
+          objectionHandling?: string;
+        };
+      };
+      const r = parsed.result ?? {};
+      const b = parsed.briefing ?? {};
+      const html = `<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8"><title>${esc(campaign.title)}</title>
+<style>body{font-family:Arial,sans-serif;max-width:820px;margin:0 auto;padding:2rem;background:#fff;color:#1a1a1a}h1{font-size:1.5rem;border-bottom:3px solid #C9A84C;padding-bottom:.5rem;margin-bottom:1.5rem}h2{font-size:1rem;color:#C9A84C;margin-top:2rem;margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.05em}h3{font-size:.875rem;color:#555;margin-top:1.25rem;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.05em}.field{margin-bottom:1rem}.label{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:.25rem}.value{font-size:.9rem;white-space:pre-wrap;background:#f9f9f9;padding:.75rem;border-radius:4px;border:1px solid #eee;line-height:1.6}.chip{display:inline-block;background:#f0e8d5;color:#8a6d2a;border-radius:3px;padding:2px 8px;font-size:.8rem;margin:2px}ul{padding-left:1.25rem;margin:0}li{margin-bottom:.5rem;font-size:.9rem;line-height:1.5}.footer{margin-top:3rem;font-size:.7rem;color:#aaa;border-top:1px solid #eee;padding-top:1rem;text-align:center}</style>
+</head><body>
+<h1>${esc(campaign.title)}</h1>
+${b.product ? `<p style="color:#888;font-size:.85rem;">Produto: ${esc(b.product)}${b.goal ? ` · ${esc(b.goal)}` : ""}</p>` : ""}
+<h2>Manchete</h2>
+${r.headline ? `<div class="field"><div class="label">Headline</div><div class="value">${esc(r.headline)}</div></div>` : ""}
+${r.subheadline ? `<div class="field"><div class="label">Subheadline</div><div class="value">${esc(r.subheadline)}</div></div>` : ""}
+${r.cta ? `<div class="field"><div class="label">CTA</div><div class="value">${esc(r.cta)}</div></div>` : ""}
+<h2>Estratégia</h2>
+${r.audience ? `<div class="field"><div class="label">Público-alvo</div><div class="value">${esc(r.audience)}</div></div>` : ""}
+${r.channels?.length ? `<div class="field"><div class="label">Canais</div><div class="value">${r.channels.map(c => `<span class="chip">${esc(c)}</span>`).join(" ")}</div></div>` : ""}
+${r.budget ? `<div class="field"><div class="label">Orçamento</div><div class="value">${esc(r.budget)}</div></div>` : ""}
+${r.uniqueAngle ? `<div class="field"><div class="label">Ângulo Único</div><div class="value">${esc(r.uniqueAngle)}</div></div>` : ""}
+${r.objectionHandling ? `<div class="field"><div class="label">Gestão de Objeções</div><div class="value">${esc(r.objectionHandling)}</div></div>` : ""}
+${r.keyMessages?.length ? `<h2>Mensagens-chave</h2><ul>${r.keyMessages.map(m => `<li>${esc(m)}</li>`).join("")}</ul>` : ""}
+${r.copy ? `<h2>Copy por Plataforma</h2>${Object.entries(r.copy).map(([pl, cp]) => `<div class="field"><h3>${esc(pl)}</h3><div class="value">${esc(cp)}</div></div>`).join("")}` : ""}
+${r.launchTimeline ? `<h2>Cronograma</h2><div class="field"><div class="value">${esc(r.launchTimeline)}</div></div>` : ""}
+<div class="footer">Gerado por IAttom Assist &middot; ${new Date().toLocaleDateString("pt-BR")}</div>
+</body></html>`;
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `campanha-hotmart-${campaign.id.slice(0, 8)}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      return;
+    } catch {}
+  }
   const text = campaign.content ?? campaign.title;
   const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -176,10 +233,10 @@ export function Hotmart() {
   const handleCreateCampaign = () => {
     sessionStorage.setItem(
       "iattom_campaign_prefill",
-      JSON.stringify({ product: "", channel: "hotmart" }),
+      JSON.stringify({ product: "", goal: "Vender na Hotmart", platform: "hotmart" }),
     );
     navigate("/dashboard/create-campaign");
-    toast({ description: "Dados carregados na criação de campanha." });
+    toast({ description: "Campanha pré-configurada para Hotmart." });
   };
 
   const handleCreateAd = () => {
