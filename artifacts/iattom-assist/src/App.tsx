@@ -45,7 +45,8 @@ const Shopee = lazy(() => import("@/pages/dashboard/Shopee").then((m) => ({ defa
 const TikTok = lazy(() => import("@/pages/dashboard/TikTok").then((m) => ({ default: m.TikTok })));
 const Hotmart = lazy(() => import("@/pages/dashboard/Hotmart").then((m) => ({ default: m.Hotmart })));
 const Kiwify = lazy(() => import("@/pages/dashboard/Kiwify").then((m) => ({ default: m.Kiwify })));
-const Meta = lazy(() => import("@/pages/dashboard/Meta").then((m) => ({ default: m.Meta })));
+const Facebook = lazy(() => import("@/pages/dashboard/Facebook").then((m) => ({ default: m.Facebook })));
+const Instagram = lazy(() => import("@/pages/dashboard/Instagram").then((m) => ({ default: m.Instagram })));
 const WhatsApp = lazy(() => import("@/pages/dashboard/WhatsApp").then((m) => ({ default: m.WhatsApp })));
 
 // Lazy load admin pages
@@ -257,7 +258,8 @@ function ProtectedDashboard() {
                   <Route path="/dashboard/tiktok" component={TikTok} />
                   <Route path="/dashboard/hotmart" component={Hotmart} />
                   <Route path="/dashboard/kiwify" component={Kiwify} />
-                  <Route path="/dashboard/meta" component={Meta} />
+                  <Route path="/dashboard/facebook" component={Facebook} />
+                  <Route path="/dashboard/instagram" component={Instagram} />
                   <Route path="/dashboard/whatsapp" component={WhatsApp} />
                   <Route component={NotFound} />
                 </Switch>

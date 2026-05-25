@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ShoppingBag, Plus, Copy, Trash2, ExternalLink, Loader2,
   Link2, Tag, X, Info, AlertCircle, CheckCircle2,
-  RefreshCw, Package, ClipboardList, Store, Search, Image,
-  Video, Megaphone, Zap, BarChart2, WifiOff, LogOut,
+  RefreshCw, Package, ClipboardList, Store, Search,
+  Megaphone, Zap, BarChart2, WifiOff, LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
 
 /* ─── storage keys ──────────────────────────────────────────── */
 const STORAGE_KEY = "iattom_shopee_affiliates_v1";
@@ -150,7 +149,6 @@ function ManualAddModal({ onAdd, onClose }: { onAdd: (p: AffiliateProduct) => vo
 /* ─── AbaAfiliado ───────────────────────────────────────────── */
 function AbaAfiliado() {
   const { toast } = useToast();
-  const [, navigate] = useLocation();
   const [urlInput, setUrlInput] = useState("");
   const [importing, setImporting] = useState(false);
   const [affiliates, setAffiliates] = useState<AffiliateProduct[]>(loadAffiliates);
@@ -176,21 +174,6 @@ function AbaAfiliado() {
 
   const handleDelete  = (id: string)  => { sync(affiliates.filter(a => a.id !== id)); toast({ description: "Produto removido." }); };
   const handleCopy    = (link: string) => { navigator.clipboard.writeText(link); toast({ description: "Link de afiliado copiado." }); };
-  const handleCampaign = (p: AffiliateProduct) => {
-    sessionStorage.setItem("iattom_campaign_prefill", JSON.stringify({ product: p.name, goal: "Vender na Shopee" }));
-    navigate("/dashboard/create-campaign");
-    toast({ description: "Dados do produto carregados na criação de campanha." });
-  };
-  const handleImage  = (p: AffiliateProduct) => {
-    sessionStorage.setItem("iattom_creative_prefill", JSON.stringify({ product: p.name, platform: "Shopee" }));
-    navigate("/dashboard/creative-generator");
-    toast({ description: "Produto carregado no gerador de imagens." });
-  };
-  const handleScript = (p: AffiliateProduct) => {
-    sessionStorage.setItem("iattom_script_prefill", JSON.stringify({ product: p.name, platform: "Shopee" }));
-    navigate("/dashboard/video-scripts");
-    toast({ description: "Produto carregado no gerador de scripts." });
-  };
 
   return (
     <div className="space-y-5">
@@ -276,18 +259,6 @@ function AbaAfiliado() {
                       </Button>
                     </div>
                   </div>
-                  {/* action buttons */}
-                  <div className="flex flex-wrap gap-2 pt-1 border-t border-white/5">
-                    <Button size="sm" onClick={() => handleCampaign(product)} className="h-7 px-3 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 text-xs font-medium">
-                      <Megaphone className="w-3 h-3 mr-1.5" /> Criar campanha
-                    </Button>
-                    <Button size="sm" onClick={() => handleImage(product)} className="h-7 px-3 bg-white/5 text-muted-foreground hover:text-white hover:bg-white/8 border border-white/10 text-xs font-medium">
-                      <Image className="w-3 h-3 mr-1.5" /> Gerar imagem
-                    </Button>
-                    <Button size="sm" onClick={() => handleScript(product)} className="h-7 px-3 bg-white/5 text-muted-foreground hover:text-white hover:bg-white/8 border border-white/10 text-xs font-medium">
-                      <Video className="w-3 h-3 mr-1.5" /> Gerar script
-                    </Button>
-                  </div>
                 </div>
               ))}
             </div>
@@ -344,7 +315,6 @@ function ContaSection({
 /* ─── AbaMinhaContaLoja ─────────────────────────────────────── */
 function AbaMinhaContaLoja({ connected, onConnect }: { connected: boolean; onConnect: () => void }) {
   const { toast } = useToast();
-  const [, navigate] = useLocation();
   const [modal, setModal] = useState<{ title: string; description: string } | null>(null);
   const [syncingProducts, setSyncingProducts] = useState(false);
   const [syncingOrders, setSyncingOrders] = useState(false);
@@ -363,12 +333,6 @@ function AbaMinhaContaLoja({ connected, onConnect }: { connected: boolean; onCon
     await new Promise(r => setTimeout(r, 800));
     setSyncingOrders(false);
     toast({ description: "Função preparada para próxima etapa — pedidos sincronizados após conexão real." });
-  };
-
-  const handleCampaign = () => {
-    sessionStorage.setItem("iattom_campaign_prefill", JSON.stringify({ goal: "Vender na Shopee" }));
-    navigate("/dashboard/create-campaign");
-    toast({ description: "Criação de campanha aberta com contexto Shopee." });
   };
 
   const handleAd = () => {
@@ -422,14 +386,6 @@ function AbaMinhaContaLoja({ connected, onConnect }: { connected: boolean; onCon
         emptyText="Histórico de pedidos disponível após conexão da conta."
         actions={[
           { label: "Sincronizar pedidos", icon: RefreshCw, onClick: () => void handleSyncOrders(), loading: syncingOrders },
-        ]}
-      />
-
-      <ContaSection
-        icon={BarChart2} title="Campanhas" color="text-primary"
-        emptyText="Crie campanhas para seus produtos e acompanhe os resultados aqui."
-        actions={[
-          { label: "Criar campanha Shopee", icon: Megaphone, onClick: handleCampaign },
         ]}
       />
 

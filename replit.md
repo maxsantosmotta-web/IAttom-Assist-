@@ -235,7 +235,8 @@ O `TikTok ADMIN` é o modelo canônico para todos os painéis administrativos: s
 | TikTok USER | `/dashboard/tiktok` | Validado |
 | Hotmart USER | `/dashboard/hotmart` | Validado |
 | Kiwify USER | `/dashboard/kiwify` | Validado |
-| Meta USER | `/dashboard/meta` | Validado |
+| Facebook USER | `/dashboard/facebook` | Validado |
+| Instagram USER | `/dashboard/instagram` | Validado |
 | WhatsApp USER | `/dashboard/whatsapp` | Validado |
 | Criar Campanha | `/dashboard/create-campaign` | Validado |
 | Criar Conteúdo | `/dashboard/create-content` | Validado |

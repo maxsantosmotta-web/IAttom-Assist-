@@ -4,13 +4,12 @@ import {
   Music2, Link2, Loader2, X, Info, AlertCircle,
   Megaphone, Video, ClipboardList, ExternalLink,
   CheckCircle2, BarChart2, Users, TrendingUp,
-  RefreshCw, LogOut, Play,
+  RefreshCw, LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -81,7 +80,6 @@ function InformativeModal({
 
 export function TikTok() {
   const { toast } = useToast();
-  const [, navigate] = useLocation();
 
   const [status, setStatus] = useState<TikTokStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
@@ -163,32 +161,10 @@ export function TikTok() {
     }
   };
 
-  const handleCreateAdsCampaign = () => {
-    sessionStorage.setItem(
-      "iattom_campaign_prefill",
-      JSON.stringify({ goal: "Conversão TikTok Ads" }),
-    );
-    navigate("/dashboard/create-campaign");
-    toast({ description: "Abrindo criação de campanha com TikTok pré-selecionado." });
-  };
-
-  const handleViewVideoScripts = () => {
-    navigate("/dashboard/video-scripts");
-    toast({ description: "Abrindo gerador de scripts de vídeo." });
-  };
-
   const handleAnalytics = () => {
     showInfo(
       "Analytics TikTok",
       "As métricas de performance dos seus vídeos e campanhas TikTok estarão disponíveis aqui após a conexão e ativação da integração. Função preparada para próxima etapa.",
-    );
-  };
-
-  const handleCreateCampaignTikTok = () => {
-    showInfo(
-      "Criar Campanha TikTok Ads",
-      "Você pode criar campanhas para o TikTok usando o módulo Criar Campanha, com o canal TikTok selecionado. Deseja ir para lá agora?",
-      { label: "Criar Campanha", onClick: handleCreateAdsCampaign },
     );
   };
 
@@ -334,7 +310,7 @@ export function TikTok() {
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Crie e gerencie campanhas de anúncios no TikTok For Business. Segmentação por interesse, lookalike e retargeting.
+                Monitore campanhas de anúncios no TikTok For Business. Impressões, alcance, CTR e conversões disponíveis após conexão.
               </p>
               <div className="grid grid-cols-3 gap-2 py-1">
                 {[
@@ -349,24 +325,15 @@ export function TikTok() {
                   </div>
                 ))}
               </div>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={handleCreateCampaignTikTok}
-                  className="flex-1 bg-primary text-black hover:bg-primary/90 font-semibold h-8 text-xs"
-                >
-                  <Megaphone className="w-3 h-3 mr-1.5" />
-                  Criar Campanha TikTok
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleAnalytics}
-                  className="border-white/10 text-muted-foreground hover:text-white h-8 px-2"
-                >
-                  <BarChart2 className="w-3.5 h-3.5" />
-                </Button>
-              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleAnalytics}
+                className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
+              >
+                <BarChart2 className="w-3 h-3 mr-1.5" />
+                Ver Analytics
+              </Button>
             </CardContent>
           </Card>
 
@@ -385,17 +352,9 @@ export function TikTok() {
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Gere scripts de vídeo otimizados para o TikTok com IA. Planeje sua grade de conteúdo e agende publicações.
+                Monitore sua grade de conteúdo TikTok. Scripts e criativos são criados nos módulos centrais da plataforma.
               </p>
               <div className="flex flex-col gap-2">
-                <Button
-                  size="sm"
-                  onClick={handleViewVideoScripts}
-                  className="w-full bg-primary text-black hover:bg-primary/90 font-semibold h-8 text-xs"
-                >
-                  <Play className="w-3 h-3 mr-1.5" />
-                  Gerar Script de Vídeo
-                </Button>
                 <Button
                   size="sm"
                   variant="outline"

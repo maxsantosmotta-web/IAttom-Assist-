@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   ShoppingCart, RefreshCw, Loader2, ExternalLink, Trash2,
-  Eye, Package, AlertTriangle, CheckCircle2, Link2, Plus,
+  Eye, Package, AlertTriangle, CheckCircle2, Link2,
   DollarSign, Boxes, Tag, Clock, AlertCircle, X, Info,
-  Megaphone, Image, Video, Sparkles, BarChart2, TrendingUp,
+  Image, Sparkles, BarChart2, TrendingUp,
   FileText, Search, Zap, Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -131,81 +130,6 @@ function ConnectModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-/* ─── CreateListingModal ────────────────────────────────────── */
-function CreateListingModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ title: "", price: "", quantity: "1" });
-
-  const handleSubmit = async () => {
-    if (!form.title.trim()) { toast({ variant: "destructive", description: "Informe o título do anúncio." }); return; }
-    const price = parseFloat(form.price);
-    if (isNaN(price) || price <= 0) { toast({ variant: "destructive", description: "Informe um preço válido." }); return; }
-    setLoading(true);
-    try {
-      const data = await apiFetch<{ ok: boolean; item: { id: string; permalink: string } }>(
-        "/api/me/ml/create-listing",
-        { method: "POST", body: JSON.stringify({ title: form.title, price, quantity: parseInt(form.quantity) || 1 }) },
-      );
-      toast({ description: `Anúncio criado: ${data.item.id}` });
-      onCreated();
-      onClose();
-    } catch (err) {
-      toast({ variant: "destructive", description: err instanceof Error ? err.message : "Falha ao criar anúncio." });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-        className="bg-[#111111] border border-white/10 rounded-xl w-full max-w-md p-6 space-y-5"
-      >
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm font-semibold text-white">Criar Anúncio</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Publicar novo item no Mercado Livre</p>
-          </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-white transition-colors">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="space-y-4">
-          <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Título do Anúncio</Label>
-            <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-              placeholder="Ex: Tênis Esportivo Nike Air Max" className="bg-[#0a0a0a] border-white/10 text-white" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Preço (R$)</Label>
-              <Input type="number" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
-                placeholder="99.90" min="1" className="bg-[#0a0a0a] border-white/10 text-white" />
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground mb-1.5 block">Quantidade</Label>
-              <Input type="number" value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))}
-                placeholder="1" min="1" className="bg-[#0a0a0a] border-white/10 text-white" />
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground/60">
-            Anúncio criado como tipo Bronze na categoria geral. Edite diretamente no Mercado Livre para ajustar categoria, fotos e demais atributos.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={() => void handleSubmit()} disabled={loading} className="flex-1 bg-primary text-black hover:bg-primary/90 font-semibold">
-            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-            Criar Anúncio
-          </Button>
-          <Button variant="outline" onClick={onClose} className="border-white/10 text-muted-foreground hover:text-white">Cancelar</Button>
-        </div>
-      </motion.div>
-    </div>
-  );
-}
-
 /* ─── DetailModal ───────────────────────────────────────────── */
 function DetailModal({ listing, onClose }: { listing: MLListing; onClose: () => void }) {
   const statusInfo = getStatusInfo(listing.status);
@@ -286,7 +210,6 @@ function InfoModal({ title, description, onClose }: { title: string; description
 /* ─── MercadoLivre ──────────────────────────────────────────── */
 export function MercadoLivre() {
   const { toast } = useToast();
-  const [, navigate] = useLocation();
 
   const [status, setStatus]               = useState<MLStatus | null>(null);
   const [listings, setListings]           = useState<MLListing[]>([]);
@@ -294,7 +217,6 @@ export function MercadoLivre() {
   const [loadingListings, setLoadingListings] = useState(false);
   const [syncing, setSyncing]             = useState(false);
   const [showConnect, setShowConnect]     = useState(false);
-  const [showCreate, setShowCreate]       = useState(false);
   const [selectedListing, setSelectedListing] = useState<MLListing | null>(null);
   const [trashingId, setTrashingId]       = useState<number | null>(null);
   const [showDisconnect, setShowDisconnect] = useState(false);
@@ -377,12 +299,6 @@ export function MercadoLivre() {
     }
   };
 
-  const handleCreateCampaign = (listing?: MLListing) => {
-    sessionStorage.setItem("iattom_campaign_prefill", JSON.stringify({ product: listing?.title ?? "", goal: "Vender no Mercado Livre" }));
-    navigate("/dashboard/create-campaign");
-    toast({ description: "Dados carregados na criação de campanha." });
-  };
-
   const handleDisconnect = async () => {
     try {
       await apiFetch<{ ok: boolean }>("/api/me/ml/disconnect", { method: "POST" });
@@ -410,7 +326,6 @@ export function MercadoLivre() {
     <div className="space-y-6">
       {/* ── Modals ──────────────────────────────────────────── */}
       {showConnect    && <ConnectModal onClose={() => setShowConnect(false)} />}
-      {showCreate     && <CreateListingModal onClose={() => setShowCreate(false)} onCreated={() => { void loadListings(); }} />}
       {selectedListing && <DetailModal listing={selectedListing} onClose={() => setSelectedListing(null)} />}
       {infoModal      && <InfoModal title={infoModal.title} description={infoModal.description} onClose={() => setInfoModal(null)} />}
 
@@ -459,7 +374,7 @@ export function MercadoLivre() {
             <div>
               <h1 className="text-xl font-bold text-white tracking-tight">Mercado Livre</h1>
               <p className="text-xs text-muted-foreground mt-0.5 max-w-sm leading-relaxed">
-                Conecte sua conta Mercado Livre, otimize anúncios, acompanhe produtos e crie campanhas com IA.
+                Conecte sua conta Mercado Livre, monitore anúncios, otimize com IA e acompanhe performance.
               </p>
             </div>
           </div>
@@ -470,9 +385,6 @@ export function MercadoLivre() {
                   className="border-white/10 text-muted-foreground hover:text-white h-8 gap-1.5 text-xs">
                   {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                   Sincronizar
-                </Button>
-                <Button onClick={() => setShowCreate(true)} size="sm" className="bg-amber-500 hover:bg-amber-400 text-black font-semibold h-8 gap-1.5 text-xs">
-                  <Plus className="w-3.5 h-3.5" /> Criar Anúncio
                 </Button>
               </>
             )}
@@ -578,12 +490,6 @@ export function MercadoLivre() {
                   {loadingListings ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                   Sincronizar
                 </Button>
-                {status?.connected && (
-                  <Button size="sm" onClick={() => setShowCreate(true)}
-                    className="h-7 px-3 bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 border border-amber-500/25 text-xs gap-1">
-                    <Plus className="w-3 h-3" /> Criar anúncio
-                  </Button>
-                )}
               </div>
             </div>
           </CardHeader>
@@ -646,10 +552,6 @@ export function MercadoLivre() {
                             <ExternalLink className="w-3 h-3" /> Ver no ML
                           </Button>
                         )}
-                        <Button size="sm" variant="ghost" onClick={() => handleCreateCampaign(listing)}
-                          className="h-7 px-2 text-muted-foreground hover:text-primary text-xs gap-1">
-                          <Megaphone className="w-3 h-3" /> Campanha
-                        </Button>
                         <Button size="sm" variant="ghost" onClick={() => handleTrash(listing)} disabled={trashingId === listing.id}
                           className="h-7 px-2 text-muted-foreground hover:text-red-400 text-xs ml-auto">
                           {trashingId === listing.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
@@ -720,58 +622,7 @@ export function MercadoLivre() {
           </CardContent>
         </Card>
 
-        {/* ── D) Campanhas ─────────────────────────────────── */}
-        <Card className="bg-[#111111] border-white/[0.06]">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-              <Megaphone className="w-4 h-4 text-amber-400" />
-              Campanhas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid sm:grid-cols-2 gap-3">
-              {[
-                {
-                  label: "Criar campanha Mercado Livre", icon: Megaphone,
-                  desc:  "Monte uma campanha completa usando o contexto dos seus anúncios.",
-                  action: () => handleCreateCampaign(),
-                  highlight: true,
-                },
-                {
-                  label: "Gerar copy de anúncio", icon: FileText,
-                  desc:  "Crie textos persuasivos prontos para usar em anúncios patrocinados.",
-                  action: () => setInfoModal({ title: "Gerar Copy", description: "Função preparada para próxima etapa — geração de copy para anúncios ML via IA." }),
-                },
-                {
-                  label: "Gerar imagem de campanha", icon: Image,
-                  desc:  "Crie criativos visuais para divulgar seus produtos ML.",
-                  action: () => { sessionStorage.setItem("iattom_creative_prefill", JSON.stringify({ platform: "Mercado Livre" })); navigate("/dashboard/creative-generator"); toast({ description: "Gerador de imagens aberto com contexto ML." }); },
-                },
-                {
-                  label: "Gerar script de venda", icon: Video,
-                  desc:  "Monte um script de vendas para vídeo ou áudio focado nos seus produtos.",
-                  action: () => { sessionStorage.setItem("iattom_script_prefill", JSON.stringify({ platform: "Mercado Livre" })); navigate("/dashboard/video-scripts"); toast({ description: "Gerador de scripts aberto com contexto ML." }); },
-                },
-              ].map(({ label, icon: Icon, desc, action, highlight }) => (
-                <button key={label} onClick={action}
-                  className={`flex items-start gap-3 p-4 rounded-xl border transition-all text-left hover:opacity-80 ${
-                    highlight ? "bg-amber-500/8 border-amber-500/20 hover:border-amber-500/40" : "bg-white/3 border-white/8 hover:border-white/14"
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${highlight ? "bg-amber-500/15" : "bg-white/5"}`}>
-                    <Icon className={`w-4 h-4 ${highlight ? "text-amber-400" : "text-muted-foreground"}`} />
-                  </div>
-                  <div>
-                    <p className={`text-sm font-semibold ${highlight ? "text-amber-300" : "text-white"}`}>{label}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{desc}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* ── E) Performance ───────────────────────────────── */}
+        {/* ── D) Performance ───────────────────────────────── */}
         <Card className="bg-[#111111] border-white/[0.06]">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">

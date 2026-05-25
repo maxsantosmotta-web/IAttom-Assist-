@@ -5,7 +5,7 @@ import {
   LogOut, ChevronDown, ShieldCheck, Zap, CreditCard,
   Command, BarChart2, BookMarked, Gift, Trash2,
   ShoppingCart, ShoppingBag, Music2,
-  Flame, Layers, Instagram, MessageCircle,
+  Flame, Layers, Instagram, Facebook, MessageCircle,
 } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
 import { useState, useEffect, useCallback } from "react";
@@ -42,7 +42,8 @@ const navItems = [
   { href: "/dashboard/tiktok", label: "TikTok", icon: Music2 },
   { href: "/dashboard/hotmart", label: "Hotmart", icon: Flame },
   { href: "/dashboard/kiwify", label: "Kiwify", icon: Layers },
-  { href: "/dashboard/meta", label: "Meta (IG + FB)", icon: Instagram },
+  { href: "/dashboard/facebook", label: "Facebook", icon: Facebook },
+  { href: "/dashboard/instagram", label: "Instagram", icon: Instagram },
   { href: "/dashboard/whatsapp", label: "WhatsApp", icon: MessageCircle },
   { href: "/dashboard/projects", label: "Projetos", icon: FolderOpen },
   { href: "/dashboard/history", label: "Atividades", icon: Clock },

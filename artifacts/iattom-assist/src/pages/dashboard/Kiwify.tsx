@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const USER_CREDS_KEY = "iattom_kiwify_user_config_v1";
@@ -124,7 +123,6 @@ const EVENT_COLORS: Record<string, string> = {
 
 export function Kiwify() {
   const { toast } = useToast();
-  const [, navigate] = useLocation();
 
   const [savedCreds, setSavedCreds] = useState<UserKiwifyCreds | null>(loadUserCreds);
   const [form, setForm] = useState({ storeId: "", clientId: "", clientSecret: "" });
@@ -216,15 +214,6 @@ export function Kiwify() {
     }
   };
 
-  const handleCreateCampaign = (product?: KiwifyProduct) => {
-    sessionStorage.setItem(
-      "iattom_campaign_prefill",
-      JSON.stringify({ product: product?.name ?? "", goal: "Vender na Kiwify" }),
-    );
-    navigate("/dashboard/create-campaign");
-    toast({ description: "Dados carregados na criação de campanha." });
-  };
-
   const handleCopyWebhook = () => {
     navigator.clipboard.writeText(webhookEndpoint);
     toast({ description: "URL do webhook copiada." });
@@ -255,12 +244,6 @@ export function Kiwify() {
               className="border-white/10 text-muted-foreground hover:text-white">
               {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : <RefreshCw className="w-3.5 h-3.5 mr-2" />}
               Sincronizar
-            </Button>
-            <Button size="sm"
-              onClick={() => handleCreateCampaign()}
-              className="bg-primary text-black hover:bg-primary/90 font-semibold">
-              <ClipboardList className="w-3.5 h-3.5 mr-2" />
-              Criar Campanha
             </Button>
           </div>
         </div>
@@ -477,12 +460,6 @@ export function Kiwify() {
                         </div>
                       )}
                     </div>
-                    <Button size="sm"
-                      onClick={() => handleCreateCampaign(product)}
-                      className="w-full h-7 bg-primary/80 hover:bg-primary text-black font-semibold text-xs">
-                      <ClipboardList className="w-3 h-3 mr-1.5" />
-                      Criar Campanha
-                    </Button>
                   </div>
                 ))}
               </div>

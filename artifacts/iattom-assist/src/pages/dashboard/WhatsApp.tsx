@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -94,7 +93,6 @@ const FUTURE_AUTOMATIONS = [
 
 export function WhatsApp() {
   const { toast } = useToast();
-  const [, navigate] = useLocation();
 
   const [events, setEvents] = useState<WhatsAppEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
@@ -144,15 +142,6 @@ export function WhatsApp() {
     );
   };
 
-  const handleCreateCampaign = () => {
-    sessionStorage.setItem(
-      "iattom_campaign_prefill",
-      JSON.stringify({ channel: "whatsapp" }),
-    );
-    navigate("/dashboard/create-campaign");
-    toast({ description: "Abrindo criação de campanha WhatsApp." });
-  };
-
   const handleCopyWebhook = () => {
     navigator.clipboard.writeText(webhookEndpoint);
     toast({ description: "URL do webhook copiada." });
@@ -194,12 +183,6 @@ export function WhatsApp() {
               className="border-white/10 text-muted-foreground hover:text-white">
               <Bot className="w-3.5 h-3.5 mr-2" />
               Criar Automação
-            </Button>
-            <Button size="sm"
-              onClick={handleCreateCampaign}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">
-              <ClipboardList className="w-3.5 h-3.5 mr-2" />
-              Criar Campanha WhatsApp
             </Button>
           </div>
         </div>

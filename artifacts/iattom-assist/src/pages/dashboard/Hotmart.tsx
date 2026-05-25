@@ -1,15 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
-  Flame, Loader2, ClipboardList,
+  Flame, Loader2,
   RefreshCw, ShoppingBag, DollarSign,
-  Package, Megaphone,
+  Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -69,7 +68,6 @@ const isConnected = false;
 
 export function Hotmart() {
   const { toast } = useToast();
-  const [, navigate] = useLocation();
 
   const [products, setProducts]               = useState<HotmartProduct[]>([]);
   const [events, setEvents]                   = useState<HotmartEvent[]>([]);
@@ -115,20 +113,6 @@ export function Hotmart() {
       setSyncing(false);
       toast({ description: "Sincronização concluída." });
     }, 400);
-  };
-
-  const handleCreateCampaign = () => {
-    sessionStorage.setItem(
-      "iattom_campaign_prefill",
-      JSON.stringify({ product: "", goal: "Vender na Hotmart", platform: "hotmart" }),
-    );
-    navigate("/dashboard/create-campaign");
-    toast({ description: "Campanha pré-configurada para Hotmart." });
-  };
-
-  const handleCreateAd = () => {
-    navigate("/dashboard/projects");
-    toast({ description: "Acesse seus projetos salvos para criar um anúncio." });
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -177,63 +161,7 @@ export function Hotmart() {
           </Button>
         </div>
 
-        {/* 3. CRIAR CAMPANHA */}
-        <Card className="bg-[#111111] border-white/[0.06]">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-              <ClipboardList className="w-4 h-4 text-orange-400" />
-              Criar Campanha
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col items-center justify-center py-6 text-center gap-4">
-              <div className="space-y-1.5">
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
-                  Crie e organize o material da sua campanha dentro do IAttom antes de publicar.
-                </p>
-              </div>
-              <Button
-                size="sm"
-                onClick={handleCreateCampaign}
-                className="bg-orange-500 hover:bg-orange-400 text-white font-semibold"
-              >
-                <ClipboardList className="w-3.5 h-3.5 mr-2" />
-                Criar Campanha
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 4. PUBLICAR ANÚNCIO HOTMART */}
-        <Card className="bg-[#111111] border-white/[0.06]">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-              <Megaphone className="w-4 h-4 text-orange-400" />
-              Publicar Anúncio Hotmart
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col items-center justify-center py-6 text-center gap-4">
-              <div className="space-y-1.5">
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
-                  Selecione uma campanha salva e publique seu anúncio diretamente na Hotmart.
-                </p>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleCreateAd}
-                className="border-orange-500/30 text-orange-400 hover:text-orange-300 hover:border-orange-400/50"
-              >
-                <Megaphone className="w-3.5 h-3.5 mr-2" />
-                Criar Anúncio
-              </Button>
-
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 5. KPIs — um abaixo do outro */}
+        {/* 3. KPIs — um abaixo do outro */}
         <div className="grid grid-cols-1 gap-3">
           <Card className="bg-[#111111] border-white/[0.06]">
             <CardContent className="p-4">
