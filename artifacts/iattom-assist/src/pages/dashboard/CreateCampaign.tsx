@@ -477,10 +477,16 @@ export function CreateCampaign() {
     if (campaignData.launchTimeline) lines.push(`\nCRONOGRAMA:\n${campaignData.launchTimeline}`);
     const content = lines.join("\n");
 
+    const sanitizedCreatives = creativeResult
+      ? {
+          ...creativeResult,
+          concepts: (creativeResult.concepts ?? []).map(({ imageBase64: _b64, ...rest }) => rest),
+        }
+      : null;
     const structuredData = JSON.stringify({
       briefing: { product: product.trim(), goal, mode, audience },
       result: campaignData,
-      creatives: creativeResult ?? null,
+      creatives: sanitizedCreatives,
     });
     const entry = {
       id: crypto.randomUUID(),
