@@ -71,7 +71,14 @@ export function FindProducts() {
     try {
       const raw = localStorage.getItem("iattom_saved_items_v1");
       const existing = raw ? (JSON.parse(raw) as object[]) : [];
-      existing.unshift({ id: crypto.randomUUID(), title, type: "product_discovery", content, createdAt: new Date().toISOString() });
+      existing.unshift({
+        id: crypto.randomUUID(),
+        title,
+        type: "product_discovery",
+        content,
+        data: JSON.stringify({ briefing: { query, niche }, result }),
+        createdAt: new Date().toISOString(),
+      });
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
       toast({ description: "Salvo com sucesso." });
     } catch {
