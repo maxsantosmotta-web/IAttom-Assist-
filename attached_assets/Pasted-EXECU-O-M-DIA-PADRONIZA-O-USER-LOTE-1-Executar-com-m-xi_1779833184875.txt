@@ -1,0 +1,132 @@
+EXECUÇÃO MÉDIA — PADRONIZAÇÃO USER (LOTE 1)
+
+Executar com máxima precisão.
+Não fazer diagnóstico novamente.
+Não alterar Dashboard IA.
+Não alterar Gerador de Imagem.
+Não alterar Criar Campanha.
+Não alterar Projetos Salvos.
+Não alterar Sidebar.
+Não alterar backend.
+Não alterar integrações reais existentes.
+Não mexer em OAuth agora.
+Não quebrar fluxos atuais.
+
+OBJETIVO:
+Padronizar 4 plataformas USER usando TikTok USER como referência premium estrutural.
+
+PLATAFORMAS DESTE LOTE:
+- Hotmart
+- Shopee
+- Mercado Livre
+- WhatsApp
+
+TikTok é apenas referência visual/estrutural.
+Não alterar TikTok.
+
+━━━━━━━━━━━━━━━━━━━
+PADRÃO ESPERADO
+━━━━━━━━━━━━━━━━━━━
+
+Aplicar padrão TikTok USER em:
+- header premium;
+- status card;
+- grid KPI;
+- loading states;
+- empty states;
+- organização visual;
+- spacing;
+- bordas;
+- animações;
+- eventos/logs;
+- blocos operacionais;
+- hierarquia visual premium.
+
+Cada plataforma deve manter:
+- sua cor;
+- sua identidade;
+- suas funções atuais;
+- seus fluxos existentes.
+
+━━━━━━━━━━━━━━━━━━━
+REGRAS IMPORTANTES
+━━━━━━━━━━━━━━━━━━━
+
+1. NÃO transformar integração assistida em OAuth real.
+
+2. NÃO remover:
+- sync;
+- webhook;
+- modais;
+- botões;
+- imports;
+- publicação assistida;
+- OAuth existente.
+
+3. Onde não houver integração real:
+usar modal premium informativo.
+Nunca botão morto.
+
+4. Hotmart:
+- manter assistido;
+- remover aparência de rascunho;
+- parecer plataforma premium funcional.
+
+5. Shopee:
+- manter fluxo atual;
+- manter assistido quando necessário;
+- não mexer na Open Platform agora.
+
+6. Mercado Livre:
+- manter OAuth/sync;
+- não mexer no isolamento por usuário agora.
+
+7. WhatsApp:
+- manter webhook;
+- manter automações futuras;
+- apenas elevar padrão visual.
+
+━━━━━━━━━━━━━━━━━━━
+ESTRUTURA ESPERADA
+━━━━━━━━━━━━━━━━━━━
+
+Cada plataforma deve conter, quando aplicável:
+
+- Header premium;
+- Status conectado/desconectado;
+- Conta/perfil;
+- KPIs;
+- Bloco operacional;
+- Eventos/logs;
+- Empty states premium;
+- Loading states consistentes;
+- Botões organizados;
+- Visual SaaS premium unificado.
+
+━━━━━━━━━━━━━━━━━━━
+CUIDADOS
+━━━━━━━━━━━━━━━━━━━
+
+- Não criar refatoração grande.
+- Não alterar navegação.
+- Não alterar rotas.
+- Não alterar ADMIN.
+- Não alterar dashboard IA.
+- Não alterar créditos.
+- Não alterar persistência.
+- Não alterar assetStorage.
+- Não alterar TikTok.
+
+━━━━━━━━━━━━━━━━━━━
+VALIDAÇÃO FINAL
+━━━━━━━━━━━━━━━━━━━
+
+Após executar:
+
+1. Rodar typecheck.
+2. Confirmar arquivos alterados.
+3. Confirmar que as 4 plataformas continuam abrindo.
+4. Confirmar que TikTok permaneceu intacto.
+5. Confirmar que Hotmart deixou de parecer rascunho.
+6. Confirmar que não houve alteração fora do escopo.
+7. Informar exatamente o que foi padronizado.
