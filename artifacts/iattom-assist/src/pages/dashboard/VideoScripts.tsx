@@ -170,7 +170,7 @@ export function VideoScripts() {
           <motion.div key="generating" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="flex items-center gap-3 text-muted-foreground mb-5">
               <div className="flex gap-1">{[0, 1, 2].map((i) => (<span key={i} className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />))}</div>
-              <span className="text-sm">IAttom está escrevendo um script de alta conversão para <span className="text-white">"{product}"</span>...</span>
+              <span className="text-sm">{(["Estruturando seu roteiro...", "Criando direção cinematográfica...", "Montando cenas de conversão...", "Preparando narrativa visual..."])[Math.floor(Date.now() / 1000) % 4]}</span>
             </div>
             <div className="space-y-3">{Array.from({ length: 4 }).map((_, i) => (<div key={i} className="h-28 rounded-lg bg-white/5 border border-white/5 animate-pulse" style={{ animationDelay: `${i * 0.1}s` }} />))}</div>
           </motion.div>

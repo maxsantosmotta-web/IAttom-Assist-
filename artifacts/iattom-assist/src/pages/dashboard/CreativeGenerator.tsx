@@ -252,8 +252,8 @@ export function CreativeGenerator() {
           <CardContent className="p-6 space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-1.5 md:col-span-2">
-                <Label className="text-sm text-muted-foreground">Briefing Criativo</Label>
-                <Input placeholder="ex: Garrafa premium para atletas ao ar livre, estética minimalista" className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50" value={prompt} onChange={(e) => setPrompt(e.target.value)} />
+                <Label className="text-sm text-muted-foreground">Criativo por Imagem</Label>
+                <Input placeholder="Ex: Moto premium em rua neon noturna" className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50" value={prompt} onChange={(e) => setPrompt(e.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm text-muted-foreground">Estilo Visual</Label>
