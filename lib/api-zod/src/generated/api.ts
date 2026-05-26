@@ -342,6 +342,7 @@ export const AiCreativeIdeasBody = zod.object({
   style: zod.string().optional(),
   product: zod.string().optional(),
   targetAudience: zod.string().optional(),
+  formatPack: zod.string().optional(),
 });
 
 /**

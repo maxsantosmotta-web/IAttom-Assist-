@@ -11,6 +11,7 @@ interface CreativeIdeasInput {
   formatPack?: string;
 }
 import { logAiUsage } from "./logger.js";
+import { logger } from "../logger.js";
 
 export interface CreativeConcept {
   id: number;
