@@ -170,7 +170,7 @@ export function VideoScripts() {
           <motion.div key="generating" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="flex items-center gap-3 text-muted-foreground mb-5">
               <div className="flex gap-1">{[0, 1, 2].map((i) => (<span key={i} className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />))}</div>
-              <span className="text-sm">Escrevendo um script de alta conversão para <span className="text-white">"{product}"</span>...</span>
+              <span className="text-sm">IAttom está escrevendo um script de alta conversão para <span className="text-white">"{product}"</span>...</span>
             </div>
             <div className="space-y-3">{Array.from({ length: 4 }).map((_, i) => (<div key={i} className="h-28 rounded-lg bg-white/5 border border-white/5 animate-pulse" style={{ animationDelay: `${i * 0.1}s` }} />))}</div>
           </motion.div>
@@ -204,7 +204,7 @@ export function VideoScripts() {
                   </CardTitle>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="border-primary/30 text-primary flex items-center gap-1 text-xs"><Clock className="w-3 h-3" />{activeResult.duration}</Badge>
-                    <button onClick={handleSave} className="text-muted-foreground hover:text-white transition-colors p-1" title="Salvar"><Save className="w-3.5 h-3.5" /></button>
+                    <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><Save className="w-3 h-3" /> Salvar</button>
                     <button onClick={copyFull} className="text-muted-foreground hover:text-white transition-colors p-1"><Copy className="w-3.5 h-3.5" /></button>
                     <button onClick={() => { reset(); setRestoredResult(null); }} className="text-muted-foreground hover:text-white transition-colors text-xs flex items-center gap-1"><RefreshCw className="w-3 h-3" /></button>
                   </div>
@@ -266,7 +266,7 @@ export function VideoScripts() {
 
                 {activeResult.scenes?.length > 0 && (
                   <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3 font-medium">Detalhamento de Cenas</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3 font-medium">Estrutura do Vídeo</p>
                     <div className="space-y-3">
                       {activeResult.scenes.map((scene: ScriptScene, i: number) => (
                         <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} className="border border-white/5 rounded-lg overflow-hidden">
@@ -281,13 +281,13 @@ export function VideoScripts() {
                               <p className="text-sm text-muted-foreground italic leading-relaxed">{scene.visual}</p>
                             </div>
                             <div>
-                              <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1.5">Narração / Texto</p>
+                              <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1.5">Texto da cena</p>
                               <p className="text-sm text-white leading-relaxed">{scene.script}</p>
                             </div>
                           </div>
                           {scene.direction && (
                             <div className="px-4 pb-3">
-                              <p className="text-xs text-white/40 uppercase tracking-wider mb-0.5">Direção</p>
+                              <p className="text-xs text-white/40 uppercase tracking-wider mb-0.5">Orientação de filmagem</p>
                               <p className="text-xs text-muted-foreground/70">{scene.direction}</p>
                             </div>
                           )}

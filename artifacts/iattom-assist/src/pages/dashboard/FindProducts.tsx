@@ -159,7 +159,7 @@ export function FindProducts() {
                   <span key={i} className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                 ))}
               </div>
-              <span className="text-sm">A IA está analisando mercados para <span className="text-white">"{query}"</span>...</span>
+              <span className="text-sm">IAttom está analisando mercados para <span className="text-white">"{query}"</span>...</span>
             </div>
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -196,7 +196,10 @@ export function FindProducts() {
             )}
             {activeResult.marketInsight && (
               <div className="mb-5 p-4 rounded-lg bg-primary/5 border border-primary/15">
-                <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1.5">Visão de Mercado</p>
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-xs text-primary uppercase tracking-widest font-medium">Visão de Mercado</p>
+                  <button onClick={() => { navigator.clipboard.writeText(activeResult.marketInsight!); toast({ description: "Texto copiado" }); }} className="text-muted-foreground hover:text-white transition-colors" title="Copiar"><Copy className="w-3 h-3" /></button>
+                </div>
                 <p className="text-sm text-white/80 leading-relaxed">{activeResult.marketInsight}</p>
               </div>
             )}

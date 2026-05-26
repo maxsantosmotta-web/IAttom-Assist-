@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Megaphone, Target, Globe, Loader2, Copy, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Zap, Save, Download, ExternalLink } from "lucide-react";
+import { Megaphone, Target, Globe, Loader2, Copy, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Zap, Save, ExternalLink } from "lucide-react";
 import { saveProjectAssets } from "@/lib/assetStorage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,24 +16,6 @@ const platformIcons: Record<string, string> = {
   facebook: "fb", instagram: "ig", google: "g", email: "em", tiktok: "tk",
 };
 
-const NICHE_OPTIONS = [
-  "Moda e Vestuário",
-  "Beleza e Skincare",
-  "Saúde e Bem-estar",
-  "Fitness e Esportes",
-  "Alimentação e Gastronomia",
-  "Educação e Cursos Online",
-  "Finanças e Investimentos",
-  "Casa e Decoração",
-  "Tecnologia e Gadgets",
-  "Games e Entretenimento",
-  "Pet Shop",
-  "Bebê e Maternidade",
-  "Viagem e Turismo",
-  "Negócios e Empreendedorismo",
-  "Marketing Digital",
-  "Artesanato e Hobbies",
-];
 
 function isCampaignComplete(r: CampaignResult | null): r is CampaignResult {
   if (!r) return false;
@@ -276,7 +258,6 @@ export function CreateCampaign() {
   const [goal, setGoal] = useState("");
   const [mode, setMode] = useState("");
   const [productType, setProductType] = useState("");
-  const [niche, setNiche] = useState("");
   const { status, result, error, generate, reset } = useAiStream<CampaignResult>();
   const { toast } = useToast();
 
@@ -317,7 +298,6 @@ export function CreateCampaign() {
       if (saved.briefing?.mode) setMode(saved.briefing.mode);
       if (saved.briefing?.audience) setAudience(saved.briefing.audience);
       if (saved.briefing?.productType) setProductType(saved.briefing.productType);
-      if (saved.briefing?.niche) setNiche(saved.briefing.niche);
       if (saved.result) {
         setCampaignData(saved.result);
         setIsRestored(true);
@@ -343,7 +323,6 @@ export function CreateCampaign() {
       goal: goal || undefined,
       mode: mode || undefined,
       productType: productType || undefined,
-      niche: niche || undefined,
     }).then((res) => {
       if (res !== null) {
         charge();
@@ -433,7 +412,7 @@ export function CreateCampaign() {
       ? { ...creativeResult, concepts: (creativeResult.concepts ?? []).map(({ imageBase64: _b64, ...rest }) => rest) }
       : null;
     const structuredData = JSON.stringify({
-      briefing: { product: product.trim(), goal, mode, audience, productType, niche },
+      briefing: { product: product.trim(), goal, mode, audience, productType },
       result: campaignData,
       creatives: sanitizedCreatives,
     });
@@ -457,84 +436,12 @@ export function CreateCampaign() {
       existing.unshift({ id: projectId, title, type: "campaign", platform, content, data: structuredData, hasImages: imageAssets.length > 0, createdAt: new Date().toISOString() });
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
       if (imageAssets.length > 0) void saveProjectAssets(projectId, imageAssets);
-      toast({ description: "Campanha salva com sucesso." });
+      toast({ description: "Projeto salvo" });
     } catch {
       toast({ description: "Erro ao salvar.", variant: "destructive" });
     }
   };
 
-  const handleDownload = () => {
-    if (!campaignData) return;
-    const meta = buildCampaignMeta();
-    if (!meta) return;
-    const { title } = meta;
-    const copyObj = campaignData.copy as Record<string, string>;
-    const creativesSection = creativeResult?.concepts?.length
-      ? `<h2>Criativos</h2>
-${creativeResult.overarchingTheme ? `<div class="field"><div class="label">Tema Criativo</div><div class="value">${escapeHtml(creativeResult.overarchingTheme)}</div></div>` : ""}
-${creativeResult.concepts.map((c, i) => `<div class="creative-card"><h3>Criativo ${i + 1} — ${escapeHtml(c.label)} (${escapeHtml(c.format)})</h3>${c.imageBase64 ? `<img src="data:image/png;base64,${c.imageBase64}" style="max-width:100%;border-radius:8px;margin:8px 0;border:1px solid #eee;">` : ""}<div class="field"><div class="label">Hook</div><div class="value">${escapeHtml(c.copyHook)}</div></div><div class="field"><div class="label">Copy</div><div class="value">${escapeHtml(c.bodyText)}</div></div><div class="field"><div class="label">CTA</div><div class="value">${escapeHtml(c.cta)}</div></div></div>`).join("")}`
-      : "";
-    const html = `<!DOCTYPE html>
-<html lang="pt-BR"><head><meta charset="UTF-8"><title>${escapeHtml(title)}</title>
-<style>body{font-family:Arial,sans-serif;max-width:820px;margin:0 auto;padding:2rem;background:#fff;color:#1a1a1a}h1{font-size:1.5rem;border-bottom:3px solid #C9A84C;padding-bottom:.5rem;margin-bottom:1.5rem}h2{font-size:1rem;color:#C9A84C;margin-top:2rem;margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.05em}h3{font-size:.875rem;color:#555;margin-top:1.25rem;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.05em}.field{margin-bottom:1rem}.label{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:.25rem}.value{font-size:.9rem;white-space:pre-wrap;background:#f9f9f9;padding:.75rem;border-radius:4px;border:1px solid #eee;line-height:1.6}.chip{display:inline-block;background:#f0e8d5;color:#8a6d2a;border-radius:3px;padding:2px 8px;font-size:.8rem;margin:2px}ul{padding-left:1.25rem;margin:0}li{margin-bottom:.5rem;font-size:.9rem;line-height:1.5}.creative-card{border:1px solid #eee;border-radius:8px;padding:1rem;margin-bottom:1rem;background:#fafafa}.footer{margin-top:3rem;font-size:.7rem;color:#aaa;border-top:1px solid #eee;padding-top:1rem;text-align:center}</style>
-</head><body>
-<h1>${escapeHtml(title)}</h1>
-${product.trim() ? `<p style="color:#888;font-size:.85rem;">Produto: ${escapeHtml(product)}${goal ? ` · ${escapeHtml(goal)}` : ""}${productType ? ` · ${escapeHtml(productType)}` : ""}${niche ? ` · ${escapeHtml(niche)}` : ""}</p>` : ""}
-<h2>Manchete</h2>
-<div class="field"><div class="label">Headline</div><div class="value">${escapeHtml(campaignData.headline)}</div></div>
-${campaignData.subheadline ? `<div class="field"><div class="label">Subheadline</div><div class="value">${escapeHtml(campaignData.subheadline)}</div></div>` : ""}
-${campaignData.cta ? `<div class="field"><div class="label">CTA</div><div class="value">${escapeHtml(campaignData.cta)}</div></div>` : ""}
-<h2>Estratégia</h2>
-<div class="field"><div class="label">Público-alvo</div><div class="value">${escapeHtml(campaignData.audience)}</div></div>
-<div class="field"><div class="label">Canais</div><div class="value">${campaignData.channels.map(c => `<span class="chip">${escapeHtml(c)}</span>`).join(" ")}</div></div>
-<div class="field"><div class="label">Orçamento</div><div class="value">${escapeHtml(campaignData.budget)}</div></div>
-${campaignData.uniqueAngle ? `<div class="field"><div class="label">Ângulo Único</div><div class="value">${escapeHtml(campaignData.uniqueAngle)}</div></div>` : ""}
-${campaignData.objectionHandling ? `<div class="field"><div class="label">Gestão de Objeções</div><div class="value">${escapeHtml(campaignData.objectionHandling)}</div></div>` : ""}
-<h2>Mensagens-chave</h2>
-<ul>${campaignData.keyMessages.map(m => `<li>${escapeHtml(m)}</li>`).join("")}</ul>
-<h2>Copy por Plataforma</h2>
-${Object.entries(copyObj).map(([pl, cp]) => `<div class="field"><h3>${escapeHtml(pl)}</h3><div class="value">${escapeHtml(cp)}</div></div>`).join("")}
-${campaignData.launchTimeline ? `<h2>Cronograma</h2><div class="field"><div class="value">${escapeHtml(campaignData.launchTimeline)}</div></div>` : ""}
-${creativesSection}
-<div class="footer">Gerado por IAttom Assist &middot; ${new Date().toLocaleDateString("pt-BR")}</div>
-</body></html>`;
-    const slug = product.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") || "campanha";
-    void (async () => {
-      toast({ description: "Baixando campanha..." });
-      await new Promise(r => setTimeout(r, 80));
-      const htmlBlob = new Blob([html], { type: "text/html;charset=utf-8" });
-      const htmlUrl = URL.createObjectURL(htmlBlob);
-      const htmlA = document.createElement("a");
-      htmlA.href = htmlUrl;
-      htmlA.download = `campanha-${slug}.html`;
-      document.body.appendChild(htmlA);
-      htmlA.click();
-      document.body.removeChild(htmlA);
-      URL.revokeObjectURL(htmlUrl);
-      const imageConcepts = (creativeResult?.concepts ?? []).filter(c => c.imageBase64);
-      if (imageConcepts.length > 0) {
-        await new Promise(r => setTimeout(r, 300));
-        toast({ description: "Baixando criativos..." });
-        for (let i = 0; i < imageConcepts.length; i++) {
-          await new Promise(r => setTimeout(r, 200));
-          const b64 = imageConcepts[i].imageBase64!;
-          const binary = atob(b64);
-          const arr = new Uint8Array(binary.length);
-          for (let j = 0; j < binary.length; j++) arr[j] = binary.charCodeAt(j);
-          const imgBlob = new Blob([arr], { type: "image/png" });
-          const imgUrl = URL.createObjectURL(imgBlob);
-          const imgA = document.createElement("a");
-          imgA.href = imgUrl;
-          imgA.download = `criativo-${i + 1}.png`;
-          document.body.appendChild(imgA);
-          imgA.click();
-          document.body.removeChild(imgA);
-          URL.revokeObjectURL(imgUrl);
-        }
-      }
-      toast({ description: "Arquivos baixados." });
-    })();
-  };
 
   const showResult = (isDone || isRestored) && isCampaignComplete(campaignData);
 
@@ -623,33 +530,18 @@ ${creativesSection}
                 </select>
               </div>
             </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-sm text-muted-foreground">Tipo de Produto</Label>
-                <select
-                  value={productType}
-                  onChange={(e) => setProductType(e.target.value)}
-                  className="w-full h-9 rounded-md border border-white/10 bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0"
-                >
-                  <option value="">Selecionar tipo (opcional)</option>
-                  <option value="Digital">Digital — curso, ebook, software, assinatura</option>
-                  <option value="Físico">Físico — roupas, eletrônicos, suplementos</option>
-                  <option value="Serviço">Serviço — consultoria, mentoria, agência</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-sm text-muted-foreground">Nicho / Segmento (opcional)</Label>
-                <select
-                  value={niche}
-                  onChange={(e) => setNiche(e.target.value)}
-                  className="w-full h-9 rounded-md border border-white/10 bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0"
-                >
-                  <option value="">Selecionar nicho</option>
-                  {NICHE_OPTIONS.map((n) => (
-                    <option key={n} value={n}>{n}</option>
-                  ))}
-                </select>
-              </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm text-muted-foreground">Tipo de Produto</Label>
+              <select
+                value={productType}
+                onChange={(e) => setProductType(e.target.value)}
+                className="w-full h-9 rounded-md border border-white/10 bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0"
+              >
+                <option value="">Selecionar tipo (opcional)</option>
+                <option value="Digital">Digital — curso, ebook, software, assinatura</option>
+                <option value="Físico">Físico — roupas, eletrônicos, suplementos</option>
+                <option value="Serviço">Serviço — consultoria, mentoria, agência</option>
+              </select>
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm text-muted-foreground">Público-alvo (opcional)</Label>
@@ -702,17 +594,11 @@ ${creativesSection}
                   <div className="ml-auto flex items-center gap-2">
                     <button
                       onClick={handleSave}
-                      className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1"
+                      className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"
                     >
                       <Save className="w-3 h-3" /> Salvar
                     </button>
-                    <button
-                      onClick={handleDownload}
-                      className="text-xs text-primary/80 hover:text-primary transition-colors flex items-center gap-1 border border-primary/20 hover:border-primary/40 rounded px-2 py-1 bg-primary/5 hover:bg-primary/10"
-                    >
-                      <Download className="w-3 h-3" /> Baixar
-                    </button>
-                    <button onClick={handleReset} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
+                    <button onClick={handleReset} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5">
                       <RefreshCw className="w-3 h-3" /> Nova campanha
                     </button>
                   </div>

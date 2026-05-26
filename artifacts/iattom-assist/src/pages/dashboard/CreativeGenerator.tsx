@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Loader2, Copy, RefreshCw, AlertCircle, Monitor, Smartphone, Image, Palette, Type, Save, Download, ChevronDown, ChevronUp } from "lucide-react";
+import { Sparkles, Loader2, Copy, RefreshCw, AlertCircle, Monitor, Smartphone, Image, Palette, Type, Save, ChevronDown, ChevronUp } from "lucide-react";
 import { saveProjectAssets } from "@/lib/assetStorage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,21 +36,6 @@ const FORMAT_PACK_OPTIONS = [
   },
 ] as const;
 
-function downloadImageBase64(base64: string, filename: string) {
-  const binary = atob(base64);
-  const arr = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
-  const blob = new Blob([arr], { type: "image/png" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
 function ConceptCard({ concept, index }: { concept: CreativeConcept; index: number }) {
   const { toast } = useToast();
   const [showTechnical, setShowTechnical] = useState(false);
@@ -62,31 +47,16 @@ function ConceptCard({ concept, index }: { concept: CreativeConcept; index: numb
     toast({ description: "Conceito criativo copiado" });
   };
 
-  const handleDownload = () => {
-    if (!concept.imageBase64) return;
-    const slug = concept.label.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-    downloadImageBase64(concept.imageBase64, `criativo-${index + 1}-${slug}.png`);
-    toast({ description: "Imagem baixada." });
-  };
-
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.08 }}>
       <Card className="bg-[#111111] border-white/5 hover:border-primary/20 transition-colors overflow-hidden">
         {concept.imageBase64 ? (
-          <div className="relative group">
+          <div className="relative bg-black overflow-hidden">
             <img
               src={`data:image/png;base64,${concept.imageBase64}`}
               alt={concept.label}
-              className="h-48 w-full object-cover"
+              className="w-full h-auto max-h-64 object-contain"
             />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-              <button
-                onClick={handleDownload}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-black/70 border border-white/20 text-white text-xs font-medium hover:bg-black/90 transition-colors"
-              >
-                <Download className="w-3.5 h-3.5" /> Baixar imagem
-              </button>
-            </div>
           </div>
         ) : (
           <div className={`h-24 bg-gradient-to-br ${gradients[index % gradients.length]} flex items-center justify-center`}>
@@ -100,11 +70,6 @@ function ConceptCard({ concept, index }: { concept: CreativeConcept; index: numb
               <p className="text-xs text-muted-foreground mt-0.5">{concept.format} &middot; {concept.bestPlatform}</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              {concept.imageBase64 && (
-                <button onClick={handleDownload} className="text-muted-foreground hover:text-white transition-colors">
-                  <Download className="w-3.5 h-3.5" />
-                </button>
-              )}
               <button onClick={copyAll} className="text-muted-foreground hover:text-white transition-colors">
                 <Copy className="w-3.5 h-3.5" />
               </button>
@@ -150,7 +115,7 @@ function ConceptCard({ concept, index }: { concept: CreativeConcept; index: numb
               </button>
               {showTechnical && (
                 <div className="mt-1.5 p-2 rounded bg-white/3 border border-white/5">
-                  <p className="text-xs text-white/40 uppercase tracking-wider mb-0.5">Prompt de Imagem IA</p>
+                  <p className="text-xs text-white/40 uppercase tracking-wider mb-0.5">Prompt de Imagem IAttom</p>
                   <p className="text-xs text-muted-foreground/70 leading-relaxed italic">{concept.imagePrompt}</p>
                 </div>
               )}
@@ -268,7 +233,7 @@ export function CreativeGenerator() {
       if (imageAssets.length > 0) {
         void saveProjectAssets(projectId, imageAssets);
       }
-      toast({ description: "Salvo com sucesso." });
+      toast({ description: "Projeto salvo" });
     } catch {
       toast({ description: "Erro ao salvar.", variant: "destructive" });
     }
@@ -311,38 +276,11 @@ export function CreativeGenerator() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">Pacote de Formatos</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {FORMAT_PACK_OPTIONS.map((pack) => (
-                  <button
-                    key={pack.value}
-                    onClick={() => setFormatPack(pack.value)}
-                    className={[
-                      "flex flex-col items-start gap-1 p-3 rounded-lg border text-left transition-all",
-                      formatPack === pack.value
-                        ? "border-primary/60 bg-primary/10 text-white"
-                        : "border-white/8 bg-white/3 text-muted-foreground hover:border-white/20 hover:text-white",
-                    ].join(" ")}
-                  >
-                    <span className="text-xs font-semibold">{pack.label}</span>
-                    <span className="text-xs opacity-70">{pack.description}</span>
-                    <div className="flex gap-1 mt-0.5">
-                      {pack.formats.map((f, i) => (
-                        <span
-                          key={i}
-                          className={[
-                            "text-[9px] px-1 py-0.5 rounded font-mono",
-                            formatPack === pack.value ? "bg-primary/20 text-primary" : "bg-white/8 text-white/40",
-                          ].join(" ")}
-                        >
-                          {f}
-                        </span>
-                      ))}
-                    </div>
-                  </button>
-                ))}
-              </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-muted-foreground">Formato:</span>
+              {FORMAT_PACK_OPTIONS[0].formats.map((f, i) => (
+                <span key={i} className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-primary/10 text-primary border border-primary/20">{f}</span>
+              ))}
             </div>
 
             <CreditsGate feature="creative" onSuccess={runGenerate} disabled={!prompt.trim() || isGenerating}>

@@ -182,7 +182,7 @@ export function ValidateProducts() {
                   <span key={i} className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                 ))}
               </div>
-              <span className="text-sm">Analisando <span className="text-white">"{productName}"</span> nos sinais de mercado...</span>
+              <span className="text-sm">IAttom está analisando <span className="text-white">"{productName}"</span> nos sinais de mercado...</span>
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -253,7 +253,12 @@ export function ValidateProducts() {
 
                 <div className="grid md:grid-cols-3 gap-4 mb-5">
                   <div className="space-y-2">
-                    <p className="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Pontos Fortes</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Pontos Fortes</p>
+                      {result.strengths?.length ? (
+                        <button onClick={() => { navigator.clipboard.writeText(result.strengths!.join("\n")); toast({ description: "Texto copiado" }); }} className="text-muted-foreground hover:text-white transition-colors" title="Copiar"><Copy className="w-3 h-3" /></button>
+                      ) : null}
+                    </div>
                     {result.strengths?.map((s, i) => (
                       <div key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
                         <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
@@ -262,7 +267,12 @@ export function ValidateProducts() {
                     ))}
                   </div>
                   <div className="space-y-2">
-                    <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest">Riscos</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest">Riscos</p>
+                      {result.risks?.length ? (
+                        <button onClick={() => { navigator.clipboard.writeText(result.risks!.join("\n")); toast({ description: "Texto copiado" }); }} className="text-muted-foreground hover:text-white transition-colors" title="Copiar"><Copy className="w-3 h-3" /></button>
+                      ) : null}
+                    </div>
                     {result.risks?.map((r, i) => (
                       <div key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
                         <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
@@ -271,7 +281,12 @@ export function ValidateProducts() {
                     ))}
                   </div>
                   <div className="space-y-2">
-                    <p className="text-xs font-semibold text-primary uppercase tracking-widest">Oportunidades</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-primary uppercase tracking-widest">Oportunidades</p>
+                      {result.opportunities?.length ? (
+                        <button onClick={() => { navigator.clipboard.writeText(result.opportunities!.join("\n")); toast({ description: "Texto copiado" }); }} className="text-muted-foreground hover:text-white transition-colors" title="Copiar"><Copy className="w-3 h-3" /></button>
+                      ) : null}
+                    </div>
                     {result.opportunities?.map((o, i) => (
                       <div key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
                         <Lightbulb className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
@@ -284,7 +299,7 @@ export function ValidateProducts() {
                 <div className="space-y-3 border-t border-white/5 pt-5">
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <p className="text-xs font-semibold text-primary uppercase tracking-widest">Recomendação IA</p>
+                      <p className="text-xs font-semibold text-primary uppercase tracking-widest">Recomendação IAttom</p>
                       <button
                         onClick={() => { navigator.clipboard.writeText(result.recommendation); toast({ description: "Recomendação copiada" }); }}
                         className="text-muted-foreground hover:text-white transition-colors"

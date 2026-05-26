@@ -97,7 +97,7 @@ export function CreateContent() {
         createdAt: new Date().toISOString(),
       });
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
-      toast({ description: "Salvo com sucesso." });
+      toast({ description: "Projeto salvo" });
     } catch {
       toast({ description: "Erro ao salvar.", variant: "destructive" });
     }
@@ -106,7 +106,7 @@ export function CreateContent() {
   return (
     <div className="space-y-8">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Estúdio de Conteúdo IA</p>
+        <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Estúdio de Conteúdo IAttom</p>
         <h2 className="text-2xl font-bold text-white mb-1">Criar Conteúdo</h2>
         <p className="text-muted-foreground text-sm">Gere um pacote completo de conteúdo — blog, redes sociais, e-mail, SMS — com um único prompt.</p>
       </motion.div>
@@ -187,10 +187,10 @@ export function CreateContent() {
               </div>
             )}
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-white">Pacote de Conteúdo Pronto</h3>
+              <h3 className="text-sm font-semibold text-white">Central de Conteúdo</h3>
               <div className="flex items-center gap-3">
                 <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><Save className="w-3 h-3" /> Salvar</button>
-                <button onClick={() => { reset(); setRestoredResult(null); }} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><RefreshCw className="w-3 h-3" /> Novo conteúdo</button>
+                <button onClick={() => { reset(); setRestoredResult(null); }} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><RefreshCw className="w-3 h-3" /> Novo</button>
               </div>
             </div>
 
