@@ -96,7 +96,7 @@ function TextBlock({ label, value }: { label: string; value: string }) {
         <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">{label}</p>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1 text-[11px] text-zinc-600 hover:text-primary transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+          className="flex items-center gap-1 text-[11px] text-zinc-600 hover:text-primary transition-colors shrink-0"
         >
           {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
           {copied ? "Copiado" : "Copiar"}
