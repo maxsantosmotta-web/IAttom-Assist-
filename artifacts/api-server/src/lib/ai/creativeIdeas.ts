@@ -2,6 +2,8 @@ import type { Response } from "express";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { generateImageBuffer } from "@workspace/integrations-openai-ai-server/image";
 import { setupSSE, sendSSE, sendSSEError, sendSSEDone } from "./stream.js";
+import { logAiUsage } from "./logger.js";
+import { logger } from "../logger.js";
 
 interface CreativeIdeasInput {
   prompt: string;
@@ -10,8 +12,6 @@ interface CreativeIdeasInput {
   targetAudience?: string;
   formatPack?: string;
 }
-import { logAiUsage } from "./logger.js";
-import { logger } from "../logger.js";
 
 export interface CreativeConcept {
   id: number;
@@ -60,6 +60,13 @@ function getFormatPack(formatPack?: string): string[] {
   return FORMAT_PACKS.social;
 }
 
+function enrichImagePrompt(basePrompt: string, productName: string, style?: string, format?: string): string {
+  const productAnchor = `${productName} — exact product as specified by user, preserve real product appearance, proportions and category`;
+  const styleSuffix = style ? ` Visual style: ${style}.` : "";
+  const formatSuffix = format ? ` Ad format: ${format}.` : "";
+  return `${productAnchor}. ${basePrompt}${styleSuffix}${formatSuffix}`;
+}
+
 export async function streamCreativeIdeas(
   params: CreativeIdeasInput,
   res: Response,
@@ -68,10 +75,17 @@ export async function streamCreativeIdeas(
   setupSSE(res);
   sendSSE(res, { type: "start" });
 
+  const productName = params.product?.trim() || params.prompt.trim();
+  if (process.env.NODE_ENV !== "production") {
+    logger.info({ productName }, "[creativeIdeas] productName resolved");
+  }
+
   const formats = getFormatPack(params.formatPack);
   const formatInstruction = `Os 4 conceitos devem usar exatamente estes formatos, nesta ordem: ${formats.map((f, i) => `conceito ${i + 1}: "${f}"`).join(", ")}.`;
 
   const systemPrompt = `Você é um diretor criativo de nível mundial para publicidade digital. Desenvolve conceitos criativos revolucionários que param o scroll, constroem desejo pela marca e geram conversões.
+
+REGRA ABSOLUTA DE FIDELIDADE AO PRODUTO: O produto informado pelo usuário é a referência central e obrigatória de toda a geração. NÃO substitua por categoria genérica, versão aproximada ou produto parecido. Se houver modelo, código, nome comercial ou nome específico, mantenha esse exato nome em todos os conceitos, copies e imagePrompts. Prioridade de execução: fidelidade ao produto > estilo visual > criatividade. Esta regra tem precedência sobre qualquer outra instrução.
 
 REGRA OBRIGATÓRIA DE IDIOMA: Responda SEMPRE em português brasileiro. NUNCA responda em inglês, espanhol ou qualquer outro idioma. Todos os conceitos, textos, hooks, CTAs e direções visuais devem estar integralmente em português brasileiro.
 
@@ -112,17 +126,18 @@ Retorne exatamente esta estrutura:
 
 Crie 4 conceitos criativos distintos. Cada um deve parecer que saiu de uma agência de ponta.`;
 
-  const userPrompt = `Gere conceitos criativos premium para anúncios:
-Briefing: "${params.prompt}"
-${params.product ? `Produto: ${params.product}` : ""}
+  const userPrompt = `PRODUTO CENTRAL (referência obrigatória para todos os conceitos e imagens): "${productName}"
+
+Gere conceitos criativos premium para anúncios deste produto exato.
+Briefing completo: "${params.prompt}"
 ${params.style ? `Estilo visual: ${params.style}` : ""}
 ${params.targetAudience ? `Público-alvo: ${params.targetAudience}` : ""}
 
 ${formatInstruction}
 
-INSTRUÇÃO CRÍTICA PARA imagePrompt: Se o briefing ou produto acima contiver nome de marca, modelo, nome comercial ou produto popular específico, use esse nome exato no imagePrompt e repita-o na descrição visual. Preserve as características físicas reconhecíveis do produto real. Não substitua por versão genérica. Use o nome comercial exato na frase de abertura do imagePrompt.
+INSTRUÇÃO OBRIGATÓRIA PARA imagePrompt: Inicie SEMPRE com o nome exato "${productName}". Descreva as características físicas prováveis deste produto específico (formato, proporção, cor, componentes, estilo comercial). NÃO substitua por versão genérica. O nome "${productName}" deve aparecer na primeira frase do imagePrompt.
 
-Crie 4 conceitos criativos visualmente impactantes, alinhados à marca e focados em conversão. Responda integralmente em português brasileiro.`;
+Crie 4 conceitos criativos visualmente impactantes, alinhados ao produto e focados em conversão. Responda integralmente em português brasileiro.`;
 
   let fullResponse = "";
 
@@ -148,8 +163,19 @@ Crie 4 conceitos criativos visualmente impactantes, alinhados à marca e focados
 
     const textResult: CreativeIdeasResult = JSON.parse(fullResponse);
 
+    const enrichedConcepts = textResult.concepts.map((concept) => ({
+      ...concept,
+      imagePrompt: enrichImagePrompt(concept.imagePrompt, productName, params.style, concept.format),
+    }));
+
+    if (process.env.NODE_ENV !== "production") {
+      enrichedConcepts.forEach((c, i) => {
+        logger.info({ index: i, imagePrompt: c.imagePrompt.slice(0, 300) }, "[creativeIdeas] enriched imagePrompt");
+      });
+    }
+
     const imageResults = await Promise.allSettled(
-      textResult.concepts.map((concept) =>
+      enrichedConcepts.map((concept) =>
         generateImageBuffer(concept.imagePrompt, mapFormatToSize(concept.format)),
       ),
     );
@@ -164,7 +190,7 @@ Crie 4 conceitos criativos visualmente impactantes, alinhados à marca e focados
       return;
     }
 
-    const conceptsWithImages = textResult.concepts.map((concept, i) => {
+    const conceptsWithImages = enrichedConcepts.map((concept, i) => {
       const imgResult = imageResults[i];
       return {
         ...concept,
