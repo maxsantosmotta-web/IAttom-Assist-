@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useParams, useLocation } from "wouter";
+import { loadProjectAssets, deleteProjectAssets } from "@/lib/assetStorage";
 import {
   ArrowLeft, Trash2, Loader2, Copy, Check, ChevronDown, ChevronUp,
   FileText, Megaphone, Sparkles, Video, Search, ImageOff, Download,
@@ -374,19 +375,31 @@ export function ProjectDetail() {
   const [item, setItem] = useState<SavedItem | null | "not_found">(null);
   const [deletingId, setDeletingId] = useState(false);
   const [allCopied, setAllCopied] = useState(false);
+  const [idbImages, setIdbImages] = useState<ImageEntry[]>([]);
 
   useEffect(() => {
     if (!id) { setItem("not_found"); return; }
     const items = readStorage();
     const found = items.find(i => i.id === id);
     setItem(found ?? "not_found");
+    if (found) {
+      loadProjectAssets(id)
+        .then((assets) => {
+          setIdbImages(
+            assets.map((a) => ({ label: a.label, base64: a.base64, format: a.format }))
+          );
+        })
+        .catch(() => {});
+    }
   }, [id]);
 
   const handleDelete = useCallback(() => {
     if (!item || item === "not_found") return;
     setDeletingId(true);
+    const projectId = (item as SavedItem).id;
+    void deleteProjectAssets(projectId).catch(() => {});
     setTimeout(() => {
-      const items = readStorage().filter(i => i.id !== (item as SavedItem).id);
+      const items = readStorage().filter(i => i.id !== projectId);
       writeStorage(items);
       toast({ description: "Projeto excluído." });
       navigate("/dashboard/projects");
@@ -433,7 +446,8 @@ export function ProjectDetail() {
     try { parsed = JSON.parse(item.data) as ParsedData; } catch {}
   }
 
-  const images = parsed ? extractImages(item.type, parsed) : [];
+  const inlineImages = parsed ? extractImages(item.type, parsed) : [];
+  const images = idbImages.length > 0 ? idbImages : inlineImages;
 
   const renderWrittenContent = () => {
     const p = parsed;

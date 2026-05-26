@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Loader2, Copy, RefreshCw, AlertCircle, Monitor, Smartphone, Image, Palette, Type, Save, Download } from "lucide-react";
+import { saveProjectAssets } from "@/lib/assetStorage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -243,19 +244,30 @@ export function CreativeGenerator() {
       result: resultWithoutImages,
     });
 
+    const imageAssets = (activeResult.concepts ?? [])
+      .map((c, i) => c.imageBase64
+        ? { conceptIndex: i, base64: c.imageBase64, label: c.label ?? `Criativo ${i + 1}`, format: c.format ?? "PNG" }
+        : null)
+      .filter((a): a is NonNullable<typeof a> => a !== null);
+
+    const projectId = crypto.randomUUID();
     const title = prompt.trim() || activeResult.overarchingTheme || "Criativo gerado";
     try {
       const raw = localStorage.getItem("iattom_saved_items_v1");
       const existing = raw ? (JSON.parse(raw) as object[]) : [];
       existing.unshift({
-        id: crypto.randomUUID(),
+        id: projectId,
         title,
         type: "creative",
         content,
         data,
+        hasImages: imageAssets.length > 0,
         createdAt: new Date().toISOString(),
       });
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
+      if (imageAssets.length > 0) {
+        void saveProjectAssets(projectId, imageAssets);
+      }
       toast({ description: "Salvo com sucesso." });
     } catch {
       toast({ description: "Erro ao salvar.", variant: "destructive" });

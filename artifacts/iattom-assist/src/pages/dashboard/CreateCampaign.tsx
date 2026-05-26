@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Megaphone, Target, Globe, Loader2, Copy, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Zap, AlertTriangle, Save, Download, ExternalLink } from "lucide-react";
+import { saveProjectAssets } from "@/lib/assetStorage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -488,13 +489,20 @@ export function CreateCampaign() {
       result: campaignData,
       creatives: sanitizedCreatives,
     });
+    const imageAssets = (creativeResult?.concepts ?? [])
+      .map((c, i) => c.imageBase64
+        ? { conceptIndex: i, base64: c.imageBase64, label: c.label ?? `Criativo ${i + 1}`, format: c.format ?? "PNG" }
+        : null)
+      .filter((a): a is NonNullable<typeof a> => a !== null);
+    const projectId = crypto.randomUUID();
     const entry = {
-      id: crypto.randomUUID(),
+      id: projectId,
       title,
       type: "campaign",
       platform,
       content,
       data: structuredData,
+      hasImages: imageAssets.length > 0,
       createdAt: new Date().toISOString(),
     };
     try {
@@ -503,6 +511,9 @@ export function CreateCampaign() {
       existing.unshift(entry);
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
     } catch {}
+    if (imageAssets.length > 0) {
+      void saveProjectAssets(projectId, imageAssets);
+    }
 
     const copyObj = campaignData.copy as Record<string, string>;
     const creativesSection = creativeResult?.concepts?.length
