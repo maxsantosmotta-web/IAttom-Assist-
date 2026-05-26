@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { CreditsGate } from "@/components/CreditsGate";
 import { useAiStream } from "@/hooks/useAiStream";
+import { needsReferenceImage } from "@/lib/needsReferenceImage";
 import type { CreativeIdeasResult, CreativeConcept } from "@/types/ai";
 
 interface CampaignCreativePanelProps {
@@ -130,6 +131,8 @@ export function CampaignCreativePanel({
   const isDone = status === "done";
   const isError = status === "error";
 
+  const needsRef = needsReferenceImage(product ?? "", product);
+
   useEffect(() => {
     if (autoStart && !autoStartFired.current && triggerRef.current && !isGenerating && !isDone) {
       autoStartFired.current = true;
@@ -213,7 +216,7 @@ export function CampaignCreativePanel({
               </button>
             )}
           </div>
-          {!referenceImage && (
+          {needsRef && !referenceImage && (
             <p className="text-xs text-primary/60">
               ⚡ Para gerar imagens mais fiéis ao produto, adicione uma foto de referência.
             </p>
@@ -222,7 +225,7 @@ export function CampaignCreativePanel({
       )}
 
       {!started && !isDone && !isGenerating && !isError && (
-        <CreditsGate feature="creative" onSuccess={runGenerate}>
+        <CreditsGate feature="creative" onSuccess={runGenerate} disabled={needsRef && !referenceImage}>
           {({ trigger, isLoading }) => {
             triggerRef.current = trigger;
             if (autoStart) return null;

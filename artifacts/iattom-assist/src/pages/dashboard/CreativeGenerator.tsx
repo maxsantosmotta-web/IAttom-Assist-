@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Loader2, Copy, RefreshCw, AlertCircle, Monitor, Smartphone, Image, Palette, Type, Save, ChevronDown, ChevronUp, Paperclip, X } from "lucide-react";
 import { saveProjectAssets } from "@/lib/assetStorage";
+import { needsReferenceImage } from "@/lib/needsReferenceImage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -138,7 +139,8 @@ export function CreativeGenerator() {
   const { status, result, error, generate, reset } = useAiStream<CreativeIdeasResult>();
   const { toast } = useToast();
 
-  const showHint = prompt.trim().length > 0 && !referenceImage;
+  const needsRef = needsReferenceImage(prompt);
+  const showHint = needsRef && !referenceImage;
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -341,9 +343,9 @@ export function CreativeGenerator() {
               )}
             </div>
 
-            <CreditsGate feature="creative" onSuccess={runGenerate} disabled={!prompt.trim() || isGenerating}>
+            <CreditsGate feature="creative" onSuccess={runGenerate} disabled={!prompt.trim() || isGenerating || (needsRef && !referenceImage)}>
               {({ trigger, isLoading }) => (
-                <Button onClick={trigger} disabled={isLoading || isGenerating || !prompt.trim()} className="bg-primary text-primary-foreground hover:bg-primary/90 w-full">
+                <Button onClick={trigger} disabled={isLoading || isGenerating || !prompt.trim() || (needsRef && !referenceImage)} className="bg-primary text-primary-foreground hover:bg-primary/90 w-full">
                   {isLoading || isGenerating ? (<><Loader2 className="w-4 h-4 animate-spin mr-2" /> Gerando conceitos...</>) : (<><Sparkles className="w-4 h-4 mr-2" /> Gerar Conceitos Criativos</>)}
                 </Button>
               )}
