@@ -1,0 +1,187 @@
+EXECUÇÃO CIRÚRGICA — PADRONIZAR PLATAFORMAS USER PELO PADRÃO TIKTOK
+
+Executar com máxima precisão.
+NÃO fazer diagnóstico novamente.
+NÃO alterar dashboard IA.
+NÃO alterar Gerador de Imagem.
+NÃO alterar Criar Campanha.
+NÃO alterar Projetos Salvos.
+NÃO alterar Lixeira.
+NÃO alterar Sidebar.
+NÃO alterar créditos.
+NÃO alterar backend IA.
+NÃO mexer em integrações/OAuth agora.
+NÃO quebrar fluxos existentes.
+
+OBJETIVO:
+Padronizar visualmente e estruturalmente as plataformas USER usando o TikTok USER como referência premium.
+
+Plataformas a padronizar:
+- WhatsApp
+- Instagram
+- Facebook
+- Shopee
+- Mercado Livre
+- Hotmart
+- Kiwify
+
+TikTok será apenas REFERÊNCIA.
+Não alterar TikTok, exceto se for necessário apenas extrair padrão visual/componente sem mudar comportamento.
+
+━━━━━━━━━━━━━━━━━━━
+REFERÊNCIA PRINCIPAL
+━━━━━━━━━━━━━━━━━━━
+
+Usar o padrão do TikTok USER como base para:
+
+- status card premium;
+- avatar/nome/badge quando conectado;
+- estado desconectado elegante;
+- grid de 3 ou 4 KPIs;
+- cards com hierarchy clara;
+- eventos/logs recentes;
+- botões de ação bem organizados;
+- loading states premium;
+- empty states profissionais;
+- modais informativos quando a integração ainda não estiver ativa;
+- visual dark/gold premium alinhado ao painel;
+- spacing, bordas, sombras, animações e organização semelhantes ao TikTok.
+
+━━━━━━━━━━━━━━━━━━━
+REGRAS DE PADRONIZAÇÃO
+━━━━━━━━━━━━━━━━━━━
+
+1. Todas as plataformas USER devem parecer parte do mesmo SaaS.
+
+2. Cada plataforma deve manter sua identidade própria:
+- TikTok: manter como está;
+- WhatsApp: verde;
+- Instagram: roxo/rosa;
+- Facebook: azul;
+- Shopee: laranja;
+- Mercado Livre: amarelo/âmbar;
+- Hotmart: laranja/vermelho;
+- Kiwify: verde/azul.
+
+3. Padronizar estrutura, não copiar textos cegamente.
+
+4. Manter funções atuais de cada plataforma:
+- não remover botões existentes;
+- não remover sync existente;
+- não remover webhook existente;
+- não remover OAuth existente;
+- não remover modais existentes;
+- não transformar integração real em fake;
+- não transformar fluxo assistido em integração real.
+
+5. Onde a integração ainda não for real:
+usar modal informativo premium, sem botão morto.
+
+6. Onde já existir API/sync:
+manter funcionando.
+
+7. Hotmart:
+Não tentar criar OAuth real agora.
+Apenas padronizar visualmente para não parecer rascunho.
+Remover sensação de tela quebrada.
+Se necessário, transformar em “Publicação Assistida Hotmart” de forma premium e honesta.
+
+━━━━━━━━━━━━━━━━━━━
+ESTRUTURA ESPERADA POR PLATAFORMA
+━━━━━━━━━━━━━━━━━━━
+
+Cada plataforma deve ter, quando aplicável:
+
+1. Header premium da plataforma
+- nome;
+- descrição curta;
+- status conectado/desconectado;
+- ação principal.
+
+2. Card de conexão/status
+- conectado/desconectado;
+- conta/perfil quando existir;
+- botão conectar/reconectar/desconectar quando existir;
+- mensagem clara quando estiver em modo assistido.
+
+3. Grid de KPIs
+- 3 ou 4 cards;
+- valores reais quando existirem;
+- placeholders premium quando não existirem;
+- nada com aparência quebrada.
+
+4. Bloco operacional
+- sincronizar;
+- criar campanha;
+- criar anúncio;
+- publicar assistido;
+- importar produto;
+- copiar link;
+- abrir plataforma;
+conforme fizer sentido para cada plataforma.
+
+5. Eventos/logs recentes
+- se houver dados, listar;
+- se não houver, estado vazio premium.
+
+6. Empty states
+- textos curtos;
+- sem linguagem técnica;
+- sem parecer MVP.
+
+━━━━━━━━━━━━━━━━━━━
+NÃO ALTERAR COMPORTAMENTOS APROVADOS
+━━━━━━━━━━━━━━━━━━━
+
+Mercado Livre:
+- manter OAuth/sync existente;
+- não mexer no isolamento por usuário agora.
+
+Shopee:
+- manter fluxo atual;
+- manter publicação assistida quando necessário;
+- não tentar resolver aprovação Open Platform agora.
+
+TikTok:
+- manter referência;
+- não mexer na verificação Developers agora.
+
+Meta:
+- Instagram/Facebook/WhatsApp devem manter seus fluxos atuais;
+- não criar integração nova agora.
+
+Kiwify:
+- manter credenciais/webhook/sync existentes.
+
+Hotmart:
+- apenas elevar padrão visual e posicionar como assistido.
+
+━━━━━━━━━━━━━━━━━━━
+CUIDADOS
+━━━━━━━━━━━━━━━━━━━
+
+- Não duplicar lógica desnecessária.
+- Se possível, criar ou reaproveitar componentes leves de UI para padrão comum.
+- Não fazer refatoração grande.
+- Não quebrar rotas.
+- Não alterar nomes de menus.
+- Não alterar navegação.
+- Não alterar textos centrais já aprovados fora das plataformas.
+- Não mexer em ADMIN.
+
+━━━━━━━━━━━━━━━━━━━
+VALIDAÇÃO FINAL
+━━━━━━━━━━━━━━━━━━━
+
+Após executar:
+
+1. Rodar typecheck.
+2. Confirmar arquivos alterados.
+3. Confirmar que TikTok não foi quebrado.
+4. Confirmar que todas as plataformas USER continuam abrindo.
+5. Confirmar que Hotmart não parece mais rascunho.
+6. Confirmar que plataformas mantêm suas funções existentes.
+7. Confirmar que não houve alteração no dashboard IA.
+8. Informar exatamente o que foi padronizado.
+
+Executar apenas esta padronização.
