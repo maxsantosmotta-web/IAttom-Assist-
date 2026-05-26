@@ -343,6 +343,7 @@ export const AiCreativeIdeasBody = zod.object({
   product: zod.string().optional(),
   targetAudience: zod.string().optional(),
   formatPack: zod.string().optional(),
+  referenceImageBase64: zod.string().optional(),
 });
 
 /**

@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Loader2, Copy, RefreshCw, AlertCircle, Monitor, Smartphone, Image, Palette, Type, Save, ChevronDown, ChevronUp } from "lucide-react";
+import { Sparkles, Loader2, Copy, RefreshCw, AlertCircle, Monitor, Smartphone, Image, Palette, Type, Save, ChevronDown, ChevronUp, Paperclip, X } from "lucide-react";
 import { saveProjectAssets } from "@/lib/assetStorage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -132,8 +132,31 @@ export function CreativeGenerator() {
   const [style, setStyle] = useState("");
   const [targetAudience, setTargetAudience] = useState("");
   const [formatPack, setFormatPack] = useState<"social">("social");
+  const [referenceImage, setReferenceImage] = useState<string | null>(null);
+  const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { status, result, error, generate, reset } = useAiStream<CreativeIdeasResult>();
   const { toast } = useToast();
+
+  const showHint = prompt.trim().length > 0 && !referenceImage;
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setReferenceImagePreview(dataUrl);
+      setReferenceImage(dataUrl.split(",")[1]);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const removeReference = () => {
+    setReferenceImage(null);
+    setReferenceImagePreview(null);
+  };
 
   useEffect(() => {
     const saved = sessionStorage.getItem("iattom_creative_prefill");
@@ -176,6 +199,7 @@ export function CreativeGenerator() {
       style: style || undefined,
       targetAudience: targetAudience || undefined,
       formatPack,
+      referenceImageBase64: referenceImage || undefined,
     }).then((res) => {
       if (res !== null) charge();
     });
@@ -280,6 +304,41 @@ export function CreativeGenerator() {
               {FORMAT_PACK_OPTIONS[0].formats.map((f, i) => (
                 <span key={i} className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-primary/10 text-primary border border-primary/20">{f}</span>
               ))}
+            </div>
+
+            <div className="space-y-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+              <div className="flex items-center gap-3">
+                {referenceImage && referenceImagePreview ? (
+                  <div className="flex items-center gap-2">
+                    <img src={referenceImagePreview} alt="Referência" className="w-10 h-10 rounded object-cover border border-primary/40" />
+                    <span className="text-xs text-primary">Imagem de referência adicionada</span>
+                    <button onClick={removeReference} className="text-muted-foreground hover:text-white transition-colors p-0.5 rounded">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary border border-white/10 hover:border-primary/40 rounded-md px-3 py-1.5 transition-colors"
+                  >
+                    <Paperclip className="w-3.5 h-3.5" />
+                    Adicionar imagem
+                  </button>
+                )}
+              </div>
+              {showHint && (
+                <p className="text-xs text-primary/60">
+                  ⚡ Para gerar imagens mais fiéis ao produto, adicione uma foto de referência.
+                </p>
+              )}
             </div>
 
             <CreditsGate feature="creative" onSuccess={runGenerate} disabled={!prompt.trim() || isGenerating}>

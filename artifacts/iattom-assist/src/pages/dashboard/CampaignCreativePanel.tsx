@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Sparkles, Loader2, Copy, Image, AlertCircle, RefreshCw, Palette, Type } from "lucide-react";
+import { Sparkles, Loader2, Copy, Image, AlertCircle, RefreshCw, Palette, Type, Paperclip, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { CreditsGate } from "@/components/CreditsGate";
@@ -107,8 +107,24 @@ export function CampaignCreativePanel({
 }: CampaignCreativePanelProps) {
   const { status, result, error, generate, reset } = useAiStream<CreativeIdeasResult>();
   const [started, setStarted] = useState(false);
+  const [referenceImage, setReferenceImage] = useState<string | null>(null);
+  const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<(() => void) | null>(null);
   const autoStartFired = useRef(false);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setReferenceImagePreview(dataUrl);
+      setReferenceImage(dataUrl.split(",")[1]);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
 
   const isGenerating = status === "generating";
   const isDone = status === "done";
@@ -140,6 +156,7 @@ export function CampaignCreativePanel({
       prompt: buildPrompt(),
       product,
       targetAudience: audience || undefined,
+      referenceImageBase64: referenceImage || undefined,
     }).then((res) => {
       if (res !== null) {
         charge();
@@ -166,6 +183,43 @@ export function CampaignCreativePanel({
           </button>
         )}
       </div>
+
+      {!started && !isDone && !isGenerating && !isError && (
+        <div className="space-y-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/jpg,image/webp"
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+          <div className="flex items-center gap-3">
+            {referenceImage && referenceImagePreview ? (
+              <div className="flex items-center gap-2">
+                <img src={referenceImagePreview} alt="Referência" className="w-8 h-8 rounded object-cover border border-primary/40" />
+                <span className="text-xs text-primary">Referência adicionada</span>
+                <button onClick={() => { setReferenceImage(null); setReferenceImagePreview(null); }} className="text-muted-foreground hover:text-white transition-colors">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary border border-white/10 hover:border-primary/40 rounded-md px-3 py-1.5 transition-colors"
+              >
+                <Paperclip className="w-3.5 h-3.5" />
+                Adicionar imagem
+              </button>
+            )}
+          </div>
+          {!referenceImage && (
+            <p className="text-xs text-primary/60">
+              ⚡ Para gerar imagens mais fiéis ao produto, adicione uma foto de referência.
+            </p>
+          )}
+        </div>
+      )}
 
       {!started && !isDone && !isGenerating && !isError && (
         <CreditsGate feature="creative" onSuccess={runGenerate}>

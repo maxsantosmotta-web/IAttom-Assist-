@@ -1,6 +1,6 @@
 import type { Response } from "express";
 import { openai } from "@workspace/integrations-openai-ai-server";
-import { generateImageBuffer } from "@workspace/integrations-openai-ai-server/image";
+import { generateImageBuffer, editImageFromBuffer } from "@workspace/integrations-openai-ai-server/image";
 import { setupSSE, sendSSE, sendSSEError, sendSSEDone } from "./stream.js";
 import { logAiUsage } from "./logger.js";
 import { logger } from "../logger.js";
@@ -11,6 +11,7 @@ interface CreativeIdeasInput {
   product?: string;
   targetAudience?: string;
   formatPack?: string;
+  referenceImageBase64?: string;
 }
 
 export interface CreativeConcept {
@@ -174,10 +175,18 @@ Crie 4 conceitos criativos visualmente impactantes, alinhados ao produto e focad
       });
     }
 
+    const referenceBuffer = params.referenceImageBase64
+      ? Buffer.from(params.referenceImageBase64, "base64")
+      : null;
+
     const imageResults = await Promise.allSettled(
-      enrichedConcepts.map((concept) =>
-        generateImageBuffer(concept.imagePrompt, mapFormatToSize(concept.format)),
-      ),
+      enrichedConcepts.map((concept) => {
+        if (referenceBuffer) {
+          const editPrompt = `Preserve the exact product shown in the reference image — keep its shape, structure, proportions and visual identity unchanged. Enhance with: premium commercial lighting, professional composition, clean or contextual lifestyle background. Apply this creative concept: ${concept.imagePrompt}`;
+          return editImageFromBuffer(referenceBuffer, editPrompt, mapFormatToSize(concept.format));
+        }
+        return generateImageBuffer(concept.imagePrompt, mapFormatToSize(concept.format));
+      }),
     );
 
     const hasAtLeastOneImage = imageResults.some((r) => r.status === "fulfilled");
