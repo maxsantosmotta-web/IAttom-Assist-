@@ -21,10 +21,10 @@ import { PLAN_CREDITS, PLAN_NAMES, PLAN_PRICES, PLAN_SAVINGS } from "@/lib/credi
 
 /* ─── credit packages ────────────────────────────────────────────────── */
 const CREDIT_PACKAGES = [
-  { id: "credits_100",  credits: 100,  label: "100",   price: "R$ 29,90",  tag: null,           perUnit: "R$ 0,30/cr" },
-  { id: "credits_300",  credits: 300,  label: "300",   price: "R$ 69,90",  tag: null,           perUnit: "R$ 0,23/cr" },
-  { id: "credits_700",  credits: 700,  label: "700",   price: "R$ 97,90",  tag: "Mais popular", perUnit: "R$ 0,14/cr" },
-  { id: "credits_1500", credits: 1500, label: "1.500", price: "R$ 137,90", tag: "Melhor valor", perUnit: "R$ 0,09/cr" },
+  { id: "credits_100",  credits: 100,  label: "100",   price: "R$ 29,90",  tag: "Acessível",    perUnit: "R$ 0,30/cr" },
+  { id: "credits_300",  credits: 300,  label: "300",   price: "R$ 69,90",  tag: "Vantagem",     perUnit: "R$ 0,23/cr" },
+  { id: "credits_700",  credits: 700,  label: "700",   price: "R$ 97,90",  tag: "Mais Popular", perUnit: "R$ 0,14/cr" },
+  { id: "credits_1500", credits: 1500, label: "1.500", price: "R$ 137,90", tag: "Melhor Valor",  perUnit: "R$ 0,09/cr" },
 ] as const;
 
 /* ─── plan visual tokens ─────────────────────────────────────────────── */
@@ -64,6 +64,81 @@ const PLAN_ICON: Record<string, React.FC<{ className?: string }>> = {
   business: ({ className }) => <Sparkles className={className} />,
   agency:   ({ className }) => <Building2 className={className} />,
 };
+/* ─── credit package → plan scheme mapping ──────────────────────────── */
+const CREDIT_SCHEME: Record<string, "free" | "pro" | "business" | "agency"> = {
+  credits_100:  "free",
+  credits_300:  "pro",
+  credits_700:  "business",
+  credits_1500: "agency",
+};
+
+const CREDIT_CARD_BG: Record<string, string> = {
+  free:     "bg-[#060a10]",
+  pro:      "bg-[#050e09]",
+  business: "bg-[#0a080e]",
+  agency:   "bg-[#0e0c06]",
+};
+const CREDIT_CARD_BORDER: Record<string, string> = {
+  free:     "border-blue-400/20 hover:border-blue-400/35",
+  pro:      "border-emerald-500/30 hover:border-emerald-500/45 shadow-[0_0_36px_-4px_rgba(16,185,129,0.16)]",
+  business: "border-violet-500/50 shadow-[0_0_36px_-6px_rgba(139,92,246,0.22),0_0_0_1px_rgba(139,92,246,0.08)] hover:shadow-[0_0_44px_-6px_rgba(139,92,246,0.30)]",
+  agency:   "border-[#C9A84C]/55 shadow-[0_0_36px_-4px_rgba(201,168,76,0.20)] hover:shadow-[0_0_44px_-4px_rgba(201,168,76,0.28)]",
+};
+const CREDIT_TOP_LINE: Record<string, string> = {
+  free:     "via-blue-400/25",
+  pro:      "via-emerald-400/50",
+  business: "via-violet-400/70",
+  agency:   "via-[#C9A84C]/60",
+};
+const CREDIT_AMBIENT: Record<string, string> = {
+  free:     "from-blue-500/[0.03]",
+  pro:      "from-emerald-500/[0.04]",
+  business: "from-violet-500/[0.06]",
+  agency:   "from-[#C9A84C]/[0.06]",
+};
+const CREDIT_BADGE: Record<string, string> = {
+  free:     "bg-blue-500/10 text-blue-300 border border-blue-400/20 border-t-0",
+  pro:      "bg-emerald-600 text-white",
+  business: "bg-violet-600 text-white shadow-[0_2px_8px_rgba(139,92,246,0.35)]",
+  agency:   "bg-[#C9A84C] text-black shadow-[0_2px_8px_rgba(201,168,76,0.35)]",
+};
+const CREDIT_ICON_BG: Record<string, string> = {
+  free:     "bg-blue-500/12 border border-blue-400/20",
+  pro:      "bg-emerald-500/10 border border-emerald-500/25",
+  business: "bg-violet-500/15 border border-violet-500/30",
+  agency:   "bg-[#C9A84C]/15 border border-[#C9A84C]/30",
+};
+const CREDIT_ICON_COLOR: Record<string, string> = {
+  free:     "text-blue-300",
+  pro:      "text-emerald-400",
+  business: "text-violet-400",
+  agency:   "text-[#E8C96A]",
+};
+const CREDIT_ICON_CMP: Record<string, React.FC<{ className?: string }>> = {
+  free:     ({ className }) => <Zap className={className} />,
+  pro:      ({ className }) => <TrendingUp className={className} />,
+  business: ({ className }) => <Sparkles className={className} />,
+  agency:   ({ className }) => <Building2 className={className} />,
+};
+const CREDIT_LABEL_COLOR: Record<string, string> = {
+  free:     "text-blue-300",
+  pro:      "text-emerald-400",
+  business: "text-violet-400",
+  agency:   "text-[#E8C96A]",
+};
+const CREDIT_PERUNIT_COLOR: Record<string, string> = {
+  free:     "text-blue-400/50",
+  pro:      "text-emerald-400/50",
+  business: "text-violet-400/60",
+  agency:   "text-[#C9A84C]/60",
+};
+const CREDIT_BTN: Record<string, string> = {
+  free:     "bg-blue-500/15 text-blue-200 hover:bg-blue-500/25 border border-blue-400/25",
+  pro:      "bg-emerald-600 text-white hover:bg-emerald-500 font-bold",
+  business: "bg-violet-600 text-white hover:bg-violet-500 font-bold",
+  agency:   "bg-gradient-to-r from-[#C9A84C] to-[#E8C96A] text-black hover:brightness-110 font-black",
+};
+
 const PLAN_DESC: Record<string, string> = {
   free:     "Entrada na plataforma com recursos essenciais.",
   pro:      "Melhor custo-benefício. Tudo que você precisa para crescer.",
@@ -534,72 +609,43 @@ export function Billing() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-2">
           {CREDIT_PACKAGES.map((pkg) => {
-            const isPopular = pkg.tag === "Mais popular";
-            const isBest    = pkg.tag === "Melhor valor";
+            const scheme    = CREDIT_SCHEME[pkg.id] ?? "free";
             const isPending = creditsPending === pkg.id;
+            const PkgIcon   = CREDIT_ICON_CMP[scheme];
             return (
               <div
                 key={pkg.id}
-                className={`relative flex flex-col rounded-xl border transition-all duration-200 ${pkg.tag ? "pt-8 px-5 pb-5" : "p-5"} ${
-                  isPopular
-                    ? "border-[#C9A84C]/50 bg-[#0e0c06] shadow-[0_0_36px_-6px_rgba(201,168,76,0.22),0_0_0_1px_rgba(201,168,76,0.08)] hover:shadow-[0_0_44px_-6px_rgba(201,168,76,0.30)]"
-                    : isBest
-                    ? "border-[#C9A84C]/22 bg-[#0c0c0c] hover:border-[#C9A84C]/38 hover:bg-[#0e0c06]"
-                    : "border-white/[0.07] bg-[#0c0c0c] hover:border-white/[0.13] hover:bg-[#0f0f0f]"
-                }`}
+                className={`relative flex flex-col rounded-xl border pt-8 px-5 pb-5 transition-all duration-200 ${CREDIT_CARD_BG[scheme]} ${CREDIT_CARD_BORDER[scheme]}`}
               >
-                {isPopular && (
-                  <>
-                    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#C9A84C]/70 to-transparent rounded-t-xl" />
-                    <div className="absolute top-0 inset-x-0 h-8 bg-gradient-to-b from-[#C9A84C]/[0.06] to-transparent rounded-t-xl pointer-events-none" />
-                  </>
-                )}
-                {isBest && (
-                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#C9A84C]/30 to-transparent rounded-t-xl" />
-                )}
+                {/* top accent line */}
+                <div className={`absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent ${CREDIT_TOP_LINE[scheme]} to-transparent rounded-t-xl`} />
+                {/* ambient top glow */}
+                <div className={`absolute top-0 inset-x-0 h-8 bg-gradient-to-b ${CREDIT_AMBIENT[scheme]} to-transparent rounded-t-xl pointer-events-none`} />
 
-                {pkg.tag && (
-                  <div className="absolute -top-px left-1/2 -translate-x-1/2">
-                    <span className={`inline-block text-[9px] font-bold px-3 py-0.5 rounded-b-md whitespace-nowrap tracking-wide ${
-                      isPopular
-                        ? "bg-[#C9A84C] text-black shadow-[0_2px_8px_rgba(201,168,76,0.35)]"
-                        : "bg-[#C9A84C]/10 text-[#C9A84C]/70 border border-[#C9A84C]/20 border-t-0"
-                    }`}>
-                      {pkg.tag.toUpperCase()}
-                    </span>
-                  </div>
-                )}
+                {/* badge */}
+                <div className="absolute -top-px left-1/2 -translate-x-1/2">
+                  <span className={`inline-block text-[9px] font-bold px-3 py-0.5 rounded-b-md whitespace-nowrap tracking-wide ${CREDIT_BADGE[scheme]}`}>
+                    {pkg.tag.toUpperCase()}
+                  </span>
+                </div>
 
+                {/* header */}
                 <div className="flex items-center gap-2.5 mb-3 mt-1">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                    isPopular
-                      ? "bg-[#C9A84C]/15 border border-[#C9A84C]/30"
-                      : isBest
-                      ? "bg-[#C9A84C]/08 border border-[#C9A84C]/15"
-                      : "bg-white/[0.04] border border-white/[0.08]"
-                  }`}>
-                    <Zap className={`w-3.5 h-3.5 ${isPopular ? "text-[#C9A84C] fill-[#C9A84C]/30" : isBest ? "text-[#C9A84C]/60" : "text-zinc-600"}`} />
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${CREDIT_ICON_BG[scheme]}`}>
+                    <PkgIcon className={`w-3.5 h-3.5 ${CREDIT_ICON_COLOR[scheme]}`} />
                   </div>
                   <div>
-                    <p className={`text-lg font-bold leading-none ${isPopular ? "text-[#C9A84C]" : isBest ? "text-zinc-200" : "text-zinc-300"}`}>
-                      {pkg.label}
-                    </p>
+                    <p className={`text-lg font-bold leading-none ${CREDIT_LABEL_COLOR[scheme]}`}>{pkg.label}</p>
                     <p className="text-[10px] text-zinc-600 mt-0.5">créditos</p>
                   </div>
                 </div>
 
-                <p className={`text-xl font-bold mb-0.5 ${isPopular ? "text-white" : "text-zinc-300"}`}>{pkg.price}</p>
-                <p className={`text-[10px] mb-5 ${isPopular ? "text-[#C9A84C]/60" : "text-zinc-700"}`}>{pkg.perUnit}</p>
+                <p className="text-xl font-bold mb-0.5 text-white">{pkg.price}</p>
+                <p className={`text-[10px] mb-5 ${CREDIT_PERUNIT_COLOR[scheme]}`}>{pkg.perUnit}</p>
 
                 <Button
                   size="sm"
-                  className={`w-full h-9 text-xs font-semibold ${
-                    isPopular
-                      ? "bg-[#C9A84C] text-black hover:bg-[#E8C96A] shadow-[0_2px_12px_rgba(201,168,76,0.25)]"
-                      : isBest
-                      ? "bg-[#C9A84C]/08 text-[#C9A84C]/80 border border-[#C9A84C]/20 hover:bg-[#C9A84C]/15 hover:text-[#C9A84C] hover:border-[#C9A84C]/35 transition-colors"
-                      : "bg-white/[0.04] text-zinc-400 border border-white/[0.08] hover:bg-[#C9A84C]/08 hover:text-[#C9A84C]/80 hover:border-[#C9A84C]/20 transition-colors"
-                  }`}
+                  className={`w-full h-9 text-xs ${CREDIT_BTN[scheme]}`}
                   onClick={() => handleBuyCredits(pkg.id)}
                   disabled={isPending || creditsPending !== null}
                 >
