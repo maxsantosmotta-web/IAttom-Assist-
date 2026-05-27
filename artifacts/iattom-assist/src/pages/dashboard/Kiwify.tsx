@@ -4,7 +4,7 @@ import {
   Layers, Loader2, X, Info, Package, ClipboardList,
   RefreshCw, ShoppingBag, BarChart2, Save, Eye, EyeOff,
   DollarSign, Tag, ChevronDown, ChevronUp, CheckCircle2,
-  Webhook, Copy, TrendingUp, Megaphone,
+  Webhook, Copy, TrendingUp, Megaphone, AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -247,6 +247,59 @@ export function Kiwify() {
             </Button>
           </div>
         </div>
+
+        {/* Status Card */}
+        <Card className="bg-[#111111] border-white/[0.06] mb-5">
+          <CardContent className="p-4">
+            {savedCreds ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                  <Layers className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">
+                    Loja: {savedCreds.storeId}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-xs text-emerald-400">Credenciais configuradas</span>
+                    <span className="text-xs text-zinc-600">· Client: {savedCreds.clientId}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void handleSync()}
+                    disabled={syncing}
+                    className="border-white/10 text-muted-foreground hover:text-white h-8 text-xs gap-1.5"
+                  >
+                    {syncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                    Sincronizar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setConfirmClearCreds(true)}
+                    className="text-red-400/70 hover:text-red-400 h-8 text-xs gap-1.5"
+                  >
+                    Desconectar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-3">
+                <AlertCircle className="w-4 h-4 text-muted-foreground shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm text-muted-foreground">Kiwify não configurado</p>
+                  <p className="text-xs text-muted-foreground/60 mt-0.5">
+                    Salve suas credenciais abaixo para ativar a integração.
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* KPIs */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">

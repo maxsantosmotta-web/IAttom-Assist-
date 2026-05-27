@@ -190,19 +190,19 @@ export function WhatsApp() {
         {/* Status Card */}
         <Card className="bg-[#111111] border-white/[0.06] mb-5">
           <CardContent className="p-4">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">WhatsApp não conectado</span>
+            <div className="flex flex-wrap items-center gap-3">
+              <AlertCircle className="w-4 h-4 text-muted-foreground shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground">WhatsApp Cloud API não conectado</p>
+                <p className="text-xs text-muted-foreground/60 mt-0.5">
+                  Configure a Cloud API para enviar mensagens, automações e campanhas.
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground/60">
-                Configure a WhatsApp Cloud API para enviar mensagens, automações e campanhas.
-              </p>
               <Button
                 size="sm"
                 onClick={() => void handleConnect()}
                 disabled={connecting}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold ml-auto"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shrink-0"
               >
                 {connecting ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : <Link2 className="w-3.5 h-3.5 mr-2" />}
                 Conectar WhatsApp

@@ -335,9 +335,15 @@ export function Facebook() {
           </CardHeader>
           <CardContent>
             {fbEvents.length === 0 ? (
-              <p className="text-xs text-muted-foreground/60 text-center py-6">
-                Nenhum evento registrado. Configure o webhook Meta para receber notificações do Facebook.
-              </p>
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="w-12 h-12 rounded-full bg-blue-500/5 border border-blue-500/10 flex items-center justify-center mb-3">
+                  <TrendingUp className="w-5 h-5 text-blue-400/30" />
+                </div>
+                <p className="text-sm font-semibold text-muted-foreground">Nenhum evento registrado</p>
+                <p className="text-xs text-muted-foreground/60 mt-1 max-w-xs">
+                  Configure o webhook Meta para receber notificações do Facebook.
+                </p>
+              </div>
             ) : (
               <div className="space-y-2">
                 {fbEvents.slice(0, 10).map((ev) => (

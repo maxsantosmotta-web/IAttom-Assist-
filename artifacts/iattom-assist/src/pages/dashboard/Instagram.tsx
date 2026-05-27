@@ -339,9 +339,15 @@ export function Instagram() {
           </CardHeader>
           <CardContent>
             {igEvents.length === 0 ? (
-              <p className="text-xs text-muted-foreground/60 text-center py-6">
-                Nenhum evento registrado. Configure o webhook Meta para receber notificações do Instagram.
-              </p>
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="w-12 h-12 rounded-full bg-pink-500/5 border border-pink-500/10 flex items-center justify-center mb-3">
+                  <TrendingUp className="w-5 h-5 text-pink-400/30" />
+                </div>
+                <p className="text-sm font-semibold text-muted-foreground">Nenhum evento registrado</p>
+                <p className="text-xs text-muted-foreground/60 mt-1 max-w-xs">
+                  Configure o webhook Meta para receber notificações do Instagram.
+                </p>
+              </div>
             ) : (
               <div className="space-y-2">
                 {igEvents.slice(0, 10).map((ev) => (
