@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
-  Flame, Loader2, X, Info,
-  RefreshCw, ShoppingBag, DollarSign,
-  Package, CheckCircle2, AlertCircle,
-  Megaphone, Webhook, Copy, ExternalLink,
-  ClipboardList, TrendingUp,
+  Flame, Loader2, X, Info, AlertCircle,
+  Megaphone, ClipboardList, ExternalLink,
+  CheckCircle2, BarChart2, ShoppingBag, TrendingUp,
+  RefreshCw, Webhook, Copy, Package, FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,7 +72,7 @@ function InformativeModal({
               ? "border-white/10 text-muted-foreground hover:text-white"
               : "w-full bg-primary text-black hover:bg-primary/90 font-semibold"}
           >
-            {action ? "Fechar" : "Entendido"}
+            {action ? "Cancelar" : "Entendido"}
           </Button>
         </div>
       </motion.div>
@@ -122,6 +121,7 @@ export function Hotmart() {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [syncing, setSyncing] = useState(false);
+
   const [modal, setModal] = useState<{
     title: string;
     description: string;
@@ -186,6 +186,11 @@ export function Hotmart() {
     window.location.href = `${BASE}/dashboard/create-campaign`;
   };
 
+  const handleCriarConteudo = () => {
+    sessionStorage.setItem("content_platform_context", JSON.stringify({ platform: "hotmart" }));
+    window.location.href = `${BASE}/dashboard/create-content`;
+  };
+
   const cutoff = thirtyDaysAgo();
   const approvedIn30d = events.filter(e =>
     e.eventType === "PURCHASE_APPROVED" && e.receivedAt && new Date(e.receivedAt) >= cutoff
@@ -204,48 +209,35 @@ export function Hotmart() {
         />
       )}
 
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}
-        className="space-y-5">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
 
-        {/* ── Header ────────────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* ── Header ───────────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center">
               <Flame className="w-5 h-5 text-orange-400" />
             </div>
             <div>
               <h1 className="text-lg font-bold text-white">Hotmart</h1>
-              <p className="text-xs text-muted-foreground">Produtos digitais, afiliados e assinaturas</p>
+              <p className="text-xs text-muted-foreground">Produtos digitais, campanhas e publicação assistida</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => void handleSync()}
-              disabled={syncing}
-              className="border-white/10 text-muted-foreground hover:text-white"
-            >
-              {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : <RefreshCw className="w-3.5 h-3.5 mr-2" />}
-              Sincronizar
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleCriarCampanha}
-              className="bg-orange-500 hover:bg-orange-400 text-white font-semibold"
-            >
-              <Megaphone className="w-3.5 h-3.5 mr-2" />
-              Criar Campanha
-            </Button>
-          </div>
+          <Button
+            onClick={handleCriarCampanha}
+            className="bg-orange-500 hover:bg-orange-400 text-white font-semibold"
+            size="sm"
+          >
+            <Megaphone className="w-3.5 h-3.5 mr-2" />
+            Criar Campanha
+          </Button>
         </div>
 
-        {/* ── Status Card ────────────────────────────────────────── */}
-        <Card className="bg-[#111111] border-white/[0.06]">
+        {/* ── Status Card ──────────────────────────────────────── */}
+        <Card className="bg-[#111111] border-white/[0.06] mb-5">
           <CardContent className="p-4">
             <div className="flex flex-wrap items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
-                <Flame className="w-4 h-4 text-orange-400" />
+              <div className="w-10 h-10 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
+                <Flame className="w-5 h-5 text-orange-400" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white">Publicação Assistida Hotmart</p>
@@ -260,7 +252,7 @@ export function Hotmart() {
                   variant="outline"
                   onClick={() => showInfo(
                     "Publicação Assistida Hotmart",
-                    "Gerencie seus produtos e acompanhe vendas Hotmart. A integração via webhook recebe eventos em tempo real. Para publicar conteúdo e campanhas, use os módulos centrais da plataforma com contexto Hotmart.",
+                    "No modo assistido, você cria campanhas e conteúdo para seus produtos Hotmart usando os módulos centrais da plataforma. O webhook recebe eventos de venda em tempo real. A conexão OAuth completa estará disponível em breve.",
                   )}
                   className="border-white/10 text-muted-foreground hover:text-white h-8 text-xs gap-1.5"
                 >
@@ -281,32 +273,32 @@ export function Hotmart() {
           </CardContent>
         </Card>
 
-        {/* ── KPIs ──────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* ── KPIs ─────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {[
             {
               icon: Package,
               label: "Produtos",
-              value: loadingProducts ? "..." : String(products.length),
+              value: loadingProducts ? "—" : String(products.length),
               color: "text-orange-400",
             },
             {
-              icon: ShoppingBag,
-              label: "Vendas (30d)",
-              value: loadingEvents ? "..." : String(approvedIn30d),
-              color: "text-emerald-400",
+              icon: Megaphone,
+              label: "Campanhas",
+              value: "—",
+              color: "text-blue-400",
             },
             {
-              icon: DollarSign,
-              label: "Receita (30d)",
-              value: loadingEvents ? "..." : revenueIn30d(events),
-              color: "text-primary",
+              icon: FileText,
+              label: "Materiais",
+              value: "—",
+              color: "text-violet-400",
             },
             {
-              icon: Webhook,
-              label: "Webhook",
-              value: hasWebhookEvents ? "Ativo" : "Aguardando",
-              color: hasWebhookEvents ? "text-emerald-400" : "text-yellow-400",
+              icon: CheckCircle2,
+              label: "Publicação",
+              value: "Assistida",
+              color: "text-orange-400",
             },
           ].map(({ icon: Icon, label, value, color }) => (
             <Card key={label} className="bg-[#111111] border-white/[0.06]">
@@ -315,13 +307,205 @@ export function Hotmart() {
                   <p className="text-xs text-muted-foreground uppercase tracking-wider">{label}</p>
                   <Icon className={`w-3.5 h-3.5 ${color}`} />
                 </div>
-                <p className="text-xl font-bold text-white truncate">{value}</p>
+                <p className="text-xl font-bold text-white">{value}</p>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* ── Webhook ────────────────────────────────────────────── */}
+        {/* ── Feature Cards ─────────────────────────────────────── */}
+        <div className="grid md:grid-cols-2 gap-4">
+
+          {/* Campanhas */}
+          <Card className="bg-[#111111] border-white/[0.06]">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                  <Megaphone className="w-4 h-4 text-orange-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-semibold text-white">Campanhas</CardTitle>
+                  <p className="text-xs text-muted-foreground">Anúncios e campanhas para seus produtos</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Crie campanhas personalizadas para promover seus produtos Hotmart em diferentes canais de marketing.
+              </p>
+              <div className="grid grid-cols-3 gap-2 py-1">
+                {[
+                  { icon: Megaphone, label: "Campanhas", value: "—" },
+                  { icon: BarChart2, label: "Alcance", value: "—" },
+                  { icon: TrendingUp, label: "Conversão", value: "—" },
+                ].map(({ icon: Icon, label, value }) => (
+                  <div key={label} className="p-2 rounded bg-white/5 text-center">
+                    <Icon className="w-3.5 h-3.5 text-muted-foreground mx-auto mb-1" />
+                    <p className="text-xs font-semibold text-white">{value}</p>
+                    <p className="text-[10px] text-muted-foreground">{label}</p>
+                  </div>
+                ))}
+              </div>
+              <Button
+                size="sm"
+                onClick={handleCriarCampanha}
+                className="w-full bg-orange-500 hover:bg-orange-400 text-white font-semibold h-8 text-xs"
+              >
+                <Megaphone className="w-3 h-3 mr-1.5" />
+                Criar Campanha Hotmart
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Conteúdo e Materiais */}
+          <Card className="bg-[#111111] border-white/[0.06]">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
+                  <ClipboardList className="w-4 h-4 text-violet-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-semibold text-white">Conteúdo e Materiais</CardTitle>
+                  <p className="text-xs text-muted-foreground">Textos, criativos e scripts</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Gere conteúdo para divulgar seus produtos: posts, e-mails, scripts de vídeo e criativos visuais.
+              </p>
+              <div className="flex flex-col gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCriarConteudo}
+                  className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
+                >
+                  <ClipboardList className="w-3 h-3 mr-1.5" />
+                  Criar Conteúdo
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    sessionStorage.setItem("video_platform_context", JSON.stringify({ platform: "hotmart" }));
+                    window.location.href = `${BASE}/dashboard/video-scripts`;
+                  }}
+                  className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
+                >
+                  <FileText className="w-3 h-3 mr-1.5" />
+                  Scripts de Vídeo
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Eventos e Logs */}
+          <Card className="bg-[#111111] border-white/[0.06]">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                  <ShoppingBag className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-semibold text-white">Eventos e Logs</CardTitle>
+                  <p className="text-xs text-muted-foreground">Histórico de vendas e webhook</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2 py-2">
+                {[
+                  {
+                    icon: CheckCircle2,
+                    label: "Webhook",
+                    value: hasWebhookEvents ? "Ativo" : "Aguardando",
+                    ok: hasWebhookEvents,
+                  },
+                  {
+                    icon: ShoppingBag,
+                    label: "Vendas recebidas",
+                    value: loadingEvents ? "—" : String(events.length),
+                    ok: events.length > 0,
+                  },
+                  {
+                    icon: TrendingUp,
+                    label: "Aprovadas (30d)",
+                    value: loadingEvents ? "—" : String(approvedIn30d),
+                    ok: approvedIn30d > 0,
+                  },
+                ].map(({ icon: Icon, label, value, ok }) => (
+                  <div key={label} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
+                    <div className="flex items-center gap-2">
+                      <Icon className={`w-3.5 h-3.5 ${ok ? "text-emerald-400" : "text-muted-foreground"}`} />
+                      <span className="text-xs text-muted-foreground">{label}</span>
+                    </div>
+                    <span className={`text-xs font-medium ${ok ? "text-emerald-400" : "text-white"}`}>{value}</span>
+                  </div>
+                ))}
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => showInfo(
+                  "Configurar Webhook Hotmart",
+                  "Acesse app.hotmart.com → Ferramentas → Webhooks → Adicionar URL. Cole o endpoint abaixo para receber notificações de vendas, reembolsos e assinaturas em tempo real.",
+                  { label: "Copiar endpoint", onClick: handleCopyWebhook },
+                )}
+                className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
+              >
+                <Webhook className="w-3 h-3 mr-1.5" />
+                Configurar Webhook
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Produtos */}
+          <Card className="bg-[#111111] border-white/[0.06]">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <Package className="w-4 h-4 text-amber-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-semibold text-white">Produtos</CardTitle>
+                  <p className="text-xs text-muted-foreground">Catálogo sincronizado</p>
+                </div>
+                {!loadingProducts && products.length > 0 && (
+                  <Badge className="ml-auto bg-orange-500/15 text-orange-400 border-orange-500/30 text-[10px]">
+                    {products.length} produto{products.length !== 1 ? "s" : ""}
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-2 py-1">
+                {[
+                  { icon: Package, label: "Total", value: loadingProducts ? "—" : String(products.length) },
+                  { icon: BarChart2, label: "Receita (30d)", value: loadingEvents ? "—" : revenueIn30d(events) },
+                ].map(({ icon: Icon, label, value }) => (
+                  <div key={label} className="p-2 rounded bg-white/5 text-center">
+                    <Icon className="w-3.5 h-3.5 text-muted-foreground mx-auto mb-1" />
+                    <p className="text-xs font-semibold text-white truncate">{value}</p>
+                    <p className="text-[10px] text-muted-foreground">{label}</p>
+                  </div>
+                ))}
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => window.open("https://app.hotmart.com", "_blank", "noopener,noreferrer")}
+                className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
+              >
+                <ExternalLink className="w-3 h-3 mr-1.5" />
+                Gerenciar no Hotmart
+              </Button>
+            </CardContent>
+          </Card>
+
+        </div>
+
+        {/* ── Webhook Endpoint ──────────────────────────────────── */}
         <Card className="bg-[#111111] border-white/[0.06]">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -332,13 +516,11 @@ export function Hotmart() {
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => showInfo(
-                  "Configurar Webhook Hotmart",
-                  "Acesse app.hotmart.com → Ferramentas → Webhooks → Adicionar URL. Cole o endpoint abaixo para receber notificações de vendas, reembolsos e assinaturas em tempo real.",
-                )}
-                className="text-muted-foreground hover:text-white h-7 px-2 text-xs"
+                onClick={() => void handleSync()}
+                disabled={syncing}
+                className="text-muted-foreground hover:text-white h-7 px-2"
               >
-                Como configurar
+                {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
               </Button>
             </div>
           </CardHeader>
@@ -366,153 +548,7 @@ export function Hotmart() {
           </CardContent>
         </Card>
 
-        {/* ── Produtos ───────────────────────────────────────────── */}
-        <Card className="bg-[#111111] border-white/[0.06]">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                <Package className="w-4 h-4 text-muted-foreground" />
-                Produtos
-                {products.length > 0 && (
-                  <Badge className="bg-orange-500/15 text-orange-400 border-orange-500/30 text-xs">{products.length}</Badge>
-                )}
-              </CardTitle>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => void handleLoadProducts()}
-                disabled={loadingProducts}
-                className="text-muted-foreground hover:text-white h-7 px-2"
-              >
-                {loadingProducts ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {loadingProducts ? (
-              <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm">Carregando produtos...</span>
-              </div>
-            ) : products.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center">
-                <div className="w-12 h-12 rounded-full bg-orange-500/5 border border-orange-500/10 flex items-center justify-center mb-3">
-                  <Package className="w-5 h-5 text-orange-400/30" />
-                </div>
-                <p className="text-sm font-semibold text-muted-foreground">Nenhum produto sincronizado</p>
-                <p className="text-xs text-muted-foreground/60 mt-1 max-w-xs">
-                  Configure o webhook Hotmart para sincronizar seus produtos automaticamente.
-                </p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => window.open("https://app.hotmart.com", "_blank", "noopener,noreferrer")}
-                  className="mt-4 border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
-                >
-                  <ExternalLink className="w-3.5 h-3.5 mr-2" />
-                  Abrir Hotmart
-                </Button>
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 gap-3">
-                {products.map((product) => (
-                  <div
-                    key={product.id}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-[#0d0d0d] border border-white/5 hover:border-orange-500/20 transition-colors"
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0">
-                      <Package className="w-4 h-4 text-orange-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">{product.name ?? "Sem título"}</p>
-                      {product.price && (
-                        <p className="text-xs text-primary font-medium mt-0.5">
-                          {parseFloat(product.price).toLocaleString("pt-BR", { style: "currency", currency: product.currency ?? "BRL" })}
-                        </p>
-                      )}
-                    </div>
-                    <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-xs shrink-0">Ativo</Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* ── Ações ──────────────────────────────────────────────── */}
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Card className="bg-[#111111] border-white/[0.06]">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                  <Megaphone className="w-4 h-4 text-orange-400" />
-                </div>
-                <CardTitle className="text-sm font-semibold text-white">Campanhas e Conteúdo</CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Crie campanhas e conteúdo para seus produtos Hotmart usando os módulos de IA da plataforma.
-              </p>
-              <div className="flex flex-col gap-2 pt-1">
-                <Button
-                  size="sm"
-                  onClick={handleCriarCampanha}
-                  className="w-full bg-orange-500 hover:bg-orange-400 text-white font-semibold h-8 text-xs"
-                >
-                  <Megaphone className="w-3 h-3 mr-1.5" />
-                  Criar Campanha Hotmart
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    sessionStorage.setItem("content_platform_context", JSON.stringify({ platform: "hotmart" }));
-                    window.location.href = `${BASE}/dashboard/create-content`;
-                  }}
-                  className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
-                >
-                  <ClipboardList className="w-3 h-3 mr-1.5" />
-                  Criar Conteúdo
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-[#111111] border-white/[0.06]">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4 text-emerald-400" />
-                </div>
-                <div>
-                  <CardTitle className="text-sm font-semibold text-white">Performance</CardTitle>
-                  <p className="text-xs text-muted-foreground">Resumo dos últimos 30 dias</p>
-                </div>
-                <Badge className="ml-auto bg-yellow-500/15 text-yellow-400 border-yellow-500/30 text-[10px]">Em breve</Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {[
-                  { icon: CheckCircle2, label: "Webhook", value: hasWebhookEvents ? "Ativo" : "Aguardando", ok: hasWebhookEvents },
-                  { icon: ShoppingBag, label: "Vendas aprovadas (30d)", value: String(approvedIn30d), ok: approvedIn30d > 0 },
-                  { icon: DollarSign, label: "Receita (30d)", value: revenueIn30d(events), ok: false },
-                ].map(({ icon: Icon, label, value, ok }) => (
-                  <div key={label} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
-                    <div className="flex items-center gap-2">
-                      <Icon className={`w-3.5 h-3.5 ${ok ? "text-emerald-400" : "text-muted-foreground"}`} />
-                      <span className="text-xs text-muted-foreground">{label}</span>
-                    </div>
-                    <span className={`text-xs font-medium ${ok ? "text-emerald-400" : "text-white"}`}>{value}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* ── Vendas Recentes ────────────────────────────────────── */}
+        {/* ── Vendas Recentes ───────────────────────────────────── */}
         <Card className="bg-[#111111] border-white/[0.06]">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -521,7 +557,7 @@ export function Hotmart() {
                 Vendas Recentes
                 {approvedSales.length > 0 && (
                   <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-xs">
-                    {approvedSales.filter(e => e.receivedAt && new Date(e.receivedAt) >= thirtyDaysAgo()).length} nos últimos 30d
+                    {approvedIn30d} nos últimos 30d
                   </Badge>
                 )}
               </CardTitle>
@@ -548,9 +584,22 @@ export function Hotmart() {
                   <ShoppingBag className="w-5 h-5 text-emerald-400/30" />
                 </div>
                 <p className="text-sm font-semibold text-muted-foreground">Nenhuma venda registrada</p>
-                <p className="text-xs text-muted-foreground/60 mt-1 max-w-xs leading-relaxed">
+                <p className="text-xs text-muted-foreground/60 mt-1 max-w-xs">
                   Configure o webhook Hotmart para receber notificações de vendas em tempo real.
                 </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => showInfo(
+                    "Configurar Webhook Hotmart",
+                    "Acesse app.hotmart.com → Ferramentas → Webhooks → Adicionar URL. Cole o endpoint copiado para receber notificações de vendas, reembolsos e assinaturas.",
+                    { label: "Copiar endpoint", onClick: handleCopyWebhook },
+                  )}
+                  className="mt-4 border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
+                >
+                  <Webhook className="w-3.5 h-3.5 mr-2" />
+                  Configurar webhook
+                </Button>
               </div>
             ) : (
               <div className="space-y-2">
