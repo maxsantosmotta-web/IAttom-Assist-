@@ -1,6 +1,5 @@
 import {
   db,
-  whatsappConfig,
   metaConfig,
   shopeeConfig,
   mlConfig,
@@ -45,8 +44,7 @@ class IntegrationManagerImpl {
     const now = new Date();
 
     try {
-      const [wa, meta, shopee, ml, hotmart, kiwify] = await Promise.all([
-        db.select().from(whatsappConfig).limit(1).then((r) => r[0] ?? null),
+      const [meta, shopee, ml, hotmart, kiwify] = await Promise.all([
         db.select().from(metaConfig).limit(1).then((r) => r[0] ?? null),
         db.select().from(shopeeConfig).limit(1).then((r) => r[0] ?? null),
         db.select().from(mlConfig).limit(1).then((r) => r[0] ?? null),
@@ -55,13 +53,6 @@ class IntegrationManagerImpl {
       ]);
 
       const healths: IntegrationHealth[] = [
-        this.buildHealth("whatsapp", {
-          configured: !!(wa?.accessToken && wa.phoneNumberId),
-          isActive: wa?.isActive ?? false,
-          tokenExpired: false,
-          lastUpdatedAt: wa?.updatedAt ?? null,
-          extraInfo: wa?.phoneNumberId ? `Phone ID: ${wa.phoneNumberId}` : null,
-        }),
         this.buildHealth("meta", {
           configured: !!(meta?.appId && meta?.appSecret),
           isActive: meta?.isActive ?? false,
@@ -239,7 +230,7 @@ class IntegrationManagerImpl {
   }
 
   getAllHealth(): IntegrationHealth[] {
-    const ids: IntegrationId[] = ["whatsapp", "meta", "shopee", "ml", "hotmart", "kiwify"];
+    const ids: IntegrationId[] = ["meta", "shopee", "ml", "hotmart", "kiwify"];
     return ids
       .map((id) => this.healthMap.get(id))
       .filter((h): h is IntegrationHealth => h !== undefined);

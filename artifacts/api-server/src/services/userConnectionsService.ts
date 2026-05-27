@@ -114,23 +114,21 @@ export { getCurrentUserConnection };
 
 export async function getAllUserConnections(clerkUserId: string): Promise<{
   meta: UserMetaConnection[];
-  whatsapp: UserWhatsappConnection[];
   hotmart: UserHotmartConnection[];
   kiwify: UserKiwifyConnection[];
   shopee: UserShopeeConnection[];
   ml: UserMlConnection[];
   tiktok: UserTiktokConnection[];
 }> {
-  const [meta, whatsapp, hotmart, kiwify, shopee, ml, tiktok] = await Promise.all([
+  const [meta, hotmart, kiwify, shopee, ml, tiktok] = await Promise.all([
     db.select().from(userMetaConnections).where(and(eq(userMetaConnections.clerkUserId, clerkUserId), eq(userMetaConnections.isActive, true))),
-    db.select().from(userWhatsappConnections).where(and(eq(userWhatsappConnections.clerkUserId, clerkUserId), eq(userWhatsappConnections.isActive, true))),
     db.select().from(userHotmartConnections).where(and(eq(userHotmartConnections.clerkUserId, clerkUserId), eq(userHotmartConnections.isActive, true))),
     db.select().from(userKiwifyConnections).where(and(eq(userKiwifyConnections.clerkUserId, clerkUserId), eq(userKiwifyConnections.isActive, true))),
     db.select().from(userShopeeConnections).where(and(eq(userShopeeConnections.clerkUserId, clerkUserId), eq(userShopeeConnections.isActive, true))),
     db.select().from(userMlConnections).where(and(eq(userMlConnections.clerkUserId, clerkUserId), eq(userMlConnections.isActive, true))),
     db.select().from(userTiktokConnections).where(and(eq(userTiktokConnections.clerkUserId, clerkUserId), eq(userTiktokConnections.isActive, true))),
   ]);
-  return { meta, whatsapp, hotmart, kiwify, shopee, ml, tiktok };
+  return { meta, hotmart, kiwify, shopee, ml, tiktok };
 }
 
 export async function upsertUserConnection<P extends Platform>(

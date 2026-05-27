@@ -2,8 +2,6 @@ import { Router, type IRouter } from "express";
 import { desc } from "drizzle-orm";
 import {
   db,
-  whatsappConfig,
-  whatsappEvents,
   metaConfig,
   metaEvents,
   shopeeConfig,
@@ -36,8 +34,7 @@ const router: IRouter = Router();
 // ─── GET /integrations/status — all 6 integrations (DB-based, for frontend) ──
 router.get("/integrations/status", requireAdmin, async (req, res): Promise<void> => {
   try {
-    const [wa, meta, shopee, ml, hotmart, kiwify] = await Promise.all([
-      db.select().from(whatsappConfig).limit(1).then((r) => r[0] ?? null),
+    const [meta, shopee, ml, hotmart, kiwify] = await Promise.all([
       db.select().from(metaConfig).limit(1).then((r) => r[0] ?? null),
       db.select().from(shopeeConfig).limit(1).then((r) => r[0] ?? null),
       db.select().from(mlConfig).limit(1).then((r) => r[0] ?? null),
@@ -46,9 +43,6 @@ router.get("/integrations/status", requireAdmin, async (req, res): Promise<void>
     ]);
 
     res.json([
-      resolveIntegrationStatus(wa, "whatsapp", "WhatsApp", {
-        extraInfo: wa?.phoneNumberId ? `+${wa.phoneNumberId}` : null,
-      }),
       resolveIntegrationStatus(meta, "meta", "Meta (IG + FB)", {
         extraInfo: meta?.appId ?? null,
       }),
@@ -79,9 +73,8 @@ router.get("/integrations/events", requireAdmin, async (req, res): Promise<void>
   const limit = 30;
 
   try {
-    const [waEvts, metaEvts, shopeeEvts, mlEvts, hotmartEvts, kiwifyEvts] =
+    const [metaEvts, shopeeEvts, mlEvts, hotmartEvts, kiwifyEvts] =
       await Promise.all([
-        db.select().from(whatsappEvents).orderBy(desc(whatsappEvents.receivedAt)).limit(limit),
         db.select().from(metaEvents).orderBy(desc(metaEvents.receivedAt)).limit(limit),
         db.select().from(shopeeEvents).orderBy(desc(shopeeEvents.receivedAt)).limit(limit),
         db.select().from(mlEvents).orderBy(desc(mlEvents.receivedAt)).limit(limit),
@@ -90,16 +83,6 @@ router.get("/integrations/events", requireAdmin, async (req, res): Promise<void>
       ]);
 
     const normalized: NormalizedEvent[] = [
-      ...waEvts.map((e) => ({
-        platform: "whatsapp" as IntegrationId,
-        platformLabel: "WhatsApp",
-        eventType: e.eventType ?? "message",
-        primaryText: e.fromNumber ?? null,
-        secondaryText: null,
-        value: null,
-        currency: null,
-        receivedAt: e.receivedAt,
-      })),
       ...metaEvts.map((e) => ({
         platform: "meta" as IntegrationId,
         platformLabel: e.platform === "instagram" ? "Instagram" : "Facebook",

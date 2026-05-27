@@ -222,7 +222,7 @@ class TokenManagerImpl {
     expiresIn: string;
     hasRefreshScheduled: boolean;
   }> {
-    const ids: IntegrationId[] = ["whatsapp", "meta", "shopee", "ml", "hotmart", "kiwify"];
+    const ids: IntegrationId[] = ["meta", "shopee", "ml", "hotmart", "kiwify"];
     return ids.map((id) => ({
       integrationId: id,
       hasToken: this.tokens.has(id),

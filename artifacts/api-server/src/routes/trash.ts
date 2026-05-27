@@ -17,7 +17,6 @@ const PLATFORM_LABELS: Record<string, string> = {
   shopee: "Shopee",
   kiwify: "Kiwify",
   meta: "Meta",
-  whatsapp: "WhatsApp",
 };
 
 async function restoreItem(item: { platform: string; originalId: number }) {

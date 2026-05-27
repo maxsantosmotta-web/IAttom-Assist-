@@ -7,7 +7,6 @@ import {
   hotmartConfig,
   kiwifyConfig,
   metaConfig,
-  whatsappConfig,
   tiktokConfig,
   userTiktokConnections,
 } from "@workspace/db";
@@ -27,13 +26,12 @@ function isMasked(val: string | undefined): boolean {
 
 // ─── GET all configs (masked) ─────────────────────────────────────────────────
 router.get("/admin/integrations/config", requireAdmin, async (_req, res): Promise<void> => {
-  const [shopee, ml, hotmart, kiwify, meta, whatsapp, tiktok, tiktokConns] = await Promise.all([
+  const [shopee, ml, hotmart, kiwify, meta, tiktok, tiktokConns] = await Promise.all([
     db.select().from(shopeeConfig).limit(1),
     db.select().from(mlConfig).limit(1),
     db.select().from(hotmartConfig).limit(1),
     db.select().from(kiwifyConfig).limit(1),
     db.select().from(metaConfig).limit(1),
-    db.select().from(whatsappConfig).limit(1),
     db.select().from(tiktokConfig).limit(1),
     db.select({ id: userTiktokConnections.id })
       .from(userTiktokConnections)
@@ -46,7 +44,6 @@ router.get("/admin/integrations/config", requireAdmin, async (_req, res): Promis
   const h = hotmart[0];
   const k = kiwify[0];
   const me = meta[0];
-  const wa = whatsapp[0];
   const tt = tiktok[0];
 
   res.json({
@@ -96,16 +93,6 @@ router.get("/admin/integrations/config", requireAdmin, async (_req, res): Promis
       userAccessToken: mask(me?.userAccessToken),
       webhookUrl: me?.webhookUrl ?? "",
       updatedAt: me?.updatedAt ?? null,
-    },
-    whatsapp: {
-      configured: !!(wa?.businessAccountId && wa?.accessToken),
-      isActive: wa?.isActive ?? false,
-      businessAccountId: wa?.businessAccountId ?? "",
-      phoneNumberId: wa?.phoneNumberId ?? "",
-      accessToken: mask(wa?.accessToken),
-      verifyToken: mask(wa?.verifyToken),
-      webhookUrl: wa?.webhookUrl ?? "",
-      updatedAt: wa?.updatedAt ?? null,
     },
     tiktok: {
       configured: !!(tt?.clientKey && tt?.clientSecret),
@@ -216,24 +203,6 @@ router.post("/admin/integrations/config/:integration", requireAdmin, async (req,
         }
         break;
       }
-      case "whatsapp": {
-        const [existing] = await db.select().from(whatsappConfig).limit(1);
-        const vals = {
-          ...(pick("businessAccountId") !== undefined && { businessAccountId: pick("businessAccountId")! }),
-          ...(pick("phoneNumberId") !== undefined && { phoneNumberId: pick("phoneNumberId")! }),
-          ...(pick("accessToken") !== undefined && { accessToken: pick("accessToken")! }),
-          ...(pick("verifyToken") !== undefined && { verifyToken: pick("verifyToken")! }),
-          ...(body.webhookUrl !== undefined && { webhookUrl: body.webhookUrl }),
-          isActive: true,
-          updatedAt: new Date(),
-        };
-        if (existing) {
-          await db.update(whatsappConfig).set(vals).where(eq(whatsappConfig.id, existing.id));
-        } else {
-          await db.insert(whatsappConfig).values({ businessAccountId: "", phoneNumberId: "", accessToken: "", verifyToken: "", ...vals });
-        }
-        break;
-      }
       case "tiktok": {
         const [existing] = await db.select().from(tiktokConfig).limit(1);
         const vals = {
@@ -316,15 +285,6 @@ router.post("/admin/integrations/config/:integration/test", requireAdmin, async 
         res.json({ ok: true, message: "Credenciais Meta configuradas para Instagram e Facebook." });
         return;
       }
-      case "whatsapp": {
-        const [cfg] = await db.select().from(whatsappConfig).limit(1);
-        if (!cfg?.businessAccountId || !cfg?.accessToken) {
-          res.json({ ok: false, message: "Business Account ID e Access Token são obrigatórios." });
-          return;
-        }
-        res.json({ ok: true, message: "Credenciais WhatsApp Cloud API configuradas." });
-        return;
-      }
       case "tiktok": {
         const [cfg] = await db.select().from(tiktokConfig).limit(1);
         if (!cfg?.clientKey || !cfg?.clientSecret) {
@@ -383,13 +343,6 @@ router.delete("/admin/integrations/config/:integration", requireAdmin, async (re
         const [existing] = await db.select().from(metaConfig).limit(1);
         if (existing) {
           await db.update(metaConfig).set({ appId: "", appSecret: "", verifyToken: "", userAccessToken: "", isActive: false, updatedAt: new Date() }).where(eq(metaConfig.id, existing.id));
-        }
-        break;
-      }
-      case "whatsapp": {
-        const [existing] = await db.select().from(whatsappConfig).limit(1);
-        if (existing) {
-          await db.update(whatsappConfig).set({ businessAccountId: "", phoneNumberId: "", accessToken: "", verifyToken: "", isActive: false, updatedAt: new Date() }).where(eq(whatsappConfig.id, existing.id));
         }
         break;
       }

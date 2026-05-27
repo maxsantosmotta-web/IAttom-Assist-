@@ -32,14 +32,6 @@ const KIWIFY_EVENT_LABELS: Record<string, string> = {
   "subscription.renewed": "Assinatura Renovada",
 };
 
-const WHATSAPP_EVENT_LABELS: Record<string, string> = {
-  message: "Mensagem Recebida",
-  status: "Status de Mensagem",
-  read: "Mensagem Lida",
-  delivered: "Mensagem Entregue",
-  failed: "Envio Falhou",
-};
-
 const META_EVENT_LABELS: Record<string, string> = {
   messages: "Mensagem Recebida",
   comments: "Comentário",
@@ -70,13 +62,7 @@ const ML_EVENT_LABELS: Record<string, string> = {
 
 export const WebhookManager = new (class WebhookManagerImpl {
 
-  // ─── WhatsApp: X-Hub-Signature-256 (HMAC-SHA256) ───────────────────────
-
-  validateWhatsApp(body: Buffer | string, signature: string, appSecret: string): WebhookValidationResult {
-    return this.validateHmacSha256(body, signature, appSecret, "sha256=", "whatsapp");
-  }
-
-  // ─── Meta (Facebook/Instagram): same as WhatsApp ───────────────────────
+  // ─── Meta (Facebook/Instagram): HMAC-SHA256 ────────────────────────────
 
   validateMeta(body: Buffer | string, signature: string, appSecret: string): WebhookValidationResult {
     return this.validateHmacSha256(body, signature, appSecret, "sha256=", "meta");
@@ -213,27 +199,6 @@ export const WebhookManager = new (class WebhookManagerImpl {
       secondaryText: (customer["email"] as string) ?? (raw["order_id"] as string) ?? null,
       value: String(raw["order_total"] ?? ""),
       currency: "BRL",
-      rawPayload: raw,
-    };
-  }
-
-  normalizeWhatsApp(raw: Record<string, unknown>): Omit<NormalizedEvent, "id" | "receivedAt" | "status"> {
-    const entry = ((raw["entry"] as unknown[]) ?? [])[0] as Record<string, unknown> | undefined;
-    const changes = ((entry?.["changes"] as unknown[]) ?? [])[0] as Record<string, unknown> | undefined;
-    const value = (changes?.["value"] as Record<string, unknown>) ?? {};
-    const message = ((value["messages"] as unknown[]) ?? [])[0] as Record<string, unknown> | undefined;
-    const contact = ((value["contacts"] as unknown[]) ?? [])[0] as Record<string, unknown> | undefined;
-    const msgType = message?.["type"] as string | undefined;
-
-    return {
-      integrationId: "whatsapp",
-      platformLabel: INTEGRATION_LABELS.whatsapp,
-      eventType: msgType ?? "message",
-      eventLabel: WHATSAPP_EVENT_LABELS[msgType ?? "message"] ?? "Mensagem",
-      primaryText: (contact?.["profile"] as Record<string, unknown>)?.["name"] as string ?? null,
-      secondaryText: message?.["from"] as string ?? null,
-      value: null,
-      currency: null,
       rawPayload: raw,
     };
   }

@@ -1,9 +1,8 @@
 // ─── Core identifiers ────────────────────────────────────────────────────────
 
-export type IntegrationId = "whatsapp" | "meta" | "shopee" | "ml" | "hotmart" | "kiwify";
+export type IntegrationId = "meta" | "shopee" | "ml" | "hotmart" | "kiwify";
 
 export const INTEGRATION_LABELS: Record<IntegrationId, string> = {
-  whatsapp: "WhatsApp",
   meta: "Meta (IG + FB)",
   shopee: "Shopee",
   ml: "Mercado Livre",
