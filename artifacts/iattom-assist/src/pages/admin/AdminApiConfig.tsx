@@ -182,12 +182,12 @@ function FormActions({ onSave, onTest, onClear, saving, testing, externalLink }:
 /* ─── Tab meta ───────────────────────────────────────────────── */
 const TABS: Array<{ id: IntegrationKey; label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = [
   { id: "shopee",    label: "Shopee",        icon: ShoppingBag,   color: "text-orange-400" },
+  { id: "tiktok",    label: "TikTok",        icon: Video,         color: "text-cyan-400"   },
   { id: "ml",        label: "Mercado Livre", icon: ShoppingCart,  color: "text-amber-400"  },
+  { id: "facebook",  label: "Facebook",      icon: FacebookIcon,  color: "text-blue-400"   },
+  { id: "instagram", label: "Instagram",     icon: Instagram,     color: "text-pink-400"   },
   { id: "hotmart",   label: "Hotmart",       icon: Flame,         color: "text-red-400"    },
   { id: "kiwify",    label: "Kiwify",        icon: Zap,           color: "text-violet-400" },
-  { id: "instagram", label: "Instagram",     icon: Instagram,     color: "text-pink-400"   },
-  { id: "facebook",  label: "Facebook",      icon: FacebookIcon,  color: "text-blue-400"   },
-  { id: "tiktok",    label: "TikTok",        icon: Video,         color: "text-cyan-400"   },
 ];
 
 /* ─── Checklist ──────────────────────────────────────────────── */
@@ -410,20 +410,18 @@ export function AdminApiConfig() {
         </div>
 
         {/* ── Tab bar ───────────────────────────────────────────── */}
-        <div className="overflow-x-auto scrollbar-none mb-2">
-          <div className="flex gap-1 p-1.5 bg-[#111111] border border-white/[0.06] rounded-xl w-max min-w-full">
-            {TABS.map(({ id, label, icon: Icon, color }) => (
-              <button key={id} onClick={() => setActiveTab(id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap shrink-0 ${
-                  activeTab === id ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"
-                }`}
-              >
-                <Icon className={`w-3 h-3 shrink-0 ${color}`} />
-                {label}
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${tabDot(id)}`} />
-              </button>
-            ))}
-          </div>
+        <div className="grid grid-cols-3 gap-1 p-1.5 bg-[#111111] border border-white/[0.06] rounded-xl mb-2">
+          {TABS.map(({ id, label, icon: Icon, color }) => (
+            <button key={id} onClick={() => setActiveTab(id)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                activeTab === id ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"
+              }`}
+            >
+              <Icon className={`w-3 h-3 shrink-0 ${color}`} />
+              <span className="flex-1 text-left">{label}</span>
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${tabDot(id)}`} />
+            </button>
+          ))}
         </div>
 
         {/* Status legend */}
