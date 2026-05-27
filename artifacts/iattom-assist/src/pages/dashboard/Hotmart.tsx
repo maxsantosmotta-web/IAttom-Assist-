@@ -1,29 +1,14 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Flame, Loader2, X, Info, AlertCircle,
-  Megaphone, ClipboardList, ExternalLink,
-  CheckCircle2, BarChart2, ShoppingBag, TrendingUp,
-  RefreshCw, Copy, Package, FileText,
+  Flame, X, Info, AlertCircle,
+  Megaphone, ClipboardList, Link2,
+  CheckCircle2, BarChart2, Package, TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
-
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
-    credentials: "include",
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({})) as { error?: string };
-    throw Object.assign(new Error(body.error ?? `HTTP ${res.status}`), { status: res.status });
-  }
-  return res.json() as Promise<T>;
-}
 
 function InformativeModal({
   title,
@@ -79,48 +64,7 @@ function InformativeModal({
   );
 }
 
-interface HotmartProduct {
-  id: number;
-  productId: string;
-  name?: string | null;
-  price?: string | null;
-  currency?: string | null;
-}
-
-interface HotmartEvent {
-  id: number;
-  eventType?: string | null;
-  buyerName?: string | null;
-  buyerEmail?: string | null;
-  value?: string | null;
-  currency?: string | null;
-  receivedAt?: string | null;
-}
-
-function thirtyDaysAgo() {
-  const d = new Date();
-  d.setDate(d.getDate() - 30);
-  return d;
-}
-
-function revenueIn30d(events: HotmartEvent[]): string {
-  const cutoff = thirtyDaysAgo();
-  const total = events
-    .filter(e => e.eventType === "PURCHASE_APPROVED" && e.receivedAt && new Date(e.receivedAt) >= cutoff)
-    .reduce((sum, e) => sum + parseFloat(e.value ?? "0"), 0);
-  if (total === 0) return "R$ 0";
-  return total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
 export function Hotmart() {
-  const { toast } = useToast();
-
-  const [products, setProducts] = useState<HotmartProduct[]>([]);
-  const [events, setEvents] = useState<HotmartEvent[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);
-  const [loadingEvents, setLoadingEvents] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-
   const [modal, setModal] = useState<{
     title: string;
     description: string;
@@ -133,51 +77,18 @@ export function Hotmart() {
     action?: { label: string; onClick: () => void },
   ) => setModal({ title, description, action });
 
-  const webhookEndpoint = `${window.location.origin}${BASE}/api/hotmart/webhook`;
-
-  const handleLoadProducts = useCallback(async () => {
-    setLoadingProducts(true);
-    try {
-      const data = await apiFetch<HotmartProduct[]>("/api/hotmart/user/products");
-      setProducts(data);
-    } catch {
-      setProducts([]);
-    } finally {
-      setLoadingProducts(false);
-    }
-  }, []);
-
-  const handleLoadEvents = useCallback(async () => {
-    setLoadingEvents(true);
-    try {
-      const data = await apiFetch<HotmartEvent[]>("/api/hotmart/user/sales");
-      setEvents(data);
-    } catch {
-      setEvents([]);
-    } finally {
-      setLoadingEvents(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void handleLoadProducts();
-    void handleLoadEvents();
-  }, [handleLoadProducts, handleLoadEvents]);
-
-  const handleSync = async () => {
-    setSyncing(true);
-    try {
-      await handleLoadProducts();
-      await handleLoadEvents();
-      toast({ description: "Sincronização concluída." });
-    } finally {
-      setSyncing(false);
-    }
+  const handleConnect = () => {
+    showInfo(
+      "Conectar Hotmart",
+      "A conexão com Hotmart estará disponível em breve. Após ativar, você poderá acessar produtos, campanhas e vendas diretamente aqui.",
+    );
   };
 
-  const handleCopyWebhook = () => {
-    navigator.clipboard.writeText(webhookEndpoint);
-    toast({ description: "Endereço copiado." });
+  const handleAnalytics = () => {
+    showInfo(
+      "Análise Hotmart",
+      "As métricas de performance estarão disponíveis após a conexão da conta.",
+    );
   };
 
   const handleCriarCampanha = () => {
@@ -189,12 +100,6 @@ export function Hotmart() {
     sessionStorage.setItem("content_platform_context", JSON.stringify({ platform: "hotmart" }));
     window.location.href = `${BASE}/dashboard/create-content`;
   };
-
-  const cutoff = thirtyDaysAgo();
-  const approvedIn30d = events.filter(e =>
-    e.eventType === "PURCHASE_APPROVED" && e.receivedAt && new Date(e.receivedAt) >= cutoff
-  ).length;
-  const hasActivity = events.length > 0;
 
   return (
     <div className="space-y-6">
@@ -217,16 +122,16 @@ export function Hotmart() {
             </div>
             <div>
               <h1 className="text-lg font-bold text-white">Hotmart</h1>
-              <p className="text-xs text-muted-foreground">Produtos digitais e campanhas</p>
+              <p className="text-xs text-muted-foreground">Gerencie produtos, campanhas e suas vendas na Hotmart</p>
             </div>
           </div>
           <Button
-            onClick={handleCriarCampanha}
+            onClick={handleConnect}
             className="bg-orange-500 hover:bg-orange-400 text-white font-semibold"
             size="sm"
           >
-            <Megaphone className="w-3.5 h-3.5 mr-2" />
-            Criar campanha
+            <Link2 className="w-3.5 h-3.5 mr-2" />
+            Conectar Hotmart
           </Button>
         </div>
 
@@ -234,66 +139,51 @@ export function Hotmart() {
         <Card className="bg-[#111111] border-white/[0.06] mb-5">
           <CardContent className="p-4">
             <div className="flex flex-wrap items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
-                <Flame className="w-5 h-5 text-orange-400" />
+              <AlertCircle className="w-4 h-4 text-muted-foreground shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground">Conta Hotmart não conectada</p>
+                <p className="text-xs text-muted-foreground/60 mt-0.5">
+                  Conecte sua conta para acessar produtos, campanhas e vendas.
+                </p>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white">Hotmart</p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-xs text-emerald-400">Conta ativa</span>
-                </div>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void handleSync()}
-                  disabled={syncing}
-                  className="border-white/10 text-muted-foreground hover:text-white h-8 text-xs gap-1.5"
-                >
-                  {syncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                  Sincronizar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => window.open("https://app.hotmart.com", "_blank", "noopener,noreferrer")}
-                  className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10 h-8 text-xs gap-1.5"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  Abrir Hotmart
-                </Button>
-              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleConnect}
+                className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10 ml-auto shrink-0"
+              >
+                <Link2 className="w-3 h-3 mr-1.5" />
+                Conectar
+              </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* ── Feature Cards 2×2 ────────────────────────────────── */}
+        {/* ── Feature Cards ─────────────────────────────────────── */}
         <div className="grid md:grid-cols-2 gap-4">
 
-          {/* Campanhas */}
+          {/* Anúncios */}
           <Card className="bg-[#111111] border-white/[0.06]">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                  <Megaphone className="w-4 h-4 text-orange-400" />
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                  <Megaphone className="w-4 h-4 text-blue-400" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-semibold text-white">Campanhas</CardTitle>
-                  <p className="text-xs text-muted-foreground">Promoção e alcance</p>
+                  <CardTitle className="text-sm font-semibold text-white">Anúncios</CardTitle>
+                  <p className="text-xs text-muted-foreground">Campanhas</p>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Crie campanhas para promover seus produtos Hotmart em diferentes canais.
+                Acompanhe suas campanhas da Hotmart. Visualizações, alcance e conversões disponíveis após conexão.
               </p>
               <div className="grid grid-cols-3 gap-2 py-1">
                 {[
-                  { icon: Megaphone, label: "Campanhas", value: "—" },
-                  { icon: BarChart2, label: "Alcance", value: "—" },
-                  { icon: TrendingUp, label: "Conversão", value: "—" },
+                  { icon: BarChart2, label: "Visualizações", value: "—" },
+                  { icon: Package, label: "Alcance", value: "—" },
+                  { icon: TrendingUp, label: "Conversões", value: "—" },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="p-2 rounded bg-white/5 text-center">
                     <Icon className="w-3.5 h-3.5 text-muted-foreground mx-auto mb-1" />
@@ -304,11 +194,12 @@ export function Hotmart() {
               </div>
               <Button
                 size="sm"
-                onClick={handleCriarCampanha}
-                className="w-full bg-orange-500 hover:bg-orange-400 text-white font-semibold h-8 text-xs"
+                variant="outline"
+                onClick={handleAnalytics}
+                className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
               >
-                <Megaphone className="w-3 h-3 mr-1.5" />
-                Criar campanha
+                <BarChart2 className="w-3 h-3 mr-1.5" />
+                Ver análise
               </Button>
             </CardContent>
           </Card>
@@ -322,15 +213,24 @@ export function Hotmart() {
                 </div>
                 <div>
                   <CardTitle className="text-sm font-semibold text-white">Conteúdo</CardTitle>
-                  <p className="text-xs text-muted-foreground">Textos, criativos e scripts</p>
+                  <p className="text-xs text-muted-foreground">Publicações</p>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Produza materiais de divulgação para seus produtos.
+                Crie conteúdos e campanhas utilizando os módulos centrais da plataforma.
               </p>
               <div className="flex flex-col gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCriarCampanha}
+                  className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
+                >
+                  <Megaphone className="w-3 h-3 mr-1.5" />
+                  Criar campanha
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"
@@ -339,18 +239,6 @@ export function Hotmart() {
                 >
                   <ClipboardList className="w-3 h-3 mr-1.5" />
                   Criar conteúdo
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    sessionStorage.setItem("video_platform_context", JSON.stringify({ platform: "hotmart" }));
-                    window.location.href = `${BASE}/dashboard/video-scripts`;
-                  }}
-                  className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
-                >
-                  <FileText className="w-3 h-3 mr-1.5" />
-                  Scripts de vídeo
                 </Button>
               </div>
             </CardContent>
@@ -361,7 +249,7 @@ export function Hotmart() {
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                  <ShoppingBag className="w-4 h-4 text-emerald-400" />
+                  <ClipboardList className="w-4 h-4 text-emerald-400" />
                 </div>
                 <div>
                   <CardTitle className="text-sm font-semibold text-white">Atividade da conta</CardTitle>
@@ -370,25 +258,25 @@ export function Hotmart() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="space-y-2 py-1">
+              <div className="space-y-2 py-2">
                 {[
                   {
                     icon: CheckCircle2,
-                    label: "Notificações",
-                    value: hasActivity ? "Ativas" : "Aguardando",
-                    ok: hasActivity,
+                    label: "Conexão",
+                    value: "Aguardando",
+                    ok: false,
                   },
                   {
-                    icon: ShoppingBag,
-                    label: "Vendas recebidas",
-                    value: loadingEvents ? "—" : String(events.length),
-                    ok: events.length > 0,
+                    icon: Package,
+                    label: "Produtos conectados",
+                    value: "—",
+                    ok: false,
                   },
                   {
-                    icon: TrendingUp,
-                    label: "Aprovadas (30d)",
-                    value: loadingEvents ? "—" : String(approvedIn30d),
-                    ok: approvedIn30d > 0,
+                    icon: BarChart2,
+                    label: "Eventos recebidos",
+                    value: "—",
+                    ok: false,
                   },
                 ].map(({ icon: Icon, label, value, ok }) => (
                   <div key={label} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
@@ -396,21 +284,17 @@ export function Hotmart() {
                       <Icon className={`w-3.5 h-3.5 ${ok ? "text-emerald-400" : "text-muted-foreground"}`} />
                       <span className="text-xs text-muted-foreground">{label}</span>
                     </div>
-                    <span className={`text-xs font-medium ${ok ? "text-emerald-400" : "text-white"}`}>{value}</span>
+                    <span className="text-xs font-medium text-white">{value}</span>
                   </div>
                 ))}
               </div>
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => showInfo(
-                  "Notificações de vendas",
-                  "Configure o endereço abaixo no painel Hotmart para receber notificações de vendas, reembolsos e assinaturas em tempo real.",
-                  { label: "Copiar endereço", onClick: handleCopyWebhook },
-                )}
-                className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
+                onClick={handleConnect}
+                className="w-full border-orange-500/30 text-orange-400 hover:bg-orange-500/10 h-8 text-xs"
               >
-                <Copy className="w-3 h-3 mr-1.5" />
+                <Link2 className="w-3 h-3 mr-1.5" />
                 Conectar conta
               </Button>
             </CardContent>
@@ -420,27 +304,27 @@ export function Hotmart() {
           <Card className="bg-[#111111] border-white/[0.06]">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                  <BarChart2 className="w-4 h-4 text-amber-400" />
+                <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 text-cyan-400" />
                 </div>
                 <div>
                   <CardTitle className="text-sm font-semibold text-white">Análise</CardTitle>
-                  <p className="text-xs text-muted-foreground">Produtos e receita</p>
+                  <p className="text-xs text-muted-foreground">Performance e métricas</p>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Acompanhe o desempenho dos seus produtos e receita nos últimos 30 dias.
+                Acompanhe visualizações, engajamento e desempenho diretamente na plataforma.
               </p>
               <div className="grid grid-cols-2 gap-2 py-1">
                 {[
-                  { icon: Package, label: "Produtos", value: loadingProducts ? "—" : String(products.length) },
-                  { icon: BarChart2, label: "Receita (30d)", value: loadingEvents ? "—" : revenueIn30d(events) },
+                  { icon: Package, label: "Produtos", value: "—" },
+                  { icon: TrendingUp, label: "Conversões", value: "—" },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="p-2 rounded bg-white/5 text-center">
                     <Icon className="w-3.5 h-3.5 text-muted-foreground mx-auto mb-1" />
-                    <p className="text-xs font-semibold text-white truncate">{value}</p>
+                    <p className="text-xs font-semibold text-white">{value}</p>
                     <p className="text-[10px] text-muted-foreground">{label}</p>
                   </div>
                 ))}
@@ -448,17 +332,16 @@ export function Hotmart() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => window.open("https://app.hotmart.com", "_blank", "noopener,noreferrer")}
+                onClick={handleAnalytics}
                 className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
               >
-                <ExternalLink className="w-3 h-3 mr-1.5" />
+                <TrendingUp className="w-3 h-3 mr-1.5" />
                 Ver análise
               </Button>
             </CardContent>
           </Card>
 
         </div>
-
       </motion.div>
     </div>
   );
