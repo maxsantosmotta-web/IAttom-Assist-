@@ -163,7 +163,7 @@ export function TikTok() {
 
   const handleAnalytics = () => {
     showInfo(
-      "Analytics TikTok",
+      "Análise TikTok",
       "As métricas de performance dos seus vídeos e campanhas TikTok estarão disponíveis aqui após a conexão e ativação da integração. Função preparada para próxima etapa.",
     );
   };
@@ -302,8 +302,8 @@ export function TikTok() {
                   <Megaphone className="w-4 h-4 text-blue-400" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-semibold text-white">TikTok Ads</CardTitle>
-                  <p className="text-xs text-muted-foreground">Campanhas e anúncios pagos</p>
+                  <CardTitle className="text-sm font-semibold text-white">Anúncios</CardTitle>
+                  <p className="text-xs text-muted-foreground">Campanhas</p>
                 </div>
                 <Badge className="ml-auto bg-yellow-500/15 text-yellow-400 border-yellow-500/30 text-[10px]">Em breve</Badge>
               </div>
@@ -332,7 +332,7 @@ export function TikTok() {
                 className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
               >
                 <BarChart2 className="w-3 h-3 mr-1.5" />
-                Ver Analytics
+                Ver análise
               </Button>
             </CardContent>
           </Card>
@@ -345,8 +345,8 @@ export function TikTok() {
                   <Video className="w-4 h-4 text-violet-400" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-semibold text-white">Vídeos e Conteúdo</CardTitle>
-                  <p className="text-xs text-muted-foreground">Scripts e publicação</p>
+                  <CardTitle className="text-sm font-semibold text-white">Conteúdo</CardTitle>
+                  <p className="text-xs text-muted-foreground">Vídeos e publicações</p>
                 </div>
               </div>
             </CardHeader>
@@ -379,8 +379,8 @@ export function TikTok() {
                   <ClipboardList className="w-4 h-4 text-emerald-400" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-semibold text-white">Eventos e Logs</CardTitle>
-                  <p className="text-xs text-muted-foreground">Histórico de ações</p>
+                  <CardTitle className="text-sm font-semibold text-white">Atividade da conta</CardTitle>
+                  <p className="text-xs text-muted-foreground">Movimentações recentes</p>
                 </div>
               </div>
             </CardHeader>
@@ -428,7 +428,7 @@ export function TikTok() {
                   {connecting
                     ? <Loader2 className="w-3 h-3 animate-spin mr-1.5" />
                     : <Link2 className="w-3 h-3 mr-1.5" />}
-                  Conectar para ativar logs
+                  Conectar conta
                 </Button>
               )}
             </CardContent>
@@ -442,7 +442,7 @@ export function TikTok() {
                   <TrendingUp className="w-4 h-4 text-cyan-400" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-semibold text-white">Analytics</CardTitle>
+                  <CardTitle className="text-sm font-semibold text-white">Análise</CardTitle>
                   <p className="text-xs text-muted-foreground">Performance e métricas</p>
                 </div>
                 <Badge className="ml-auto bg-yellow-500/15 text-yellow-400 border-yellow-500/30 text-[10px]">Em breve</Badge>
@@ -471,7 +471,7 @@ export function TikTok() {
                 className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
               >
                 <TrendingUp className="w-3 h-3 mr-1.5" />
-                Ver Analytics
+                Ver análise
               </Button>
             </CardContent>
           </Card>

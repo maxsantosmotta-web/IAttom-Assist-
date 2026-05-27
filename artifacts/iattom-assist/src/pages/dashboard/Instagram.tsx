@@ -178,7 +178,7 @@ export function Instagram() {
 
   const handleAnalytics = () => {
     showInfo(
-      "Analytics Instagram",
+      "Análise Instagram",
       "Métricas de alcance, engajamento e performance de conteúdo estarão disponíveis após a conexão da conta Business.",
     );
   };
@@ -343,7 +343,7 @@ export function Instagram() {
                 className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
               >
                 <BarChart2 className="w-3 h-3 mr-1.5" />
-                Ver Analytics
+                Ver análise
               </Button>
             </CardContent>
           </Card>
@@ -357,7 +357,7 @@ export function Instagram() {
                 </div>
                 <div>
                   <CardTitle className="text-sm font-semibold text-white">Conteúdo</CardTitle>
-                  <p className="text-xs text-muted-foreground">Posts, stories e reels</p>
+                  <p className="text-xs text-muted-foreground">Publicações</p>
                 </div>
               </div>
             </CardHeader>
@@ -402,8 +402,8 @@ export function Instagram() {
                   <ClipboardList className="w-4 h-4 text-emerald-400" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-semibold text-white">Eventos e Logs</CardTitle>
-                  <p className="text-xs text-muted-foreground">Histórico de ações</p>
+                  <CardTitle className="text-sm font-semibold text-white">Atividade da conta</CardTitle>
+                  <p className="text-xs text-muted-foreground">Movimentações recentes</p>
                 </div>
               </div>
             </CardHeader>
@@ -449,7 +449,7 @@ export function Instagram() {
                   {connecting
                     ? <Loader2 className="w-3 h-3 animate-spin mr-1.5" />
                     : <Link2 className="w-3 h-3 mr-1.5" />}
-                  Conectar para ativar logs
+                  Conectar conta
                 </Button>
               )}
             </CardContent>
@@ -463,7 +463,7 @@ export function Instagram() {
                   <TrendingUp className="w-4 h-4 text-cyan-400" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-semibold text-white">Analytics</CardTitle>
+                  <CardTitle className="text-sm font-semibold text-white">Análise</CardTitle>
                   <p className="text-xs text-muted-foreground">Performance e métricas</p>
                 </div>
               </div>
@@ -497,7 +497,7 @@ export function Instagram() {
                 className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
               >
                 <TrendingUp className="w-3 h-3 mr-1.5" />
-                Ver Analytics
+                Ver análise
               </Button>
             </CardContent>
           </Card>

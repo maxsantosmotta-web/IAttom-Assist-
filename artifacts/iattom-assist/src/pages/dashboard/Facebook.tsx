@@ -176,7 +176,7 @@ export function Facebook() {
 
   const handleAnalytics = () => {
     showInfo(
-      "Analytics Facebook",
+      "Análise Facebook",
       "Métricas de alcance, engajamento e performance de campanhas estarão disponíveis após a conexão da conta Business.",
     );
   };
@@ -309,14 +309,14 @@ export function Facebook() {
                   <Megaphone className="w-4 h-4 text-blue-400" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-semibold text-white">Facebook Ads</CardTitle>
-                  <p className="text-xs text-muted-foreground">Campanhas e anúncios pagos</p>
+                  <CardTitle className="text-sm font-semibold text-white">Anúncios</CardTitle>
+                  <p className="text-xs text-muted-foreground">Campanhas</p>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Acompanhe campanhas do Facebook Ads. Impressões, alcance e conversões disponíveis após conexão.
+                Acompanhe campanhas no Facebook. Impressões, alcance e conversões disponíveis após conexão.
               </p>
               <div className="grid grid-cols-3 gap-2 py-1">
                 {[
@@ -338,7 +338,7 @@ export function Facebook() {
                 className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
               >
                 <BarChart2 className="w-3 h-3 mr-1.5" />
-                Ver Analytics
+                Ver análise
               </Button>
             </CardContent>
           </Card>
@@ -351,8 +351,8 @@ export function Facebook() {
                   <Globe className="w-4 h-4 text-indigo-400" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-semibold text-white">Páginas e Conteúdo</CardTitle>
-                  <p className="text-xs text-muted-foreground">Posts e publicações</p>
+                  <CardTitle className="text-sm font-semibold text-white">Conteúdo</CardTitle>
+                  <p className="text-xs text-muted-foreground">Publicações</p>
                 </div>
               </div>
             </CardHeader>
@@ -397,8 +397,8 @@ export function Facebook() {
                   <ClipboardList className="w-4 h-4 text-emerald-400" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-semibold text-white">Eventos e Logs</CardTitle>
-                  <p className="text-xs text-muted-foreground">Histórico de ações</p>
+                  <CardTitle className="text-sm font-semibold text-white">Atividade da conta</CardTitle>
+                  <p className="text-xs text-muted-foreground">Movimentações recentes</p>
                 </div>
               </div>
             </CardHeader>
@@ -444,7 +444,7 @@ export function Facebook() {
                   {connecting
                     ? <Loader2 className="w-3 h-3 animate-spin mr-1.5" />
                     : <Link2 className="w-3 h-3 mr-1.5" />}
-                  Conectar para ativar logs
+                  Conectar conta
                 </Button>
               )}
             </CardContent>
@@ -458,7 +458,7 @@ export function Facebook() {
                   <TrendingUp className="w-4 h-4 text-cyan-400" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-semibold text-white">Analytics</CardTitle>
+                  <CardTitle className="text-sm font-semibold text-white">Análise</CardTitle>
                   <p className="text-xs text-muted-foreground">Performance e métricas</p>
                 </div>
               </div>
@@ -486,7 +486,7 @@ export function Facebook() {
                 className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
               >
                 <TrendingUp className="w-3 h-3 mr-1.5" />
-                Ver Analytics
+                Ver análise
               </Button>
             </CardContent>
           </Card>
