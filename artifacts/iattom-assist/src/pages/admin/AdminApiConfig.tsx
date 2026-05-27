@@ -410,18 +410,20 @@ export function AdminApiConfig() {
         </div>
 
         {/* ── Tab bar ───────────────────────────────────────────── */}
-        <div className="grid grid-cols-4 sm:grid-cols-7 gap-1 p-1.5 bg-[#111111] border border-white/[0.06] rounded-xl mb-2">
-          {TABS.map(({ id, label, icon: Icon, color }) => (
-            <button key={id} onClick={() => setActiveTab(id)}
-              className={`flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium transition-all min-w-0 ${
-                activeTab === id ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"
-              }`}
-            >
-              <Icon className={`w-3 h-3 shrink-0 ${color}`} />
-              <span className="truncate">{label}</span>
-              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${tabDot(id)}`} />
-            </button>
-          ))}
+        <div className="overflow-x-auto scrollbar-none mb-2">
+          <div className="flex gap-1 p-1.5 bg-[#111111] border border-white/[0.06] rounded-xl w-max min-w-full">
+            {TABS.map(({ id, label, icon: Icon, color }) => (
+              <button key={id} onClick={() => setActiveTab(id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap shrink-0 ${
+                  activeTab === id ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"
+                }`}
+              >
+                <Icon className={`w-3 h-3 shrink-0 ${color}`} />
+                {label}
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${tabDot(id)}`} />
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Status legend */}
