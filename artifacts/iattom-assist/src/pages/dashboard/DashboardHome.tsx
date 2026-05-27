@@ -1,20 +1,36 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import {
   Search, CheckCircle, Megaphone, FileText, Sparkles, Video,
   ArrowRight, TrendingUp, Layers, Zap, Clock, FolderOpen,
-  Rocket, Trophy, BarChart2, BookMarked,
+  Trophy, BarChart2, BookMarked,
   Award,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  useGetDashboardSummary, useListProjects,
+  useGetDashboardSummary,
   useListHistory, getListHistoryQueryKey,
 } from "@workspace/api-client-react";
 import { useUser } from "@clerk/react";
 import { UpgradeNudge } from "@/components/UpgradeNudge";
 import { useUserAccess } from "@/hooks/useUserAccess";
+
+interface SavedItem {
+  id: string;
+  title: string;
+  type: string;
+  platform?: string;
+  createdAt: string;
+}
+
+function readSavedItems(): SavedItem[] {
+  try {
+    const raw = localStorage.getItem("iattom_saved_items_v1");
+    return raw ? (JSON.parse(raw) as SavedItem[]) : [];
+  } catch { return []; }
+}
 
 const quickActions = [
   { href: "/dashboard/find-products", label: "Buscar Produtos", icon: Search, desc: "Descubra produtos vencedores", color: "text-primary", bg: "bg-primary/10 border-primary/20", glow: "hover:shadow-[0_0_30px_-6px_rgba(201,168,76,0.2)]", module: "product_discovery" },
@@ -37,11 +53,6 @@ const MODULE_TO_ACTION: Record<string, string> = {
   marketing: "create-campaign",
 };
 
-const statusStyles: Record<string, { dot: string; badge: string }> = {
-  draft: { dot: "bg-zinc-600", badge: "bg-white/5 text-zinc-500 border-white/[0.08]" },
-  in_progress: { dot: "bg-primary", badge: "bg-primary/10 text-primary border-primary/25" },
-  completed: { dot: "bg-emerald-500", badge: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
-};
 
 const typeLabels: Record<string, string> = {
   product_discovery: "Descoberta de Produtos",
@@ -93,7 +104,7 @@ const ACHIEVEMENTS = [
 
 export function DashboardHome() {
   const { data: summary, isLoading: summaryLoading } = useGetDashboardSummary();
-  const { data: projects, isLoading: projectsLoading } = useListProjects();
+  const [projects] = useState<SavedItem[]>(readSavedItems);
   const { data: historyData } = useListHistory(
     { limit: 10 },
     { query: { queryKey: getListHistoryQueryKey({ limit: 10 }), retry: false, staleTime: 60_000 } },
@@ -114,9 +125,6 @@ export function DashboardHome() {
           .filter((entry): entry is [string, typeof quickActions[0]] => !!entry[1])
       ).values()).slice(0, 3)
     : [];
-
-  // Quick resume — last in-progress project
-  const resumeProject = projects?.find((p) => p.status === "in_progress");
 
   // Achievements
   const summaryForBadges = {
@@ -173,36 +181,10 @@ export function DashboardHome() {
         ))}
       </motion.div>
 
-      {/* Quick Resume + Recently Used (side by side when both exist) */}
-      {(resumeProject || recentModules.length > 0) && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {/* Quick Resume */}
-          {resumeProject && (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.38 }}
-              className="group relative bg-[#0f0f0f] border border-white/[0.06] rounded-2xl p-4 hover:border-primary/20 hover:bg-[#111111] transition-all duration-300 overflow-hidden"
-            >
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(ellipse_80%_80%_at_0%_0%,rgba(201,168,76,0.04),transparent)]" />
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-6 h-6 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Rocket className="w-3 h-3 text-primary" />
-                </div>
-                <span className="text-[10px] font-black text-primary uppercase tracking-widest">Retomar</span>
-              </div>
-              <p className="text-sm font-bold text-zinc-200 truncate mb-1">{resumeProject.name}</p>
-              <p className="text-xs text-zinc-600 mb-3">{typeLabels[resumeProject.type] ?? resumeProject.type}</p>
-              <Link href="/dashboard/projects">
-                <button className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors">
-                  Continuar projeto <ArrowRight className="w-3 h-3" />
-                </button>
-              </Link>
-            </motion.div>
-          )}
-
-          {/* Recently Used Tools */}
-          {recentModules.length > 0 && (
+      {/* Recently Used Tools */}
+      {recentModules.length > 0 && (
+        <div className="grid gap-3">
+          {(
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -313,36 +295,21 @@ export function DashboardHome() {
           </Link>
         </div>
 
-        {projectsLoading ? (
-          <div className="space-y-2">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-[62px] w-full bg-white/[0.025] rounded-xl" />
-            ))}
-          </div>
-        ) : projects && projects.length > 0 ? (
+        {projects.length > 0 ? (
           <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-2">
-            {projects.slice(0, 5).map((project) => {
-              const style = statusStyles[project.status] ?? statusStyles.draft;
-              return (
-                <motion.div key={project.id} variants={itemVariants}>
-                  <div
-                    data-testid={`project-row-${project.id}`}
-                    className="flex items-center gap-4 px-4 py-3.5 rounded-xl bg-[#0f0f0f] border border-white/[0.06] hover:border-white/[0.09] hover:bg-[#111111] transition-all duration-200"
-                  >
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${style.dot}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-zinc-200 truncate">{project.name}</p>
-                      <p className="text-xs text-zinc-600 mt-0.5">{typeLabels[project.type] ?? project.type}</p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <Badge variant="outline" className={`text-[10px] capitalize ${style.badge}`}>
-                        {({ draft: "Rascunho", in_progress: "Em Andamento", completed: "Concluído" } as Record<string, string>)[project.status] ?? project.status.replace("_", " ")}
-                      </Badge>
-                    </div>
+            {projects.slice(0, 5).map((item) => (
+              <motion.div key={item.id} variants={itemVariants}>
+                <div
+                  className="flex items-center gap-4 px-4 py-3.5 rounded-xl bg-[#0f0f0f] border border-white/[0.06] hover:border-white/[0.09] hover:bg-[#111111] transition-all duration-200"
+                >
+                  <div className="w-2 h-2 rounded-full shrink-0 bg-zinc-600" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-zinc-200 truncate">{item.title}</p>
+                    <p className="text-xs text-zinc-600 mt-0.5">{typeLabels[item.type] ?? item.type}</p>
                   </div>
-                </motion.div>
-              );
-            })}
+                </div>
+              </motion.div>
+            ))}
           </motion.div>
         ) : (
           <motion.div
@@ -351,20 +318,15 @@ export function DashboardHome() {
             transition={{ duration: 0.4 }}
             className="flex flex-col items-center justify-center py-14 text-center border border-dashed border-white/[0.07] rounded-2xl bg-white/[0.01]"
           >
-            <div className="relative mb-4">
-              <div className="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.07] flex items-center justify-center">
-                <FolderOpen className="w-6 h-6 text-zinc-700" />
-              </div>
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center">
-                <span className="text-[9px] text-primary font-bold">0</span>
-              </div>
+            <div className="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.07] flex items-center justify-center mb-4">
+              <FolderOpen className="w-6 h-6 text-zinc-700" />
             </div>
-            <p className="text-sm font-semibold text-zinc-500">Sem projetos ainda</p>
+            <p className="text-sm font-semibold text-zinc-500">Sem projetos salvos ainda</p>
             <p className="text-xs text-zinc-700 mt-1 max-w-[200px] leading-relaxed">
-              Use um módulo para criar seu primeiro projeto
+              Use um módulo de IA para gerar e salvar seu primeiro projeto
             </p>
             <Link href="/dashboard/projects" className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 mt-3 font-semibold transition-colors">
-              Criar um projeto <ArrowRight className="w-3 h-3" />
+              Ver Projetos Salvos <ArrowRight className="w-3 h-3" />
             </Link>
           </motion.div>
         )}
