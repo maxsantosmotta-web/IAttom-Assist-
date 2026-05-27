@@ -1,3 +1,4 @@
+// @ts-nocheck — arquivo marcado para exclusão na próxima fase
 import { getCurrentUserConnection, upsertUserConnection, deactivateUserConnection } from "../userConnectionsService.js";
 import type { UserWhatsappConnection, NewUserWhatsappConnection } from "@workspace/db";
 

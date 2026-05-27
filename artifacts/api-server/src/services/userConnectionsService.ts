@@ -1,21 +1,18 @@
 import { db } from "@workspace/db";
 import {
   userMetaConnections,
-  userWhatsappConnections,
   userHotmartConnections,
   userKiwifyConnections,
   userShopeeConnections,
   userMlConnections,
   userTiktokConnections,
   type UserMetaConnection,
-  type UserWhatsappConnection,
   type UserHotmartConnection,
   type UserKiwifyConnection,
   type UserShopeeConnection,
   type UserMlConnection,
   type UserTiktokConnection,
   type NewUserMetaConnection,
-  type NewUserWhatsappConnection,
   type NewUserHotmartConnection,
   type NewUserKiwifyConnection,
   type NewUserShopeeConnection,
@@ -26,7 +23,6 @@ import { eq, and } from "drizzle-orm";
 
 export type Platform =
   | "meta"
-  | "whatsapp"
   | "hotmart"
   | "kiwify"
   | "shopee"
@@ -35,7 +31,6 @@ export type Platform =
 
 export type UserConnectionByPlatform = {
   meta: UserMetaConnection;
-  whatsapp: UserWhatsappConnection;
   hotmart: UserHotmartConnection;
   kiwify: UserKiwifyConnection;
   shopee: UserShopeeConnection;
@@ -45,7 +40,6 @@ export type UserConnectionByPlatform = {
 
 export type NewUserConnectionByPlatform = {
   meta: NewUserMetaConnection;
-  whatsapp: NewUserWhatsappConnection;
   hotmart: NewUserHotmartConnection;
   kiwify: NewUserKiwifyConnection;
   shopee: NewUserShopeeConnection;
@@ -54,7 +48,6 @@ export type NewUserConnectionByPlatform = {
 };
 
 async function getCurrentUserConnection(clerkUserId: string, platform: "meta"): Promise<UserMetaConnection | null>;
-async function getCurrentUserConnection(clerkUserId: string, platform: "whatsapp"): Promise<UserWhatsappConnection | null>;
 async function getCurrentUserConnection(clerkUserId: string, platform: "hotmart"): Promise<UserHotmartConnection | null>;
 async function getCurrentUserConnection(clerkUserId: string, platform: "kiwify"): Promise<UserKiwifyConnection | null>;
 async function getCurrentUserConnection(clerkUserId: string, platform: "shopee"): Promise<UserShopeeConnection | null>;
@@ -68,12 +61,6 @@ async function getCurrentUserConnection(
     case "meta": {
       const [row] = await db.select().from(userMetaConnections)
         .where(and(eq(userMetaConnections.clerkUserId, clerkUserId), eq(userMetaConnections.isActive, true)))
-        .limit(1);
-      return row ?? null;
-    }
-    case "whatsapp": {
-      const [row] = await db.select().from(userWhatsappConnections)
-        .where(and(eq(userWhatsappConnections.clerkUserId, clerkUserId), eq(userWhatsappConnections.isActive, true)))
         .limit(1);
       return row ?? null;
     }
@@ -140,9 +127,6 @@ export async function upsertUserConnection<P extends Platform>(
     case "meta":
       await db.insert(userMetaConnections).values({ clerkUserId, ...(data as Omit<NewUserMetaConnection, "clerkUserId">) });
       break;
-    case "whatsapp":
-      await db.insert(userWhatsappConnections).values({ clerkUserId, ...(data as Omit<NewUserWhatsappConnection, "clerkUserId">) });
-      break;
     case "hotmart":
       await db.insert(userHotmartConnections).values({ clerkUserId, ...(data as Omit<NewUserHotmartConnection, "clerkUserId">) });
       break;
@@ -165,9 +149,6 @@ export async function deactivateUserConnection(clerkUserId: string, platform: Pl
   switch (platform) {
     case "meta":
       await db.update(userMetaConnections).set({ isActive: false, updatedAt: new Date() }).where(and(eq(userMetaConnections.id, connectionId), eq(userMetaConnections.clerkUserId, clerkUserId)));
-      break;
-    case "whatsapp":
-      await db.update(userWhatsappConnections).set({ isActive: false, updatedAt: new Date() }).where(and(eq(userWhatsappConnections.id, connectionId), eq(userWhatsappConnections.clerkUserId, clerkUserId)));
       break;
     case "hotmart":
       await db.update(userHotmartConnections).set({ isActive: false, updatedAt: new Date() }).where(and(eq(userHotmartConnections.id, connectionId), eq(userHotmartConnections.clerkUserId, clerkUserId)));
