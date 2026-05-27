@@ -20,10 +20,10 @@ import {
 const router: IRouter = Router();
 
 const CREDIT_PACKAGES = [
-  { id: "credits_100",  credits: 100,  unitAmountBrl: 1990,  name: "Pacote 100 Créditos",   displayPrice: "R$ 19,90"  },
-  { id: "credits_300",  credits: 300,  unitAmountBrl: 4990,  name: "Pacote 300 Créditos",   displayPrice: "R$ 49,90"  },
-  { id: "credits_1000", credits: 1000, unitAmountBrl: 12990, name: "Pacote 1.000 Créditos", displayPrice: "R$ 129,90" },
-  { id: "credits_5000", credits: 5000, unitAmountBrl: 49790, name: "Pacote 5.000 Créditos", displayPrice: "R$ 497,90" },
+  { id: "credits_100",  credits: 100,  unitAmountBrl: 2990,  name: "Pacote 100 Créditos",   displayPrice: "R$ 29,90"  },
+  { id: "credits_300",  credits: 300,  unitAmountBrl: 6990,  name: "Pacote 300 Créditos",   displayPrice: "R$ 69,90"  },
+  { id: "credits_700",  credits: 700,  unitAmountBrl: 9790,  name: "Pacote 700 Créditos",   displayPrice: "R$ 97,90"  },
+  { id: "credits_1500", credits: 1500, unitAmountBrl: 13790, name: "Pacote 1.500 Créditos", displayPrice: "R$ 137,90" },
 ] as const;
 
 router.get("/stripe/credit-packages", requireAuth, (_req: Request, res: Response) => {

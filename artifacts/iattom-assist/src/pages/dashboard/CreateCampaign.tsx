@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Megaphone, Target, Globe, Loader2, Copy, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Zap, Save, ExternalLink } from "lucide-react";
 import { saveProjectAssets } from "@/lib/assetStorage";
+import { useSavedItems } from "@/hooks/useSavedItems";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -245,6 +246,7 @@ export function CreateCampaign() {
   const [productType, setProductType] = useState("");
   const { status, result, error, generate, reset } = useAiStream<CampaignResult>();
   const { toast } = useToast();
+  const { saveItem } = useSavedItems();
 
   const [campaignData, setCampaignData] = useState<CampaignResult | null>(null);
   const [creativeResult, setCreativeResult] = useState<CreativeIdeasResult | null>(null);
@@ -419,11 +421,10 @@ export function CreateCampaign() {
       const existing = raw ? (JSON.parse(raw) as object[]) : [];
       existing.unshift({ id: projectId, title, type: "campaign", platform, content, data: structuredData, hasImages: imageAssets.length > 0, createdAt: new Date().toISOString() });
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
-      if (imageAssets.length > 0) void saveProjectAssets(projectId, imageAssets);
-      toast({ description: "Projeto salvo" });
-    } catch {
-      toast({ description: "Erro ao salvar.", variant: "destructive" });
-    }
+    } catch {}
+    if (imageAssets.length > 0) void saveProjectAssets(projectId, imageAssets);
+    void saveItem({ id: projectId, title, type: "campaign", platform, content, data: structuredData, hasImages: imageAssets.length > 0 }).catch(() => {});
+    toast({ description: "Projeto salvo" });
   };
 
 

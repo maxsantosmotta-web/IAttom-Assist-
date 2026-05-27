@@ -529,3 +529,31 @@
     inset: -1px;
   }
 }
+
+/* ── Recharts: transparent background (dark mode fix) ──────────── */
+.recharts-wrapper,
+.recharts-wrapper > svg {
+  background: transparent !important;
+}
+
+/* ── Clerk UserProfile modal — layout isolation ──────────────── */
+.cl-rootBox {
+  isolation: isolate;
+  color-scheme: light;
+}
+.cl-avatarImage {
+  display: inline-block !important;
+  max-width: none !important;
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  object-fit: cover !important;
+}
+.cl-userProfile-root {
+  isolation: isolate;
+}
+.cl-profileSectionPrimaryButton,
+.cl-formButtonPrimary {
+  display: inline-flex !important;
+  align-items: center !important;
+  white-space: nowrap !important;
+}

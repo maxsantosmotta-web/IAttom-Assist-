@@ -249,11 +249,11 @@ export function AdminAnalytics() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={160}>
-                <BarChart data={planBar} margin={{ top: 0, right: 8, left: -20, bottom: 0 }}>
+                <BarChart data={planBar} margin={{ top: 0, right: 8, left: -20, bottom: 0 }} style={{ background: "transparent" }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
                   <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#71717a" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: "#71717a" }} axisLine={false} tickLine={false} />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
                   <Bar dataKey="users" name="Usuários" radius={[4, 4, 0, 0]}>
                     {planBar.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                   </Bar>

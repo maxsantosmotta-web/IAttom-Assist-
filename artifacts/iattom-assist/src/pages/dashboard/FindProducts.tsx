@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { CreditsGate } from "@/components/CreditsGate";
 import { useAiStream } from "@/hooks/useAiStream";
+import { useSavedItems } from "@/hooks/useSavedItems";
 import type { FindProductsResult, FoundProduct } from "@/types/ai";
 
 const demandColors: Record<string, string> = {
@@ -39,6 +40,7 @@ export function FindProducts() {
   const [niche, setNiche] = useState("");
   const { status, result, error, generate, reset } = useAiStream<FindProductsResult>();
   const { toast } = useToast();
+  const { saveItem } = useSavedItems();
 
   const isGenerating = status === "generating";
   const isDone = status === "done";
@@ -84,22 +86,16 @@ export function FindProducts() {
     });
     const content = lines.join("\n");
     const title = `Busca: ${query.trim() || "produtos"}`;
+    const id = crypto.randomUUID();
+    const data = JSON.stringify({ briefing: { query, niche }, result: activeResult });
     try {
       const raw = localStorage.getItem("iattom_saved_items_v1");
       const existing = raw ? (JSON.parse(raw) as object[]) : [];
-      existing.unshift({
-        id: crypto.randomUUID(),
-        title,
-        type: "product_discovery",
-        content,
-        data: JSON.stringify({ briefing: { query, niche }, result: activeResult }),
-        createdAt: new Date().toISOString(),
-      });
+      existing.unshift({ id, title, type: "product_discovery", content, data, createdAt: new Date().toISOString() });
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
-      toast({ description: "Salvo com sucesso." });
-    } catch {
-      toast({ description: "Erro ao salvar.", variant: "destructive" });
-    }
+    } catch {}
+    void saveItem({ id, title, type: "product_discovery", content, data }).catch(() => {});
+    toast({ description: "Salvo com sucesso." });
   };
 
   return (

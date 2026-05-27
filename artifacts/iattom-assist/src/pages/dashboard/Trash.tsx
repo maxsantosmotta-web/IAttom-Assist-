@@ -13,6 +13,7 @@ import {
   timeUntilExpiry, type TrashedItem,
 } from "@/lib/trashStorage";
 import { deleteProjectAssets } from "@/lib/assetStorage";
+import { useSavedItems } from "@/hooks/useSavedItems";
 
 // ── API integration types ────────────────────────────────────────
 interface TrashItemData {
@@ -128,6 +129,7 @@ const fmt = (d: string) =>
 // ── Component ────────────────────────────────────────────────────
 export function Trash() {
   const { toast } = useToast();
+  const { getTrash, restoreItem, permanentDelete } = useSavedItems();
 
   const [integrationItems, setIntegrationItems] = useState<TrashItemData[]>([]);
   const [projectItems, setProjectItems]         = useState<TrashedItem[]>([]);
@@ -147,15 +149,28 @@ export function Trash() {
     finally { setLoading(false); }
   };
 
-  const loadProjects = () => {
+  const loadProjects = async () => {
     const expired = purgeExpired();
     for (const id of expired) void deleteProjectAssets(id).catch(() => {});
-    setProjectItems(readTrash());
+    try {
+      const apiItems = await getTrash();
+      if (apiItems.length > 0) {
+        setProjectItems(apiItems.filter(i => i.deletedAt !== null).map(i => ({
+          ...i,
+          deletedAt: i.deletedAt!,
+          expiresAt: i.expiresAt ?? new Date(new Date(i.deletedAt!).getTime() + 48 * 3600000).toISOString(),
+        })) as TrashedItem[]);
+      } else {
+        setProjectItems(readTrash());
+      }
+    } catch {
+      setProjectItems(readTrash());
+    }
   };
 
   useEffect(() => {
     void loadIntegrations();
-    loadProjects();
+    void loadProjects();
   }, []);
 
   // ── Unified list ────────────────────────────────────────────────
@@ -181,9 +196,9 @@ export function Trash() {
     setActionUid(item.uid);
     try {
       if (item.kind === "project" && item.rawProject) {
-        await new Promise<void>(r => setTimeout(r, 200));
+        await restoreItem(item.rawProject.id).catch(() => {});
         restoreFromTrash(item.rawProject.id);
-        loadProjects();
+        void loadProjects();
         toast({ description: `"${item.displayName}" restaurado para Projetos Salvos.` });
       } else if (item.kind === "integration" && item.rawIntegration) {
         const result = await apiFetch<{ ok: boolean; platformLabel?: string }>(
@@ -204,10 +219,10 @@ export function Trash() {
     setActionUid(item.uid);
     try {
       if (item.kind === "project" && item.rawProject) {
-        await new Promise<void>(r => setTimeout(r, 200));
+        await permanentDelete(item.rawProject.id).catch(() => {});
         deleteFromTrash(item.rawProject.id);
         void deleteProjectAssets(item.rawProject.id).catch(() => {});
-        loadProjects();
+        void loadProjects();
         toast({ description: `"${item.displayName}" excluído definitivamente.` });
       } else if (item.kind === "integration" && item.rawIntegration) {
         await apiFetch(`/api/me/trash/${item.rawIntegration.id}`, { method: "DELETE" });
@@ -263,7 +278,7 @@ export function Trash() {
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => { void loadIntegrations(); loadProjects(); }}
+              onClick={() => { void loadIntegrations(); void loadProjects(); }}
               disabled={loading}
               className="h-7 px-2.5 text-zinc-500 hover:text-white gap-1.5 text-xs"
             >

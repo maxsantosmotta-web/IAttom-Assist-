@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useSavedItems } from "@/hooks/useSavedItems";
 import { CreditsGate } from "@/components/CreditsGate";
 import { useAiStream } from "@/hooks/useAiStream";
 import type { VideoScriptResult, ScriptScene } from "@/types/ai";
@@ -19,6 +20,7 @@ export function VideoScripts() {
   const [showProduction, setShowProduction] = useState(false);
   const { status, result, error, generate, reset } = useAiStream<VideoScriptResult>();
   const { toast } = useToast();
+  const { saveItem } = useSavedItems();
 
   const isGenerating = status === "generating";
   const isDone = status === "done";
@@ -76,22 +78,16 @@ export function VideoScripts() {
     }
     const content = lines.join("\n");
     const title = product.trim() || activeResult.title || "Script gerado";
+    const id = crypto.randomUUID();
+    const data = JSON.stringify({ briefing: { product, format, duration, style }, result });
     try {
       const raw = localStorage.getItem("iattom_saved_items_v1");
       const existing = raw ? (JSON.parse(raw) as object[]) : [];
-      existing.unshift({
-        id: crypto.randomUUID(),
-        title,
-        type: "video_script",
-        content,
-        data: JSON.stringify({ briefing: { product, format, duration, style }, result }),
-        createdAt: new Date().toISOString(),
-      });
+      existing.unshift({ id, title, type: "video_script", content, data, createdAt: new Date().toISOString() });
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
-      toast({ description: "Salvo com sucesso." });
-    } catch {
-      toast({ description: "Erro ao salvar.", variant: "destructive" });
-    }
+    } catch {}
+    void saveItem({ id, title, type: "video_script", content, data }).catch(() => {});
+    toast({ description: "Salvo com sucesso." });
   };
 
   return (

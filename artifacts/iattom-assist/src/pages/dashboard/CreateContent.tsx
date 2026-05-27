@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useSavedItems } from "@/hooks/useSavedItems";
 import { CreditsGate } from "@/components/CreditsGate";
 import { useAiStream } from "@/hooks/useAiStream";
 import type { ContentResult } from "@/types/ai";
@@ -45,6 +46,7 @@ export function CreateContent() {
   const [additionalContext, setAdditionalContext] = useState("");
   const { status, result, error, generate, reset } = useAiStream<ContentResult>();
   const { toast } = useToast();
+  const { saveItem } = useSavedItems();
 
   const isGenerating = status === "generating";
   const isDone = status === "done";
@@ -85,22 +87,16 @@ export function CreateContent() {
     if (activeResult.smsText) lines.push(`\nSMS:\n${activeResult.smsText}`);
     const content = lines.join("\n");
     const title = topic.trim() || activeResult.seoTitle || "Conteúdo gerado";
+    const id = crypto.randomUUID();
+    const data = JSON.stringify({ briefing: { topic, tone, additionalContext }, result: activeResult });
     try {
       const raw = localStorage.getItem("iattom_saved_items_v1");
       const existing = raw ? (JSON.parse(raw) as object[]) : [];
-      existing.unshift({
-        id: crypto.randomUUID(),
-        title,
-        type: "content",
-        content,
-        data: JSON.stringify({ briefing: { topic, tone, additionalContext }, result: activeResult }),
-        createdAt: new Date().toISOString(),
-      });
+      existing.unshift({ id, title, type: "content", content, data, createdAt: new Date().toISOString() });
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
-      toast({ description: "Projeto salvo" });
-    } catch {
-      toast({ description: "Erro ao salvar.", variant: "destructive" });
-    }
+    } catch {}
+    void saveItem({ id, title, type: "content", content, data }).catch(() => {});
+    toast({ description: "Projeto salvo" });
   };
 
   return (

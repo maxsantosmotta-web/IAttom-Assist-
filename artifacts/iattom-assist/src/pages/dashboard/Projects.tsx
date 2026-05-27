@@ -13,6 +13,7 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { moveToTrash, purgeExpired, type SavedItemBase } from "@/lib/trashStorage";
 import { deleteProjectAssets } from "@/lib/assetStorage";
+import { useSavedItems } from "@/hooks/useSavedItems";
 
 interface SavedItem extends SavedItemBase {
   type: "campaign" | "content" | "creative" | "video_script" | "product_discovery" | "product_validation";
@@ -57,6 +58,7 @@ const containerVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transiti
 const itemVariants = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
 
 export function Projects() {
+  const { getItems, trashItem, saveItem } = useSavedItems();
   // Lazy initializer: reads localStorage synchronously on first render — sem flash de estado vazio
   const [savedItems, setSavedItems] = useState<SavedItem[]>(readStorage);
   const [typeFilter, setTypeFilter] = useState("all");
@@ -67,11 +69,26 @@ export function Projects() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Limpar assets expirados da lixeira no mount (side effect de IDB — não bloqueia render)
     const expired = purgeExpired();
-    for (const id of expired) {
-      void deleteProjectAssets(id).catch(() => {});
-    }
+    for (const id of expired) void deleteProjectAssets(id).catch(() => {});
+
+    void (async () => {
+      try {
+        const apiItems = await getItems();
+        if (apiItems.length > 0) {
+          setSavedItems(apiItems as SavedItem[]);
+        } else {
+          const local = readStorage();
+          if (local.length > 0) {
+            void Promise.all(
+              local.map(item =>
+                saveItem({ id: item.id, title: item.title, type: item.type, platform: item.platform, content: item.content, data: item.data, hasImages: item.hasImages }).catch(() => {})
+              )
+            );
+          }
+        }
+      } catch { /* API failed — localStorage already shown */ }
+    })();
   }, []);
 
   const filteredItems = savedItems.filter((item) => {
@@ -86,9 +103,10 @@ export function Projects() {
     const item = savedItems.find(i => i.id === id);
     if (!item) return;
     setDeletingId(id);
-    setTimeout(() => {
+    setTimeout(async () => {
+      await trashItem(id).catch(() => {});
       moveToTrash(item);
-      setSavedItems(readStorage());
+      setSavedItems(prev => prev.filter(i => i.id !== id));
       setDeletingId(null);
       setConfirmDeleteId(null);
       toast({ description: "Projeto enviado para a lixeira. Acesse a Lixeira para restaurar." });

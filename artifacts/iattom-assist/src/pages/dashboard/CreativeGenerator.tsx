@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Loader2, Copy, RefreshCw, AlertCircle, Monitor, Smartphone, Image, Palette, Type, Save, ChevronDown, ChevronUp, Paperclip, X } from "lucide-react";
 import { saveProjectAssets } from "@/lib/assetStorage";
+import { useSavedItems } from "@/hooks/useSavedItems";
 import { needsReferenceImage } from "@/lib/needsReferenceImage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,6 +115,7 @@ export function CreativeGenerator() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { status, result, error, generate, reset } = useAiStream<CreativeIdeasResult>();
   const { toast } = useToast();
+  const { saveItem } = useSavedItems();
 
   const needsRef = needsReferenceImage(prompt);
   const showHint = needsRef && !referenceImage;
@@ -221,23 +223,12 @@ export function CreativeGenerator() {
     try {
       const raw = localStorage.getItem("iattom_saved_items_v1");
       const existing = raw ? (JSON.parse(raw) as object[]) : [];
-      existing.unshift({
-        id: projectId,
-        title,
-        type: "creative",
-        content,
-        data,
-        hasImages: imageAssets.length > 0,
-        createdAt: new Date().toISOString(),
-      });
+      existing.unshift({ id: projectId, title, type: "creative", content, data, hasImages: imageAssets.length > 0, createdAt: new Date().toISOString() });
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
-      if (imageAssets.length > 0) {
-        void saveProjectAssets(projectId, imageAssets);
-      }
-      toast({ description: "Projeto salvo" });
-    } catch {
-      toast({ description: "Erro ao salvar.", variant: "destructive" });
-    }
+    } catch {}
+    if (imageAssets.length > 0) void saveProjectAssets(projectId, imageAssets);
+    void saveItem({ id: projectId, title, type: "creative", content, data, hasImages: imageAssets.length > 0 }).catch(() => {});
+    toast({ description: "Projeto salvo" });
   };
 
   return (

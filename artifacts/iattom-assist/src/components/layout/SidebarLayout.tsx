@@ -44,7 +44,7 @@ const navItems = [
   { href: "/dashboard/kiwify", label: "Kiwify", icon: Layers },
   { href: "/dashboard/facebook", label: "Facebook", icon: Facebook },
   { href: "/dashboard/instagram", label: "Instagram", icon: Instagram },
-  { href: "/dashboard/projects", label: "Projetos", icon: FolderOpen },
+  { href: "/dashboard/projects", label: "Projetos Salvos", icon: FolderOpen },
   { href: "/dashboard/history", label: "Atividades", icon: Clock },
   { href: "/dashboard/analytics", label: "Análises", icon: BarChart2 },
   { href: "/dashboard/prompts", label: "Prompts Salvos", icon: BookMarked },

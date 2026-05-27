@@ -25,6 +25,7 @@ import trashRouter from "./trash.js";
 import mlUserRouter from "./mlUserRoutes.js";
 import adminApiConfigRouter from "./adminApiConfig.js";
 import tiktokRouter from "./tiktok.js";
+import savedItemsRouter from "./savedItems.js";
 
 const router: IRouter = Router();
 
@@ -54,5 +55,6 @@ router.use(trashRouter);
 router.use(mlUserRouter);
 router.use(adminApiConfigRouter);
 router.use(tiktokRouter);
+router.use(savedItemsRouter);
 
 export default router;

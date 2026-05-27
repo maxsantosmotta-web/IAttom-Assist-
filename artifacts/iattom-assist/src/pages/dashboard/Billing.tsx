@@ -21,10 +21,10 @@ import { PLAN_CREDITS, PLAN_NAMES, PLAN_PRICES, PLAN_SAVINGS } from "@/lib/credi
 
 /* ─── credit packages ────────────────────────────────────────────────── */
 const CREDIT_PACKAGES = [
-  { id: "credits_100",  credits: 100,  label: "100",   price: "R$ 19,90",  tag: null,           perUnit: "R$ 0,20/cr" },
-  { id: "credits_300",  credits: 300,  label: "300",   price: "R$ 49,90",  tag: null,           perUnit: "R$ 0,17/cr" },
-  { id: "credits_1000", credits: 1000, label: "1.000", price: "R$ 129,90", tag: "Mais popular", perUnit: "R$ 0,13/cr" },
-  { id: "credits_5000", credits: 5000, label: "5.000", price: "R$ 497,90", tag: "Melhor valor", perUnit: "R$ 0,10/cr" },
+  { id: "credits_100",  credits: 100,  label: "100",   price: "R$ 29,90",  tag: null,           perUnit: "R$ 0,30/cr" },
+  { id: "credits_300",  credits: 300,  label: "300",   price: "R$ 69,90",  tag: null,           perUnit: "R$ 0,23/cr" },
+  { id: "credits_700",  credits: 700,  label: "700",   price: "R$ 97,90",  tag: "Mais popular", perUnit: "R$ 0,14/cr" },
+  { id: "credits_1500", credits: 1500, label: "1.500", price: "R$ 137,90", tag: "Melhor valor", perUnit: "R$ 0,09/cr" },
 ] as const;
 
 /* ─── plan visual tokens ─────────────────────────────────────────────── */
@@ -540,59 +540,72 @@ export function Billing() {
             return (
               <div
                 key={pkg.id}
-                className={`relative flex flex-col rounded-xl border ${pkg.tag ? "pt-7 px-5 pb-5" : "p-5"} transition-all duration-200 ${
+                className={`relative flex flex-col rounded-xl border transition-all duration-200 ${pkg.tag ? "pt-8 px-5 pb-5" : "p-5"} ${
                   isPopular
-                    ? "border-[#C9A84C]/45 bg-white/[0.025] shadow-[0_0_28px_-4px_rgba(201,168,76,0.14)]"
+                    ? "border-[#C9A84C]/50 bg-[#0e0c06] shadow-[0_0_36px_-6px_rgba(201,168,76,0.22),0_0_0_1px_rgba(201,168,76,0.08)] hover:shadow-[0_0_44px_-6px_rgba(201,168,76,0.30)]"
                     : isBest
-                    ? "border-[#C9A84C]/20 bg-[#111111] hover:border-[#C9A84C]/35 hover:bg-white/[0.01]"
-                    : "border-white/[0.08] bg-[#111111] hover:border-white/[0.15] hover:bg-white/[0.01]"
+                    ? "border-[#C9A84C]/22 bg-[#0c0c0c] hover:border-[#C9A84C]/38 hover:bg-[#0e0c06]"
+                    : "border-white/[0.07] bg-[#0c0c0c] hover:border-white/[0.13] hover:bg-[#0f0f0f]"
                 }`}
               >
                 {isPopular && (
-                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#C9A84C]/55 to-transparent rounded-t-xl" />
+                  <>
+                    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#C9A84C]/70 to-transparent rounded-t-xl" />
+                    <div className="absolute top-0 inset-x-0 h-8 bg-gradient-to-b from-[#C9A84C]/[0.06] to-transparent rounded-t-xl pointer-events-none" />
+                  </>
                 )}
+                {isBest && (
+                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#C9A84C]/30 to-transparent rounded-t-xl" />
+                )}
+
                 {pkg.tag && (
                   <div className="absolute -top-px left-1/2 -translate-x-1/2">
-                    <span className={`inline-block text-[9px] font-bold px-2.5 py-0.5 rounded-b-md whitespace-nowrap ${
+                    <span className={`inline-block text-[9px] font-bold px-3 py-0.5 rounded-b-md whitespace-nowrap tracking-wide ${
                       isPopular
-                        ? "bg-[#C9A84C] text-black"
-                        : "bg-white/[0.08] text-zinc-400 border border-white/[0.10] border-t-0"
+                        ? "bg-[#C9A84C] text-black shadow-[0_2px_8px_rgba(201,168,76,0.35)]"
+                        : "bg-[#C9A84C]/10 text-[#C9A84C]/70 border border-[#C9A84C]/20 border-t-0"
                     }`}>
                       {pkg.tag.toUpperCase()}
                     </span>
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 mb-3 mt-1">
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                    isPopular ? "bg-[#C9A84C]/12 border border-[#C9A84C]/25" : "bg-white/[0.04] border border-white/[0.08]"
+                <div className="flex items-center gap-2.5 mb-3 mt-1">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    isPopular
+                      ? "bg-[#C9A84C]/15 border border-[#C9A84C]/30"
+                      : isBest
+                      ? "bg-[#C9A84C]/08 border border-[#C9A84C]/15"
+                      : "bg-white/[0.04] border border-white/[0.08]"
                   }`}>
-                    <Plus className={`w-3.5 h-3.5 ${isPopular ? "text-[#C9A84C]" : "text-zinc-500"}`} />
+                    <Zap className={`w-3.5 h-3.5 ${isPopular ? "text-[#C9A84C] fill-[#C9A84C]/30" : isBest ? "text-[#C9A84C]/60" : "text-zinc-600"}`} />
                   </div>
                   <div>
-                    <p className={`text-base font-bold leading-none ${isPopular ? "text-[#C9A84C]" : "text-white"}`}>
+                    <p className={`text-lg font-bold leading-none ${isPopular ? "text-[#C9A84C]" : isBest ? "text-zinc-200" : "text-zinc-300"}`}>
                       {pkg.label}
                     </p>
                     <p className="text-[10px] text-zinc-600 mt-0.5">créditos</p>
                   </div>
                 </div>
 
-                <p className="text-xl font-bold text-white mb-0.5">{pkg.price}</p>
-                <p className="text-[10px] text-zinc-600 mb-5">{pkg.perUnit}</p>
+                <p className={`text-xl font-bold mb-0.5 ${isPopular ? "text-white" : "text-zinc-300"}`}>{pkg.price}</p>
+                <p className={`text-[10px] mb-5 ${isPopular ? "text-[#C9A84C]/60" : "text-zinc-700"}`}>{pkg.perUnit}</p>
 
                 <Button
                   size="sm"
                   className={`w-full h-9 text-xs font-semibold ${
                     isPopular
-                      ? "bg-[#C9A84C] text-black hover:bg-[#E8C96A]"
-                      : "bg-white/[0.05] text-zinc-300 border border-white/[0.09] hover:bg-[#C9A84C]/10 hover:text-[#C9A84C] hover:border-[#C9A84C]/25 transition-colors"
+                      ? "bg-[#C9A84C] text-black hover:bg-[#E8C96A] shadow-[0_2px_12px_rgba(201,168,76,0.25)]"
+                      : isBest
+                      ? "bg-[#C9A84C]/08 text-[#C9A84C]/80 border border-[#C9A84C]/20 hover:bg-[#C9A84C]/15 hover:text-[#C9A84C] hover:border-[#C9A84C]/35 transition-colors"
+                      : "bg-white/[0.04] text-zinc-400 border border-white/[0.08] hover:bg-[#C9A84C]/08 hover:text-[#C9A84C]/80 hover:border-[#C9A84C]/20 transition-colors"
                   }`}
                   onClick={() => handleBuyCredits(pkg.id)}
                   disabled={isPending || creditsPending !== null}
                 >
                   {isPending
                     ? <><RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />Aguarde...</>
-                    : <><ShoppingCart className="w-3.5 h-3.5 mr-1.5" />Comprar Créditos</>
+                    : <><ShoppingCart className="w-3.5 h-3.5 mr-1.5" />Comprar</>
                   }
                 </Button>
               </div>
