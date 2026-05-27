@@ -384,7 +384,7 @@ export function Billing() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
             {sortedPlans.map((plan) => {
               const planKey    = plan.planKey;
               const isCurrent  = planKey === currentPlan && hasActiveSub;
@@ -398,7 +398,7 @@ export function Billing() {
               return (
                 <div
                   key={planKey}
-                  className={`relative rounded-xl border bg-[#111111] p-5 flex flex-col transition-all duration-200 ${
+                  className={`relative rounded-xl border bg-[#111111] ${(isCurrent || isPopular) ? "pt-8 px-5 pb-5" : "p-5"} flex flex-col transition-all duration-200 ${
                     isCurrent
                       ? `${PLAN_BORDER[planKey] ?? "border-white/20"} bg-white/[0.015] ${PLAN_GLOW[planKey] ?? ""}`
                       : isPopular
@@ -532,7 +532,7 @@ export function Billing() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-2">
           {CREDIT_PACKAGES.map((pkg) => {
             const isPopular = pkg.tag === "Mais popular";
             const isBest    = pkg.tag === "Melhor valor";
@@ -540,7 +540,7 @@ export function Billing() {
             return (
               <div
                 key={pkg.id}
-                className={`relative flex flex-col rounded-xl border p-5 transition-all duration-200 ${
+                className={`relative flex flex-col rounded-xl border ${pkg.tag ? "pt-7 px-5 pb-5" : "p-5"} transition-all duration-200 ${
                   isPopular
                     ? "border-[#C9A84C]/45 bg-white/[0.025] shadow-[0_0_28px_-4px_rgba(201,168,76,0.14)]"
                     : isBest

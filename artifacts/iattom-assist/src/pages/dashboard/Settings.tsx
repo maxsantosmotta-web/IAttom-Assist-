@@ -69,7 +69,7 @@ export function Settings() {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">Nome</Label>
                       <Input
@@ -197,7 +197,7 @@ export function Settings() {
                 </div>
               ) : (
                 <>
-                  <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-start justify-between flex-wrap gap-2 mb-4">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <p className="text-lg font-bold text-white capitalize">{planInfo?.label ?? plan.toUpperCase()}</p>

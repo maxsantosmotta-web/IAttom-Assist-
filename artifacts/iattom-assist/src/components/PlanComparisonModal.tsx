@@ -176,7 +176,7 @@ export function PlanComparisonModal({ open, onClose, highlightPlan = "pro" }: Pl
                     return (
                       <div
                         key={key}
-                        className={`relative flex flex-col rounded-xl border p-5 transition-all duration-200 ${
+                        className={`relative flex flex-col rounded-xl border ${(isCurrent || (isHighlight && !isCurrent)) ? "pt-8 px-5 pb-5" : "p-5"} transition-all duration-200 ${
                           PLAN_ACCENT[key]
                         } ${isHighlight ? PLAN_GLOW[key] : ""} ${
                           isHighlight ? "bg-white/[0.025]" : "bg-[#111111]"

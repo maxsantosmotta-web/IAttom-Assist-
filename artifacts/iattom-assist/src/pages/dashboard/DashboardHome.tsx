@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import {
@@ -17,20 +16,6 @@ import { useUser } from "@clerk/react";
 import { UpgradeNudge } from "@/components/UpgradeNudge";
 import { useUserAccess } from "@/hooks/useUserAccess";
 
-interface SavedItem {
-  id: string;
-  title: string;
-  type: string;
-  platform?: string;
-  createdAt: string;
-}
-
-function readSavedItems(): SavedItem[] {
-  try {
-    const raw = localStorage.getItem("iattom_saved_items_v1");
-    return raw ? (JSON.parse(raw) as SavedItem[]) : [];
-  } catch { return []; }
-}
 
 const quickActions = [
   { href: "/dashboard/find-products", label: "Buscar Produtos", icon: Search, desc: "Descubra produtos vencedores", color: "text-primary", bg: "bg-primary/10 border-primary/20", glow: "hover:shadow-[0_0_30px_-6px_rgba(201,168,76,0.2)]", module: "product_discovery" },
@@ -54,15 +39,6 @@ const MODULE_TO_ACTION: Record<string, string> = {
 };
 
 
-const typeLabels: Record<string, string> = {
-  product_discovery: "Descoberta de Produtos",
-  product_validation: "Validação de Produtos",
-  campaign: "Campanha",
-  content: "Conteúdo",
-  creative: "Criativo",
-  video_script: "Script de Vídeo",
-  marketing: "Marketing",
-};
 
 const containerVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
 const itemVariants = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } };
@@ -104,7 +80,6 @@ const ACHIEVEMENTS = [
 
 export function DashboardHome() {
   const { data: summary, isLoading: summaryLoading } = useGetDashboardSummary();
-  const [projects] = useState<SavedItem[]>(readSavedItems);
   const { data: historyData } = useListHistory(
     { limit: 10 },
     { query: { queryKey: getListHistoryQueryKey({ limit: 10 }), retry: false, staleTime: 60_000 } },
@@ -284,52 +259,6 @@ export function DashboardHome() {
             );
           })}
         </motion.div>
-      </div>
-
-      {/* Recent Projects */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Projetos Recentes</p>
-          <Link href="/dashboard/projects" className="text-xs text-primary hover:text-primary/80 font-semibold transition-colors">
-            Ver todos
-          </Link>
-        </div>
-
-        {projects.length > 0 ? (
-          <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-2">
-            {projects.slice(0, 5).map((item) => (
-              <motion.div key={item.id} variants={itemVariants}>
-                <div
-                  className="flex items-center gap-4 px-4 py-3.5 rounded-xl bg-[#0f0f0f] border border-white/[0.06] hover:border-white/[0.09] hover:bg-[#111111] transition-all duration-200"
-                >
-                  <div className="w-2 h-2 rounded-full shrink-0 bg-zinc-600" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-zinc-200 truncate">{item.title}</p>
-                    <p className="text-xs text-zinc-600 mt-0.5">{typeLabels[item.type] ?? item.type}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="flex flex-col items-center justify-center py-14 text-center border border-dashed border-white/[0.07] rounded-2xl bg-white/[0.01]"
-          >
-            <div className="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.07] flex items-center justify-center mb-4">
-              <FolderOpen className="w-6 h-6 text-zinc-700" />
-            </div>
-            <p className="text-sm font-semibold text-zinc-500">Sem projetos salvos ainda</p>
-            <p className="text-xs text-zinc-700 mt-1 max-w-[200px] leading-relaxed">
-              Gere e salve seu primeiro projeto
-            </p>
-            <Link href="/dashboard/projects" className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 mt-3 font-semibold transition-colors">
-              Ver Projetos Salvos <ArrowRight className="w-3 h-3" />
-            </Link>
-          </motion.div>
-        )}
       </div>
 
       {/* Footer links row */}
