@@ -1,14 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
-  Layers, Loader2, X, Info, Package, ClipboardList,
-  RefreshCw, ShoppingBag, BarChart2, Save, Eye, EyeOff,
-  DollarSign, Tag, ChevronDown, ChevronUp, CheckCircle2,
-  Webhook, Copy, TrendingUp, Megaphone, AlertCircle,
+  Layers, Loader2, X, Info, AlertCircle,
+  Megaphone, ClipboardList, ExternalLink,
+  CheckCircle2, BarChart2, ShoppingBag, TrendingUp,
+  RefreshCw, Copy, Package, FileText, Save, Eye, EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -48,10 +47,12 @@ function InformativeModal({
   title,
   description,
   onClose,
+  action,
 }: {
   title: string;
   description: string;
   onClose: () => void;
+  action?: { label: string; onClick: () => void };
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
@@ -72,9 +73,25 @@ function InformativeModal({
           </button>
         </div>
         <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
-        <Button onClick={onClose} className="w-full bg-primary text-black hover:bg-primary/90 font-semibold">
-          Entendido
-        </Button>
+        <div className="flex gap-2">
+          {action && (
+            <Button
+              onClick={() => { action.onClick(); onClose(); }}
+              className="flex-1 bg-primary text-black hover:bg-primary/90 font-semibold"
+            >
+              {action.label}
+            </Button>
+          )}
+          <Button
+            onClick={onClose}
+            variant={action ? "outline" : "default"}
+            className={action
+              ? "border-white/10 text-muted-foreground hover:text-white"
+              : "w-full bg-primary text-black hover:bg-primary/90 font-semibold"}
+          >
+            {action ? "Cancelar" : "Entendido"}
+          </Button>
+        </div>
       </motion.div>
     </div>
   );
@@ -101,14 +118,14 @@ interface KiwifyEvent {
 }
 
 const EVENT_LABELS: Record<string, string> = {
-  "order.approved": "Compra Aprovada",
-  "order.waiting_payment": "Aguardando Pagamento",
+  "order.approved": "Aprovada",
+  "order.waiting_payment": "Aguardando",
   "order.refunded": "Reembolso",
-  "order.chargeback": "Chargeback",
-  "order.canceled": "Cancelado",
+  "order.chargeback": "Estorno",
+  "order.canceled": "Cancelada",
   "order.abandoned": "Abandono",
-  "subscription.active": "Assinatura Ativa",
-  "subscription.canceled": "Assinatura Cancelada",
+  "subscription.active": "Assinatura ativa",
+  "subscription.canceled": "Assinatura cancelada",
 };
 
 const EVENT_COLORS: Record<string, string> = {
@@ -128,17 +145,26 @@ export function Kiwify() {
   const [form, setForm] = useState({ storeId: "", clientId: "", clientSecret: "" });
   const [showSecret, setShowSecret] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmClearCreds, setConfirmClearCreds] = useState(false);
 
   const [products, setProducts] = useState<KiwifyProduct[]>([]);
   const [events, setEvents] = useState<KiwifyEvent[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [showLogs, setShowLogs] = useState(false);
-  const [modal, setModal] = useState<{ title: string; description: string } | null>(null);
-  const [confirmClearCreds, setConfirmClearCreds] = useState(false);
 
-  const showInfo = (title: string, description: string) => setModal({ title, description });
+  const [modal, setModal] = useState<{
+    title: string;
+    description: string;
+    action?: { label: string; onClick: () => void };
+  } | null>(null);
+
+  const showInfo = (
+    title: string,
+    description: string,
+    action?: { label: string; onClick: () => void },
+  ) => setModal({ title, description, action });
+
   const webhookEndpoint = `${window.location.origin}${BASE}/api/kiwify/webhook`;
 
   const handleSaveCreds = async () => {
@@ -157,7 +183,7 @@ export function Kiwify() {
     setSavedCreds(creds);
     setForm({ storeId: "", clientId: "", clientSecret: "" });
     setSaving(false);
-    toast({ description: "Credenciais salvas localmente. A sincronização completa estará disponível em breve." });
+    toast({ description: "Conta Kiwify configurada com sucesso." });
   };
 
   const handleLoadProducts = async () => {
@@ -165,13 +191,12 @@ export function Kiwify() {
     try {
       const data = await apiFetch<KiwifyProduct[]>("/api/kiwify/products");
       setProducts(data);
-      if (data.length === 0) toast({ description: "Nenhum produto sincronizado ainda. Solicite ao administrador." });
     } catch (err) {
       const e = err as { status?: number };
       if (e.status === 403 || e.status === 401) {
         showInfo(
           "Produtos Kiwify",
-          "A listagem de produtos é gerenciada pelo administrador da plataforma. Configure suas credenciais acima e solicite ao administrador que realize a sincronização.",
+          "A listagem de produtos é gerenciada pelo administrador da plataforma. Configure suas credenciais e solicite ao administrador que realize a sincronização.",
         );
       } else {
         toast({ variant: "destructive", description: "Não foi possível carregar os produtos." });
@@ -187,7 +212,7 @@ export function Kiwify() {
       const data = await apiFetch<KiwifyEvent[]>("/api/kiwify/events");
       setEvents(data);
     } catch {
-      toast({ description: "Histórico de eventos disponível após configuração do webhook Kiwify." });
+      setEvents([]);
     } finally {
       setLoadingEvents(false);
     }
@@ -197,14 +222,14 @@ export function Kiwify() {
     setSyncing(true);
     try {
       await apiFetch<{ ok: boolean; synced: number }>("/api/kiwify/sync-products", { method: "POST" });
-      toast({ description: "Sincronização concluída com sucesso." });
+      toast({ description: "Sincronização concluída." });
       void handleLoadProducts();
     } catch (err) {
       const e = err as { status?: number };
       if (e.status === 403 || e.status === 401) {
         showInfo(
           "Sincronização Kiwify",
-          "A sincronização de produtos é uma operação administrativa. Solicite ao administrador que realize a sincronização. Após sincronização, os produtos ficam disponíveis aqui.",
+          "A sincronização de produtos é uma operação administrativa. Solicite ao administrador que realize a sincronização.",
         );
       } else {
         toast({ variant: "destructive", description: err instanceof Error ? err.message : "Falha na sincronização." });
@@ -216,17 +241,44 @@ export function Kiwify() {
 
   const handleCopyWebhook = () => {
     navigator.clipboard.writeText(webhookEndpoint);
-    toast({ description: "URL do webhook copiada." });
+    toast({ description: "Endereço copiado." });
   };
+
+  const handleCriarCampanha = () => {
+    sessionStorage.setItem("campaign_platform_context", JSON.stringify({ platform: "kiwify" }));
+    window.location.href = `${BASE}/dashboard/create-campaign`;
+  };
+
+  const handleCriarConteudo = () => {
+    sessionStorage.setItem("content_platform_context", JSON.stringify({ platform: "kiwify" }));
+    window.location.href = `${BASE}/dashboard/create-content`;
+  };
+
+  useEffect(() => {
+    if (savedCreds) {
+      void handleLoadProducts();
+      void handleLoadEvents();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedCreds?.storeId]);
+
+  const approvedCount = events.filter(e => e.eventType === "order.approved").length;
+  const hasActivity = events.length > 0;
 
   return (
     <div className="space-y-6">
       {modal && (
-        <InformativeModal title={modal.title} description={modal.description} onClose={() => setModal(null)} />
+        <InformativeModal
+          title={modal.title}
+          description={modal.description}
+          action={modal.action}
+          onClose={() => setModal(null)}
+        />
       )}
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
-        {/* Header */}
+
+        {/* ── Header ───────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -234,36 +286,32 @@ export function Kiwify() {
             </div>
             <div>
               <h1 className="text-lg font-bold text-white">Kiwify</h1>
-              <p className="text-xs text-muted-foreground">Produtos digitais, afiliados e assinaturas</p>
+              <p className="text-xs text-muted-foreground">Produtos digitais e vendas</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline"
-              onClick={() => void handleSync()}
-              disabled={syncing}
-              className="border-white/10 text-muted-foreground hover:text-white">
-              {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : <RefreshCw className="w-3.5 h-3.5 mr-2" />}
-              Sincronizar
-            </Button>
-          </div>
+          <Button
+            onClick={handleCriarCampanha}
+            className="bg-primary hover:bg-primary/90 text-black font-semibold"
+            size="sm"
+          >
+            <Megaphone className="w-3.5 h-3.5 mr-2" />
+            Criar campanha
+          </Button>
         </div>
 
-        {/* Status Card */}
+        {/* ── Status Card ──────────────────────────────────────── */}
         <Card className="bg-[#111111] border-white/[0.06] mb-5">
           <CardContent className="p-4">
             {savedCreds ? (
               <div className="flex flex-wrap items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                  <Layers className="w-4 h-4 text-primary" />
+                <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                  <Layers className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">
-                    Loja: {savedCreds.storeId}
-                  </p>
+                  <p className="text-sm font-semibold text-white truncate">Loja: {savedCreds.storeId}</p>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-xs text-emerald-400">Credenciais configuradas</span>
-                    <span className="text-xs text-zinc-600">· Client: {savedCreds.clientId}</span>
+                    <span className="text-xs text-emerald-400">Conta conectada</span>
                   </div>
                 </div>
                 <div className="flex gap-2 shrink-0">
@@ -288,334 +336,316 @@ export function Kiwify() {
                 </div>
               </div>
             ) : (
-              <div className="flex flex-wrap items-center gap-3">
-                <AlertCircle className="w-4 h-4 text-muted-foreground shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Kiwify não configurado</p>
-                  <p className="text-xs text-muted-foreground/60 mt-0.5">
-                    Salve suas credenciais abaixo para ativar a integração.
-                  </p>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-muted-foreground font-medium">Conta não configurada</p>
+                    <p className="text-xs text-muted-foreground/60 mt-0.5">
+                      Insira suas credenciais para conectar sua loja Kiwify.
+                    </p>
+                  </div>
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1.5 block">Store ID</Label>
+                    <Input
+                      value={form.storeId}
+                      onChange={(e) => setForm((f) => ({ ...f, storeId: e.target.value }))}
+                      placeholder="sua_loja_id"
+                      className="bg-[#0a0a0a] border-white/10 text-white h-8 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1.5 block">Client ID</Label>
+                    <Input
+                      value={form.clientId}
+                      onChange={(e) => setForm((f) => ({ ...f, clientId: e.target.value }))}
+                      placeholder="client_abc123"
+                      className="bg-[#0a0a0a] border-white/10 text-white h-8 text-xs"
+                    />
+                  </div>
+                </div>
+                <div className="relative">
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">Client Secret (opcional)</Label>
+                  <Input
+                    type={showSecret ? "text" : "password"}
+                    value={form.clientSecret}
+                    onChange={(e) => setForm((f) => ({ ...f, clientSecret: e.target.value }))}
+                    placeholder="••••••••"
+                    className="bg-[#0a0a0a] border-white/10 text-white pr-10 h-8 text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSecret((v) => !v)}
+                    className="absolute right-3 top-[calc(50%+10px)] text-muted-foreground hover:text-white transition-colors"
+                  >
+                    {showSecret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+                <Button
+                  onClick={() => void handleSaveCreds()}
+                  disabled={saving}
+                  className="w-full bg-primary text-black hover:bg-primary/90 font-semibold"
+                  size="sm"
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                  Conectar conta
+                </Button>
               </div>
             )}
-          </CardContent>
-        </Card>
 
-        {/* KPIs */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-          {[
-            { icon: Package, label: "Produtos", value: String(products.length), color: "text-primary" },
-            { icon: ShoppingBag, label: "Aprovadas", value: String(events.filter((e) => e.eventType === "order.approved").length), color: "text-emerald-400" },
-            { icon: BarChart2, label: "Eventos", value: String(events.length), color: "text-blue-400" },
-            { icon: CheckCircle2, label: "Credenciais", value: savedCreds ? "Salvas" : "Pendente", color: savedCreds ? "text-emerald-400" : "text-yellow-400" },
-          ].map(({ icon: Icon, label, value, color }) => (
-            <Card key={label} className="bg-[#111111] border-white/[0.06]">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">{label}</p>
-                  <Icon className={`w-3.5 h-3.5 ${color}`} />
-                </div>
-                <p className="text-xl font-bold text-white">{value}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Credentials */}
-        <Card className="bg-[#111111] border-white/[0.06] mb-4">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                <Layers className="w-4 h-4 text-muted-foreground" />
-                Suas Credenciais Kiwify
-              </CardTitle>
-              {savedCreds && (
-                <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-xs">
-                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                  Salvas em {new Date(savedCreds.savedAt).toLocaleDateString("pt-BR")}
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="p-3 rounded-lg bg-blue-950/20 border border-blue-500/20">
-              <p className="text-xs text-blue-300/80 leading-relaxed">
-                Configure suas credenciais Kiwify para personalizar a integração. Acesse <strong className="text-blue-300">app.kiwify.com.br</strong> → Configurações → Integrações → API para obter o Store ID e Client ID.
-              </p>
-            </div>
-            {savedCreds && (
-              <>
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <div>
-                    <p className="text-xs font-semibold text-emerald-400">Credenciais configuradas</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Store: {savedCreds.storeId} · Client: {savedCreds.clientId}</p>
-                  </div>
-                  <Button size="sm" variant="ghost"
-                    onClick={() => setConfirmClearCreds(true)}
-                    className="ml-auto text-red-400/60 hover:text-red-400 text-xs h-7 px-2">
-                    Desconectar
+            {confirmClearCreds && (
+              <div className="mt-4 p-3 rounded-lg bg-red-500/5 border border-red-500/20 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs text-muted-foreground">Deseja desconectar esta conta?</p>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setConfirmClearCreds(false)}
+                    className="text-muted-foreground h-7 text-xs px-3"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      localStorage.removeItem(USER_CREDS_KEY);
+                      setSavedCreds(null);
+                      setConfirmClearCreds(false);
+                      toast({ description: "Conta Kiwify desconectada." });
+                    }}
+                    className="bg-red-600 hover:bg-red-500 text-white h-7 text-xs px-3 font-semibold"
+                  >
+                    Confirmar
                   </Button>
                 </div>
-                {confirmClearCreds && (
-                  <div className="p-3 rounded-lg bg-red-500/5 border border-red-500/20 flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-xs text-muted-foreground">Deseja desconectar esta conta?</p>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="ghost"
-                        onClick={() => setConfirmClearCreds(false)}
-                        className="text-muted-foreground h-7 text-xs px-3">
-                        Cancelar
-                      </Button>
-                      <Button size="sm"
-                        onClick={() => {
-                          localStorage.removeItem(USER_CREDS_KEY);
-                          setSavedCreds(null);
-                          setConfirmClearCreds(false);
-                          toast({ description: "Conta Kiwify desconectada." });
-                        }}
-                        className="bg-red-600 hover:bg-red-500 text-white h-7 text-xs px-3 font-semibold">
-                        Confirmar desconexão
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
+              </div>
             )}
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1.5 block">Store ID</Label>
-                  <Input value={form.storeId}
-                    onChange={(e) => setForm((f) => ({ ...f, storeId: e.target.value }))}
-                    placeholder="sua_loja_id"
-                    className="bg-[#0a0a0a] border-white/10 text-white" />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1.5 block">Client ID</Label>
-                  <Input value={form.clientId}
-                    onChange={(e) => setForm((f) => ({ ...f, clientId: e.target.value }))}
-                    placeholder="client_abc123"
-                    className="bg-[#0a0a0a] border-white/10 text-white" />
-                </div>
-              </div>
-              <div className="relative">
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Client Secret (opcional)</Label>
-                <Input
-                  type={showSecret ? "text" : "password"}
-                  value={form.clientSecret}
-                  onChange={(e) => setForm((f) => ({ ...f, clientSecret: e.target.value }))}
-                  placeholder="••••••••"
-                  className="bg-[#0a0a0a] border-white/10 text-white pr-10" />
-                <button type="button"
-                  onClick={() => setShowSecret((v) => !v)}
-                  className="absolute right-3 top-[calc(50%+8px)] text-muted-foreground hover:text-white transition-colors">
-                  {showSecret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-              <Button onClick={() => void handleSaveCreds()} disabled={saving}
-                className="w-full bg-primary text-black hover:bg-primary/90 font-semibold">
-                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                Salvar Credenciais
-              </Button>
-            </div>
           </CardContent>
         </Card>
 
-        {/* Webhook */}
-        <Card className="bg-[#111111] border-white/[0.06] mb-4">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-              <Webhook className="w-4 h-4 text-muted-foreground" />
-              Endpoint do Webhook
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-2">
-              <code className="flex-1 bg-black/30 border border-white/8 rounded-lg px-3 py-2.5 text-xs text-zinc-300 font-mono break-all">
-                {webhookEndpoint}
-              </code>
-              <Button size="sm" variant="outline"
-                onClick={handleCopyWebhook}
-                className="border-white/10 text-muted-foreground hover:text-white shrink-0">
-                <Copy className="w-3.5 h-3.5 mr-1.5" />
-                Copiar
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground/60">
-              Configure esta URL no painel Kiwify → Configurações → Webhooks para receber eventos de compra em tempo real.
-            </p>
-          </CardContent>
-        </Card>
+        {/* ── Feature Cards 2×2 ────────────────────────────────── */}
+        <div className="grid md:grid-cols-2 gap-4">
 
-        {/* Products */}
-        <Card className="bg-[#111111] border-white/[0.06] mb-4">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                <Package className="w-4 h-4 text-muted-foreground" />
-                Produtos Kiwify
-                {products.length > 0 && (
-                  <Badge className="bg-primary/15 text-primary border-primary/20 text-xs">{products.length}</Badge>
-                )}
-              </CardTitle>
-              <Button size="sm" variant="ghost"
-                onClick={() => void handleLoadProducts()}
-                disabled={loadingProducts}
-                className="text-muted-foreground hover:text-white h-7 px-2">
-                {loadingProducts ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {loadingProducts ? (
-              <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm">Carregando...</span>
+          {/* Campanhas */}
+          <Card className="bg-[#111111] border-white/[0.06]">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Megaphone className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-semibold text-white">Campanhas</CardTitle>
+                  <p className="text-xs text-muted-foreground">Promoção e alcance</p>
+                </div>
               </div>
-            ) : products.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center">
-                <Package className="w-10 h-10 text-white/10 mb-3" />
-                <p className="text-sm font-semibold text-muted-foreground">Nenhum produto carregado</p>
-                <p className="text-xs text-muted-foreground/60 mt-1 max-w-xs">
-                  Salve suas credenciais e clique em carregar para ver os produtos Kiwify disponíveis.
-                </p>
-                <Button size="sm" onClick={() => void handleLoadProducts()} disabled={loadingProducts}
-                  className="mt-4 bg-primary text-black hover:bg-primary/90 font-semibold">
-                  Carregar Produtos
-                </Button>
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
-                {products.map((product) => (
-                  <div key={product.id}
-                    className="bg-[#0d0d0d] border border-white/5 rounded-lg p-4 space-y-3 hover:border-white/10 transition-colors">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-semibold text-white leading-snug line-clamp-2">
-                        {product.name ?? "Sem título"}
-                      </p>
-                      <Badge className={`text-xs border shrink-0 ${product.status === "active"
-                        ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                        : "bg-zinc-500/15 text-zinc-400 border-zinc-500/30"}`}>
-                        {product.status === "active" ? "Ativo" : product.status ?? "—"}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {product.price && (
-                        <div className="flex items-center gap-1.5">
-                          <DollarSign className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="text-sm font-semibold text-primary">R$ {product.price}</span>
-                        </div>
-                      )}
-                      {product.type && (
-                        <div className="flex items-center gap-1.5">
-                          <Tag className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">{product.type}</span>
-                        </div>
-                      )}
-                    </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Crie campanhas para promover seus produtos Kiwify em diferentes canais.
+              </p>
+              <div className="grid grid-cols-3 gap-2 py-1">
+                {[
+                  { icon: Megaphone, label: "Campanhas", value: "—" },
+                  { icon: BarChart2, label: "Alcance", value: "—" },
+                  { icon: TrendingUp, label: "Conversão", value: "—" },
+                ].map(({ icon: Icon, label, value }) => (
+                  <div key={label} className="p-2 rounded bg-white/5 text-center">
+                    <Icon className="w-3.5 h-3.5 text-muted-foreground mx-auto mb-1" />
+                    <p className="text-xs font-semibold text-white">{value}</p>
+                    <p className="text-[10px] text-muted-foreground">{label}</p>
                   </div>
                 ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Vendas */}
-        <Card className="bg-[#111111] border-white/[0.06] mb-4">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                <ShoppingBag className="w-4 h-4 text-muted-foreground" />
-                Vendas Recentes
-              </CardTitle>
-              <Button size="sm" variant="ghost"
-                onClick={() => void handleLoadEvents()}
-                disabled={loadingEvents}
-                className="text-muted-foreground hover:text-white h-7 px-2">
-                {loadingEvents ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              <Button
+                size="sm"
+                onClick={handleCriarCampanha}
+                className="w-full bg-primary hover:bg-primary/90 text-black font-semibold h-8 text-xs"
+              >
+                <Megaphone className="w-3 h-3 mr-1.5" />
+                Criar campanha
               </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {loadingEvents ? (
-              <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm">Carregando...</span>
+            </CardContent>
+          </Card>
+
+          {/* Conteúdo */}
+          <Card className="bg-[#111111] border-white/[0.06]">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
+                  <ClipboardList className="w-4 h-4 text-violet-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-semibold text-white">Conteúdo</CardTitle>
+                  <p className="text-xs text-muted-foreground">Textos, criativos e scripts</p>
+                </div>
               </div>
-            ) : events.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <ShoppingBag className="w-8 h-8 text-white/10 mb-2" />
-                <p className="text-sm font-semibold text-muted-foreground">Nenhuma venda registrada</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">
-                  Configure o webhook Kiwify para receber eventos de venda em tempo real.
-                </p>
-                <Button size="sm" onClick={() => void handleLoadEvents()} variant="outline"
-                  className="mt-3 border-white/10 text-muted-foreground hover:text-white text-xs h-7">
-                  Verificar vendas
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Produza materiais de divulgação para seus produtos.
+              </p>
+              <div className="flex flex-col gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCriarConteudo}
+                  className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
+                >
+                  <ClipboardList className="w-3 h-3 mr-1.5" />
+                  Criar conteúdo
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    sessionStorage.setItem("video_platform_context", JSON.stringify({ platform: "kiwify" }));
+                    window.location.href = `${BASE}/dashboard/video-scripts`;
+                  }}
+                  className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
+                >
+                  <FileText className="w-3 h-3 mr-1.5" />
+                  Scripts de vídeo
                 </Button>
               </div>
-            ) : (
-              <div className="space-y-2">
-                {events.slice(0, 10).map((ev) => (
-                  <div key={ev.id}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-[#0d0d0d] border border-white/5">
-                    <Badge className={`text-xs border shrink-0 ${EVENT_COLORS[ev.eventType ?? ""] ?? "bg-zinc-700/40 text-zinc-400 border-zinc-600/30"}`}>
-                      {EVENT_LABELS[ev.eventType ?? ""] ?? ev.eventType ?? "—"}
-                    </Badge>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-white truncate">
+            </CardContent>
+          </Card>
+
+          {/* Atividade da conta */}
+          <Card className="bg-[#111111] border-white/[0.06]">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                  <ShoppingBag className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-semibold text-white">Atividade da conta</CardTitle>
+                  <p className="text-xs text-muted-foreground">Movimentações recentes</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {loadingEvents ? (
+                <div className="flex items-center justify-center py-6 gap-2 text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-xs">Carregando...</span>
+                </div>
+              ) : hasActivity ? (
+                <div className="space-y-1.5 py-1">
+                  {events.slice(0, 4).map((ev) => (
+                    <div key={ev.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-[#0d0d0d] border border-white/5">
+                      <span className={`text-[10px] border rounded px-1.5 py-0.5 shrink-0 ${EVENT_COLORS[ev.eventType ?? ""] ?? "bg-zinc-700/40 text-zinc-400 border-zinc-600/30"}`}>
+                        {EVENT_LABELS[ev.eventType ?? ""] ?? ev.eventType ?? "—"}
+                      </span>
+                      <p className="text-xs text-white truncate flex-1">
                         {ev.buyerName ?? ev.buyerEmail ?? "—"}
                       </p>
-                      {ev.orderId && (
-                        <p className="text-[10px] text-muted-foreground font-mono">{ev.orderId}</p>
+                      {ev.value && (
+                        <span className="text-xs font-semibold text-primary shrink-0">R$ {ev.value}</span>
                       )}
-                    </div>
-                    {ev.value && (
-                      <span className="text-xs font-semibold text-primary shrink-0">R$ {ev.value}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Logs futuros */}
-        <div>
-          <button
-            onClick={() => setShowLogs((v) => !v)}
-            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-white transition-colors"
-          >
-            <ClipboardList className="w-3.5 h-3.5" />
-            Automações e Próximas Funções
-            {showLogs ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-          </button>
-          {showLogs && (
-            <Card className="bg-[#111111] border-white/[0.06] mt-3">
-              <CardContent className="p-4">
-                <div className="grid sm:grid-cols-2 gap-3">
-                  {[
-                    "E-mail de boas-vindas ao comprador",
-                    "Alerta de chargeback em tempo real",
-                    "Follow-up de pagamento pendente",
-                    "Recuperação de abandono de checkout",
-                    "Relatório de vendas com IA",
-                    "Análise de conversão por produto",
-                    "Notificação de reembolso",
-                    "Gestão de assinaturas canceladas",
-                  ].map((label) => (
-                    <div key={label} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/5">
-                      <TrendingUp className="w-4 h-4 text-muted-foreground shrink-0" />
-                      <p className="text-xs text-muted-foreground flex-1">{label}</p>
-                      <Badge className="bg-yellow-500/15 text-yellow-400 border-yellow-500/30 text-[10px] shrink-0">Em breve</Badge>
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <div className="space-y-2 py-1">
+                  {[
+                    {
+                      icon: CheckCircle2,
+                      label: "Notificações",
+                      value: "Aguardando",
+                      ok: false,
+                    },
+                    {
+                      icon: ShoppingBag,
+                      label: "Vendas recebidas",
+                      value: "—",
+                      ok: false,
+                    },
+                    {
+                      icon: TrendingUp,
+                      label: "Aprovadas",
+                      value: "—",
+                      ok: false,
+                    },
+                  ].map(({ icon: Icon, label, value, ok }) => (
+                    <div key={label} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
+                      <div className="flex items-center gap-2">
+                        <Icon className={`w-3.5 h-3.5 ${ok ? "text-emerald-400" : "text-muted-foreground"}`} />
+                        <span className="text-xs text-muted-foreground">{label}</span>
+                      </div>
+                      <span className="text-xs font-medium text-white">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => showInfo(
+                  "Notificações de vendas",
+                  "Configure o endereço abaixo no painel Kiwify para receber notificações de compras em tempo real.",
+                  { label: "Copiar endereço", onClick: handleCopyWebhook },
+                )}
+                className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
+              >
+                <Copy className="w-3 h-3 mr-1.5" />
+                Conectar notificações
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Análise */}
+          <Card className="bg-[#111111] border-white/[0.06]">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <BarChart2 className="w-4 h-4 text-amber-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-semibold text-white">Análise</CardTitle>
+                  <p className="text-xs text-muted-foreground">Produtos e vendas</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Acompanhe seus produtos e o volume de vendas aprovadas.
+              </p>
+              <div className="grid grid-cols-2 gap-2 py-1">
+                {[
+                  {
+                    icon: Package,
+                    label: "Produtos",
+                    value: loadingProducts ? "—" : String(products.length),
+                  },
+                  {
+                    icon: ShoppingBag,
+                    label: "Aprovadas",
+                    value: loadingEvents ? "—" : String(approvedCount),
+                  },
+                ].map(({ icon: Icon, label, value }) => (
+                  <div key={label} className="p-2 rounded bg-white/5 text-center">
+                    <Icon className="w-3.5 h-3.5 text-muted-foreground mx-auto mb-1" />
+                    <p className="text-xs font-semibold text-white truncate">{value}</p>
+                    <p className="text-[10px] text-muted-foreground">{label}</p>
+                  </div>
+                ))}
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => window.open("https://app.kiwify.com.br", "_blank", "noopener,noreferrer")}
+                className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
+              >
+                <ExternalLink className="w-3 h-3 mr-1.5" />
+                Ver análise
+              </Button>
+            </CardContent>
+          </Card>
 
         </div>
+
       </motion.div>
     </div>
   );

@@ -1,0 +1,92 @@
+Padronize AGORA os módulos Hotmart e Kiwify copiando como BASE OFICIAL a estrutura visual já validada do TikTok.
+
+IMPORTANTE:
+NÃO criar nova arquitetura.
+NÃO inventar novos blocos.
+NÃO adicionar textos técnicos.
+NÃO adicionar mensagens em inglês.
+NÃO usar a palavra “IA”.
+NÃO usar “assistido”, “automação assistida”, “publicação assistida” ou similares.
+NÃO alterar o que já funciona nas outras plataformas.
+
+OBJETIVO:
+Hotmart e Kiwify devem ficar visualmente no MESMO PADRÃO de:
+- TikTok
+- Instagram
+- Facebook
+
+REFERÊNCIA OBRIGATÓRIA:
+Usar exatamente a mesma lógica estrutural validada no TikTok:
+1. Cabeçalho
+2. Card principal de conexão
+3. Card “Anúncios”
+4. Card “Conteúdo”
+5. Card “Atividade da conta”
+6. Card “Análise”
+
+PADRONIZAÇÃO VISUAL:
+- Mesmo espaçamento
+- Mesmo tamanho de blocos
+- Mesmo padding
+- Mesma hierarquia visual
+- Mesmo estilo premium dark
+- Mesmo padrão dos botões
+- Mesmo alinhamento
+- Mesmo padrão dos mini cards internos
+- Mesma responsividade mobile
+
+PADRONIZAÇÃO DE TEXTOS:
+Substituir TODOS os textos técnicos, poluídos ou exagerados por textos simples, premium e diretos.
+
+Exemplo do padrão correto:
+- “Análise”
+- “Campanhas”
+- “Publicações”
+- “Atividade da conta”
+- “Conectar conta”
+- “Ver análise”
+
+NÃO deixar:
+- “Analytics”
+- “Logs”
+- “For Business”
+- “Ads”
+- “Cloud API”
+- “Webhook”
+- “Integração”
+- “Automação”
+- “IA”
+- termos técnicos
+- frases robóticas
+
+HOTMART:
+A estrutura deve transmitir:
+- produtos
+- campanhas
+- vendas
+- conteúdos
+- acompanhamento
+
+Mas SEM aparência técnica.
+
+KIWIFY:
+Seguir exatamente a mesma linha da Hotmart.
+Mesma densidade visual.
+Mesmo padrão premium.
+Mesmo comportamento dos blocos.
+
+BOTÕES:
+Todos os botões devem:
+- existir de verdade
+- ter handler funcional
+- possuir hover correto
+- manter padrão visual do TikTok
+
+REMOVER:
+- blocos redundantes
+- textos longos
+- excesso de explicação
+- aparência de painel administrativo técnico
+
+RESULTADO ESPERADO:
+Hotmart e Kiwify devem parecer módulos NATIVOS da mesma plataforma do TikTok, Instagram e Facebook, com sensação premium, limpa, moderna e operacional.
