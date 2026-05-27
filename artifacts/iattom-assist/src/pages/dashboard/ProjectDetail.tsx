@@ -5,7 +5,7 @@ import { loadProjectAssets, saveProjectAssets, deleteProjectAssets } from "@/lib
 import { useSavedItems } from "@/hooks/useSavedItems";
 import {
   ArrowLeft, Trash2, Loader2, Copy, Check, ChevronDown, ChevronUp,
-  FileText, Megaphone, Sparkles, Video, Search, ImageOff, Download, X,
+  FileText, Megaphone, Sparkles, Video, Search, ImageOff, Download, X, RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,7 @@ interface SavedItem {
   platform?: string;
   content: string;
   data?: string;
+  hasImages?: boolean;
   createdAt: string;
 }
 
@@ -391,11 +392,13 @@ export function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { getItems, getItemAssets } = useSavedItems();
+  const { getItems, getItemAssets, saveItemAssets } = useSavedItems();
   const [item, setItem] = useState<SavedItem | null | "not_found">(null);
   const [deletingId, setDeletingId] = useState(false);
   const [allCopied, setAllCopied] = useState(false);
   const [idbImages, setIdbImages] = useState<ImageEntry[]>([]);
+  const [imagesLoadDone, setImagesLoadDone] = useState(false);
+  const [syncingImages, setSyncingImages] = useState(false);
   const [previewImage, setPreviewImage] = useState<{ img: ImageEntry; idx: number } | null>(null);
   const [adModalOpen, setAdModalOpen] = useState(false);
   const [adPhase, setAdPhase] = useState<"pick" | "prepare">("pick");
@@ -445,11 +448,36 @@ export function ProjectDetail() {
           void saveProjectAssets(id, apiAssets).catch(() => {});
         }
       } catch { /* API unavailable */ }
+
+      setImagesLoadDone(true);
     }
 
     void loadItem();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Re-sync handler: reads images from this device's IndexedDB and pushes to API
+  const handleSyncImages = useCallback(async () => {
+    if (!id || syncingImages) return;
+    setSyncingImages(true);
+    try {
+      const localAssets = await loadProjectAssets(id);
+      if (localAssets.length === 0) {
+        toast({
+          description: "As imagens estão no dispositivo onde foram geradas. Abra o projeto naquele dispositivo e clique em Salvar novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+      await saveItemAssets(id, localAssets.map(a => ({ conceptIndex: a.conceptIndex, base64: a.base64, label: a.label, format: a.format })));
+      setIdbImages(localAssets.map(a => ({ label: a.label, base64: a.base64, format: a.format })));
+      toast({ description: "Imagens sincronizadas com sucesso." });
+    } catch {
+      toast({ description: "Falha ao sincronizar imagens. Tente novamente.", variant: "destructive" });
+    } finally {
+      setSyncingImages(false);
+    }
+  }, [id, syncingImages, saveItemAssets, toast]);
 
   const handleDelete = useCallback(() => {
     setConfirmTrashOpen(true);
@@ -611,6 +639,21 @@ export function ProjectDetail() {
 
       {/* Images */}
       <ImagesSection images={images} onPreview={(img, idx) => setPreviewImage({ img, idx })} />
+      {/* Sync button — shown only when project has images but none loaded yet (cross-device case) */}
+      {imagesLoadDone && item.hasImages && images.length === 0 && (
+        <div className="flex justify-center pt-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { void handleSyncImages(); }}
+            disabled={syncingImages}
+            className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 text-xs gap-2"
+          >
+            {syncingImages ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            {syncingImages ? "Sincronizando..." : "Sincronizar imagens novamente"}
+          </Button>
+        </div>
+      )}
 
       {/* Tech details */}
       {(() => {

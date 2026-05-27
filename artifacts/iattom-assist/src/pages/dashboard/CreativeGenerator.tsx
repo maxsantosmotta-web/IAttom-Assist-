@@ -185,8 +185,11 @@ export function CreativeGenerator() {
     });
   };
 
-  const handleSave = () => {
-    if (!activeResult) return;
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!activeResult || isSaving) return;
+    setIsSaving(true);
 
     const lines: string[] = [];
     if (activeResult.overarchingTheme) lines.push(`TEMA: ${activeResult.overarchingTheme}`);
@@ -226,13 +229,31 @@ export function CreativeGenerator() {
       existing.unshift({ id: projectId, title, type: "creative", content, data, hasImages: imageAssets.length > 0, createdAt: new Date().toISOString() });
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
     } catch {}
+
+    // Cache images in local IndexedDB immediately (this device)
     if (imageAssets.length > 0) void saveProjectAssets(projectId, imageAssets);
-    void saveItem({ id: projectId, title, type: "creative", content, data, hasImages: imageAssets.length > 0 })
-      .then(() => {
-        if (imageAssets.length > 0) void saveItemAssets(projectId, imageAssets).catch(() => {});
-      })
-      .catch(() => {});
-    toast({ description: "Projeto salvo" });
+
+    try {
+      await saveItem({ id: projectId, title, type: "creative", content, data, hasImages: imageAssets.length > 0 });
+
+      if (imageAssets.length > 0) {
+        try {
+          await saveItemAssets(projectId, imageAssets);
+          toast({ description: "Projeto salvo com imagens sincronizadas." });
+        } catch {
+          toast({
+            description: "Projeto salvo, mas as imagens não foram sincronizadas. Tente salvar novamente.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({ description: "Projeto salvo." });
+      }
+    } catch {
+      toast({ description: "Erro ao salvar projeto. Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -379,7 +400,7 @@ export function CreativeGenerator() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Conceitos Criativos</h3>
               <div className="flex items-center gap-3">
-                <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><Save className="w-3 h-3" /> Salvar</button>
+                <button onClick={() => { void handleSave(); }} disabled={isSaving} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">{isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}{isSaving ? "Salvando..." : "Salvar"}</button>
                 <button onClick={() => { reset(); setRestoredResult(null); }} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><RefreshCw className="w-3 h-3" /> Novos conceitos</button>
               </div>
             </div>
