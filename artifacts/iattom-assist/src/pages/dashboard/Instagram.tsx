@@ -138,7 +138,7 @@ export function Instagram() {
     setConnecting(true);
     showInfo(
       "Conectar Instagram",
-      "A integração com Instagram Business requer configuração do Meta App pelo administrador. Após a ativação, você poderá conectar contas Business e acompanhar métricas diretamente aqui.",
+      "A integração com Instagram requer configuração do Meta App pelo administrador. Após a ativação, você poderá conectar contas profissionais e acompanhar métricas diretamente aqui.",
     );
     setConnecting(false);
   };
@@ -179,7 +179,7 @@ export function Instagram() {
   const handleAnalytics = () => {
     showInfo(
       "Análise Instagram",
-      "Métricas de alcance, engajamento e performance de conteúdo estarão disponíveis após a conexão da conta Business.",
+      "Métricas de alcance, engajamento e performance de conteúdo estarão disponíveis após a conexão da conta profissional.",
     );
   };
 
@@ -283,7 +283,7 @@ export function Instagram() {
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground">Conta Instagram não conectada</p>
                   <p className="text-xs text-muted-foreground/60 mt-0.5">
-                    Conecte um perfil Business para acessar anúncios, conteúdo e métricas.
+                    Conecte um perfil profissional para acessar anúncios, conteúdo e métricas.
                   </p>
                 </div>
                 <Button
@@ -321,13 +321,13 @@ export function Instagram() {
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Acompanhe campanhas do Instagram Ads. Impressões, alcance e conversões disponíveis após conexão.
+                Acompanhe suas campanhas no Instagram. Visualizações, alcance e conversões disponíveis após conexão.
               </p>
               <div className="grid grid-cols-3 gap-2 py-1">
                 {[
-                  { icon: BarChart2, label: "Impressões", value: "—" },
+                  { icon: BarChart2, label: "Visualizações", value: "—" },
                   { icon: Users, label: "Alcance", value: isConnected && totalFollowers > 0 ? totalFollowers.toLocaleString("pt-BR") : "—" },
-                  { icon: TrendingUp, label: "CTR", value: "—" },
+                  { icon: TrendingUp, label: "Cliques", value: "—" },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="p-2 rounded bg-white/5 text-center">
                     <Icon className="w-3.5 h-3.5 text-muted-foreground mx-auto mb-1" />

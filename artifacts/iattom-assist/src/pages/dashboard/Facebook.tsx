@@ -136,7 +136,7 @@ export function Facebook() {
     setConnecting(true);
     showInfo(
       "Conectar Facebook",
-      "A integração com Facebook Business requer configuração do Meta App pelo administrador. Após a ativação, suas páginas serão sincronizadas e você poderá gerenciar anúncios e conteúdo diretamente aqui.",
+      "A integração com Facebook requer configuração do Meta App pelo administrador. Após a ativação, suas páginas serão sincronizadas e você poderá gerenciar anúncios e conteúdo diretamente aqui.",
     );
     setConnecting(false);
   };
@@ -177,7 +177,7 @@ export function Facebook() {
   const handleAnalytics = () => {
     showInfo(
       "Análise Facebook",
-      "Métricas de alcance, engajamento e performance de campanhas estarão disponíveis após a conexão da conta Business.",
+      "Métricas de alcance, engajamento e performance de campanhas estarão disponíveis após a conexão da conta profissional.",
     );
   };
 
@@ -278,7 +278,7 @@ export function Facebook() {
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground">Conta Facebook não conectada</p>
                   <p className="text-xs text-muted-foreground/60 mt-0.5">
-                    Conecte uma conta Business para acessar páginas, anúncios e métricas.
+                    Conecte uma conta profissional para acessar páginas, anúncios e métricas.
                   </p>
                 </div>
                 <Button
@@ -316,13 +316,13 @@ export function Facebook() {
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Acompanhe campanhas no Facebook. Impressões, alcance e conversões disponíveis após conexão.
+                Acompanhe suas campanhas no Facebook. Visualizações, alcance e conversões disponíveis após conexão.
               </p>
               <div className="grid grid-cols-3 gap-2 py-1">
                 {[
-                  { icon: BarChart2, label: "Impressões", value: "—" },
+                  { icon: BarChart2, label: "Visualizações", value: "—" },
                   { icon: Users, label: "Alcance", value: "—" },
-                  { icon: TrendingUp, label: "CTR", value: "—" },
+                  { icon: TrendingUp, label: "Cliques", value: "—" },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="p-2 rounded bg-white/5 text-center">
                     <Icon className="w-3.5 h-3.5 text-muted-foreground mx-auto mb-1" />

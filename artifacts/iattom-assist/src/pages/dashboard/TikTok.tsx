@@ -164,7 +164,7 @@ export function TikTok() {
   const handleAnalytics = () => {
     showInfo(
       "Análise TikTok",
-      "As métricas de performance dos seus vídeos e campanhas TikTok estarão disponíveis aqui após a conexão e ativação da integração. Função preparada para próxima etapa.",
+      "As métricas de performance dos seus vídeos e campanhas TikTok estarão disponíveis após a conexão da conta.",
     );
   };
 
@@ -271,7 +271,7 @@ export function TikTok() {
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground">Conta TikTok não conectada</p>
                   <p className="text-xs text-muted-foreground/60 mt-0.5">
-                    Conecte sua conta para acessar Ads, Shop e publicação de conteúdo.
+                    Conecte sua conta para acessar o Shop e publicar conteúdo.
                   </p>
                 </div>
                 <Button
@@ -305,18 +305,17 @@ export function TikTok() {
                   <CardTitle className="text-sm font-semibold text-white">Anúncios</CardTitle>
                   <p className="text-xs text-muted-foreground">Campanhas</p>
                 </div>
-                <Badge className="ml-auto bg-yellow-500/15 text-yellow-400 border-yellow-500/30 text-[10px]">Em breve</Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Monitore campanhas de anúncios no TikTok For Business. Impressões, alcance, CTR e conversões disponíveis após conexão.
+                Acompanhe suas campanhas no TikTok. Visualizações, alcance e conversões disponíveis após conexão.
               </p>
               <div className="grid grid-cols-3 gap-2 py-1">
                 {[
-                  { icon: BarChart2, label: "Impressões", value: "—" },
+                  { icon: BarChart2, label: "Visualizações", value: "—" },
                   { icon: Users, label: "Alcance", value: "—" },
-                  { icon: TrendingUp, label: "CTR", value: "—" },
+                  { icon: TrendingUp, label: "Cliques", value: "—" },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="p-2 rounded bg-white/5 text-center">
                     <Icon className="w-3.5 h-3.5 text-muted-foreground mx-auto mb-1" />
@@ -359,13 +358,13 @@ export function TikTok() {
                   size="sm"
                   variant="outline"
                   onClick={() => showInfo(
-                    "Publicação de Vídeos",
-                    "A publicação direta no TikTok via API estará disponível após a conexão da conta. Você poderá agendar e publicar vídeos diretamente da plataforma.",
+                    "Publicar vídeos",
+                    "A publicação direta no TikTok estará disponível após a conexão da conta. Você poderá agendar e publicar vídeos diretamente da plataforma.",
                   )}
                   className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
                 >
                   <ExternalLink className="w-3 h-3 mr-1.5" />
-                  Publicação de Vídeos
+                  Publicar vídeos
                 </Button>
               </div>
             </CardContent>
@@ -395,7 +394,7 @@ export function TikTok() {
                   },
                   {
                     icon: ClipboardList,
-                    label: "Última sincronização",
+                    label: "Última atualização",
                     value: status?.connectedAt
                       ? new Date(status.connectedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
                       : "—",
@@ -445,12 +444,11 @@ export function TikTok() {
                   <CardTitle className="text-sm font-semibold text-white">Análise</CardTitle>
                   <p className="text-xs text-muted-foreground">Performance e métricas</p>
                 </div>
-                <Badge className="ml-auto bg-yellow-500/15 text-yellow-400 border-yellow-500/30 text-[10px]">Em breve</Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Acompanhe visualizações, engajamento, seguidores e performance de anúncios diretamente na plataforma.
+                Acompanhe visualizações, engajamento e seguidores diretamente na plataforma.
               </p>
               <div className="grid grid-cols-2 gap-2 py-1">
                 {[
