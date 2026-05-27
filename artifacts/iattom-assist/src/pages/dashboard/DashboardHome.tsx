@@ -323,7 +323,7 @@ export function DashboardHome() {
             </div>
             <p className="text-sm font-semibold text-zinc-500">Sem projetos salvos ainda</p>
             <p className="text-xs text-zinc-700 mt-1 max-w-[200px] leading-relaxed">
-              Use um módulo de IA para gerar e salvar seu primeiro projeto
+              Gere e salve seu primeiro projeto
             </p>
             <Link href="/dashboard/projects" className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 mt-3 font-semibold transition-colors">
               Ver Projetos Salvos <ArrowRight className="w-3 h-3" />

@@ -48,7 +48,7 @@ const PLAN_DISPLAY: Record<PlanKey, {
     checkColor: "text-sky-300",
     features: [
       "50 créditos por mês",
-      "Todos os módulos de IA",
+      "Todos os módulos",
       "Histórico básico",
       "Suporte por email",
     ],
@@ -116,7 +116,7 @@ const FAQ_ITEMS = [
   {
     icon: Zap,
     q: "O que são créditos e como funcionam?",
-    a: "Créditos são a moeda interna do iAttom Assist. Cada execução de IA consome uma quantidade de créditos conforme a complexidade da tarefa. Seu saldo renova automaticamente no início de cada ciclo mensal, sem acúmulo de saldo anterior.",
+    a: "Créditos são a moeda interna do iAttom Assist. Cada execução consome uma quantidade de créditos conforme a complexidade da tarefa. Seu saldo renova automaticamente no início de cada ciclo mensal, sem acúmulo de saldo anterior.",
   },
   {
     icon: XCircle,
@@ -125,8 +125,8 @@ const FAQ_ITEMS = [
   },
   {
     icon: LayoutGrid,
-    q: "Todos os planos têm acesso aos módulos de IA?",
-    a: "Sim. Todos os planos — incluindo o Cristal — têm acesso a todos os 6 módulos de IA: Encontrar Produtos, Validar Produtos, Criar Campanha, Criar Conteúdo, Gerador de Criativos e Roteiros de Vídeo. A diferença está na quantidade de créditos disponíveis por mês.",
+    q: "Todos os planos têm acesso aos módulos?",
+    a: "Sim. Todos os planos — incluindo o Cristal — têm acesso a todos os 6 módulos: Encontrar Produtos, Validar Produtos, Criar Campanha, Criar Conteúdo, Gerador de Criativos e Roteiros de Vídeo. A diferença está na quantidade de créditos disponíveis por mês.",
   },
   {
     icon: ArrowUpCircle,
@@ -146,7 +146,7 @@ const FAQ_ITEMS = [
   {
     icon: CreditCard,
     q: "O que acontece se eu esgotar todos os créditos antes do fim do mês?",
-    a: "Quando seus créditos acabam, as execuções de IA ficam pausadas até a renovação mensal. Você pode fazer upgrade de plano a qualquer momento para obter mais créditos imediatamente, ou aguardar o próximo ciclo.",
+    a: "Quando seus créditos acabam, as execuções ficam pausadas até a renovação mensal. Você pode fazer upgrade de plano a qualquer momento para obter mais créditos imediatamente, ou aguardar o próximo ciclo.",
   },
 ];
 

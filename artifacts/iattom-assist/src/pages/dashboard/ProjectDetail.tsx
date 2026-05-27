@@ -142,11 +142,10 @@ function CampaignContent({ result, creatives }: { result: CampaignResult; creati
           {creatives.overarchingTheme ? <TextBlock label="Tema Central" value={creatives.overarchingTheme} /> : null}
           {creatives.concepts.map((c, i) => (
             <div key={c.id ?? i} className="rounded-xl border border-white/[0.06] bg-[#0d0d0d] p-4 space-y-3">
-              <p className="text-xs font-semibold text-zinc-400">Criativo {i + 1} — {c.label} ({c.format})</p>
+              <p className="text-xs font-semibold text-zinc-400">Criativo {i + 1} — {c.label}</p>
               <TextBlock label="Hook" value={c.copyHook} />
               <TextBlock label="Copy" value={c.bodyText} />
               <TextBlock label="CTA" value={c.cta} />
-              {c.imagePrompt ? <TextBlock label="Prompt de Imagem" value={c.imagePrompt} /> : null}
             </div>
           ))}
         </div>
@@ -176,14 +175,12 @@ function CreativeContent({ result }: { result: CreativeIdeasResult }) {
       <TextBlock label="Tom da Marca" value={result.brandVoiceNotes} />
       {result.concepts?.map((c, i) => (
         <div key={c.id ?? i} className="rounded-xl border border-white/[0.06] bg-[#0d0d0d] p-4 space-y-3">
-          <p className="text-xs font-semibold text-zinc-400">Criativo {i + 1} — {c.label} ({c.format})</p>
+          <p className="text-xs font-semibold text-zinc-400">Criativo {i + 1} — {c.label}</p>
           <TextBlock label="Hook" value={c.copyHook} />
           <TextBlock label="Copy" value={c.bodyText} />
           <TextBlock label="CTA" value={c.cta} />
-          <TextBlock label="Direção Visual" value={c.visualDirection} />
           <TextBlock label="Gatilho Emocional" value={c.emotionalTrigger} />
           <TextBlock label="Melhor Plataforma" value={c.bestPlatform} />
-          {c.imagePrompt ? <TextBlock label="Prompt de Imagem" value={c.imagePrompt} /> : null}
         </div>
       ))}
     </div>
@@ -351,8 +348,6 @@ function TechDetails({ briefing, type, result }: { briefing: Record<string, unkn
       ? (result as CreativeIdeasResult)?.concepts
       : undefined;
     concepts?.forEach((c, i) => {
-      if (c.format) techLines.push(`Criativo ${i + 1}: ${c.format}`);
-      if (c.visualDirection) techLines.push(`Direção visual: ${c.visualDirection}`);
     });
   }
   if (briefingEntries.length === 0 && techLines.length === 0) return null;

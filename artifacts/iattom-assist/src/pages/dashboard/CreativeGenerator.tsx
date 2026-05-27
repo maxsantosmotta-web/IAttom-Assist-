@@ -43,7 +43,7 @@ function ConceptCard({ concept, index }: { concept: CreativeConcept; index: numb
   const FormatIcon = formatIcons[concept.format] ?? formatIcons.default;
 
   const copyAll = () => {
-    const text = `HOOK: ${concept.copyHook}\n\nCOPY: ${concept.bodyText}\n\nCTA: ${concept.cta}\n\nVISUAL: ${concept.visualDirection}\n\nPROMPT DE IMAGEM: ${concept.imagePrompt}`;
+    const text = `HOOK: ${concept.copyHook}\n\nCOPY: ${concept.bodyText}\n\nCTA: ${concept.cta}`;
     navigator.clipboard.writeText(text);
     toast({ description: "Conceito criativo copiado" });
   };
@@ -68,7 +68,7 @@ function ConceptCard({ concept, index }: { concept: CreativeConcept; index: numb
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="text-xs font-semibold text-primary uppercase tracking-widest">{concept.label}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{concept.format} &middot; {concept.bestPlatform}</p>
+              {concept.bestPlatform && <p className="text-xs text-muted-foreground mt-0.5">{concept.bestPlatform}</p>}
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <button onClick={copyAll} className="text-muted-foreground hover:text-white transition-colors">
@@ -98,30 +98,6 @@ function ConceptCard({ concept, index }: { concept: CreativeConcept; index: numb
             </div>
           </div>
 
-          {concept.visualDirection && (
-            <div className="px-2 py-1.5 rounded bg-white/3 border border-white/5">
-              <p className="text-[10px] text-white/30 uppercase tracking-wider mb-0.5">Direção Visual</p>
-              <p className="text-xs text-muted-foreground/80 line-clamp-2">{concept.visualDirection}</p>
-            </div>
-          )}
-
-          {concept.imagePrompt && (
-            <div>
-              <button
-                onClick={() => setShowTechnical((v) => !v)}
-                className="flex items-center gap-1 text-xs text-white/30 hover:text-white/60 transition-colors"
-              >
-                {showTechnical ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                Detalhes técnicos
-              </button>
-              {showTechnical && (
-                <div className="mt-1.5 p-2 rounded bg-white/3 border border-white/5">
-                  <p className="text-xs text-white/40 uppercase tracking-wider mb-0.5">Prompt de Imagem IAttom</p>
-                  <p className="text-xs text-muted-foreground/70 leading-relaxed italic">{concept.imagePrompt}</p>
-                </div>
-              )}
-            </div>
-          )}
         </CardContent>
       </Card>
     </motion.div>
@@ -220,7 +196,6 @@ export function CreativeGenerator() {
       if (c.bodyText) lines.push(`Copy: ${c.bodyText}`);
       if (c.cta) lines.push(`CTA: ${c.cta}`);
       if (c.visualDirection) lines.push(`Visual: ${c.visualDirection}`);
-      if (c.imagePrompt) lines.push(`Prompt IA: ${c.imagePrompt}`);
     });
     if (activeResult.brandVoiceNotes) lines.push(`\nVoz da Marca: ${activeResult.brandVoiceNotes}`);
     const content = lines.join("\n");

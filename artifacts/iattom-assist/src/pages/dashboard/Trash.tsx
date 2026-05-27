@@ -352,7 +352,7 @@ export function Trash() {
       <div className="bg-primary/5 border border-primary/15 rounded-lg p-4 space-y-1.5">
         <p className="text-xs font-medium text-primary">Sobre a Lixeira</p>
         <p className="text-[11px] text-zinc-500">
-          Projetos IA são excluídos definitivamente após 48h. Itens de integração ficam ocultos nas listas principais mesmo após sincronização.
+          Projetos são excluídos definitivamente após 48h. Itens de integração ficam ocultos nas listas principais mesmo após sincronização.
           Restaurar devolve o item ao módulo de origem.
         </p>
       </div>

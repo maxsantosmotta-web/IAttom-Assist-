@@ -50,10 +50,9 @@ function InlineConceptCard({ concept, compact }: { concept: CreativeConcept; com
         <div className="flex items-start justify-between gap-2">
           <div>
             <p className="text-xs font-semibold text-primary uppercase tracking-widest">{concept.label}</p>
-            <p className="text-xs text-muted-foreground/60 mt-0.5">
-              {concept.format}
-              {concept.bestPlatform ? ` · ${concept.bestPlatform}` : ""}
-            </p>
+            {concept.bestPlatform && (
+              <p className="text-xs text-muted-foreground/60 mt-0.5">{concept.bestPlatform}</p>
+            )}
           </div>
           {!compact && (
             <button

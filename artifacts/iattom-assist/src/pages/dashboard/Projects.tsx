@@ -153,7 +153,7 @@ export function Projects() {
           <p className="text-sm text-zinc-600 max-w-[260px] leading-relaxed">
             {search || typeFilter !== "all"
               ? "Tente outro filtro ou termo de busca."
-              : "Use os módulos de IA para gerar e salvar campanhas, criativos, conteúdos e scripts."}
+              : "Gere e salve campanhas, criativos, conteúdos e scripts."}
           </p>
         </motion.div>
       ) : (

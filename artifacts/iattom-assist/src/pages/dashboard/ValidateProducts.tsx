@@ -164,7 +164,7 @@ export function ValidateProducts() {
                   className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
                 >
                   {isLoading || isGenerating ? (
-                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> A IA está analisando sua ideia...</>
+                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Analisando sua ideia...</>
                   ) : "Executar Validação"}
                 </Button>
               )}

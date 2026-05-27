@@ -197,7 +197,7 @@ export function Credits() {
             <div className="py-16 text-center">
               <Zap className="w-8 h-8 text-white/10 mx-auto mb-3" />
               <p className="text-sm text-muted-foreground">Nenhuma transação ainda.</p>
-              <p className="text-xs text-muted-foreground mt-1">Use um módulo de inteligência artificial para ver seu histórico aqui.</p>
+              <p className="text-xs text-muted-foreground mt-1">Use um dos módulos para ver seu histórico aqui.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">

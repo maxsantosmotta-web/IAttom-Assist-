@@ -95,7 +95,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "O que acontece quando os créditos acabam?",
-    a: "Quando os créditos se esgotam, as ações de IA ficam pausadas até a renovação mensal. Você pode fazer upgrade a qualquer momento para obter mais créditos imediatamente.",
+    a: "Quando os créditos se esgotam, as funcionalidades ficam pausadas até a renovação mensal. Você pode fazer upgrade a qualquer momento para obter mais créditos imediatamente.",
   },
   {
     q: "Os créditos acumulam entre os meses?",
