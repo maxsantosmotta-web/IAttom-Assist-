@@ -115,7 +115,7 @@ export function CreateContent() {
         <Card className="bg-[#111111] border-white/5">
           <CardHeader className="pb-4">
             <CardTitle className="text-base font-semibold text-white flex items-center gap-2">
-              <FileText className="w-4 h-4 text-primary" /> Briefing de Conteúdo
+              <FileText className="w-4 h-4 text-primary" /> Estratégia de Conteúdo
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">

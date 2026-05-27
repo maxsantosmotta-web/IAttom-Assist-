@@ -458,7 +458,7 @@ export function CreateCampaign() {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
         <Card className="bg-[#111111] border-white/5">
           <CardHeader className="pb-4">
-            <CardTitle className="text-base font-semibold text-white">Briefing da Campanha</CardTitle>
+            <CardTitle className="text-base font-semibold text-white">Dados da Campanha</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
