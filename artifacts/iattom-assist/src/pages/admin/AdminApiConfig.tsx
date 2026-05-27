@@ -183,11 +183,11 @@ function FormActions({ onSave, onTest, onClear, saving, testing, externalLink }:
 const TABS: Array<{ id: IntegrationKey; label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = [
   { id: "shopee",    label: "Shopee",        icon: ShoppingBag,   color: "text-orange-400" },
   { id: "tiktok",    label: "TikTok",        icon: Video,         color: "text-cyan-400"   },
-  { id: "ml",        label: "Mercado Livre", icon: ShoppingCart,  color: "text-amber-400"  },
+  { id: "kiwify",    label: "Kiwify",        icon: Zap,           color: "text-violet-400" },
   { id: "facebook",  label: "Facebook",      icon: FacebookIcon,  color: "text-blue-400"   },
   { id: "instagram", label: "Instagram",     icon: Instagram,     color: "text-pink-400"   },
   { id: "hotmart",   label: "Hotmart",       icon: Flame,         color: "text-red-400"    },
-  { id: "kiwify",    label: "Kiwify",        icon: Zap,           color: "text-violet-400" },
+  { id: "ml",        label: "Mercado Livre", icon: ShoppingCart,  color: "text-amber-400"  },
 ];
 
 /* ─── Checklist ──────────────────────────────────────────────── */
