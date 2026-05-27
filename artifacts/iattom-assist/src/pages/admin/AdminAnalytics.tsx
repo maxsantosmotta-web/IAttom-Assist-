@@ -159,12 +159,13 @@ export function AdminAnalytics() {
   });
   const revenueData = planRevenueDisplay;
 
-  const planBar = growthStats
+  const hasPaidSubscribers = (growthStats?.activeSubscribers ?? 0) > 0;
+  const planBar = (growthStats && hasPaidSubscribers)
     ? [
-        { name: "START", users: growthStats.planBreakdown.free, fill: "#bae6fd" },
-        { name: "COMPLETO", users: growthStats.planBreakdown.pro, fill: "#fb7185" },
-        { name: "PREMIUM", users: growthStats.planBreakdown.business, fill: EMERALD },
-        { name: "PRO", users: growthStats.planBreakdown.agency, fill: "#e2e8f0" },
+        { name: "START",    users: growthStats.planBreakdown.free,     fill: "#60a5fa" },
+        { name: "COMPLETO", users: growthStats.planBreakdown.pro,      fill: "#34d399" },
+        { name: "PREMIUM",  users: growthStats.planBreakdown.business, fill: "#a78bfa" },
+        { name: "PRO",      users: growthStats.planBreakdown.agency,   fill: "#C9A84C" },
       ].filter((p) => p.users > 0)
     : [];
 
@@ -238,8 +239,8 @@ export function AdminAnalytics() {
         </motion.div>
       )}
 
-      {/* Plan Distribution */}
-      {!growthLoading && planBar.length > 0 && (
+      {/* Plan Distribution — always rendered when loaded */}
+      {!growthLoading && (
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.12 }}>
           <Card className="bg-[#111111] border-white/5">
             <CardHeader className="pb-2">
@@ -248,17 +249,32 @@ export function AdminAnalytics() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={160}>
-                <BarChart data={planBar} margin={{ top: 0, right: 8, left: -20, bottom: 0 }} style={{ background: "transparent" }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#71717a" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#71717a" }} axisLine={false} tickLine={false} />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
-                  <Bar dataKey="users" name="Usuários" radius={[4, 4, 0, 0]}>
-                    {planBar.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              {planBar.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-center mb-4">
+                    <Users className="w-5 h-5 text-white/[0.15]" />
+                  </div>
+                  <p className="text-sm font-medium text-zinc-500 mb-1.5">Nenhuma distribuição de planos ainda.</p>
+                  <p className="text-xs text-zinc-700 max-w-xs leading-relaxed">As assinaturas aparecerão aqui conforme os usuários escolherem seus planos.</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={160}>
+                  <BarChart
+                    data={planBar}
+                    margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
+                    style={{ background: "transparent" }}
+                    barCategoryGap="40%"
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#71717a" }} axisLine={false} tickLine={false} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "#71717a" }} axisLine={false} tickLine={false} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
+                    <Bar dataKey="users" name="Usuários" radius={[4, 4, 0, 0]} maxBarSize={52}>
+                      {planBar.map((entry, i) => <Cell key={i} fill={entry.fill} fillOpacity={0.9} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </motion.div>
