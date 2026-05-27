@@ -418,7 +418,7 @@ export function AdminApiConfig() {
               }`}
             >
               <Icon className={`w-3 h-3 shrink-0 ${color}`} />
-              <span className="flex-1 text-left">{label}</span>
+              <span className="flex-1 text-left whitespace-nowrap">{label}</span>
               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${tabDot(id)}`} />
             </button>
           ))}
@@ -446,7 +446,7 @@ export function AdminApiConfig() {
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
                       <ShoppingBag className="w-4 h-4 text-orange-400" />
-                      Shopee Open Platform
+                      Shopee
                       {configs?.shopee.configured && <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/25 text-[10px]">Configurado</Badge>}
                     </CardTitle>
                   </CardHeader>
@@ -480,7 +480,7 @@ export function AdminApiConfig() {
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
                       <ShoppingCart className="w-4 h-4 text-amber-400" />
-                      Mercado Livre API
+                      Mercado Livre
                       {configs?.ml.configured && <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/25 text-[10px]">Configurado</Badge>}
                     </CardTitle>
                   </CardHeader>
@@ -676,7 +676,7 @@ export function AdminApiConfig() {
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
                       <Video className="w-4 h-4 text-cyan-400" />
-                      TikTok for Developers
+                      TikTok
                       {configs?.tiktok.configured && <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/25 text-[10px]">Configurado</Badge>}
                     </CardTitle>
                   </CardHeader>
