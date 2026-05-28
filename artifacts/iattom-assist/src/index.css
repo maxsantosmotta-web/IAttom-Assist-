@@ -538,35 +538,66 @@
 
 /* ── Clerk UserProfile modal — layout isolation ──────────────── */
 /*
- * Root cause: Tailwind v4 preflight sets min-width:0 globally, collapsing
- * Clerk's internal flex containers → text breaks letter-by-letter.
- * Fix: reset min-width + word-break inside every Clerk surface.
+ * Issues fixed:
+ * 1. Desktop showed mobile single-column layout (nav list only, no edit area)
+ *    → forced .cl-scrollBox row layout via media query on ≥640px
+ * 2. Text breaking letter-by-letter from Tailwind v4 min-width:0
+ *    → targeted reset on specific text containers only (not all children)
+ * 3. Avatar overlapping text → avatarBox flex-shrink:0
+ * 4. Buttons collapsing/misaligned → inline-flex + white-space:nowrap
  */
+
 .cl-rootBox {
   isolation: isolate;
 }
 
-/* Reset Tailwind preflight overrides inside Clerk */
-.cl-rootBox *,
-.cl-modalContent * {
-  min-width: auto;
-  word-break: normal;
-  overflow-wrap: break-word;
-}
-
-/* Modal must not collapse below a usable width */
+/* ── Modal shell ──────────────────────────────────────────────── */
 .cl-modalContent {
-  min-width: min(90vw, 820px) !important;
-  width: min(90vw, 820px) !important;
-  max-height: 90vh !important;
-  overflow-y: auto !important;
+  width: min(92vw, 860px) !important;
+  max-width: 860px !important;
+  max-height: 90dvh !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
 }
 
 .cl-card {
   width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
 }
 
-/* Avatar: never overlap sibling text */
+.cl-userProfile-root {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* ── Desktop two-column layout (≥640 px) ─────────────────────── */
+/* Forces sidebar + content side-by-side regardless of container queries */
+@media (min-width: 640px) {
+  .cl-scrollBox {
+    display: flex !important;
+    flex-direction: row !important;
+    min-height: 440px !important;
+    height: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .cl-navbar {
+    flex-shrink: 0 !important;
+    width: 200px !important;
+    overflow-y: auto !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+  }
+
+  .cl-pageScrollBox {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    overflow-y: auto !important;
+    max-height: 90dvh !important;
+  }
+}
+
+/* ── Avatar ───────────────────────────────────────────────────── */
 .cl-avatarBox {
   flex-shrink: 0 !important;
   flex-grow: 0 !important;
@@ -579,7 +610,7 @@
   object-fit: cover !important;
 }
 
-/* Buttons: keep on one line, never collapse */
+/* ── Buttons ──────────────────────────────────────────────────── */
 .cl-profileSectionPrimaryButton,
 .cl-formButtonPrimary,
 .cl-formButtonSecondary {
@@ -591,7 +622,19 @@
   flex-shrink: 0 !important;
 }
 
-/* Profile section row: allow text area to shrink but not to zero */
+/* ── Text containers: fix letter-by-letter wrap (Tailwind min-width:0) ─ */
+.cl-headerTitle,
+.cl-headerSubtitle,
+.cl-profileSectionTitle,
+.cl-profileSectionTitleText,
+.cl-navbarButton span,
+.cl-breadcrumbsItem {
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  white-space: normal !important;
+}
+
+/* ── Profile section content area ─────────────────────────────── */
 .cl-profileSectionContent {
   flex: 1 1 0% !important;
   min-width: 0 !important;
@@ -599,7 +642,7 @@
   word-break: break-word !important;
 }
 
-/* Form fields: full width, no collapse */
+/* ── Form fields ──────────────────────────────────────────────── */
 .cl-formField,
 .cl-formFieldRow {
   width: 100% !important;
