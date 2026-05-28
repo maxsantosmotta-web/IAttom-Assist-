@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { User, Bell, Shield, CreditCard, Zap, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,12 +25,45 @@ const itemVariants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 };
 
+const NOTIF_STORAGE_KEY = "iattom_notification_prefs_v1";
+
+interface NotifPrefs {
+  appNotif: boolean;
+  milestoneNotif: boolean;
+  upgradeNudge: boolean;
+}
+
+const DEFAULT_NOTIF_PREFS: NotifPrefs = {
+  appNotif: true,
+  milestoneNotif: true,
+  upgradeNudge: true,
+};
+
+function loadNotifPrefs(): NotifPrefs {
+  try {
+    const raw = localStorage.getItem(NOTIF_STORAGE_KEY);
+    if (!raw) return DEFAULT_NOTIF_PREFS;
+    return { ...DEFAULT_NOTIF_PREFS, ...(JSON.parse(raw) as Partial<NotifPrefs>) };
+  } catch {
+    return DEFAULT_NOTIF_PREFS;
+  }
+}
+
 export function Settings() {
   const { user, isLoaded } = useUser();
   const { openUserProfile } = useClerk();
   const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), staleTime: 0 } });
 
   const [, navigate] = useLocation();
+  const [notifPrefs, setNotifPrefs] = useState<NotifPrefs>(loadNotifPrefs);
+
+  const updatePref = (key: keyof NotifPrefs, value: boolean) => {
+    const next = { ...notifPrefs, [key]: value };
+    setNotifPrefs(next);
+    try {
+      localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(next));
+    } catch {}
+  };
 
   const firstName = user?.firstName ?? "";
   const lastName = user?.lastName ?? "";
@@ -97,14 +131,14 @@ export function Settings() {
                     />
                   </div>
                   <div className="flex items-center justify-between rounded-lg bg-white/5 border border-white/5 p-3">
-                    <p className="text-xs text-muted-foreground">Nome, e-mail e avatar são gerenciados pela sua conta Clerk.</p>
+                    <p className="text-xs text-muted-foreground">Nome, e-mail e avatar são gerenciados pela sua conta.</p>
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={openClerkProfile}
                       className="text-primary hover:text-primary/80 text-xs shrink-0 ml-3"
                     >
-                      <ExternalLink className="w-3 h-3 mr-1.5" /> Gerenciar Perfil
+                      <ExternalLink className="w-3 h-3 mr-1.5" /> Editar Perfil
                     </Button>
                   </div>
                 </>
@@ -122,31 +156,52 @@ export function Settings() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {[
-                { id: "email-notif", label: "Notificações no app", desc: "Alertas de atividade no sininho", defaultChecked: true },
-                { id: "project-notif", label: "Celebrações de marcos", desc: "Avisos ao atingir marcos de uso", defaultChecked: true },
-                { id: "upgrade-nudge", label: "Lembretes de atualização", desc: "Banner quando créditos estão baixos", defaultChecked: true },
-                { id: "marketing-notif", label: "Atualizações do produto", desc: "Em breve — anúncios por e-mail", defaultChecked: false, disabled: true },
-              ].map((item, i, arr) => (
-                <div key={item.id}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className={`text-sm font-medium ${item.disabled ? "text-zinc-600" : "text-white"}`}>{item.label}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
-                    </div>
-                    <Switch
-                      defaultChecked={item.defaultChecked}
-                      disabled={item.disabled}
-                      className="data-[state=checked]:bg-primary disabled:opacity-40"
-                    />
-                  </div>
-                  {i < arr.length - 1 && <Separator className="mt-4 bg-white/5" />}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-white">Notificações no app</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Alertas de atividade no sininho</p>
                 </div>
-              ))}
-              <div className="rounded-lg bg-white/[0.02] border border-white/[0.05] px-3 py-2.5">
-                <p className="text-xs text-zinc-600">
-                  Controles detalhados de notificação e preferências de e-mail chegam em breve.
-                </p>
+                <Switch
+                  checked={notifPrefs.appNotif}
+                  onCheckedChange={(v) => updatePref("appNotif", v)}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+              <Separator className="bg-white/5" />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-white">Celebrações de marcos</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Avisos ao atingir marcos de uso</p>
+                </div>
+                <Switch
+                  checked={notifPrefs.milestoneNotif}
+                  onCheckedChange={(v) => updatePref("milestoneNotif", v)}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+              <Separator className="bg-white/5" />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-white">Lembretes de atualização</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Banner quando créditos estão baixos</p>
+                </div>
+                <Switch
+                  checked={notifPrefs.upgradeNudge}
+                  onCheckedChange={(v) => updatePref("upgradeNudge", v)}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+              <Separator className="bg-white/5" />
+              <div className="flex items-center justify-between opacity-40">
+                <div>
+                  <p className="text-sm font-medium text-zinc-500">Atualizações do produto</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Em breve — anúncios por e-mail</p>
+                </div>
+                <Switch
+                  checked={false}
+                  disabled
+                  className="data-[state=checked]:bg-primary"
+                />
               </div>
             </CardContent>
           </Card>

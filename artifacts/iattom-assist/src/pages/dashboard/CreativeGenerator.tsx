@@ -30,11 +30,9 @@ const gradients = [
 ];
 
 const PLATFORM_OPTIONS = [
-  { value: "",              label: "Social Geral",    formats: ["1:1", "1:1", "9:16", "16:9"] },
   { value: "instagram",     label: "Instagram",       formats: ["1:1 feed", "9:16 story"] },
   { value: "tiktok",        label: "TikTok",          formats: ["9:16 vertical", "9:16 variação"] },
   { value: "facebook",      label: "Facebook",        formats: ["1:1 feed", "16:9 banner"] },
-  { value: "whatsapp",      label: "WhatsApp",        formats: ["1:1 feed", "9:16 status"] },
   { value: "shopee",        label: "Shopee",          formats: ["1:1 quadrado", "16:9 banner"] },
   { value: "mercado_livre", label: "Mercado Livre",   formats: ["1:1 quadrado", "1:1 variação"] },
   { value: "hotmart",       label: "Hotmart",         formats: ["1:1 thumb", "16:9 banner"] },
@@ -296,12 +294,13 @@ export function CreativeGenerator() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm text-muted-foreground">Onde vai divulgar?</label>
+              <label className="text-sm text-muted-foreground">Objetivo da imagem</label>
               <select
                 value={platform}
                 onChange={(e) => setPlatform(e.target.value)}
                 className="w-full h-9 rounded-md border border-white/10 bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0"
               >
+                <option value="" disabled>Selecionar</option>
                 {PLATFORM_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
