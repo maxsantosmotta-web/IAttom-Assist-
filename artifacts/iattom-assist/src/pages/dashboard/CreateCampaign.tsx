@@ -504,15 +504,6 @@ export function CreateCampaign() {
                   <option value="Vender pelo Instagram">Vender pelo Instagram</option>
                   <option value="Viralizar no Instagram">Viralizar no Instagram</option>
                   <option value="Viralizar no TikTok">Viralizar no TikTok</option>
-                  <option value="Gerar Leads">Gerar Leads</option>
-                  <option value="Captar Afiliados">Captar Afiliados</option>
-                  <option value="Lançar Produto Novo">Lançar Produto Novo</option>
-                  <option value="Escalar Produto Vencedor">Escalar Produto Vencedor</option>
-                  <option value="Recuperar Produto Fraco">Recuperar Produto Fraco</option>
-                  <option value="Criar Autoridade">Criar Autoridade</option>
-                  <option value="Reconhecimento de Marca">Reconhecimento de Marca</option>
-                  <option value="Tráfego para Site">Tráfego para Site</option>
-                  <option value="Instalações de App">Instalações de App</option>
                 </select>
               </div>
             </div>

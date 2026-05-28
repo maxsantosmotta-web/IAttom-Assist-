@@ -306,12 +306,6 @@ export function CreativeGenerator() {
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
-              <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                <span className="text-[10px] text-muted-foreground/60">Formatos:</span>
-                {(PLATFORM_OPTIONS.find((o) => o.value === platform) ?? PLATFORM_OPTIONS[0]).formats.map((f, i) => (
-                  <span key={i} className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-primary/10 text-primary border border-primary/20">{f}</span>
-                ))}
-              </div>
             </div>
 
             <div className="space-y-2">
