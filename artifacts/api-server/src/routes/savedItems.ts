@@ -144,10 +144,12 @@ router.post("/saved-items/:id/assets", requireAuth, largeJson, async (req: Reque
     return res.status(400).json({ error: "assets deve ser um array" });
   }
   try {
-    await db
+    const [updated] = await db
       .update(savedItemsTable)
       .set({ imagesData: JSON.stringify(assets), hasImages: assets.length > 0 })
-      .where(and(eq(savedItemsTable.id, id), eq(savedItemsTable.clerkUserId, clerkUserId)));
+      .where(and(eq(savedItemsTable.id, id), eq(savedItemsTable.clerkUserId, clerkUserId)))
+      .returning({ id: savedItemsTable.id });
+    if (!updated) return res.status(404).json({ error: "Projeto não encontrado" });
     return res.json({ ok: true });
   } catch (err) {
     req.log.error({ err }, "Failed to save item assets");

@@ -435,6 +435,7 @@ export function ProjectDetail() {
         const idbAssets = await loadProjectAssets(id);
         if (idbAssets.length > 0) {
           setIdbImages(idbAssets.map(a => ({ label: a.label, base64: a.base64, format: a.format })));
+          setImagesLoadDone(true);
           return;
         }
       } catch { /* IndexedDB unavailable */ }
