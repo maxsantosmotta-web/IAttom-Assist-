@@ -213,18 +213,26 @@ Crie ${numConcepts} conceitos criativos visualmente impactantes, alinhados ao pr
             const combined = `${c} ${vd}`.trim();
             return combined.length > 10 ? combined.slice(0, 300) : "premium lifestyle setting";
           })();
+          const styleContext = (params.style ?? "").trim() || "premium commercial";
           const editPrompt = [
-            "PRODUCT ANCHOR: The product in the reference image is the sole subject.",
-            "ABSOLUTE RULES — DO NOT violate:",
-            "- Keep the exact product: same shape, silhouette, proportions, color, structure, all physical components",
-            "- Do NOT replace, simplify, generalize or reinvent the product",
-            "- Do NOT add or remove parts that are not in the reference",
-            "WHAT YOU MAY CHANGE:",
-            `- Scene, environment and background: ${sceneInstruction}`,
-            "- Lighting: premium commercial, cinematic, soft shadows and highlights",
-            "- Camera angle and composition: varied but professional",
-            "- Mood and atmosphere: aspirational lifestyle",
-            "OUTPUT QUALITY: photorealistic, commercial photography quality, magazine-ready, no text overlays, no logos, no watermarks.",
+            "STRUCTURAL ANCHOR: Use the reference image to extract the product's physical identity only.",
+            "PRESERVE — non-negotiable:",
+            "- Exact shape, silhouette, geometry and proportions of the product",
+            "- All structural components and their spatial relationships",
+            "- Product category identity — do NOT replace, simplify or generalize the product",
+            "- Do NOT add or remove physical parts that are not present in the reference",
+            "DO NOT PRESERVE — free to change:",
+            "- Color and surface finish: unless the creative brief explicitly names a specific color, choose a new palette that fits the style",
+            "- Background and environment",
+            "- Lighting setup",
+            "- Camera angle and composition",
+            `COLOR RULE: Select a palette coherent with the creative style "${styleContext}".`,
+            "Style palette guidance — Luxury/Editorial: matte black, graphite, gold;",
+            "Premium Tech: silver, black, electric blue;",
+            "Marketplace: white, black, blue;",
+            "Sport: red, black, yellow.",
+            `CREATIVE CONTEXT: ${sceneInstruction}`,
+            "OUTPUT: photorealistic, commercial photography quality, magazine-ready, no text overlays, no logos, no watermarks.",
           ].join(" ");
           return editImageFromBuffer(referenceBuffer, editPrompt, mapFormatToSize(concept.format));
         }
