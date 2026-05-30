@@ -227,7 +227,7 @@ export function Projects() {
                         <button
                           onClick={() => setConfirmDeleteId(item.id)}
                           disabled={deletingId === item.id}
-                          className="w-7 h-7 flex items-center justify-center text-zinc-700 hover:text-red-400 transition-colors rounded-lg hover:bg-red-400/[0.08] opacity-0 group-hover:opacity-100"
+                          className="w-7 h-7 flex items-center justify-center text-zinc-700 hover:text-red-400 transition-colors rounded-lg hover:bg-red-400/[0.08] opacity-60 sm:opacity-0 sm:group-hover:opacity-100"
                         >
                           {deletingId === item.id
                             ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
