@@ -577,31 +577,6 @@
   max-width: 100% !important;
 }
 
-/* ── Desktop two-column layout (≥640 px) ─────────────────────── */
-/* Forces sidebar + content side-by-side regardless of container queries */
-@media (min-width: 640px) {
-  .cl-scrollBox {
-    display: flex !important;
-    flex-direction: row !important;
-    min-height: 440px !important;
-    height: 100% !important;
-    overflow: hidden !important;
-  }
-
-  .cl-navbar {
-    flex-shrink: 0 !important;
-    width: 200px !important;
-    overflow-y: auto !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
-  }
-
-  .cl-pageScrollBox {
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
-    overflow-y: auto !important;
-    max-height: 90dvh !important;
-  }
-}
 
 /* ── Avatar ───────────────────────────────────────────────────── */
 .cl-avatarBox {
