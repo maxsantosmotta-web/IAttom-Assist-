@@ -81,3 +81,6 @@ channel = "stable-25_05"
 ADMIN_EMAIL = "maxsantosmotta@gmail.com"
 GLOBAL_BETA_MODE = "true"
 VITE_GLOBAL_BETA_MODE = "true"
+
+[userenv.production]
+APP_CUSTOM_DOMAIN = "iattomassist.com.br"
