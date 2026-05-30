@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Megaphone, Target, Globe, Loader2, Copy, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Zap, Save, ExternalLink } from "lucide-react";
 import { saveProjectAssets } from "@/lib/assetStorage";
@@ -248,6 +248,23 @@ export function CreateCampaign() {
   const { status, result, error, generate, reset } = useAiStream<CampaignResult>();
   const { toast } = useToast();
   const { saveItem, saveItemAssets } = useSavedItems();
+
+  // Refund credits automatically on technical generation failure
+  const refundCalledRef = useRef(false);
+  useEffect(() => {
+    if (status === "error" && !refundCalledRef.current) {
+      refundCalledRef.current = true;
+      fetch("/api/credits/refund", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feature: "campaign" }),
+        credentials: "include",
+      }).catch(() => {});
+    }
+    if (status === "idle" || status === "generating") {
+      refundCalledRef.current = false;
+    }
+  }, [status]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [campaignData, setCampaignData] = useState<CampaignResult | null>(null);

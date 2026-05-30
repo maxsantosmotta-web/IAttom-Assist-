@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { db, users, creditsTransactions } from "@workspace/db";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
 import {
@@ -95,6 +95,31 @@ router.post("/credits/use", requireAuth, async (req, res): Promise<void> => {
     newBalance: result.newBalance,
     transactionId: result.transactionId,
   }));
+});
+
+// ── POST /credits/refund — devolve créditos após falha técnica de geração ─────
+// Chamado pelo frontend quando useAiStream retorna status "error".
+// Só reembolsa se a feature key for válida e tiver custo > 0.
+router.post("/credits/refund", requireAuth, async (req, res): Promise<void> => {
+  const { clerkUserId } = req as AuthenticatedRequest;
+  const { feature } = req.body as { feature?: string };
+  const featureKey = (feature ?? "") as FeatureKey;
+  const cost = FEATURE_COSTS[featureKey] ?? 0;
+  if (cost <= 0) {
+    res.json({ ok: true, refunded: 0 });
+    return;
+  }
+  try {
+    await db
+      .update(users)
+      .set({ credits: sql`${users.credits} + ${cost}` })
+      .where(eq(users.clerkId, clerkUserId));
+    req.log.info({ clerkUserId, feature: featureKey, cost }, "credits: reembolso por falha técnica");
+    res.json({ ok: true, refunded: cost });
+  } catch (err) {
+    req.log.error({ err }, "credits: falha ao processar reembolso");
+    res.status(500).json({ error: "Erro ao processar reembolso" });
+  }
 });
 
 export default router;

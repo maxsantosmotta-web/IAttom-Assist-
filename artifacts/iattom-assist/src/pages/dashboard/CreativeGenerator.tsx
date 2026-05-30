@@ -120,6 +120,23 @@ export function CreativeGenerator() {
   const { toast } = useToast();
   const { saveItem, saveItemAssets } = useSavedItems();
 
+  // Refund credits automatically on technical generation failure
+  const refundCalledRef = useRef(false);
+  useEffect(() => {
+    if (status === "error" && !refundCalledRef.current) {
+      refundCalledRef.current = true;
+      fetch("/api/credits/refund", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feature: "creative" }),
+        credentials: "include",
+      }).catch(() => {});
+    }
+    if (status === "idle" || status === "generating") {
+      refundCalledRef.current = false;
+    }
+  }, [status]);
+
   const { analyze, analysisStatus, analysisResult, resetAnalysis } = useReferenceAnalysis();
 
   const needsRef = needsReferenceImage(prompt);

@@ -160,29 +160,56 @@ INSTRUÇÃO OBRIGATÓRIA PARA imagePrompt: Inicie SEMPRE com o nome exato "${pro
 
 Crie ${numConcepts} conceitos criativos visualmente impactantes, alinhados ao produto e focados em conversão. Responda integralmente em português brasileiro.`;
 
-  let fullResponse = "";
+  function safeParseCreativeJson(raw: string): { success: true; data: CreativeIdeasResult } | { success: false; error: string } {
+    if (!raw?.trim()) return { success: false, error: "A IA retornou uma resposta vazia." };
+    try { return { success: true, data: JSON.parse(raw.trim()) as CreativeIdeasResult }; } catch { /* try next */ }
+    const cleaned = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+    try { return { success: true, data: JSON.parse(cleaned) as CreativeIdeasResult }; } catch { /* try next */ }
+    const cs = cleaned.indexOf("{"); const ce = cleaned.lastIndexOf("}");
+    if (cs !== -1 && ce !== -1 && ce > cs) {
+      try { return { success: true, data: JSON.parse(cleaned.slice(cs, ce + 1)) as CreativeIdeasResult }; } catch { /* try next */ }
+    }
+    const rs = raw.indexOf("{"); const re = raw.lastIndexOf("}");
+    if (rs !== -1 && re !== -1 && re > rs) {
+      try { return { success: true, data: JSON.parse(raw.slice(rs, re + 1)) as CreativeIdeasResult }; } catch { /* try next */ }
+    }
+    return { success: false, error: "A resposta da IA veio incompleta. Seus créditos serão devolvidos automaticamente." };
+  }
 
   try {
-    const stream = await openai.chat.completions.create({
-      model: "gpt-5-mini",
-      max_completion_tokens: 4096,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      response_format: { type: "json_object" },
-      stream: true,
-    });
+    // ── Text generation: up to 2 attempts, non-streaming for clean retry ─────
+    let textResult: CreativeIdeasResult | null = null;
+    let lastTextError = "";
 
-    for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content;
-      if (content) {
-        fullResponse += content;
-        sendSSE(res, { type: "chunk", content });
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const response = await openai.chat.completions.create({
+          model: "gpt-5-mini",
+          max_completion_tokens: 8192,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          response_format: { type: "json_object" },
+          stream: false,
+        });
+        const raw = response.choices[0]?.message?.content ?? "";
+        const parsed = safeParseCreativeJson(raw);
+        if (parsed.success) {
+          textResult = parsed.data;
+          break;
+        }
+        lastTextError = parsed.error;
+      } catch (err) {
+        lastTextError = err instanceof Error ? err.message : "Erro interno na geração de conceitos";
       }
+      if (attempt === 0) await new Promise((r) => setTimeout(r, 900));
     }
 
-    const textResult: CreativeIdeasResult = JSON.parse(fullResponse);
+    if (!textResult) {
+      sendSSEError(res, `${lastTextError} Tente novamente em instantes.`);
+      return;
+    }
 
     const visualAnchor = textResult.visualAnchor?.trim() ?? "";
 
@@ -245,10 +272,7 @@ Crie ${numConcepts} conceitos criativos visualmente impactantes, alinhados ao pr
     const hasAtLeastOneImage = imageResults.some((r) => r.status === "fulfilled");
 
     if (!hasAtLeastOneImage) {
-      sendSSEError(
-        res,
-        "Não foi possível gerar as imagens. Nenhum crédito foi descontado.",
-      );
+      sendSSEError(res, "Não foi possível gerar as imagens desta vez. Seus créditos serão devolvidos automaticamente. Tente novamente.");
       return;
     }
 
@@ -271,7 +295,7 @@ Crie ${numConcepts} conceitos criativos visualmente impactantes, alinhados ao pr
     sendSSE(res, { type: "result", data: finalResult });
     await logAiUsage({ clerkUserId, action: `Criativos gerados: ${params.prompt.slice(0, 50)}`, module: "creative" });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "AI generation failed";
+    const msg = err instanceof Error ? err.message : "Erro inesperado na geração. Seus créditos serão devolvidos automaticamente.";
     sendSSEError(res, msg);
     return;
   }
