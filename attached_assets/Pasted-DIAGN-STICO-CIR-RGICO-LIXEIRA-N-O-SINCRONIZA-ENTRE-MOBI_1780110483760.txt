@@ -1,0 +1,86 @@
+DIAGNÓSTICO CIRÚRGICO — LIXEIRA NÃO SINCRONIZA ENTRE MOBILE E DESKTOP
+
+NÃO ALTERAR ARQUIVOS.
+NÃO EXECUTAR CORREÇÕES.
+NÃO APAGAR ITENS.
+NÃO RESTAURAR ITENS.
+NÃO MODIFICAR BANCO.
+
+Problema real validado:
+
+1. Um item foi excluído no mobile.
+2. Esse item apareceu na lixeira do mobile.
+3. O mesmo item NÃO apareceu na lixeira do desktop.
+
+Depois:
+
+1. Um item foi excluído no desktop.
+2. Esse item apareceu na lixeira do desktop.
+3. O mesmo item NÃO apareceu na lixeira do mobile.
+
+Conclusão:
+A lixeira não está sincronizando entre dispositivos.
+
+Não tratar como atraso.
+Não tratar como diferença de horário.
+Não tratar como contador de 48h.
+
+==================================================
+INVESTIGAR
+
+1. A lixeira lê dados de onde?
+
+- localStorage?
+- IndexedDB?
+- banco/API?
+- cache local?
+- estado em memória?
+
+2. A exclusão envia o item para o banco?
+
+- existe rota delete/trash?
+- existe campo deletedAt?
+- existe campo trashedAt?
+- existe soft delete?
+
+3. O mobile e o desktop consultam a mesma rota para listar itens excluídos?
+
+4. Existe diferença entre:
+
+- item excluído localmente;
+- item excluído no banco;
+- item oculto apenas no dispositivo atual?
+
+5. A função de listar lixeira busca itens do banco ou apenas do armazenamento local?
+
+6. Existe sincronização bidirecional da lixeira?
+
+7. Existe filtro por device/session/local cache?
+
+8. Ao excluir um item, o outro dispositivo deveria receber via API depois de atualizar?
+
+9. O botão “Atualizar” da lixeira consulta o servidor ou apenas recarrega estado local?
+
+10. Verificar se os itens excluídos possuem IDs diferentes por dispositivo.
+
+==================================================
+ENTREGAR
+
+Responder com:
+
+1. Causa raiz.
+2. Arquivos envolvidos.
+3. Funções envolvidas.
+4. Fonte real da lixeira.
+5. Fonte real da exclusão.
+6. Por que mobile → desktop não aparece.
+7. Por que desktop → mobile não aparece.
+8. Correção recomendada sem executar.
+9. Nível de confiança.
+
+IMPORTANTE:
+
+Não corrigir nada ainda.
+
+Objetivo único:
+Descobrir por que a lixeira não é compartilhada/sincronizada entre dispositivos.
