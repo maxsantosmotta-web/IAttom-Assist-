@@ -571,6 +571,12 @@
   min-width: 0 !important;
 }
 
+/* ── CardBox: fill modal shell width (fixes 440px squeeze from SignIn theme) */
+.cl-modalContent .cl-cardBox {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
 /* ── Desktop two-column layout (≥640 px) ─────────────────────── */
 /* Forces sidebar + content side-by-side regardless of container queries */
 @media (min-width: 640px) {
