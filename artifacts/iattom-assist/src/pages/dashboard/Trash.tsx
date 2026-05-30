@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import {
-  readTrash, restoreFromTrash, deleteFromTrash, purgeExpired,
+  purgeExpired,
   timeUntilExpiry, type TrashedItem,
 } from "@/lib/trashStorage";
 import { deleteProjectAssets } from "@/lib/assetStorage";
@@ -150,21 +150,23 @@ export function Trash() {
   };
 
   const loadProjects = async () => {
+    // Purge expired local assets (images) — does not affect what the lixeira shows
     const expired = purgeExpired();
     for (const id of expired) void deleteProjectAssets(id).catch(() => {});
     try {
       const apiItems = await getTrash();
-      if (apiItems.length > 0) {
-        setProjectItems(apiItems.filter(i => i.deletedAt !== null).map(i => ({
-          ...i,
-          deletedAt: i.deletedAt!,
-          expiresAt: i.expiresAt ?? new Date(new Date(i.deletedAt!).getTime() + 48 * 3600000).toISOString(),
-        })) as TrashedItem[]);
-      } else {
-        setProjectItems(readTrash());
-      }
+      setProjectItems(
+        apiItems
+          .filter(i => i.deletedAt !== null)
+          .map(i => ({
+            ...i,
+            deletedAt: i.deletedAt!,
+            expiresAt: i.expiresAt ?? new Date(new Date(i.deletedAt!).getTime() + 48 * 3600000).toISOString(),
+          })) as TrashedItem[],
+      );
     } catch {
-      setProjectItems(readTrash());
+      // API offline — show empty list; do NOT fall back to localStorage
+      setProjectItems([]);
     }
   };
 
@@ -196,8 +198,7 @@ export function Trash() {
     setActionUid(item.uid);
     try {
       if (item.kind === "project" && item.rawProject) {
-        await restoreItem(item.rawProject.id).catch(() => {});
-        restoreFromTrash(item.rawProject.id);
+        await restoreItem(item.rawProject.id);
         void loadProjects();
         toast({ description: `"${item.displayName}" restaurado para Projetos Salvos.` });
       } else if (item.kind === "integration" && item.rawIntegration) {
@@ -219,8 +220,7 @@ export function Trash() {
     setActionUid(item.uid);
     try {
       if (item.kind === "project" && item.rawProject) {
-        await permanentDelete(item.rawProject.id).catch(() => {});
-        deleteFromTrash(item.rawProject.id);
+        await permanentDelete(item.rawProject.id);
         void deleteProjectAssets(item.rawProject.id).catch(() => {});
         void loadProjects();
         toast({ description: `"${item.displayName}" excluído definitivamente.` });

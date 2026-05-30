@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { moveToTrash, purgeExpired, type SavedItemBase } from "@/lib/trashStorage";
+import { purgeExpired, type SavedItemBase } from "@/lib/trashStorage";
 import { deleteProjectAssets } from "@/lib/assetStorage";
 import { useSavedItems } from "@/hooks/useSavedItems";
 
@@ -114,18 +114,20 @@ export function Projects() {
 
   const handleOpenItem = (item: SavedItem) => navigate(`/dashboard/projects/${item.id}`);
 
-  const handleConfirmTrash = (id: string) => {
+  const handleConfirmTrash = async (id: string) => {
     const item = savedItems.find(i => i.id === id);
     if (!item) return;
     setDeletingId(id);
-    setTimeout(async () => {
-      await trashItem(id).catch(() => {});
-      moveToTrash(item);
+    try {
+      await trashItem(id);
       setSavedItems(prev => prev.filter(i => i.id !== id));
-      setDeletingId(null);
       setConfirmDeleteId(null);
       toast({ description: "Projeto enviado para a lixeira. Acesse a Lixeira para restaurar." });
-    }, 200);
+    } catch {
+      toast({ title: "Erro ao mover para lixeira.", description: "Não foi possível excluir o projeto. Tente novamente.", variant: "destructive" });
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const confirmItem = confirmDeleteId ? savedItems.find(i => i.id === confirmDeleteId) : null;
