@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Megaphone, Target, Globe, Loader2, Copy, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Zap, Save, ExternalLink } from "lucide-react";
 import { saveProjectAssets } from "@/lib/assetStorage";
-import { getEffectiveProductType, detectIncompatibility, INCOMPATIBILITY_MESSAGES } from "@/lib/productPlatformCompatibility";
+import { getEffectiveProductType, detectIncompatibility, INCOMPATIBILITY_MESSAGES, detectProductTypeMismatch, PRODUCT_TYPE_MISMATCH_MESSAGE } from "@/lib/productPlatformCompatibility";
 import { useSavedItems } from "@/hooks/useSavedItems";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -335,6 +335,7 @@ export function CreateCampaign() {
   };
 
   const incompatibility = detectIncompatibility(getEffectiveProductType(product, productType || null), goal);
+  const typeMismatch = detectProductTypeMismatch(product, productType || null);
 
   const runGenerate = (charge: () => void) => {
     if (isGenerating) return;
@@ -572,9 +573,17 @@ export function CreateCampaign() {
                 </p>
               </div>
             )}
-            <CreditsGate feature="campaign" onSuccess={runGenerate} disabled={!product.trim() || isGenerating || incompatibility !== null}>
+            {typeMismatch && (
+              <div className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/[0.07] px-3.5 py-3">
+                <span className="text-red-400 text-sm leading-none mt-0.5">!</span>
+                <p className="text-xs text-red-300/90 leading-relaxed">
+                  {PRODUCT_TYPE_MISMATCH_MESSAGE}
+                </p>
+              </div>
+            )}
+            <CreditsGate feature="campaign" onSuccess={runGenerate} disabled={!product.trim() || isGenerating || incompatibility !== null || typeMismatch}>
               {({ trigger, isLoading }) => (
-                <Button onClick={trigger} disabled={isLoading || isGenerating || !product.trim() || incompatibility !== null} className="bg-primary text-primary-foreground hover:bg-primary/90 w-full disabled:opacity-40">
+                <Button onClick={trigger} disabled={isLoading || isGenerating || !product.trim() || incompatibility !== null || typeMismatch} className="bg-primary text-primary-foreground hover:bg-primary/90 w-full disabled:opacity-40">
                   {isLoading || isGenerating ? (
                     <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Construindo sua campanha...</>
                   ) : "Gerar Campanha"}

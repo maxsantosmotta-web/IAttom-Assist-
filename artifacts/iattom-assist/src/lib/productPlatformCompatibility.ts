@@ -131,3 +131,34 @@ export const INCOMPATIBILITY_MESSAGES: Record<NonNullable<IncompatibilityType>, 
   digital_on_physical:
     "ATENÇÃO: O produto informado parece ser digital, mas a plataforma selecionada é voltada para produtos físicos. Use Hotmart ou Kiwify para produtos digitais.",
 };
+
+/**
+ * Detects a conflict between the inferred product type (from product name text)
+ * and the type manually selected by the user.
+ *
+ * Returns true only when text inference is unambiguous AND the selected type
+ * contradicts it. Returns false when inference is null (ambiguous text) so
+ * we never create aggressive blocks on unclear product names.
+ *
+ * Matrix:
+ *   inferred "físico" + selected "Digital"  → conflict
+ *   inferred "físico" + selected "Serviço"  → conflict (a scooter/physical good is not a service)
+ *   inferred "digital" + selected "Físico"  → conflict
+ *   inferred "digital" + selected "Serviço" → allowed (services are digital-compatible)
+ *   inferred null (ambiguous)               → no conflict
+ */
+export function detectProductTypeMismatch(
+  productName: string,
+  selectedType: string | null,
+): boolean {
+  if (!selectedType || !productName.trim()) return false;
+  const inferred = inferProductType(productName);
+  if (inferred === null) return false;
+  const sel = selectedType.toLowerCase().trim();
+  if (inferred === "físico") return sel === "digital" || sel === "serviço";
+  if (inferred === "digital") return sel === "físico";
+  return false;
+}
+
+export const PRODUCT_TYPE_MISMATCH_MESSAGE =
+  "O tipo selecionado não combina com o produto informado. Ajuste o tipo do produto para continuar.";
