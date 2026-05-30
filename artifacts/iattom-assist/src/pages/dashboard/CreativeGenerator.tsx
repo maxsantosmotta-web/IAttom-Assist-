@@ -5,7 +5,7 @@ import { saveProjectAssets } from "@/lib/assetStorage";
 import { useSavedItems } from "@/hooks/useSavedItems";
 import { needsReferenceImage } from "@/lib/needsReferenceImage";
 import { useReferenceAnalysis } from "@/hooks/useReferenceAnalysis";
-import { inferProductType, detectIncompatibility, INCOMPATIBILITY_MESSAGES } from "@/lib/productPlatformCompatibility";
+import { getEffectiveProductType, detectIncompatibility, INCOMPATIBILITY_MESSAGES } from "@/lib/productPlatformCompatibility";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -199,7 +199,7 @@ export function CreativeGenerator() {
   })();
 
   const incompatibility = useMemo(
-    () => detectIncompatibility(inferProductType(prompt), platform),
+    () => detectIncompatibility(getEffectiveProductType(prompt, null), platform),
     [prompt, platform],
   );
 

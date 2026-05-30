@@ -33,19 +33,25 @@ export function inferProductType(text: string): "físico" | "digital" | null {
 }
 
 /**
- * Returns the effective product type used for compatibility checks.
- * Inferred type from product text takes priority over selected type.
- * If text inference is inconclusive, falls back to selected type.
- * If both are inconclusive, returns null (no blocking).
+ * Returns the effective product type for compatibility checks.
+ *
+ * Priority:
+ * 1. If product text contains unambiguous digital keywords → "digital"
+ * 2. If product text contains unambiguous physical keywords → "físico"
+ * 3. Fallback: "físico" — unknown products are treated as physical by default.
+ *    This prevents bypass: any product whose text is not clearly digital
+ *    (curso, ebook, método, etc.) is blocked from digital-only platforms.
+ *
+ * The selected type (productType select) is intentionally ignored —
+ * product text is the authoritative source of truth.
  */
 export function getEffectiveProductType(
   productText: string,
-  selectedType: string | null,
-): string | null {
+  _selectedType: string | null,
+): "físico" | "digital" {
   const inferred = inferProductType(productText);
   if (inferred !== null) return inferred;
-  if (!selectedType) return null;
-  return selectedType.toLowerCase();
+  return "físico";
 }
 
 export type IncompatibilityType = "physical_on_digital" | "digital_on_physical" | null;
