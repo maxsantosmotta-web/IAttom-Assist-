@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Loader2, Copy, RefreshCw, AlertCircle, Monitor, Smartphone, Image, Palette, Type, Save, Paperclip, X, CheckCircle2 } from "lucide-react";
 import { saveProjectAssets } from "@/lib/assetStorage";
 import { useSavedItems } from "@/hooks/useSavedItems";
 import { needsReferenceImage } from "@/lib/needsReferenceImage";
 import { useReferenceAnalysis } from "@/hooks/useReferenceAnalysis";
+import { inferProductType, detectIncompatibility, INCOMPATIBILITY_MESSAGES } from "@/lib/productPlatformCompatibility";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -196,6 +197,11 @@ export function CreativeGenerator() {
     if (analysisResult.confidence === "low") return !confirmed;
     return true;
   })();
+
+  const incompatibility = useMemo(
+    () => detectIncompatibility(inferProductType(prompt), platform),
+    [prompt, platform],
+  );
 
   const runGenerate = (charge: () => void) => {
     generate("/api/ai/creative-ideas", {
@@ -431,9 +437,18 @@ export function CreativeGenerator() {
               )}
             </div>
 
-            <CreditsGate feature="creative" onSuccess={runGenerate} disabled={!prompt.trim() || isGenerating || (needsRef && !referenceImage) || referenceBlocked}>
+            {incompatibility && (
+              <div className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/[0.07] px-3.5 py-3">
+                <span className="text-red-400 text-sm leading-none mt-0.5">!</span>
+                <p className="text-xs text-red-300/90 leading-relaxed">
+                  {INCOMPATIBILITY_MESSAGES[incompatibility]}
+                </p>
+              </div>
+            )}
+
+            <CreditsGate feature="creative" onSuccess={runGenerate} disabled={!prompt.trim() || isGenerating || (needsRef && !referenceImage) || referenceBlocked || incompatibility !== null}>
               {({ trigger, isLoading }) => (
-                <Button onClick={trigger} disabled={isLoading || isGenerating || !prompt.trim() || (needsRef && !referenceImage) || referenceBlocked} className="bg-primary text-primary-foreground hover:bg-primary/90 w-full">
+                <Button onClick={trigger} disabled={isLoading || isGenerating || !prompt.trim() || (needsRef && !referenceImage) || referenceBlocked || incompatibility !== null} className="bg-primary text-primary-foreground hover:bg-primary/90 w-full">
                   {isLoading || isGenerating ? (<><Loader2 className="w-4 h-4 animate-spin mr-2" /> Gerando conceitos...</>) : (<><Sparkles className="w-4 h-4 mr-2" /> Gerar Conceitos Criativos</>)}
                 </Button>
               )}

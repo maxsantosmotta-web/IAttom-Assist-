@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Megaphone, Target, Globe, Loader2, Copy, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Zap, Save, ExternalLink } from "lucide-react";
 import { saveProjectAssets } from "@/lib/assetStorage";
+import { detectIncompatibility, INCOMPATIBILITY_MESSAGES } from "@/lib/productPlatformCompatibility";
 import { useSavedItems } from "@/hooks/useSavedItems";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -316,6 +317,8 @@ export function CreateCampaign() {
     setIsRestored(false);
   };
 
+  const incompatibility = detectIncompatibility(productType || null, goal);
+
   const runGenerate = (charge: () => void) => {
     if (isGenerating) return;
     generate("/api/ai/create-campaign", {
@@ -544,17 +547,17 @@ export function CreateCampaign() {
               <Label className="text-sm text-muted-foreground">Público-alvo (opcional)</Label>
               <Input placeholder="ex: Atletas 25-40, entusiastas de atividades ao ar livre" className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50" value={audience} onChange={(e) => setAudience(e.target.value)} />
             </div>
-            {productType === "Físico" && (goal.includes("Hotmart") || goal.includes("Kiwify")) && (
+            {incompatibility && (
               <div className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/[0.07] px-3.5 py-3">
                 <span className="text-red-400 text-sm leading-none mt-0.5">!</span>
                 <p className="text-xs text-red-300/90 leading-relaxed">
-                  ATENÇÃO: Produto físico incompatível com a plataforma selecionada. Hotmart e Kiwify são voltadas principalmente para produtos digitais.
+                  {INCOMPATIBILITY_MESSAGES[incompatibility]}
                 </p>
               </div>
             )}
-            <CreditsGate feature="campaign" onSuccess={runGenerate} disabled={!product.trim() || isGenerating || (productType === "Físico" && (goal.includes("Hotmart") || goal.includes("Kiwify")))}>
+            <CreditsGate feature="campaign" onSuccess={runGenerate} disabled={!product.trim() || isGenerating || incompatibility !== null}>
               {({ trigger, isLoading }) => (
-                <Button onClick={trigger} disabled={isLoading || isGenerating || !product.trim() || (productType === "Físico" && (goal.includes("Hotmart") || goal.includes("Kiwify")))} className="bg-primary text-primary-foreground hover:bg-primary/90 w-full disabled:opacity-40">
+                <Button onClick={trigger} disabled={isLoading || isGenerating || !product.trim() || incompatibility !== null} className="bg-primary text-primary-foreground hover:bg-primary/90 w-full disabled:opacity-40">
                   {isLoading || isGenerating ? (
                     <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Construindo sua campanha...</>
                   ) : "Gerar Campanha"}
