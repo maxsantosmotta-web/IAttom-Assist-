@@ -102,12 +102,15 @@ const queryClient = new QueryClient({
   },
 });
 
-const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
-);
+const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string;
 
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL as string | undefined;
+const clerkProxyUrl = (() => {
+  const envUrl = import.meta.env.VITE_CLERK_PROXY_URL as string | undefined;
+  if (envUrl) return envUrl;
+  const { origin } = window.location;
+  if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return undefined;
+  return `${origin}/api/__clerk`;
+})();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 function stripBase(path: string): string {
