@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { z } from "zod/v4";
 import { eq, desc, isNull, sql, and } from "drizzle-orm";
 import {
   db,
@@ -177,6 +178,26 @@ router.post("/me/ml/listings/:id/trash", requireAuth, async (req, res): Promise<
   res.json({ ok: true });
 });
 
+// ─── Schema: POST /me/ml/create-listing ──────────────────────────────────────
+// Supports both legacy calls ({ title, price, quantity }) and full ML payloads.
+// All fields are optional; safe defaults are applied below.
+const createListingSchema = z.object({
+  title:              z.string().min(1).optional(),
+  price:              z.number().positive().optional(),
+  quantity:           z.number().int().positive().optional(),
+  available_quantity: z.number().int().positive().optional(),
+  category_id:        z.string().optional(),
+  condition:          z.enum(["new", "used"]).optional(),
+  listing_type_id:    z.string().optional(),
+  pictures:           z.array(z.object({ source: z.string() })).optional(),
+  attributes:         z.array(z.object({ id: z.string(), value_name: z.string() })).optional(),
+  shipping: z.object({
+    mode:          z.string(),
+    local_pick_up: z.boolean().optional(),
+    free_shipping: z.boolean().optional(),
+  }).optional(),
+});
+
 // ─── POST /me/ml/create-listing — use user's own access token ─────────────────
 router.post("/me/ml/create-listing", requireAuth, async (req, res): Promise<void> => {
   const { clerkUserId } = req as AuthenticatedRequest;
@@ -187,24 +208,40 @@ router.post("/me/ml/create-listing", requireAuth, async (req, res): Promise<void
     return;
   }
 
+  const parsed = createListingSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Payload inválido.", issues: parsed.error.issues });
+    return;
+  }
+
+  const body = parsed.data;
+
+  // Resolve quantity — accept both legacy "quantity" and ML-native "available_quantity"
+  const qty = body.available_quantity ?? body.quantity ?? 1;
+
+  // Resolve title for default attributes fallback
+  const resolvedTitle = body.title ?? "Novo Anúncio";
+
   try {
-    const body = req.body as { title?: string; price?: number; quantity?: number };
     const item = await createMLItem(conn.accessToken, {
-      title:              body.title ?? "Novo Anúncio",
-      category_id:        "MLB3530",
-      price:              body.price ?? 10,
+      title:              resolvedTitle,
+      category_id:        body.category_id        ?? "MLB3530",
+      price:              body.price               ?? 10,
       currency_id:        "BRL",
-      available_quantity: body.quantity ?? 1,
-      listing_type_id:    "bronze",
-      condition:          "new",
-      pictures: [
+      available_quantity: qty,
+      listing_type_id:    body.listing_type_id     ?? "bronze",
+      condition:          body.condition           ?? "new",
+      // If caller supplies pictures, use them; otherwise keep the safe placeholder
+      pictures: body.pictures ?? [
         { source: "https://http2.mlstatic.com/frontend-assets/ui-navigation/5.19.1/mercadolivre/logo__large_plus.png" },
       ],
-      attributes: [
-        { id: "BRAND", value_name: "Minha Marca"          },
-        { id: "MODEL", value_name: body.title ?? "Produto" },
+      // If caller supplies attributes, use them; otherwise apply minimal fallback
+      attributes: body.attributes ?? [
+        { id: "BRAND", value_name: "Minha Marca"   },
+        { id: "MODEL", value_name: resolvedTitle    },
       ],
-      shipping: {
+      // If caller supplies shipping config, use it; otherwise apply safe default
+      shipping: body.shipping ?? {
         mode:          "not_specified",
         local_pick_up: true,
         free_shipping: false,
@@ -216,12 +253,12 @@ router.post("/me/ml/create-listing", requireAuth, async (req, res): Promise<void
         .insert(mlProducts)
         .values({
           mlItemId:          item.id,
-          title:             item.title ?? body.title ?? "Novo Anúncio",
-          price:             String(body.price ?? 10),
-          availableQuantity: body.quantity ?? 1,
-          status:            item.status ?? "active",
-          categoryId:        "MLB3530",
-          permalink:         item.permalink ?? "",
+          title:             item.title               ?? resolvedTitle,
+          price:             String(body.price        ?? 10),
+          availableQuantity: qty,
+          status:            item.status              ?? "active",
+          categoryId:        body.category_id         ?? "MLB3530",
+          permalink:         item.permalink           ?? "",
           clerkUserId,
           syncedAt:          new Date(),
         })
@@ -242,6 +279,13 @@ router.post("/me/ml/create-listing", requireAuth, async (req, res): Promise<void
     req.log.error({ err }, "me/ml/create-listing: failed");
     if (err instanceof MLApiError && err.isUnauthorized) {
       res.status(401).json({ error: "Token expirado. Reconecte sua conta Mercado Livre." });
+    } else if (err instanceof MLApiError && err.isForbidden) {
+      res.status(403).json({ error: "Sem permissão. Verifique os escopos do app no painel ML." });
+    } else if (err instanceof MLApiError) {
+      let cause: { cause?: Array<{ code: number; message: string }> } = {};
+      try { cause = JSON.parse(err.body) as typeof cause; } catch { /* ignore */ }
+      const detail = (cause.cause ?? []).map((c) => c.message).filter(Boolean).join(" | ");
+      res.status(422).json({ error: detail || err.message });
     } else {
       res.status(500).json({ error: err instanceof Error ? err.message : "Falha ao criar anúncio" });
     }
