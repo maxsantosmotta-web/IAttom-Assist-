@@ -1,0 +1,1 @@
+- [Clerk key trailing dots bug](clerk-key-trailing-dots.md) — Replit injects VITE_CLERK_PUBLISHABLE_KEY with literal "..." causing browser atob() to throw and Clerk to load https:///npm/... URL.
