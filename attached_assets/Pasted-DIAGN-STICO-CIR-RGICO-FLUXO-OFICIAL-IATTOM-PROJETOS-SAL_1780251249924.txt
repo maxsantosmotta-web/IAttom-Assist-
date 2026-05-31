@@ -1,0 +1,139 @@
+DIAGNÓSTICO CIRÚRGICO — FLUXO OFICIAL IATTOM → PROJETOS SALVOS → MERCADO LIVRE
+
+BASE BLINDADA — NÃO ALTERAR:
+- domínio
+- DNS
+- Clerk/Auth
+- login/cadastro
+- App.tsx relacionado ao ClerkProvider
+- Replit Domains
+- Deployments
+- banco de dados sem autorização explícita
+- estrutura validada
+- módulos USER/ADMIN já aprovados
+
+NÃO ALTERAR NADA.
+NÃO EXECUTAR CÓDIGO.
+NÃO MEXER EM DOMÍNIO.
+NÃO MEXER EM DNS.
+NÃO MEXER EM CLERK.
+NÃO MEXER EM AUTH.
+NÃO MEXER EM APP.TSX.
+NÃO MEXER EM DEPLOYMENTS.
+NÃO MEXER EM BANCO SEM AUTORIZAÇÃO.
+
+CONTEXTO
+
+Fluxo oficial aprovado:
+
+Módulo
+↓
+Gerar
+↓
+Salvar
+↓
+Mercado Livre
+↓
+Criar Anúncio
+↓
+Projetos Salvos
+↓
+Selecionar Projeto
+↓
+Revisar
+↓
+Continuar
+
+O botão CONTINUAR é a ação final.
+
+Não haverá:
+- publicação direta pela campanha ativa;
+- segundo fluxo paralelo;
+- salvamento automático;
+- botão duplicado de envio.
+
+Projetos Salvos é o ponto único de publicação.
+
+OBJETIVO
+
+Mapear o que já existe e o que falta para concluir o fluxo oficial Mercado Livre.
+
+INVESTIGAR
+
+1. Estado atual do módulo Mercado Livre:
+- telas USER;
+- telas ADMIN;
+- OAuth;
+- tokens;
+- callbacks;
+- conexão ativa;
+- testes realizados.
+
+2. Confirmar se já houve publicação real ou publicação teste:
+- título;
+- descrição;
+- preço;
+- categoria;
+- imagens;
+- estoque.
+
+3. Verificar se o botão atual "Criar Anúncio" já existe:
+- localização;
+- comportamento;
+- handlers;
+- arquivos envolvidos.
+
+4. Projetos Salvos:
+- quais dados estão armazenados;
+- quais dados são recuperáveis;
+- quais dados podem ser usados para anúncio Mercado Livre.
+
+5. Verificar imagens:
+- onde ficam armazenadas;
+- se possuem URL pública;
+- se podem ser reutilizadas na publicação.
+
+6. Verificar se o fluxo abaixo já existe parcialmente:
+
+Mercado Livre
+↓
+Criar Anúncio
+↓
+Projetos Salvos
+↓
+Selecionar Projeto
+↓
+Revisar
+↓
+Continuar
+
+7. Identificar exatamente o ponto onde o fluxo para hoje.
+
+8. Informar o menor caminho para concluir o fluxo sem refatoração.
+
+ENTREGA
+
+Responder com:
+- o que já está pronto;
+- o que já foi validado;
+- o que ainda está mockado;
+- o que falta;
+- arquivos envolvidos;
+- handlers envolvidos;
+- APIs envolvidas;
+- risco de implementação;
+- microetapas necessárias para concluir o fluxo.
+
+IMPORTANTE
+
+Não propor arquitetura nova.
+Não propor segundo fluxo.
+Não propor publicação direta pela campanha ativa.
+Usar exclusivamente o fluxo oficial validado:
+
+Mercado Livre
+→ Criar Anúncio
+→ Projetos Salvos
+→ Selecionar Projeto
+→ Revisar
+→ Continuar
