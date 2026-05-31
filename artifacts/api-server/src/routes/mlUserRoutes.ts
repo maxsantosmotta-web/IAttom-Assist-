@@ -292,6 +292,113 @@ router.post("/me/ml/create-listing", requireAuth, async (req, res): Promise<void
   }
 });
 
+// ─── Schema: POST /me/ml/upload-picture ──────────────────────────────────────
+const uploadPictureSchema = z.object({
+  base64:   z.string().min(1),
+  mimeType: z.string().optional(),
+  filename: z.string().optional(),
+});
+
+const VALID_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"]);
+
+// ─── POST /me/ml/upload-picture — upload base64 image to ML and return URL ────
+// Usage: POST { base64, mimeType?, filename? }
+// Returns: { ok, pictureId, url }
+// The returned `url` is passed as pictures[].source in POST /me/ml/create-listing
+router.post("/me/ml/upload-picture", requireAuth, async (req, res): Promise<void> => {
+  const { clerkUserId } = req as AuthenticatedRequest;
+  const conn = await getUserConnection(clerkUserId);
+
+  if (!conn) {
+    res.status(503).json({ error: "Conecte sua conta Mercado Livre antes de continuar." });
+    return;
+  }
+
+  const parsed = uploadPictureSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Payload inválido.", issues: parsed.error.issues });
+    return;
+  }
+
+  const {
+    base64: rawBase64,
+    mimeType = "image/png",
+    filename = "image.png",
+  } = parsed.data;
+
+  if (!VALID_MIME_TYPES.has(mimeType)) {
+    res.status(400).json({
+      error: `Tipo de imagem inválido: ${mimeType}. Use image/png, image/jpeg ou image/webp.`,
+    });
+    return;
+  }
+
+  // Strip "data:image/...;base64," prefix if the caller sends a data URL
+  const b64 = rawBase64.includes(",") ? (rawBase64.split(",")[1] ?? "") : rawBase64;
+  const buffer = Buffer.from(b64, "base64");
+
+  if (buffer.length === 0) {
+    res.status(400).json({ error: "Imagem inválida ou vazia." });
+    return;
+  }
+
+  try {
+    // Build multipart/form-data — Node 24 native FormData + Blob
+    const formData = new FormData();
+    const blob = new Blob([buffer], { type: mimeType });
+    formData.append("file", blob, filename);
+
+    // ML Pictures API — do NOT set Content-Type header manually (fetch sets the boundary)
+    const mlRes = await fetch("https://api.mercadolibre.com/pictures", {
+      method:  "POST",
+      headers: { Authorization: `Bearer ${conn.accessToken}` },
+      body:    formData,
+    });
+
+    interface MLPictureResponse {
+      id?:          string;
+      url?:         string;
+      secure_url?:  string;
+      error?:       string;
+      message?:     string;
+      status?:      string;
+    }
+
+    const data = await mlRes.json() as MLPictureResponse;
+
+    if (!mlRes.ok) {
+      const errMsg = data.message ?? data.error ?? `ML API ${mlRes.status}`;
+      req.log.warn({ status: mlRes.status, errMsg }, "me/ml/upload-picture: ML returned error");
+
+      if (mlRes.status === 401) {
+        res.status(401).json({ error: "Token expirado. Reconecte sua conta Mercado Livre." });
+      } else if (mlRes.status === 403) {
+        res.status(403).json({ error: "Sem permissão para upload de imagens. Verifique os escopos do app." });
+      } else {
+        res.status(mlRes.status >= 400 && mlRes.status < 500 ? 422 : 500).json({ error: errMsg });
+      }
+      return;
+    }
+
+    if (!data.id) {
+      req.log.warn({ data }, "me/ml/upload-picture: no picture id in ML response");
+      res.status(502).json({ error: "Mercado Livre não retornou ID da imagem." });
+      return;
+    }
+
+    req.log.info({ pictureId: data.id, clerkUserId }, "me/ml/upload-picture: success");
+
+    res.json({
+      ok:        true,
+      pictureId: data.id,
+      url:       data.secure_url ?? data.url ?? null,
+    });
+  } catch (err) {
+    req.log.error({ err }, "me/ml/upload-picture: failed");
+    res.status(500).json({ error: err instanceof Error ? err.message : "Falha no upload de imagem" });
+  }
+});
+
 // ─── POST /me/ml/disconnect — deactivate only this user's connection ──────────
 router.post("/me/ml/disconnect", requireAuth, async (req, res): Promise<void> => {
   const { clerkUserId } = req as AuthenticatedRequest;
