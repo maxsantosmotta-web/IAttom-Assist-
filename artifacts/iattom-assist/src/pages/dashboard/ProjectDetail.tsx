@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@clerk/react";
 import { motion } from "framer-motion";
 import { useParams, useLocation } from "wouter";
 import { loadProjectAssets, saveProjectAssets, deleteProjectAssets } from "@/lib/assetStorage";
@@ -392,6 +393,7 @@ export function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { getToken } = useAuth();
   const { getItems, getItemAssets, saveItemAssets } = useSavedItems();
   const [item, setItem] = useState<SavedItem | null | "not_found">(null);
   const [deletingId, setDeletingId] = useState(false);
@@ -404,6 +406,16 @@ export function ProjectDetail() {
   const [adPhase, setAdPhase] = useState<"pick" | "prepare">("pick");
   const [adPlatform, setAdPlatform] = useState<string | null>(null);
   const [confirmTrashOpen, setConfirmTrashOpen] = useState(false);
+
+  // ML review form state
+  const [mlTitle, setMlTitle] = useState("");
+  const [mlPrice, setMlPrice] = useState("");
+  const [mlQty, setMlQty] = useState("1");
+  const [mlCondition, setMlCondition] = useState<"new" | "used">("new");
+  const [mlCategoryId, setMlCategoryId] = useState("");
+  const [mlCategoryName, setMlCategoryName] = useState("");
+  const [mlSuggestions, setMlSuggestions] = useState<Array<{ category_id: string; category_name: string }>>([]);
+  const [mlCategoryLoading, setMlCategoryLoading] = useState(false);
 
   useEffect(() => {
     if (!id) { setItem("not_found"); return; }
@@ -505,6 +517,79 @@ export function ProjectDetail() {
       setTimeout(() => setAllCopied(false), 2000);
     });
   }, [item, toast]);
+
+  // ── ML form: pre-fill + category suggest when user picks Mercado Livre ────────
+  useEffect(() => {
+    if (adPhase !== "prepare" || adPlatform !== "mercado_livre") return;
+    if (!item || item === "not_found") return;
+
+    const savedItem = item as SavedItem;
+
+    // Pre-fill title: prefer result.headline, fallback to project title
+    let titleVal = savedItem.title;
+    if (savedItem.data) {
+      try {
+        const p = JSON.parse(savedItem.data) as ParsedData;
+        const headline = (p.result as Record<string, unknown>)?.["headline"];
+        if (typeof headline === "string" && headline) titleVal = headline;
+      } catch { /* noop */ }
+    }
+    setMlTitle(titleVal);
+
+    // Pre-fill price from briefing if user entered it
+    let priceVal = "";
+    if (savedItem.data) {
+      try {
+        const p = JSON.parse(savedItem.data) as ParsedData;
+        const raw = p.briefing?.["price"] ?? p.briefing?.["preco"] ?? p.briefing?.["valor"] ?? "";
+        if (raw) priceVal = String(raw);
+      } catch { /* noop */ }
+    }
+    setMlPrice(priceVal);
+    setMlQty("1");
+    setMlCondition("new");
+    setMlCategoryId("");
+    setMlCategoryName("");
+    setMlSuggestions([]);
+
+    async function fetchCategories() {
+      setMlCategoryLoading(true);
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const r = await fetch(
+          `/api/me/ml/category-suggest?q=${encodeURIComponent(titleVal.slice(0, 80))}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const data = await r.json() as { suggestions?: Array<{ category_id: string; category_name: string }> };
+        if (data?.suggestions?.length) {
+          setMlSuggestions(data.suggestions);
+          setMlCategoryId(data.suggestions[0]!.category_id);
+          setMlCategoryName(data.suggestions[0]!.category_name);
+        }
+      } catch { /* noop — user can fill manually */ } finally {
+        setMlCategoryLoading(false);
+      }
+    }
+    void fetchCategories();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adPhase, adPlatform]);
+
+  const handleMLContinue = useCallback(() => {
+    if (!mlTitle.trim()) {
+      toast({ description: "Informe o titulo do anuncio antes de continuar.", variant: "destructive" });
+      return;
+    }
+    const priceNum = parseFloat(mlPrice.replace(",", "."));
+    if (!mlPrice || isNaN(priceNum) || priceNum <= 0) {
+      toast({ description: "Informe um preco valido antes de continuar.", variant: "destructive" });
+      return;
+    }
+    setAdModalOpen(false);
+    setAdPhase("pick");
+    setAdPlatform(null);
+    toast({ description: "Revisao Mercado Livre preparada. Proxima etapa: publicacao." });
+  }, [mlTitle, mlPrice, toast]);
 
   if (item === null) {
     return (
@@ -731,7 +816,186 @@ export function ProjectDetail() {
                 ))}
               </div>
             </>
+          ) : adPlatform === "mercado_livre" ? (
+            /* ── ML review form ─────────────────────────── */
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-white text-base flex items-center gap-2">
+                  <Megaphone className="w-4 h-4 text-primary" />
+                  Revisao para Mercado Livre
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-0.5">
+                {/* Projeto origem */}
+                <div className="rounded-xl bg-primary/[0.06] border border-primary/20 px-3 py-2.5">
+                  <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-0.5">Projeto</p>
+                  <p className="text-xs font-medium text-zinc-200 truncate">{(item as SavedItem).title}</p>
+                </div>
+
+                {/* Titulo */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">Titulo do anuncio</label>
+                  <input
+                    type="text"
+                    value={mlTitle}
+                    onChange={(e) => setMlTitle(e.target.value)}
+                    maxLength={60}
+                    placeholder="Titulo do anuncio"
+                    className="w-full bg-[#0a0a0a] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary/40 transition-colors"
+                  />
+                  <p className="text-[10px] text-zinc-600 text-right">{mlTitle.length}/60</p>
+                </div>
+
+                {/* Preco + Quantidade */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">Preco (BRL) *</label>
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={mlPrice}
+                      onChange={(e) => setMlPrice(e.target.value)}
+                      placeholder="0,00"
+                      className="w-full bg-[#0a0a0a] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary/40 transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">Quantidade</label>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={mlQty}
+                      onChange={(e) => setMlQty(e.target.value)}
+                      className="w-full bg-[#0a0a0a] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary/40 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* Categoria */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">Categoria</label>
+                  {mlCategoryLoading ? (
+                    <div className="flex items-center gap-2 py-1.5">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-primary/60" />
+                      <span className="text-xs text-zinc-500">Buscando categorias...</span>
+                    </div>
+                  ) : mlSuggestions.length > 0 ? (
+                    <select
+                      value={mlCategoryId}
+                      onChange={(e) => {
+                        setMlCategoryId(e.target.value);
+                        const found = mlSuggestions.find((s) => s.category_id === e.target.value);
+                        setMlCategoryName(found?.category_name ?? "");
+                      }}
+                      className="w-full bg-[#0a0a0a] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary/40 transition-colors"
+                    >
+                      {mlSuggestions.map((s) => (
+                        <option key={s.category_id} value={s.category_id} className="bg-[#0a0a0a]">
+                          {s.category_name} ({s.category_id})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        value={mlCategoryId}
+                        onChange={(e) => { setMlCategoryId(e.target.value); setMlCategoryName(""); }}
+                        placeholder="Ex: MLB1276"
+                        className="w-full bg-[#0a0a0a] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-primary/40 transition-colors"
+                      />
+                      <p className="text-[10px] text-zinc-600">Sugestao automatica indisponivel. Insira o codigo da categoria manualmente.</p>
+                    </>
+                  )}
+                </div>
+
+                {/* Condicao */}
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">Condicao</label>
+                  <div className="flex gap-2">
+                    {(["new", "used"] as const).map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setMlCondition(c)}
+                        className={`flex-1 py-2 rounded-lg border text-xs font-medium transition-all duration-200 ${
+                          mlCondition === c
+                            ? "bg-primary/10 border-primary/30 text-primary"
+                            : "bg-white/[0.03] border-white/[0.08] text-zinc-400 hover:text-white hover:border-white/20"
+                        }`}
+                      >
+                        {c === "new" ? "Novo" : "Usado"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Imagens */}
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">Imagens</label>
+                  {images.length > 0 ? (
+                    <div className="flex gap-2 overflow-x-auto pb-0.5">
+                      {images.slice(0, 4).map((img, i) => (
+                        <img
+                          key={i}
+                          src={`data:image/png;base64,${img.base64}`}
+                          alt={img.label}
+                          className="w-14 h-14 rounded-lg object-cover border border-white/[0.08] shrink-0"
+                        />
+                      ))}
+                      {images.length > 4 && (
+                        <div className="w-14 h-14 rounded-lg border border-white/[0.08] bg-white/[0.03] flex items-center justify-center shrink-0">
+                          <span className="text-[10px] text-zinc-500">+{images.length - 4}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-500 bg-white/[0.02] border border-white/[0.06] rounded-lg px-3 py-2">
+                      Este projeto nao possui imagem salva. O anuncio sera criado sem imagem na proxima etapa.
+                    </p>
+                  )}
+                </div>
+
+                {/* Copy do projeto (se existir) */}
+                {(() => {
+                  if (!parsed) return null;
+                  const r = parsed.result as Record<string, unknown> | null;
+                  if (!r) return null;
+                  const copy = r["copy"] as Record<string, string> | undefined;
+                  const desc = copy?.["facebook"] ?? copy?.["instagram"] ?? (r["subheadline"] as string | undefined) ?? "";
+                  if (!desc) return null;
+                  return (
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">Copy do projeto</label>
+                      <p className="text-xs text-zinc-400 bg-[#0a0a0a] border border-white/[0.06] rounded-lg px-3 py-2 line-clamp-3 leading-relaxed">{desc}</p>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              <DialogFooter className="gap-2 mt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-white/10 text-zinc-400 hover:text-white"
+                  onClick={() => setAdPhase("pick")}
+                >
+                  Voltar
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
+                  onClick={handleMLContinue}
+                >
+                  Continuar
+                </Button>
+              </DialogFooter>
+            </>
           ) : (
+            /* ── Placeholder para outras plataformas (inalterado) ── */
             <>
               <DialogHeader>
                 <DialogTitle className="text-white text-base flex items-center gap-2">
