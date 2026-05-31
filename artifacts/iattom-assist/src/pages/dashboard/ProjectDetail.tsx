@@ -6,7 +6,7 @@ import { loadProjectAssets, saveProjectAssets, deleteProjectAssets } from "@/lib
 import { useSavedItems } from "@/hooks/useSavedItems";
 import {
   ArrowLeft, Trash2, Loader2, Copy, Check, ChevronDown, ChevronUp,
-  FileText, Megaphone, Sparkles, Video, Search, ImageOff, Download, X, RefreshCw,
+  FileText, Megaphone, Sparkles, Video, Search, ImageOff, Download, X, RefreshCw, ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -416,6 +416,9 @@ export function ProjectDetail() {
   const [mlCategoryName, setMlCategoryName] = useState("");
   const [mlSuggestions, setMlSuggestions] = useState<Array<{ category_id: string; category_name: string }>>([]);
   const [mlCategoryLoading, setMlCategoryLoading] = useState(false);
+  const [mlPublishing, setMlPublishing] = useState(false);
+  const [mlResult, setMlResult] = useState<{ id: string; permalink: string } | null>(null);
+  const [mlError, setMlError] = useState("");
 
   useEffect(() => {
     if (!id) { setItem("not_found"); return; }
@@ -576,20 +579,107 @@ export function ProjectDetail() {
   }, [adPhase, adPlatform]);
 
   const handleMLContinue = useCallback(() => {
+    // ── Validações ──────────────────────────────────────────────
     if (!mlTitle.trim()) {
-      toast({ description: "Informe o titulo do anuncio antes de continuar.", variant: "destructive" });
+      toast({ description: "Informe o titulo do anuncio.", variant: "destructive" });
       return;
     }
     const priceNum = parseFloat(mlPrice.replace(",", "."));
     if (!mlPrice || isNaN(priceNum) || priceNum <= 0) {
-      toast({ description: "Informe um preco valido antes de continuar.", variant: "destructive" });
+      toast({ description: "Informe um preco valido (maior que zero).", variant: "destructive" });
       return;
     }
-    setAdModalOpen(false);
-    setAdPhase("pick");
-    setAdPlatform(null);
-    toast({ description: "Revisao Mercado Livre preparada. Proxima etapa: publicacao." });
-  }, [mlTitle, mlPrice, toast]);
+    const qtyNum = parseInt(mlQty, 10);
+    if (!mlQty || isNaN(qtyNum) || qtyNum < 1) {
+      toast({ description: "Quantidade deve ser pelo menos 1.", variant: "destructive" });
+      return;
+    }
+    if (!mlCategoryId.trim()) {
+      toast({ description: "Selecione ou informe o codigo da categoria.", variant: "destructive" });
+      return;
+    }
+
+    async function publish() {
+      setMlPublishing(true);
+      setMlError("");
+
+      try {
+        const token = await getToken();
+        if (!token) throw new Error("Sessao expirada. Faca login novamente.");
+
+        // ── 1. Upload de imagens ──────────────────────────────
+        const savedItem = item as SavedItem;
+        let uploadImages = idbImages;
+        if (uploadImages.length === 0 && savedItem.data) {
+          try {
+            const p = JSON.parse(savedItem.data) as ParsedData;
+            uploadImages = extractImages(savedItem.type, p);
+          } catch { /* noop */ }
+        }
+
+        const pictures: Array<{ source: string }> = [];
+        for (const img of uploadImages) {
+          const upRes = await fetch("/api/me/ml/upload-picture", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ base64: img.base64 }),
+          });
+          const upData = await upRes.json() as { ok?: boolean; url?: string; error?: string };
+          if (!upData.ok || !upData.url) {
+            throw new Error(upData.error ?? "Falha ao enviar imagem para o Mercado Livre.");
+          }
+          pictures.push({ source: upData.url });
+        }
+
+        // ── 2. Copy/descricao do projeto (opcional) ───────────
+        let description: string | undefined;
+        if (savedItem.data) {
+          try {
+            const p = JSON.parse(savedItem.data) as ParsedData;
+            const r = p.result as Record<string, unknown> | null;
+            if (r) {
+              const copy = r["copy"] as Record<string, string> | undefined;
+              const raw = copy?.["facebook"] ?? copy?.["instagram"] ?? (r["subheadline"] as string | undefined) ?? "";
+              if (raw) description = raw;
+            }
+          } catch { /* noop */ }
+        }
+
+        // ── 3. Criar anuncio ──────────────────────────────────
+        const payload: Record<string, unknown> = {
+          title: mlTitle.trim(),
+          price: priceNum,
+          available_quantity: qtyNum,
+          category_id: mlCategoryId.trim(),
+          condition: mlCondition,
+          listing_type_id: "bronze",
+          ...(pictures.length > 0 && { pictures }),
+          ...(description && { description }),
+        };
+
+        const res = await fetch("/api/me/ml/create-listing", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json() as { ok?: boolean; id?: string; permalink?: string; error?: string };
+
+        if (!data.ok || !data.permalink) {
+          throw new Error(data.error ?? "Falha ao criar anuncio no Mercado Livre.");
+        }
+
+        setMlResult({ id: data.id ?? "", permalink: data.permalink });
+        toast({ description: "Anuncio criado com sucesso no Mercado Livre." });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Erro inesperado. Tente novamente.";
+        setMlError(msg);
+      } finally {
+        setMlPublishing(false);
+      }
+    }
+
+    void publish();
+  }, [mlTitle, mlPrice, mlQty, mlCategoryId, mlCondition, idbImages, item, getToken, toast]);
 
   if (item === null) {
     return (
@@ -826,6 +916,30 @@ export function ProjectDetail() {
                 </DialogTitle>
               </DialogHeader>
 
+              {mlResult ? (
+                /* ── Sucesso ──────────────────────────────────── */
+                <div className="space-y-4 py-2">
+                  <div className="flex flex-col items-center text-center gap-3 py-6">
+                    <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                      <Check className="w-6 h-6 text-emerald-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-white mb-1">Anuncio criado com sucesso</p>
+                      <p className="text-xs text-zinc-500">Seu produto ja esta ativo no Mercado Livre.</p>
+                    </div>
+                  </div>
+                  <a
+                    href={mlResult.permalink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Ver anuncio no Mercado Livre
+                  </a>
+                </div>
+              ) : (
+              /* ── Formulario de revisao ────────────────────── */
               <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-0.5">
                 {/* Projeto origem */}
                 <div className="rounded-xl bg-primary/[0.06] border border-primary/20 px-3 py-2.5">
@@ -974,24 +1088,48 @@ export function ProjectDetail() {
                     </div>
                   );
                 })()}
+
+                {/* Erro de publicacao */}
+                {mlError && (
+                  <div className="rounded-xl bg-red-500/[0.08] border border-red-500/20 px-3 py-2.5">
+                    <p className="text-xs text-red-400 leading-relaxed">{mlError}</p>
+                  </div>
+                )}
               </div>
+              )}
 
               <DialogFooter className="gap-2 mt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-white/10 text-zinc-400 hover:text-white"
-                  onClick={() => setAdPhase("pick")}
-                >
-                  Voltar
-                </Button>
-                <Button
-                  size="sm"
-                  className="bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
-                  onClick={handleMLContinue}
-                >
-                  Continuar
-                </Button>
+                {mlResult ? (
+                  <Button
+                    size="sm"
+                    className="bg-white/[0.05] text-zinc-300 border border-white/[0.08] hover:bg-white/[0.09] w-full"
+                    onClick={() => { setAdModalOpen(false); setAdPhase("pick"); setAdPlatform(null); setMlResult(null); setMlError(""); }}
+                  >
+                    Fechar
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-white/10 text-zinc-400 hover:text-white"
+                      onClick={() => setAdPhase("pick")}
+                      disabled={mlPublishing}
+                    >
+                      Voltar
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 disabled:opacity-50"
+                      onClick={handleMLContinue}
+                      disabled={mlPublishing}
+                    >
+                      {mlPublishing ? (
+                        <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />Criando anuncio...</>
+                      ) : "Continuar"}
+                    </Button>
+                  </>
+                )}
               </DialogFooter>
             </>
           ) : (
