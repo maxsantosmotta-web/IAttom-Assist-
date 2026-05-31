@@ -229,6 +229,7 @@ export interface MLCreateItemRequest {
   available_quantity: number;
   listing_type_id: string;
   condition: "new" | "used";
+  description?: string;
   pictures?: Array<{ source: string }>;
   attributes?: Array<{ id: string; value_name: string }>;
   shipping?: {

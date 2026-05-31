@@ -189,6 +189,7 @@ const createListingSchema = z.object({
   category_id:        z.string().optional(),
   condition:          z.enum(["new", "used"]).optional(),
   listing_type_id:    z.string().optional(),
+  description:        z.string().optional(),
   pictures:           z.array(z.object({ source: z.string() })).optional(),
   attributes:         z.array(z.object({ id: z.string(), value_name: z.string() })).optional(),
   shipping: z.object({
@@ -231,6 +232,8 @@ router.post("/me/ml/create-listing", requireAuth, async (req, res): Promise<void
       available_quantity: qty,
       listing_type_id:    body.listing_type_id     ?? "bronze",
       condition:          body.condition           ?? "new",
+      // If caller supplies description, forward it to ML API
+      ...(body.description && { description: body.description }),
       // If caller supplies pictures, use them; otherwise keep the safe placeholder
       pictures: body.pictures ?? [
         { source: "https://http2.mlstatic.com/frontend-assets/ui-navigation/5.19.1/mercadolivre/logo__large_plus.png" },
