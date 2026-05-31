@@ -92,7 +92,7 @@ export function MercadoLivre() {
   };
 
   const handleCriarCampanha = () => {
-    sessionStorage.setItem("campaign_platform_context", JSON.stringify({ platform: "mercadolivre" }));
+    sessionStorage.setItem("iattom_campaign_prefill", JSON.stringify({ goal: "Vender no Mercado Livre" }));
     window.location.href = `${BASE}/dashboard/create-campaign`;
   };
 
