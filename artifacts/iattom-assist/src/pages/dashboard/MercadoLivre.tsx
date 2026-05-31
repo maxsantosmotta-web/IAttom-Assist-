@@ -1,14 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ShoppingCart, X, Info, AlertCircle,
   Megaphone, ClipboardList, Link2,
   CheckCircle2, BarChart2, Package, TrendingUp,
+  Loader2, WifiOff, RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface MLStatus {
+  connected: boolean;
+  nickname: string | null;
+  tokenExpired: boolean;
+  appConfigured: boolean;
+}
+
+type ConnectionState = "loading" | "disconnected" | "connected" | "expired" | "not_configured";
+
+// ─── InformativeModal ─────────────────────────────────────────────────────────
 
 function InformativeModal({
   title,
@@ -64,6 +78,8 @@ function InformativeModal({
   );
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export function MercadoLivre() {
   const [modal, setModal] = useState<{
     title: string;
@@ -71,17 +87,100 @@ export function MercadoLivre() {
     action?: { label: string; onClick: () => void };
   } | null>(null);
 
+  const [connState, setConnState] = useState<ConnectionState>("loading");
+  const [nickname, setNickname] = useState<string | null>(null);
+  const [connectLoading, setConnectLoading] = useState(false);
+
+  // ─── Helpers ───────────────────────────────────────────────────────────────
+
   const showInfo = (
     title: string,
     description: string,
     action?: { label: string; onClick: () => void },
   ) => setModal({ title, description, action });
 
-  const handleConnect = () => {
-    showInfo(
-      "Conectar Mercado Livre",
-      "A conexão com Mercado Livre estará disponível em breve. Após ativar, você poderá acessar produtos, campanhas e vendas diretamente aqui.",
-    );
+  // ─── Status fetch ──────────────────────────────────────────────────────────
+
+  const fetchStatus = async () => {
+    setConnState("loading");
+    try {
+      const res = await fetch(`${BASE}/api/me/ml/status`, { credentials: "include" });
+      if (!res.ok) {
+        setConnState("disconnected");
+        return;
+      }
+      const data = (await res.json()) as MLStatus;
+
+      if (!data.appConfigured) {
+        setConnState("not_configured");
+      } else if (data.connected && data.tokenExpired) {
+        setConnState("expired");
+        setNickname(data.nickname);
+      } else if (data.connected) {
+        setConnState("connected");
+        setNickname(data.nickname);
+      } else {
+        setConnState("disconnected");
+      }
+    } catch {
+      setConnState("disconnected");
+    }
+  };
+
+  // ─── On mount: read URL params + fetch status ──────────────────────────────
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mlConnected = params.get("ml_connected");
+    const mlError = params.get("ml_error");
+
+    // Clean query params from URL without page reload
+    if (mlConnected || mlError) {
+      const clean = window.location.pathname;
+      window.history.replaceState({}, "", clean);
+    }
+
+    if (mlError) {
+      showInfo(
+        "Erro na conexão",
+        `Não foi possível conectar ao Mercado Livre. Código: ${mlError}. Tente novamente.`,
+      );
+    }
+
+    void fetchStatus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ─── OAuth connect ─────────────────────────────────────────────────────────
+
+  const handleConnect = async () => {
+    setConnectLoading(true);
+    try {
+      const res = await fetch(`${BASE}/api/me/ml/oauth-url`, { credentials: "include" });
+      if (!res.ok) {
+        showInfo(
+          "Erro ao conectar",
+          "Não foi possível iniciar a conexão com Mercado Livre. Verifique se o app está configurado no painel administrativo.",
+        );
+        return;
+      }
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!data.url) {
+        showInfo(
+          "Erro ao conectar",
+          "Não foi possível iniciar a conexão com Mercado Livre. Tente novamente.",
+        );
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      showInfo(
+        "Erro ao conectar",
+        "Não foi possível iniciar a conexão com Mercado Livre. Verifique sua conexão e tente novamente.",
+      );
+    } finally {
+      setConnectLoading(false);
+    }
   };
 
   const handleAnalytics = () => {
@@ -100,6 +199,73 @@ export function MercadoLivre() {
     sessionStorage.setItem("content_platform_context", JSON.stringify({ platform: "mercadolivre" }));
     window.location.href = `${BASE}/dashboard/create-content`;
   };
+
+  // ─── Derived UI values ─────────────────────────────────────────────────────
+
+  const isConnected = connState === "connected";
+  const isExpired   = connState === "expired";
+  const isLoading   = connState === "loading";
+
+  const connectButtonLabel =
+    isExpired   ? "Reconectar conta" :
+    isConnected ? "Conta conectada"  :
+                  "Conectar Mercado Livre";
+
+  const connectButtonIcon =
+    connectLoading ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> :
+    isExpired       ? <RefreshCw className="w-3.5 h-3.5 mr-2" />           :
+    isConnected     ? <CheckCircle2 className="w-3.5 h-3.5 mr-2" />        :
+                      <Link2 className="w-3.5 h-3.5 mr-2" />;
+
+  // ─── Status card content ───────────────────────────────────────────────────
+
+  const statusCard = (() => {
+    if (isLoading) return {
+      icon:    <Loader2 className="w-4 h-4 text-muted-foreground shrink-0 animate-spin" />,
+      title:   "Verificando conexão...",
+      sub:     "Aguarde um momento.",
+      btn:     null as null | { label: string; icon: React.ReactNode; variant: "connect" | "reconnect" },
+    };
+    if (connState === "not_configured") return {
+      icon:    <AlertCircle className="w-4 h-4 text-yellow-500/70 shrink-0" />,
+      title:   "App Mercado Livre não configurado",
+      sub:     "Configure as credenciais no painel administrativo para ativar a conexão.",
+      btn:     null,
+    };
+    if (isConnected) return {
+      icon:    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />,
+      title:   nickname ? `Conta conectada: ${nickname}` : "Conta Mercado Livre conectada",
+      sub:     "Sua conta está ativa. Você pode criar e publicar anúncios.",
+      btn:     null,
+    };
+    if (isExpired) return {
+      icon:    <AlertCircle className="w-4 h-4 text-yellow-400 shrink-0" />,
+      title:   "Token expirado",
+      sub:     "Sua sessão expirou. Reconecte para continuar usando a integração.",
+      btn:     { label: "Reconectar", icon: <RefreshCw className="w-3 h-3 mr-1.5" />, variant: "reconnect" as const },
+    };
+    return {
+      icon:    <WifiOff className="w-4 h-4 text-muted-foreground shrink-0" />,
+      title:   "Conta Mercado Livre não conectada",
+      sub:     "Conecte sua conta para acessar produtos, campanhas e vendas.",
+      btn:     { label: "Conectar", icon: <Link2 className="w-3 h-3 mr-1.5" />, variant: "connect" as const },
+    };
+  })();
+
+  // ─── Activity card rows ────────────────────────────────────────────────────
+
+  const activityRows = [
+    {
+      icon:  CheckCircle2,
+      label: "Conexão",
+      value: isLoading ? "…" : isConnected ? "Ativa" : isExpired ? "Expirada" : "Aguardando",
+      ok:    isConnected,
+    },
+    { icon: Package,   label: "Produtos conectados", value: "—", ok: false },
+    { icon: BarChart2, label: "Eventos recebidos",   value: "—", ok: false },
+  ];
+
+  // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-6">
@@ -126,12 +292,17 @@ export function MercadoLivre() {
             </div>
           </div>
           <Button
-            onClick={handleConnect}
-            className="bg-amber-500 hover:bg-amber-400 text-black font-semibold"
+            onClick={isConnected ? undefined : handleConnect}
+            disabled={connectLoading || isConnected || isLoading}
+            className={
+              isConnected
+                ? "bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 cursor-default font-semibold"
+                : "bg-amber-500 hover:bg-amber-400 text-black font-semibold"
+            }
             size="sm"
           >
-            <Link2 className="w-3.5 h-3.5 mr-2" />
-            Conectar Mercado Livre
+            {connectButtonIcon}
+            {connectButtonLabel}
           </Button>
         </div>
 
@@ -139,22 +310,27 @@ export function MercadoLivre() {
         <Card className="bg-[#111111] border-white/[0.06] mb-5">
           <CardContent className="p-4">
             <div className="flex flex-wrap items-center gap-3">
-              <AlertCircle className="w-4 h-4 text-muted-foreground shrink-0" />
+              {statusCard.icon}
               <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Conta Mercado Livre não conectada</p>
-                <p className="text-xs text-muted-foreground/60 mt-0.5">
-                  Conecte sua conta para acessar produtos, campanhas e vendas.
-                </p>
+                <p className="text-sm text-white font-medium">{statusCard.title}</p>
+                <p className="text-xs text-muted-foreground/60 mt-0.5">{statusCard.sub}</p>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleConnect}
-                className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 ml-auto shrink-0"
-              >
-                <Link2 className="w-3 h-3 mr-1.5" />
-                Conectar
-              </Button>
+              {statusCard.btn && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleConnect}
+                  disabled={connectLoading}
+                  className={
+                    statusCard.btn.variant === "reconnect"
+                      ? "border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 ml-auto shrink-0"
+                      : "border-amber-500/30 text-amber-400 hover:bg-amber-500/10 ml-auto shrink-0"
+                  }
+                >
+                  {connectLoading ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : statusCard.btn.icon}
+                  {connectLoading ? "Aguarde..." : statusCard.btn.label}
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -259,29 +435,31 @@ export function MercadoLivre() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-2 py-2">
-                {[
-                  { icon: CheckCircle2, label: "Conexão",             value: "Aguardando", ok: false },
-                  { icon: Package,      label: "Produtos conectados", value: "—",          ok: false },
-                  { icon: BarChart2,    label: "Eventos recebidos",   value: "—",          ok: false },
-                ].map(({ icon: Icon, label, value, ok }) => (
+                {activityRows.map(({ icon: Icon, label, value, ok }) => (
                   <div key={label} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
                     <div className="flex items-center gap-2">
                       <Icon className={`w-3.5 h-3.5 ${ok ? "text-emerald-400" : "text-muted-foreground"}`} />
                       <span className="text-xs text-muted-foreground">{label}</span>
                     </div>
-                    <span className="text-xs font-medium text-white">{value}</span>
+                    <span className={`text-xs font-medium ${ok ? "text-emerald-400" : "text-white"}`}>{value}</span>
                   </div>
                 ))}
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleConnect}
-                className="w-full border-amber-500/30 text-amber-400 hover:bg-amber-500/10 h-8 text-xs"
-              >
-                <Link2 className="w-3 h-3 mr-1.5" />
-                Conectar conta
-              </Button>
+              {!isConnected && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleConnect}
+                  disabled={connectLoading || isLoading}
+                  className="w-full border-amber-500/30 text-amber-400 hover:bg-amber-500/10 h-8 text-xs"
+                >
+                  {connectLoading
+                    ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
+                    : <Link2 className="w-3 h-3 mr-1.5" />
+                  }
+                  {isExpired ? "Reconectar conta" : "Conectar conta"}
+                </Button>
+              )}
             </CardContent>
           </Card>
 
@@ -304,7 +482,7 @@ export function MercadoLivre() {
               </p>
               <div className="grid grid-cols-2 gap-2 py-1">
                 {[
-                  { icon: Package,    label: "Produtos",   value: "—" },
+                  { icon: Package, label: "Produtos", value: "—" },
                   { icon: TrendingUp, label: "Conversões", value: "—" },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="p-2 rounded bg-white/5 text-center">
