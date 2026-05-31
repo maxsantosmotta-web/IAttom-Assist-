@@ -399,6 +399,71 @@ router.post("/me/ml/upload-picture", requireAuth, async (req, res): Promise<void
   }
 });
 
+// ─── GET /me/ml/category-suggest — proxy ML domain_discovery, returns suggestions ─
+// Usage: GET /me/ml/category-suggest?q=<product+title>
+// Returns: { ok, query, suggestions: [{ category_id, category_name, domain_id?, domain_name? }] }
+// The frontend uses this to pre-fill category_id in the review form before calling create-listing.
+router.get("/me/ml/category-suggest", requireAuth, async (req, res): Promise<void> => {
+  const q = (req.query["q"] as string | undefined)?.trim() ?? "";
+
+  if (q.length < 2) {
+    res.status(400).json({ error: "Parâmetro 'q' deve ter pelo menos 2 caracteres." });
+    return;
+  }
+
+  const { clerkUserId } = req as AuthenticatedRequest;
+  const conn = await getUserConnection(clerkUserId);
+
+  // ML domain_discovery is a public endpoint but benefits from a user token when available
+  const authHeader = conn ? { Authorization: `Bearer ${conn.accessToken}` } : {};
+
+  try {
+    interface MLDomainSuggestion {
+      domain_id?:     string;
+      domain_name?:   string;
+      category_id?:   string;
+      category_name?: string;
+    }
+
+    const url = `https://api.mercadolibre.com/sites/MLB/domain_discovery/search?q=${encodeURIComponent(q)}&limit=5`;
+    const mlRes = await fetch(url, { headers: authHeader });
+
+    if (!mlRes.ok) {
+      const body = await mlRes.text().catch(() => "");
+      req.log.warn({ status: mlRes.status, q }, "me/ml/category-suggest: ML returned error");
+
+      if (mlRes.status === 401) {
+        res.status(401).json({ error: "Token expirado. Reconecte sua conta Mercado Livre." });
+      } else if (mlRes.status === 403) {
+        res.status(403).json({ error: "Sem permissão para consultar categorias." });
+      } else {
+        res.status(mlRes.status >= 400 && mlRes.status < 500 ? 422 : 502).json({
+          error: `ML API ${mlRes.status}${body ? `: ${body.slice(0, 200)}` : ""}`,
+        });
+      }
+      return;
+    }
+
+    const raw = await mlRes.json() as MLDomainSuggestion[];
+    const suggestions = Array.isArray(raw)
+      ? raw
+          .filter((s) => s.category_id)
+          .map((s) => ({
+            category_id:   s.category_id  ?? "",
+            category_name: s.category_name ?? s.category_id ?? "",
+            domain_id:     s.domain_id    ?? null,
+            domain_name:   s.domain_name  ?? null,
+          }))
+      : [];
+
+    req.log.info({ q, count: suggestions.length }, "me/ml/category-suggest: ok");
+    res.json({ ok: true, query: q, suggestions });
+  } catch (err) {
+    req.log.error({ err }, "me/ml/category-suggest: failed");
+    res.status(500).json({ error: err instanceof Error ? err.message : "Falha ao consultar categorias" });
+  }
+});
+
 // ─── POST /me/ml/disconnect — deactivate only this user's connection ──────────
 router.post("/me/ml/disconnect", requireAuth, async (req, res): Promise<void> => {
   const { clerkUserId } = req as AuthenticatedRequest;
