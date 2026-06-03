@@ -110,10 +110,7 @@ export function Hotmart() {
   }, [loadStatus]);
 
   const handleConnect = () => {
-    showInfo(
-      "Conectar Hotmart",
-      "A conexão com Hotmart estará disponível em breve. Após ativar, você poderá acessar produtos, campanhas e vendas diretamente aqui.",
-    );
+    window.open("https://app.hotmart.com/", "_blank", "noopener,noreferrer");
   };
 
   const handleDisconnect = async () => {
