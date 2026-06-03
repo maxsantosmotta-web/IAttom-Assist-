@@ -7,7 +7,7 @@ import { logger } from "./logger.js";
 const HOTMART_TOKEN_URL = "https://api-sec-vlc.hotmart.com/security/oauth/token";
 
 // User-facing OAuth authorization page
-const HOTMART_AUTH_URL = "https://app.hotmart.com/oauth/authorize";
+const HOTMART_AUTH_URL = "https://api-sec-vlc.hotmart.com/security/oauth/authorize";
 
 // REST API base
 const HOTMART_API_BASE_SANDBOX = "https://sandbox.hotmart.com";

@@ -15,6 +15,11 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 interface HotmartStatus {
   connected?: boolean;
   isActive?: boolean;
+  appConfigured?: boolean;
+  configured?: boolean;
+  platformUsername?: string | null;
+  tokenExpired?: boolean;
+  connectedAt?: string | null;
   [key: string]: unknown;
 }
 
@@ -84,6 +89,8 @@ export function Hotmart() {
   const [isConnected, setIsConnected] = useState(false);
   const [statusLoading, setStatusLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [platformUsername, setPlatformUsername] = useState<string | null>(null);
 
   const showInfo = (
     title: string,
@@ -98,6 +105,7 @@ export function Hotmart() {
       if (!res.ok) { setIsConnected(false); return; }
       const data = (await res.json()) as HotmartStatus;
       setIsConnected(!!(data.connected || data.isActive));
+      setPlatformUsername(data.platformUsername ?? null);
     } catch {
       setIsConnected(false);
     } finally {
@@ -106,11 +114,43 @@ export function Hotmart() {
   }, []);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("hotmart_connected") === "1") {
+      toast({ description: "Conta Hotmart conectada com sucesso." });
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (params.get("hotmart_error")) {
+      const errorMessages: Record<string, string> = {
+        missing_params: "Parâmetros ausentes no retorno da Hotmart.",
+        invalid_state: "Estado inválido no retorno da Hotmart.",
+        not_configured: "Credenciais Hotmart não configuradas. Contate o administrador.",
+        token_exchange_failed: "Falha ao trocar o código por token. Verifique as credenciais no painel ADM.",
+        server_error: "Erro interno ao conectar. Tente novamente.",
+      };
+      const errKey = params.get("hotmart_error") ?? "";
+      toast({ variant: "destructive", description: errorMessages[errKey] ?? "Erro ao conectar com a Hotmart." });
+      window.history.replaceState({}, "", window.location.pathname);
+    }
     void loadStatus();
-  }, [loadStatus]);
+  }, [loadStatus, toast]);
 
-  const handleConnect = () => {
-    window.open("https://app.hotmart.com/", "_blank", "noopener,noreferrer");
+  const handleConnect = async () => {
+    setConnecting(true);
+    try {
+      const res = await fetch(`${BASE}/api/hotmart/user/oauth-url`, { credentials: "include" });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        toast({ variant: "destructive", description: body.error ?? "Não foi possível iniciar a conexão. Tente novamente." });
+        return;
+      }
+      const data = (await res.json()) as { url?: string };
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch {
+      toast({ variant: "destructive", description: "Erro ao conectar com a Hotmart." });
+    } finally {
+      setConnecting(false);
+    }
   };
 
   const handleDisconnect = async () => {
@@ -176,8 +216,8 @@ export function Hotmart() {
             </div>
           </div>
           <Button
-            onClick={isConnected ? undefined : handleConnect}
-            disabled={isConnected || statusLoading}
+            onClick={isConnected ? undefined : () => void handleConnect()}
+            disabled={isConnected || statusLoading || connecting}
             className={
               isConnected
                 ? "bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 cursor-default font-semibold"
@@ -185,12 +225,12 @@ export function Hotmart() {
             }
             size="sm"
           >
-            {statusLoading
+            {(statusLoading || connecting)
               ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
               : isConnected
                 ? <CheckCircle2 className="w-3.5 h-3.5 mr-2" />
                 : <Link2 className="w-3.5 h-3.5 mr-2" />}
-            {statusLoading ? "Verificando..." : isConnected ? "Conta conectada" : "Conectar Hotmart"}
+            {statusLoading ? "Verificando..." : connecting ? "Redirecionando..." : isConnected ? "Conta conectada" : "Conectar Hotmart"}
           </Button>
         </div>
 
@@ -211,7 +251,7 @@ export function Hotmart() {
                 </p>
                 <p className="text-xs text-muted-foreground/60 mt-0.5">
                   {isConnected
-                    ? "Sua conta está ativa e sincronizada."
+                    ? (platformUsername ? `Usuário: ${platformUsername}` : "Sua conta está ativa e sincronizada.")
                     : "Conecte sua conta para acessar produtos, campanhas e vendas."}
                 </p>
               </div>
@@ -232,11 +272,12 @@ export function Hotmart() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={handleConnect}
+                  onClick={() => void handleConnect()}
+                  disabled={connecting}
                   className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10 ml-auto shrink-0"
                 >
-                  <Link2 className="w-3 h-3 mr-1.5" />
-                  Conectar
+                  {connecting ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Link2 className="w-3 h-3 mr-1.5" />}
+                  {connecting ? "Redirecionando..." : "Conectar"}
                 </Button>
               ) : null}
             </div>
@@ -370,11 +411,12 @@ export function Hotmart() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={handleConnect}
+                  onClick={() => void handleConnect()}
+                  disabled={connecting}
                   className="w-full border-orange-500/30 text-orange-400 hover:bg-orange-500/10 h-8 text-xs"
                 >
-                  <Link2 className="w-3 h-3 mr-1.5" />
-                  Conectar conta
+                  {connecting ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Link2 className="w-3 h-3 mr-1.5" />}
+                  {connecting ? "Redirecionando..." : "Conectar conta"}
                 </Button>
               )}
             </CardContent>
