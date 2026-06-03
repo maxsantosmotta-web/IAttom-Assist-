@@ -67,7 +67,17 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 await initStripe();
-await rehydrateMLTokens();
+
+// Wrap with timeout — refreshMLToken has no AbortController; if ML API hangs at startup
+// the fetch pends indefinitely, blocking app.listen() and causing the port health check to fail.
+await Promise.race([
+  rehydrateMLTokens(),
+  new Promise<void>((_, reject) =>
+    setTimeout(() => reject(new Error("rehydrateMLTokens startup timeout (15s)")), 15_000),
+  ),
+]).catch((err: unknown) => {
+  logger.warn({ err }, "ml startup: rehydration timed out or failed — ML integration may require re-auth");
+});
 
 const server = app.listen(port, () => {
   logger.info({ port }, "Server listening");
