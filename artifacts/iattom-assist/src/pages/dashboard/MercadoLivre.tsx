@@ -165,8 +165,7 @@ export function MercadoLivre() {
   // ─── Criar Anúncio ─────────────────────────────────────────────────────────
 
   const handleCriarAnuncio = () => {
-    sessionStorage.setItem("ad_platform_context", JSON.stringify({ platform: "mercado_livre" }));
-    window.location.href = `${BASE}/dashboard/projects`;
+    window.open("https://www.mercadolivre.com.br/publicar", "_blank", "noopener,noreferrer");
   };
 
   const handleAnalytics = () => {

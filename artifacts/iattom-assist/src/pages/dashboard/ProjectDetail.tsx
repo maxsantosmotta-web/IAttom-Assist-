@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { useAuth } from "@clerk/react";
 import { motion } from "framer-motion";
 import { useParams, useLocation } from "wouter";
 import { loadProjectAssets, saveProjectAssets, deleteProjectAssets } from "@/lib/assetStorage";
 import { useSavedItems } from "@/hooks/useSavedItems";
 import {
   ArrowLeft, Trash2, Loader2, Copy, Check, ChevronDown, ChevronUp,
-  FileText, Megaphone, Sparkles, Video, Search, ImageOff, Download, X, RefreshCw, ExternalLink, AlertTriangle,
+  FileText, Megaphone, Sparkles, Video, Search, ImageOff, Download, X, RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -64,15 +63,6 @@ const platformLabels: Record<string, string> = {
   instagram: "Instagram", facebook: "Facebook",
 };
 
-const AD_PLATFORMS = [
-  { id: "shopee",        label: "Shopee" },
-  { id: "mercado_livre", label: "Mercado Livre" },
-  { id: "hotmart",       label: "Hotmart" },
-  { id: "kiwify",        label: "Kiwify" },
-  { id: "tiktok",        label: "TikTok" },
-  { id: "facebook",      label: "Facebook" },
-  { id: "instagram",     label: "Instagram" },
-] as const;
 
 function formatDate(iso: string) {
   try {
@@ -393,7 +383,6 @@ export function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { getToken } = useAuth();
   const { getItems, getItemAssets, saveItemAssets } = useSavedItems();
   const [item, setItem] = useState<SavedItem | null | "not_found">(null);
   const [deletingId, setDeletingId] = useState(false);
@@ -403,22 +392,6 @@ export function ProjectDetail() {
   const [syncingImages, setSyncingImages] = useState(false);
   const [previewImage, setPreviewImage] = useState<{ img: ImageEntry; idx: number } | null>(null);
   const [confirmTrashOpen, setConfirmTrashOpen] = useState(false);
-  // Platform context (from sessionStorage) + inline continue state
-  const [adContextPlatform, setAdContextPlatform] = useState<string | null>(null);
-  const [adContinueLoading, setAdContinueLoading] = useState(false);
-  const [adContinueError, setAdContinueError] = useState("");
-
-  // Read ad_platform_context from sessionStorage on mount (set by platform pages when user clicks "Criar anuncio")
-  useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem("ad_platform_context");
-      if (raw) {
-        const ctx = JSON.parse(raw) as { platform?: string };
-        if (ctx?.platform) setAdContextPlatform(ctx.platform);
-      }
-    } catch { /* noop */ }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     if (!id) { setItem("not_found"); return; }
@@ -521,63 +494,6 @@ export function ProjectDetail() {
     });
   }, [item, toast]);
 
-  // ── Continuar: validate connection (ML only) then navigate to platform page ──
-  const handleContinue = useCallback(async () => {
-    if (!adContextPlatform || !item || item === "not_found") return;
-    setAdContinueLoading(true);
-    setAdContinueError("");
-
-    const PLATFORM_ROUTES: Record<string, string> = {
-      shopee:        "/dashboard/shopee",
-      tiktok:        "/dashboard/tiktok",
-      hotmart:       "/dashboard/hotmart",
-      kiwify:        "/dashboard/kiwify",
-      facebook:      "/dashboard/facebook",
-      instagram:     "/dashboard/instagram",
-    };
-
-    try {
-      const savedItem = item as SavedItem;
-
-      // For Mercado Livre: open official external listing creation page in a new tab.
-      // The user stays on this page to use the project materials as reference.
-      if (adContextPlatform === "mercado_livre") {
-        window.open("https://www.mercadolivre.com.br/publicar", "_blank", "noopener,noreferrer");
-        toast({
-          title: "Mercado Livre aberto em nova aba",
-          description: "Use os materiais do projeto abaixo para preencher o anuncio: titulo, descricao, preco sugerido e copy.",
-        });
-        return;
-      }
-
-      // Extract suggested price from briefing for the platform page to pre-fill
-      let suggestedPrice = "";
-      if (savedItem.data) {
-        try {
-          const p = JSON.parse(savedItem.data) as ParsedData;
-          const raw = p.briefing?.["price"] ?? p.briefing?.["preco"] ?? p.briefing?.["valor"] ?? "";
-          if (raw) suggestedPrice = String(raw);
-        } catch { /* noop */ }
-      }
-
-      // Write project context to sessionStorage for the platform page to read.
-      // NOTE: ad_platform_context is intentionally NOT removed here — keeping it
-      // allows the Continuar button to reappear if the user navigates back.
-      sessionStorage.setItem("ad_project_context", JSON.stringify({
-        projectId:     savedItem.id,
-        projectTitle:  savedItem.title,
-        projectType:   savedItem.type,
-        suggestedPrice,
-        platform:      adContextPlatform,
-      }));
-
-      navigate(PLATFORM_ROUTES[adContextPlatform] ?? "/dashboard");
-    } catch {
-      setAdContinueError("Erro inesperado. Tente novamente.");
-    } finally {
-      setAdContinueLoading(false);
-    }
-  }, [adContextPlatform, item, getToken, navigate]);
 
   if (item === null) {
     return (
@@ -694,48 +610,7 @@ export function ProjectDetail() {
             {allCopied ? <Check className="w-3 h-3 mr-1.5 text-emerald-400" /> : <Copy className="w-3 h-3 mr-1.5" />}
             {allCopied ? "Copiado" : "Copiar tudo"}
           </Button>
-          {adContextPlatform && (
-            <Button
-              size="sm"
-              onClick={() => { void handleContinue(); }}
-              disabled={adContinueLoading}
-              className="h-7 px-3 text-xs bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 hover:border-primary/30 disabled:opacity-50"
-            >
-              {adContinueLoading
-                ? <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />Verificando...</>
-                : <><Megaphone className="w-3 h-3 mr-1.5" />Continuar</>}
-            </Button>
-          )}
         </div>
-        {adContinueError && (
-          <div className="rounded-xl bg-amber-500/[0.08] border border-amber-500/20 px-3 py-2.5 flex items-start gap-2.5">
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0" />
-            <div className="flex-1 space-y-2">
-              <p className="text-xs text-amber-300 leading-relaxed">{adContinueError}</p>
-              {adContextPlatform && (
-                <Button
-                  size="sm"
-                  className="h-6 px-2.5 text-[11px] bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
-                  onClick={() => {
-                    const routes: Record<string, string> = {
-                      mercado_livre: "/dashboard/mercado-livre",
-                      shopee:        "/dashboard/shopee",
-                      tiktok:        "/dashboard/tiktok",
-                      hotmart:       "/dashboard/hotmart",
-                      kiwify:        "/dashboard/kiwify",
-                      facebook:      "/dashboard/facebook",
-                      instagram:     "/dashboard/instagram",
-                    };
-                    navigate(routes[adContextPlatform] ?? "/dashboard");
-                  }}
-                >
-                  <ExternalLink className="w-3 h-3 mr-1" />
-                  Ir para {platformLabels[adContextPlatform] ?? adContextPlatform}
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Written content */}
