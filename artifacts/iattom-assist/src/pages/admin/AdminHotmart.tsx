@@ -136,13 +136,6 @@ export function AdminHotmart() {
           <div className="flex items-center gap-2 flex-wrap">
             <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px]">Monitoramento ativo</Badge>
             <Button size="sm" variant="outline"
-              onClick={() => navigate("/admin/integrations")}
-              className="border-white/10 text-zinc-400 hover:text-white h-8 gap-1.5 text-xs">
-              <Settings className="w-3.5 h-3.5" />
-              Configurar
-              <ExternalLink className="w-3 h-3 opacity-50" />
-            </Button>
-            <Button size="sm" variant="outline"
               onClick={() => void handleRefreshAll()}
               disabled={refreshing}
               className="border-white/10 text-zinc-400 hover:text-white h-8 gap-1.5 text-xs">

@@ -11,11 +11,6 @@ export const ACTION_LABELS: Record<string, string> = {
   "Video script generated": "Script de vídeo gerado",
   "Creative generated": "Criativo gerado",
   "AI product discovery": "Descoberta de produto com inteligência",
-  "AI Tool Validation": "Validação de ferramenta de inteligência",
-  "Brand Video Script": "Script de vídeo da marca",
-  "EcoBottle Product Discovery": "Descoberta de produto EcoBottle",
-  "FitTrack App Content": "Conteúdo do app FitTrack",
-  "Summer Sale Campaign": "Campanha de venda de verão",
 };
 
 export const MODULE_LABELS: Record<string, string> = {
@@ -39,23 +34,35 @@ export const MODULE_LABELS: Record<string, string> = {
 };
 
 const DEMO_NAME_MAP: Record<string, string> = {
-  "Summer Sale Campaign": "Campanha de Venda de Verão",
-  "FitTrack App Content": "Conteúdo do App FitTrack",
-  "EcoBottle Product Discovery": "Descoberta de Produto EcoBottle",
-  "Brand Video Script": "Script de Vídeo da Marca",
-  "AI Tool Validation": "Validação de Ferramenta de Inteligência",
+  "summer sale campaign": "Campanha de Venda de Verão",
+  "fittrack app content": "Conteúdo do App FitTrack",
+  "ecobottle product discovery": "Descoberta de Produto EcoBottle",
+  "brand video script": "Script de Vídeo da Marca",
+  "ai tool validation": "Validação de Ferramenta de Inteligência",
 };
 
 function translateDemoName(text: string): string {
-  for (const [en, pt] of Object.entries(DEMO_NAME_MAP)) {
-    if (text.includes(en)) return text.replace(en, pt);
+  const lower = text.toLowerCase();
+  for (const [key, pt] of Object.entries(DEMO_NAME_MAP)) {
+    const idx = lower.indexOf(key);
+    if (idx !== -1) {
+      return text.slice(0, idx) + pt + text.slice(idx + key.length);
+    }
   }
   return text;
 }
 
 export function translateAction(action: string): string {
+  // 1. Exact match (case-sensitive)
   if (ACTION_LABELS[action]) return ACTION_LABELS[action];
 
+  // 2. Case-insensitive exact match against demo names
+  const lowerAction = action.toLowerCase().trim();
+  for (const [key, pt] of Object.entries(DEMO_NAME_MAP)) {
+    if (lowerAction === key) return pt;
+  }
+
+  // 3. Prefix matchers — translate prefix then apply demo name translation
   if (/^Campaign created:/i.test(action))
     return translateDemoName(action.replace(/^Campaign created:/i, "Campanha criada:"));
   if (/^Campanha criada:/i.test(action))
@@ -72,9 +79,8 @@ export function translateAction(action: string): string {
     return translateDemoName(action);
   if (/^Created campaign:/i.test(action))
     return translateDemoName(action.replace(/^Created campaign:/i, "Campanha criada:"));
-  if (/^Descoberta de produto/i.test(action))
-    return action;
 
+  // 4. Substring fallback — replace any demo name found anywhere in the string
   return translateDemoName(action);
 }
 
