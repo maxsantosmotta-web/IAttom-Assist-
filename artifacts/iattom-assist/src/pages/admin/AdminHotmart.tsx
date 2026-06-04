@@ -2,12 +2,13 @@ import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Flame, RefreshCw, Loader2, Clock,
-  Settings, WifiOff, CheckCircle2, ExternalLink,
+  Settings, ExternalLink, LogOut, X,
   Users, UserCheck, Timer,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -52,11 +53,14 @@ interface UserHotmartConnection {
 
 export function AdminHotmart() {
   const [, navigate] = useLocation();
+  const { toast } = useToast();
 
   const [platformConfig, setPlatformConfig]   = useState<HotmartPlatformConfig | null>(null);
   const [userConnections, setUserConnections] = useState<UserHotmartConnection[]>([]);
   const [lastUpdated, setLastUpdated]         = useState<Date | null>(null);
   const [refreshing, setRefreshing]           = useState(false);
+  const [confirmDisconnect, setConfirmDisconnect] = useState<{ clerkUserId: string; label: string } | null>(null);
+  const [disconnectingUser, setDisconnectingUser] = useState<string | null>(null);
 
   // ── Loaders ───────────────────────────────────────────────────────────────────
   const loadPlatformStatus = useCallback(async () => {
@@ -83,6 +87,21 @@ export function AdminHotmart() {
     setLastUpdated(new Date());
     setRefreshing(false);
   }, [loadPlatformStatus, loadUserConnections]);
+
+  const handleDisconnectUser = useCallback(async (clerkUserId: string, label: string) => {
+    setDisconnectingUser(clerkUserId);
+    setConfirmDisconnect(null);
+    try {
+      const res = await apiFetch<{ ok: boolean }>(`/api/hotmart/user-connections/${clerkUserId}/disconnect`, { method: "POST" });
+      if (!res.ok) throw new Error("Falha ao desconectar.");
+      toast({ title: "Usuário desconectado", description: `Conexão de ${label} removida.` });
+      void loadUserConnections();
+    } catch (e) {
+      toast({ title: "Erro ao desconectar", description: e instanceof Error ? e.message : "Tente novamente.", variant: "destructive" });
+    } finally {
+      setDisconnectingUser(null);
+    }
+  }, [loadUserConnections, toast]);
 
   useEffect(() => { void handleRefreshAll(); }, [handleRefreshAll]);
 
@@ -115,19 +134,7 @@ export function AdminHotmart() {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {isPlatformConfigured && isPlatformActive ? (
-              <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px]">
-                <CheckCircle2 className="w-2.5 h-2.5 mr-1" />Integração Ativa
-              </Badge>
-            ) : isPlatformConfigured ? (
-              <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-[10px]">
-                <WifiOff className="w-2.5 h-2.5 mr-1" />Credenciais Inativas
-              </Badge>
-            ) : (
-              <Badge className="bg-zinc-500/15 text-zinc-400 border-zinc-500/30 text-[10px]">
-                <WifiOff className="w-2.5 h-2.5 mr-1" />Não Configurada
-              </Badge>
-            )}
+            <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px]">Monitoramento ativo</Badge>
             <Button size="sm" variant="outline"
               onClick={() => navigate("/admin/integrations")}
               className="border-white/10 text-zinc-400 hover:text-white h-8 gap-1.5 text-xs">
@@ -236,6 +243,7 @@ export function AdminHotmart() {
                     <th className="text-left text-[10px] text-zinc-600 uppercase tracking-wider px-3 py-2 font-medium">Status</th>
                     <th className="text-left text-[10px] text-zinc-600 uppercase tracking-wider px-3 py-2 font-medium hidden md:table-cell">Conectado em</th>
                     <th className="text-right text-[10px] text-zinc-600 uppercase tracking-wider px-5 py-2 font-medium hidden lg:table-cell">Expira em</th>
+                    <th className="text-right text-[10px] text-zinc-600 uppercase tracking-wider px-5 py-2 font-medium">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -274,6 +282,22 @@ export function AdminHotmart() {
                               })
                             : "—"}
                         </td>
+                        <td className="px-3 py-3 text-right">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setConfirmDisconnect({
+                              clerkUserId: conn.clerkUserId,
+                              label: conn.platformUsername ?? conn.clerkUserId.replace("user_", "").slice(0, 12),
+                            })}
+                            disabled={disconnectingUser === conn.clerkUserId}
+                            className="h-7 px-2 border border-red-500/20 text-red-400 hover:bg-red-500/10 gap-1 text-[11px]">
+                            {disconnectingUser === conn.clerkUserId
+                              ? <Loader2 className="w-3 h-3 animate-spin" />
+                              : <LogOut className="w-3 h-3" />}
+                            Desconectar
+                          </Button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -283,6 +307,36 @@ export function AdminHotmart() {
           )}
         </CardContent>
       </Card>
+
+      {/* ─── Confirm Dialog ──────────────────────────────────────── */}
+      {confirmDisconnect && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+          <div className="bg-[#1a1a1a] border border-white/10 rounded-xl p-6 max-w-sm w-full mx-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-white">Desconectar usuário</p>
+              <button onClick={() => setConfirmDisconnect(null)} className="text-zinc-500 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Desconectar <span className="text-white font-medium">{confirmDisconnect.label}</span>?
+              O usuário precisará reconectar sua conta Hotmart.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button size="sm" variant="outline" onClick={() => setConfirmDisconnect(null)}
+                className="border-white/10 text-zinc-400">Cancelar</Button>
+              <Button size="sm"
+                onClick={() => void handleDisconnectUser(confirmDisconnect.clerkUserId, confirmDisconnect.label)}
+                className="bg-red-600 hover:bg-red-500 text-white gap-1.5">
+                {disconnectingUser === confirmDisconnect.clerkUserId
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : <LogOut className="w-3.5 h-3.5" />}
+                Desconectar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

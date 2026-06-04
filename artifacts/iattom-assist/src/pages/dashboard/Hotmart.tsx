@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Flame, X, Info, AlertCircle,
-  Megaphone, ClipboardList, Link2,
+  Megaphone, ClipboardList, Link2, RefreshCw,
   CheckCircle2, BarChart2, Package, TrendingUp,
   Loader2, LogOut, ShieldCheck,
 } from "lucide-react";
@@ -113,6 +113,13 @@ export function Hotmart() {
       setStatusLoading(false);
     }
   }, []);
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await loadStatus();
+    setIsRefreshing(false);
+  }, [loadStatus]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -276,23 +283,34 @@ export function Hotmart() {
               <p className="text-xs text-muted-foreground">Gerencie produtos, campanhas e suas vendas na Hotmart</p>
             </div>
           </div>
-          <Button
-            onClick={isConnected ? undefined : () => setShowConnectModal(true)}
-            disabled={isConnected || statusLoading || connecting}
-            className={
-              isConnected
-                ? "bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 cursor-default font-semibold"
-                : "bg-orange-500 hover:bg-orange-400 text-white font-semibold"
-            }
-            size="sm"
-          >
-            {(statusLoading || connecting)
-              ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
-              : isConnected
-                ? <CheckCircle2 className="w-3.5 h-3.5 mr-2" />
-                : <Link2 className="w-3.5 h-3.5 mr-2" />}
-            {statusLoading ? "Verificando..." : connecting ? "Redirecionando..." : isConnected ? "Conta conectada" : "Conectar Hotmart"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void handleRefresh()}
+              disabled={isRefreshing || statusLoading}
+              className="border-white/10 text-zinc-400 hover:text-white gap-1.5 text-xs">
+              {isRefreshing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              Atualizar
+            </Button>
+            <Button
+              onClick={isConnected ? undefined : () => setShowConnectModal(true)}
+              disabled={isConnected || statusLoading || connecting}
+              className={
+                isConnected
+                  ? "bg-emerald-600/20 border border-emerald-500/30 text-emerald-400 cursor-default font-semibold"
+                  : "bg-orange-500 hover:bg-orange-400 text-white font-semibold"
+              }
+              size="sm"
+            >
+              {(statusLoading || connecting)
+                ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+                : isConnected
+                  ? <CheckCircle2 className="w-3.5 h-3.5 mr-2" />
+                  : <Link2 className="w-3.5 h-3.5 mr-2" />}
+              {statusLoading ? "Verificando..." : connecting ? "Redirecionando..." : isConnected ? "Conta conectada" : "Conectar Hotmart"}
+            </Button>
+          </div>
         </div>
 
         {/* ── Status Card ──────────────────────────────────────── */}

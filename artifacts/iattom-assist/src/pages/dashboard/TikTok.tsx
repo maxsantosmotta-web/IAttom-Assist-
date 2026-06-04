@@ -116,6 +116,13 @@ export function TikTok() {
     void loadStatus();
   }, [loadStatus]);
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await loadStatus();
+    setIsRefreshing(false);
+  }, [loadStatus]);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const connected = params.get("tiktok_connected");
@@ -198,17 +205,28 @@ export function TikTok() {
               <p className="text-xs text-muted-foreground">Gerencie anúncios, conteúdo e sua presença no TikTok</p>
             </div>
           </div>
-          <Button
-            onClick={handleConnect}
-            disabled={connecting || statusLoading}
-            className="bg-violet-600 hover:bg-violet-500 text-white font-semibold"
-            size="sm"
-          >
-            {connecting
-              ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" />
-              : <Link2 className="w-3.5 h-3.5 mr-2" />}
-            Conectar TikTok
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void handleRefresh()}
+              disabled={isRefreshing || statusLoading}
+              className="border-white/10 text-zinc-400 hover:text-white gap-1.5 text-xs">
+              {isRefreshing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              Atualizar
+            </Button>
+            <Button
+              onClick={handleConnect}
+              disabled={connecting || statusLoading}
+              className="bg-violet-600 hover:bg-violet-500 text-white font-semibold"
+              size="sm"
+            >
+              {connecting
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" />
+                : <Link2 className="w-3.5 h-3.5 mr-2" />}
+              Conectar TikTok
+            </Button>
+          </div>
         </div>
 
         {/* ── Status Card ──────────────────────────────────────── */}

@@ -2,8 +2,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Layers, X, Info, AlertCircle,
-  Megaphone, ClipboardList, Link2,
-  CheckCircle2, BarChart2, Package, TrendingUp,
+  Megaphone, ClipboardList, Link2, RefreshCw,
+  CheckCircle2, BarChart2, Package, TrendingUp, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,6 +77,13 @@ export function Kiwify() {
     action?: { label: string; onClick: () => void },
   ) => setModal({ title, description, action });
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await new Promise(r => setTimeout(r, 500));
+    setIsRefreshing(false);
+  };
+
   const handleConnect = () => {
     showInfo(
       "Conectar Kiwify",
@@ -129,14 +136,25 @@ export function Kiwify() {
               <p className="text-xs text-muted-foreground">Gerencie produtos, campanhas e suas vendas na Kiwify</p>
             </div>
           </div>
-          <Button
-            onClick={handleConnect}
-            className="bg-primary hover:bg-primary/90 text-black font-semibold"
-            size="sm"
-          >
-            <Link2 className="w-3.5 h-3.5 mr-2" />
-            Conectar Kiwify
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void handleRefresh()}
+              disabled={isRefreshing}
+              className="border-white/10 text-zinc-400 hover:text-white gap-1.5 text-xs">
+              {isRefreshing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              Atualizar
+            </Button>
+            <Button
+              onClick={handleConnect}
+              className="bg-primary hover:bg-primary/90 text-black font-semibold"
+              size="sm"
+            >
+              <Link2 className="w-3.5 h-3.5 mr-2" />
+              Conectar Kiwify
+            </Button>
+          </div>
         </div>
 
         {/* ── Status Card ──────────────────────────────────────── */}

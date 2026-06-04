@@ -608,6 +608,23 @@ router.post("/hotmart/user/disconnect", requireAuth, async (req, res): Promise<v
   res.json({ ok: true });
 });
 
+// ─── ADMIN: Disconnect a specific user's Hotmart connection ──────────────────
+router.post("/hotmart/user-connections/:clerkUserId/disconnect", requireAdmin, async (req, res): Promise<void> => {
+  const targetClerkUserId = req.params["clerkUserId"] as string;
+  if (!targetClerkUserId) {
+    res.status(400).json({ error: "clerkUserId obrigatório." });
+    return;
+  }
+
+  await db
+    .update(userHotmartConnections)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(eq(userHotmartConnections.clerkUserId, targetClerkUserId));
+
+  const adminId = (req as AdminRequest).clerkUserId;
+  req.log.info({ targetClerkUserId, adminId }, "hotmart: admin disconnected user Hotmart connection");
+  res.json({ ok: true });
+});
 
 // ─── USER: List products (filtered by user's claimed product_ids) ─────────────
 router.get("/hotmart/user/products", requireAuth, async (req, res): Promise<void> => {

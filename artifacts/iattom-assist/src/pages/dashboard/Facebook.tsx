@@ -132,6 +132,13 @@ export function Facebook() {
 
   useEffect(() => { void loadData(); }, [loadData]);
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await loadData();
+    setIsRefreshing(false);
+  }, [loadData]);
+
   const handleConnect = () => {
     setConnecting(true);
     showInfo(
@@ -213,17 +220,28 @@ export function Facebook() {
               <p className="text-xs text-muted-foreground">Gerencie anúncios, páginas e sua presença no Facebook</p>
             </div>
           </div>
-          <Button
-            onClick={handleConnect}
-            disabled={connecting || loading}
-            className="bg-blue-600 hover:bg-blue-500 text-white font-semibold"
-            size="sm"
-          >
-            {connecting
-              ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" />
-              : <Link2 className="w-3.5 h-3.5 mr-2" />}
-            Conectar Facebook
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void handleRefresh()}
+              disabled={isRefreshing || loading}
+              className="border-white/10 text-zinc-400 hover:text-white gap-1.5 text-xs">
+              {isRefreshing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              Atualizar
+            </Button>
+            <Button
+              onClick={handleConnect}
+              disabled={connecting || loading}
+              className="bg-blue-600 hover:bg-blue-500 text-white font-semibold"
+              size="sm"
+            >
+              {connecting
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" />
+                : <Link2 className="w-3.5 h-3.5 mr-2" />}
+              Conectar Facebook
+            </Button>
+          </div>
         </div>
 
         {/* ── Status Card ──────────────────────────────────────── */}

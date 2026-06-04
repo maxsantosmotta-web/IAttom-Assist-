@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShoppingBag, Plus, Copy, Trash2, ExternalLink, Loader2,
-  Link2, Tag, X, Info, AlertCircle, CheckCircle2,
+  Link2, Tag, X, Info, AlertCircle, CheckCircle2, RefreshCw,
   Package, ClipboardList, Store, Search,
   Megaphone, BarChart2, WifiOff, LogOut, TrendingUp,
 } from "lucide-react";
@@ -557,6 +557,13 @@ export function Shopee() {
 
   useEffect(() => { void loadStatus(); }, [loadStatus]);
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await loadStatus();
+    setIsRefreshing(false);
+  }, [loadStatus]);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("shopee_connected") === "1") {
@@ -638,6 +645,15 @@ export function Shopee() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void handleRefresh()}
+              disabled={isRefreshing || loadingStatus}
+              className="border-white/10 text-zinc-400 hover:text-white gap-1.5 text-xs">
+              {isRefreshing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              Atualizar
+            </Button>
             <AnimatePresence mode="wait">
               {loadingStatus ? (
                 <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
