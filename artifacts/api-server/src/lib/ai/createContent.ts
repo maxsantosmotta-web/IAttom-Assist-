@@ -87,7 +87,7 @@ Cada peça deve parecer premium, específica para a marca e pronta para publica�
 
     const result: ContentResult = JSON.parse(fullResponse);
     sendSSE(res, { type: "result", data: result });
-    await logAiUsage({ clerkUserId, action: `Content created: ${params.topic}`, module: "content" });
+    await logAiUsage({ clerkUserId, action: `Conteúdo criado: ${params.topic}`, module: "content" });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "AI generation failed";
     sendSSEError(res, msg);

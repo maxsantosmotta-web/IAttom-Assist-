@@ -121,13 +121,14 @@ function StatTile({ label, value, sub, icon: Icon, color }: { label: string; val
 }
 
 export function AdminAnalytics() {
-  const { data: analytics, isLoading, refetch: refetchAnalytics } = useGetAdminAnalytics();
+  const { data: analytics, isLoading, isFetching: fetchingAnalytics, refetch: refetchAnalytics } = useGetAdminAnalytics();
   const { getToken } = useAuth();
   const [growthStats, setGrowthStats] = useState<GrowthStats | null>(null);
   const [growthLoading, setGrowthLoading] = useState(true);
   const [growthTick, setGrowthTick] = useState(0);
 
   useEffect(() => {
+    setGrowthLoading(true);
     (async () => {
       try {
         const token = await getToken();
@@ -179,8 +180,8 @@ export function AdminAnalytics() {
             <h2 className="text-2xl font-bold text-white mb-1">Análises</h2>
             <p className="text-muted-foreground text-sm">Crescimento, receita, ativação e análise de cancelamentos.</p>
           </div>
-          <Button size="sm" variant="outline" onClick={() => { void refetchAnalytics(); setGrowthTick((t) => t + 1); }} disabled={isLoading || growthLoading} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
-            <RefreshCw className={`w-3.5 h-3.5 ${(isLoading || growthLoading) ? "animate-spin" : ""}`} />
+          <Button size="sm" variant="outline" onClick={() => { void refetchAnalytics(); setGrowthTick((t) => t + 1); }} disabled={fetchingAnalytics || growthLoading} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
+            <RefreshCw className={`w-3.5 h-3.5 ${(fetchingAnalytics || growthLoading) ? "animate-spin" : ""}`} />
             Atualizar
           </Button>
         </div>

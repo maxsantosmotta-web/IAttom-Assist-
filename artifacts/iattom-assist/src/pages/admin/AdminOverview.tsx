@@ -58,10 +58,10 @@ const itemVariants = {
 };
 
 export function AdminOverview() {
-  const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useGetAdminStats();
-  const { data: analytics, isLoading: analyticsLoading, refetch: refetchAnalytics } = useGetAdminAnalytics();
-  const { data: activity, isLoading: activityLoading, refetch: refetchActivity } = useListAdminActivity({ limit: 6 });
-  const isRefreshing = statsLoading || analyticsLoading || activityLoading;
+  const { data: stats, isLoading: statsLoading, isFetching: fetchingStats, refetch: refetchStats } = useGetAdminStats();
+  const { data: analytics, isLoading: analyticsLoading, isFetching: fetchingAnalytics, refetch: refetchAnalytics } = useGetAdminAnalytics();
+  const { data: activity, isLoading: activityLoading, isFetching: fetchingActivity, refetch: refetchActivity } = useListAdminActivity({ limit: 6 });
+  const isRefreshing = fetchingStats || fetchingAnalytics || fetchingActivity;
   const handleRefresh = () => { void refetchStats(); void refetchAnalytics(); void refetchActivity(); };
 
   const mrr = ((stats?.planBreakdown.pro ?? 0) * 79) + ((stats?.planBreakdown.business ?? 0) * 199) + ((stats?.planBreakdown.agency ?? 0) * 499);

@@ -102,7 +102,7 @@ Retorne um JSON com 5-6 recomendações específicas e acionáveis, com dados re
 
     const result: FindProductsResult = JSON.parse(fullResponse);
     sendSSE(res, { type: "result", data: result });
-    await logAiUsage({ clerkUserId, action: "AI product discovery", module: "find_products" });
+    await logAiUsage({ clerkUserId, action: "Descoberta de produto com IA", module: "find_products" });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "AI generation failed";
     sendSSEError(res, msg);

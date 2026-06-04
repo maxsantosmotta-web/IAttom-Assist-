@@ -80,7 +80,7 @@ const ACHIEVEMENTS = [
 ];
 
 export function DashboardHome() {
-  const { data: summary, isLoading: summaryLoading, refetch: refetchSummary } = useGetDashboardSummary();
+  const { data: summary, isLoading: summaryLoading, isFetching: summaryFetching, refetch: refetchSummary } = useGetDashboardSummary();
   const { data: historyData } = useListHistory(
     { limit: 10 },
     { query: { queryKey: getListHistoryQueryKey({ limit: 10 }), retry: false, staleTime: 60_000 } },
@@ -136,20 +136,22 @@ export function DashboardHome() {
           </h2>
           <p className="text-sm text-zinc-500">Sua plataforma está pronta. O que vamos construir hoje?</p>
         </div>
-        {planLabel && (
-          <div className="shrink-0 hidden sm:flex flex-col items-end gap-1">
-            <Badge className="bg-primary/10 text-primary border-primary/25 text-[10px] font-bold uppercase tracking-wider px-2.5">
-              {planLabel}
-            </Badge>
-            <Link href="/dashboard/billing" className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors">
-              Gerenciar plano
-            </Link>
-            <button onClick={() => void refetchSummary()} disabled={summaryLoading} className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors flex items-center gap-1">
-              <RefreshCw className={`w-3 h-3 ${summaryLoading ? "animate-spin" : ""}`} />
-              Atualizar
-            </button>
-          </div>
-        )}
+        <div className="shrink-0 hidden sm:flex flex-col items-end gap-1">
+          {planLabel && (
+            <>
+              <Badge className="bg-primary/10 text-primary border-primary/25 text-[10px] font-bold uppercase tracking-wider px-2.5">
+                {planLabel}
+              </Badge>
+              <Link href="/dashboard/billing" className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors">
+                Gerenciar plano
+              </Link>
+            </>
+          )}
+          <button onClick={() => void refetchSummary()} disabled={summaryFetching} className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors flex items-center gap-1">
+            <RefreshCw className={`w-3 h-3 ${summaryFetching ? "animate-spin" : ""}`} />
+            Atualizar
+          </button>
+        </div>
       </motion.div>
 
       {/* Stats */}

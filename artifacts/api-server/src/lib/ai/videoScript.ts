@@ -110,7 +110,7 @@ Crie um roteiro completo e pronto para produção, com 4-6 cenas que maximizem a
 
     const result: VideoScriptResult = JSON.parse(fullResponse);
     sendSSE(res, { type: "result", data: result });
-    await logAiUsage({ clerkUserId, action: `Script created: ${params.product}`, module: "video_script" });
+    await logAiUsage({ clerkUserId, action: `Script criado: ${params.product}`, module: "video_script" });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "AI generation failed";
     sendSSEError(res, msg);

@@ -57,7 +57,7 @@ const itemVariants = {
 };
 
 export function History() {
-  const { data: history, isLoading, refetch } = useListHistory(
+  const { data: history, isLoading, isFetching, refetch } = useListHistory(
     { limit: 50 },
     { query: { queryKey: getListHistoryQueryKey({ limit: 50 }) } }
   );
@@ -78,8 +78,8 @@ export function History() {
             <h2 className="text-2xl font-bold text-white mb-1">Atividades</h2>
             <p className="text-muted-foreground text-sm">Histórico completo de todas as ações realizadas no seu espaço de trabalho.</p>
           </div>
-          <Button size="sm" variant="outline" onClick={() => void refetch()} disabled={isLoading} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
+          <Button size="sm" variant="outline" onClick={() => void refetch()} disabled={isFetching} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} />
             Atualizar
           </Button>
         </div>

@@ -36,6 +36,7 @@ export function Referral() {
   const [applySuccess, setApplySuccess] = useState("");
 
   useEffect(() => {
+    setLoading(true);
     (async () => {
       try {
         const token = await getToken();

@@ -60,11 +60,11 @@ const planColors: Record<string, string> = {
 
 export function Credits() {
   const [, navigate] = useLocation();
-  const { data: balance, isLoading: balanceLoading, refetch: refetchBalance } = useGetCreditsBalance({
+  const { data: balance, isLoading: balanceLoading, isFetching: fetchingBalance, refetch: refetchBalance } = useGetCreditsBalance({
     query: { queryKey: getGetCreditsBalanceQueryKey(), staleTime: 0 },
   });
 
-  const { data: txData, isLoading: txLoading, refetch: refetchTx } = useListCreditTransactions(
+  const { data: txData, isLoading: txLoading, isFetching: fetchingTx, refetch: refetchTx } = useListCreditTransactions(
     {},
     { query: { queryKey: getListCreditTransactionsQueryKey() } },
   );
@@ -93,8 +93,8 @@ export function Credits() {
               Acompanhe seu saldo e histórico de uso dos créditos.
             </p>
           </div>
-          <Button size="sm" variant="outline" onClick={() => { void refetchBalance(); void refetchTx(); }} disabled={balanceLoading || txLoading} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
-            <RefreshCw className={`w-3.5 h-3.5 ${(balanceLoading || txLoading) ? "animate-spin" : ""}`} />
+          <Button size="sm" variant="outline" onClick={() => { void refetchBalance(); void refetchTx(); }} disabled={fetchingBalance || fetchingTx} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
+            <RefreshCw className={`w-3.5 h-3.5 ${(fetchingBalance || fetchingTx) ? "animate-spin" : ""}`} />
             Atualizar
           </Button>
         </div>

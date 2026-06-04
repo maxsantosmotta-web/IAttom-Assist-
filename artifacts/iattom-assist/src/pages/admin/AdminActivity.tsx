@@ -29,7 +29,7 @@ function timeAgo(date: string | Date) {
 
 export function AdminActivity() {
   const [search, setSearch] = useState("");
-  const { data: activity, isLoading, refetch } = useListAdminActivity({ limit: 100 });
+  const { data: activity, isLoading, isFetching, refetch } = useListAdminActivity({ limit: 100 });
 
   const filtered = (activity ?? []).filter((item) => {
     const q = search.toLowerCase();
@@ -50,8 +50,8 @@ export function AdminActivity() {
             <h2 className="text-2xl font-bold text-white mb-1">Atividade da Plataforma</h2>
             <p className="text-muted-foreground text-sm">Todas as ações dos usuários em todos os espaços de trabalho — feed em tempo real.</p>
           </div>
-          <Button size="sm" variant="outline" onClick={() => void refetch()} disabled={isLoading} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
+          <Button size="sm" variant="outline" onClick={() => void refetch()} disabled={isFetching} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} />
             Atualizar
           </Button>
         </div>

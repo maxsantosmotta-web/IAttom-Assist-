@@ -359,7 +359,7 @@ Adapte toda a estrutura da campanha ao modo e tipo de produto informados. Crie c
 
       const result = campaignMode === "organic" ? hardLockOrganicResult(raw) : raw;
       sendSSE(res, { type: "result", data: result });
-      await logAiUsage({ clerkUserId, action: `Campaign created: ${params.product} [${campaignMode}]`, module: "campaign" });
+      await logAiUsage({ clerkUserId, action: `Campanha criada: ${params.product}`, module: "campaign" });
       sendSSEDone(res);
       return;
     } catch {
@@ -400,7 +400,7 @@ Retorne APENAS o conteúdo refinado para este bloco. Sem explicações, sem text
     const raw = response.choices[0]?.message?.content ?? "";
     if (!raw.trim()) return { error: "A IA não retornou conteúdo refinado." };
 
-    await logAiUsage({ clerkUserId, action: `Campaign block refined: ${blockId}`, module: "campaign" });
+    await logAiUsage({ clerkUserId, action: `Bloco de campanha refinado: ${blockId}`, module: "campaign" });
     return { refinedContent: raw.trim() };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Erro no refinamento";
