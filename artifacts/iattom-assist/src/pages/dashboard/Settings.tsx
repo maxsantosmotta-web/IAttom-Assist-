@@ -9,7 +9,6 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useUser, useClerk } from "@clerk/react";
 import { useLocation } from "wouter";
 import { useGetMe } from "@workspace/api-client-react";
@@ -62,7 +61,6 @@ export function Settings() {
   const [editLastName, setEditLastName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
-  const [showProfileDialog, setShowProfileDialog] = useState(false);
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -105,7 +103,7 @@ export function Settings() {
   };
 
   const openClerkProfile = () => {
-    setShowProfileDialog(true);
+    openUserProfile();
   };
 
   const handleSettingsRefresh = async () => {
@@ -114,7 +112,6 @@ export function Settings() {
   };
 
   return (
-    <>
     <div className="space-y-8 max-w-2xl">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="flex items-start justify-between gap-4">
         <div>
@@ -363,45 +360,5 @@ export function Settings() {
         </motion.div>
       </motion.div>
     </div>
-
-    <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog} modal={false}>
-      <DialogContent className="bg-[#111111] border-white/10 max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="text-white text-base font-semibold">Editar Perfil</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 pt-1">
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/5">
-            <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-              <User className="w-4 h-4 text-primary" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-white truncate">
-                {user?.fullName || user?.firstName || "—"}
-              </p>
-              <p className="text-xs text-zinc-500 truncate">{user?.primaryEmailAddress?.emailAddress ?? "—"}</p>
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void handleSettingsRefresh()}
-            disabled={fetchingMe}
-            className="w-full border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${fetchingMe ? "animate-spin" : ""}`} />
-            Atualizar Perfil
-          </Button>
-          <Separator className="bg-white/5" />
-          <Button
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 gap-1.5"
-            onClick={() => { setShowProfileDialog(false); openUserProfile(); }}
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            Abrir Editor de Perfil
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-    </>
   );
 }
