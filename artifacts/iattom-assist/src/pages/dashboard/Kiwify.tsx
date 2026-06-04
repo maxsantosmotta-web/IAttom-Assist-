@@ -107,7 +107,7 @@ export function Kiwify() {
   // ─── Criar Anúncio ─────────────────────────────────────────────────────────
 
   const handleCriarAnuncio = () => {
-    window.open("https://dashboard.kiwify.com.br/products/new", "_blank", "noopener,noreferrer");
+    window.open("https://dashboard.kiwify.com/products", "_blank", "noopener,noreferrer");
   };
 
   const handleAnalytics = () => {
