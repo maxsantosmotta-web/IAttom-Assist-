@@ -35,14 +35,16 @@ export interface KiwifyTokenResponse {
 }
 
 /**
- * Obtém o bearer token da Kiwify a partir do client_secret (API Key).
+ * Obtém o bearer token da Kiwify.
  *
- * Credencial única necessária: client_secret obtido em:
- *   Dashboard Kiwify → Apps → API → Criar API Key
+ * Credenciais necessárias (obtidas em Dashboard Kiwify → Apps → API):
+ *   clientId     — campo "client_id" exibido na tela de API
+ *   clientSecret — campo "client_secret" exibido na tela de API
  *
  * Token expira em 96 horas (expires_in: 345600).
  */
 export async function getKiwifyAccessToken(
+  clientId: string,
   clientSecret: string,
 ): Promise<KiwifyTokenResponse> {
   logger.info("kiwify: fetching access token");
@@ -50,7 +52,7 @@ export async function getKiwifyAccessToken(
   const res = await fetch(KIWIFY_TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ client_secret: clientSecret }),
+    body: JSON.stringify({ client_id: clientId, client_secret: clientSecret }),
   });
 
   const data = (await res.json()) as KiwifyTokenResponse;
@@ -68,18 +70,18 @@ export async function getKiwifyAccessToken(
  * Faz uma requisição GET autenticada na API Kiwify.
  *
  * Headers obrigatórios (conforme docs.kiwify.com.br):
- *   Authorization: Bearer <access_token>
- *   x-kiwify-account-id: <client_secret>   ← o próprio API Key
+ *   Authorization:        Bearer <access_token>
+ *   x-kiwify-account-id: <account_id>   ← campo "account_id" da tela de API
  */
 export async function kiwifyGet<T>(
   path: string,
   accessToken: string,
-  clientSecret: string,
+  accountId: string,
 ): Promise<T> {
   const res = await fetch(`${KIWIFY_API_BASE}${path}`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
-      "x-kiwify-account-id": clientSecret,
+      "x-kiwify-account-id": accountId,
     },
   });
   if (!res.ok) {
@@ -106,9 +108,9 @@ export interface KiwifyAccountDetails {
 
 export async function getKiwifyAccountDetails(
   accessToken: string,
-  clientSecret: string,
+  accountId: string,
 ): Promise<KiwifyAccountDetails> {
-  return kiwifyGet<KiwifyAccountDetails>("/account-details", accessToken, clientSecret);
+  return kiwifyGet<KiwifyAccountDetails>("/account-details", accessToken, accountId);
 }
 
 // ─── Products ─────────────────────────────────────────────────────────────────
@@ -132,7 +134,7 @@ export interface KiwifyPaginatedResponse<T> {
 
 export async function getKiwifyProducts(
   accessToken: string,
-  clientSecret: string,
+  accountId: string,
   page = 1,
   pageSize = 50,
 ): Promise<KiwifyProductSummary[]> {
@@ -140,7 +142,7 @@ export async function getKiwifyProducts(
   const result = await kiwifyGet<KiwifyPaginatedResponse<KiwifyProductSummary>>(
     `/products?page_number=${page}&page_size=${pageSize}`,
     accessToken,
-    clientSecret,
+    accountId,
   );
   return result.data ?? [];
 }
@@ -159,7 +161,7 @@ export interface KiwifySaleSummary {
 
 export async function getKiwifySales(
   accessToken: string,
-  clientSecret: string,
+  accountId: string,
   startDate: string,
   endDate: string,
   page = 1,
@@ -175,7 +177,7 @@ export async function getKiwifySales(
   const result = await kiwifyGet<KiwifyPaginatedResponse<KiwifySaleSummary>>(
     `/sales?${params.toString()}`,
     accessToken,
-    clientSecret,
+    accountId,
   );
   return result.data ?? [];
 }
@@ -194,16 +196,18 @@ export interface KiwifyConnectionTestResult {
 
 /**
  * Testa a conexão com a Kiwify:
- *   1. Obtém um bearer token a partir do client_secret
- *   2. Consulta /account-details para confirmar que o token é válido
+ *   1. Obtém um bearer token a partir de clientId + clientSecret
+ *   2. Consulta /account-details usando accountId no header
  *   3. Retorna { ok, status, accountName, accountId, accessToken, expiresIn }
  */
 export async function testKiwifyConnection(
+  clientId: string,
   clientSecret: string,
+  accountId: string,
 ): Promise<KiwifyConnectionTestResult> {
   let tokenRes: KiwifyTokenResponse;
   try {
-    tokenRes = await getKiwifyAccessToken(clientSecret);
+    tokenRes = await getKiwifyAccessToken(clientId, clientSecret);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     return { ok: false, status: "network_error", error: `Falha de rede ao obter token: ${msg}` };
@@ -213,12 +217,12 @@ export async function testKiwifyConnection(
     return {
       ok: false,
       status: "auth_error",
-      error: tokenRes.message ?? tokenRes.error ?? "Token não retornado. Verifique o client_secret.",
+      error: tokenRes.message ?? tokenRes.error ?? "Token não retornado. Verifique client_id e client_secret.",
     };
   }
 
   try {
-    const account = await getKiwifyAccountDetails(tokenRes.access_token, clientSecret);
+    const account = await getKiwifyAccountDetails(tokenRes.access_token, accountId);
     return {
       ok: true,
       status: "validated",
@@ -228,7 +232,7 @@ export async function testKiwifyConnection(
         account.company_name ??
         account.legal_entities?.[0]?.company_name ??
         undefined,
-      accountId: account.id ?? undefined,
+      accountId: account.id ?? accountId,
     };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

@@ -43,12 +43,12 @@ router.post("/kiwify/webhook", (req, res): void => {
 
       return db.insert(kiwifyEvents).values({
         eventType,
-        orderId:     (order?.id as string | undefined) ?? null,
-        productId:   (product?.id as string | undefined) ?? null,
-        buyerEmail:  (customer?.email as string | undefined) ?? null,
-        buyerName:   (customer?.full_name as string | undefined) ?? null,
-        value:       String((order?.amount as number | undefined) ?? ""),
-        currency:    "BRL",
+        orderId:    (order?.id as string | undefined) ?? null,
+        productId:  (product?.id as string | undefined) ?? null,
+        buyerEmail: (customer?.email as string | undefined) ?? null,
+        buyerName:  (customer?.full_name as string | undefined) ?? null,
+        value:      String((order?.amount as number | undefined) ?? ""),
+        currency:   "BRL",
         payload,
       });
     })
@@ -64,36 +64,39 @@ router.get("/kiwify/config", requireAdmin, async (_req, res): Promise<void> => {
   const [config] = await db.select().from(kiwifyConfig).limit(1);
   if (!config) {
     res.json({
-      configured: false,
-      connectionStatus: "not_configured",
+      configured:        false,
+      connectionStatus:  "not_configured",
       webhookConfigured: false,
     });
     return;
   }
 
-  const hasSecret     = !!config.clientSecret;
-  const hasWebhook    = !!config.webhookSecret;
-  const hasToken      = !!config.accessToken;
-  const tokenExpired  = config.tokenExpiry ? config.tokenExpiry < new Date() : true;
+  // storeId column is repurposed to store accountId
+  const hasClientId  = !!config.clientId;
+  const hasSecret    = !!config.clientSecret;
+  const hasAccountId = !!config.storeId;
+  const hasWebhook   = !!config.webhookSecret;
+  const hasToken     = !!config.accessToken;
+  const tokenExpired = config.tokenExpiry ? config.tokenExpiry < new Date() : true;
 
   let connectionStatus: string;
-  if (!hasSecret) {
+  if (!hasSecret || !hasClientId || !hasAccountId) {
     connectionStatus = "not_configured";
   } else if (hasToken && !tokenExpired) {
     connectionStatus = "validated";
-  } else if (hasSecret) {
-    connectionStatus = "configured";
   } else {
-    connectionStatus = "not_configured";
+    connectionStatus = "configured";
   }
 
   res.json({
-    configured:        hasSecret,
+    configured:        hasSecret && hasClientId && hasAccountId,
     connectionStatus,
     webhookConfigured: hasWebhook,
     webhookUrl:        `https://iattomassist.com.br/api/kiwify/webhook`,
-    clientSecret:      config.clientSecret ? "••••••" + config.clientSecret.slice(-4) : "",
-    webhookSecret:     config.webhookSecret ? "••••••" + config.webhookSecret.slice(-4) : "",
+    clientId:          config.clientId    ? "••••••" + config.clientId.slice(-4)    : "",
+    clientSecret:      config.clientSecret? "••••••" + config.clientSecret.slice(-4): "",
+    accountId:         config.storeId     ? "••••••" + config.storeId.slice(-4)     : "",
+    webhookSecret:     config.webhookSecret? "••••••" + config.webhookSecret.slice(-4): "",
     accessToken:       config.accessToken ? "••••••" + config.accessToken.slice(-4) : "",
     tokenExpiry:       config.tokenExpiry,
     isActive:          config.isActive,
@@ -103,7 +106,9 @@ router.get("/kiwify/config", requireAdmin, async (_req, res): Promise<void> => {
 
 // ─── ADMIN: Save config ───────────────────────────────────────────────────────
 const configSchema = z.object({
-  clientSecret:  z.string().min(1, "client_secret é obrigatório"),
+  clientId:     z.string().min(1, "client_id é obrigatório"),
+  clientSecret: z.string().min(1, "client_secret é obrigatório"),
+  accountId:    z.string().min(1, "account_id é obrigatório"),
   webhookSecret: z.string().optional().default(""),
 });
 
@@ -114,17 +119,19 @@ router.post("/kiwify/config", requireAdmin, async (req, res): Promise<void> => {
     return;
   }
 
-  const { clientSecret, webhookSecret } = parsed.data;
+  const { clientId, clientSecret, accountId, webhookSecret } = parsed.data;
   const [existing] = await db.select().from(kiwifyConfig).limit(1);
 
   if (existing) {
     await db
       .update(kiwifyConfig)
       .set({
+        clientId,
         clientSecret,
+        storeId:      accountId,   // storeId column repurposed as accountId
         webhookSecret,
-        isActive:   true,
-        // limpa o token armazenado ao trocar de credencial
+        isActive:     true,
+        // limpa token armazenado ao trocar credenciais
         accessToken:  "",
         tokenExpiry:  null,
         updatedAt:    new Date(),
@@ -132,9 +139,11 @@ router.post("/kiwify/config", requireAdmin, async (req, res): Promise<void> => {
       .where(eq(kiwifyConfig.id, existing.id));
   } else {
     await db.insert(kiwifyConfig).values({
+      clientId,
       clientSecret,
+      storeId:      accountId,
       webhookSecret,
-      isActive: true,
+      isActive:     true,
     });
   }
 
@@ -146,25 +155,27 @@ router.post("/kiwify/config", requireAdmin, async (req, res): Promise<void> => {
 /**
  * POST /kiwify/test-connection
  *
- * Valida o client_secret salvo chamando a API real da Kiwify.
- * Se bem-sucedido, salva o access_token e a data de expiração no banco.
+ * Valida as três credenciais salvas chamando a API real da Kiwify:
+ *   1. POST /oauth/token com { client_id, client_secret }
+ *   2. GET /account-details com header x-kiwify-account-id: <account_id>
  *
- * Retorna:
- *   { ok: true,  status: "validated",    accountName, accountId, expiresAt }
- *   { ok: false, status: "auth_error",   error }
- *   { ok: false, status: "network_error",error }
- *   { ok: false, status: "not_configured" }
+ * Se bem-sucedido, salva o access_token e tokenExpiry no banco.
  */
 router.post("/kiwify/test-connection", requireAdmin, async (req, res): Promise<void> => {
   const [config] = await db.select().from(kiwifyConfig).limit(1);
 
-  if (!config?.clientSecret) {
-    res.status(400).json({ ok: false, status: "not_configured", error: "Nenhum client_secret configurado." });
+  if (!config?.clientId || !config?.clientSecret || !config?.storeId) {
+    res.status(400).json({
+      ok:     false,
+      status: "not_configured",
+      error:  "Credenciais incompletas. Salve client_id, client_secret e account_id antes de testar.",
+    });
     return;
   }
 
   req.log.info("kiwify: testing connection");
-  const result = await testKiwifyConnection(config.clientSecret);
+  // storeId column stores accountId
+  const result = await testKiwifyConnection(config.clientId, config.clientSecret, config.storeId);
 
   if (result.ok && result.accessToken) {
     const expiresAt = result.expiresIn
@@ -204,15 +215,18 @@ router.post("/kiwify/test-connection", requireAdmin, async (req, res): Promise<v
  * POST /kiwify/sync-products
  *
  * Busca produtos reais da Kiwify API e faz upsert na tabela kiwify_products.
- * Requer que a conexão já tenha sido testada (accessToken válido no banco).
+ * Renova token automaticamente se expirado.
  */
 router.post("/kiwify/sync-products", requireAdmin, async (req, res): Promise<void> => {
   const [config] = await db.select().from(kiwifyConfig).limit(1);
 
-  if (!config?.isActive || !config.clientSecret) {
-    res.status(503).json({ error: "Kiwify não configurado" });
+  if (!config?.isActive || !config.clientId || !config.clientSecret || !config.storeId) {
+    res.status(503).json({ error: "Kiwify não configurado. Salve e teste as credenciais primeiro." });
     return;
   }
+
+  // storeId column stores accountId
+  const accountId = config.storeId;
 
   // Garante um token válido
   let accessToken = config.accessToken ?? "";
@@ -220,10 +234,10 @@ router.post("/kiwify/sync-products", requireAdmin, async (req, res): Promise<voi
 
   if (!accessToken || tokenExpired) {
     req.log.info("kiwify: token expired or missing — refreshing before sync");
-    const tokenRes = await getKiwifyAccessToken(config.clientSecret);
+    const tokenRes = await getKiwifyAccessToken(config.clientId, config.clientSecret);
     if (!tokenRes.access_token) {
       res.status(422).json({
-        error:  "Não foi possível obter token. Verifique o client_secret.",
+        error:  "Não foi possível obter token. Verifique client_id e client_secret.",
         detail: tokenRes.message ?? tokenRes.error,
       });
       return;
@@ -239,7 +253,7 @@ router.post("/kiwify/sync-products", requireAdmin, async (req, res): Promise<voi
   }
 
   req.log.info("kiwify: syncing products");
-  const products = await getKiwifyProducts(accessToken, config.clientSecret);
+  const products = await getKiwifyProducts(accessToken, accountId);
 
   let synced = 0;
   for (const p of products) {
