@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import {
   Flame, RefreshCw, Loader2, Activity, Clock, BarChart2,
   Settings, WifiOff, CheckCircle2, ExternalLink, Package,
-  Zap, ShoppingBag, XCircle, Globe, Webhook,
+  Zap, ShoppingBag, XCircle, Globe, Webhook, Users, UserCheck, Timer,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,17 @@ interface HotmartPlatformConfig {
   environment?: string;
   webhookToken?: string;
   updatedAt?: string;
+}
+
+interface UserHotmartConnection {
+  id: number;
+  clerkUserId: string;
+  platformUserId?: string | null;
+  platformUsername?: string | null;
+  expiresAt?: string | null;
+  isActive: boolean;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 interface HotmartProduct {
@@ -80,14 +91,15 @@ function StatusPill({ active, inactive, pending, label }: {
 export function AdminHotmart() {
   const [, navigate] = useLocation();
 
-  const [platformConfig, setPlatformConfig] = useState<HotmartPlatformConfig | null>(null);
-  const [products, setProducts]             = useState<HotmartProduct[]>([]);
-  const [events, setEvents]                 = useState<HotmartEvent[]>([]);
-  const [lastUpdated, setLastUpdated]       = useState<Date | null>(null);
-  const [refreshing, setRefreshing]         = useState(false);
-  const [syncingProducts, setSyncingProducts] = useState(false);
+  const [platformConfig, setPlatformConfig]       = useState<HotmartPlatformConfig | null>(null);
+  const [userConnections, setUserConnections]     = useState<UserHotmartConnection[]>([]);
+  const [products, setProducts]                   = useState<HotmartProduct[]>([]);
+  const [events, setEvents]                       = useState<HotmartEvent[]>([]);
+  const [lastUpdated, setLastUpdated]             = useState<Date | null>(null);
+  const [refreshing, setRefreshing]               = useState(false);
+  const [syncingProducts, setSyncingProducts]     = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
-  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [testResult, setTestResult]               = useState<{ ok: boolean; message: string } | null>(null);
 
   // ── Loaders ───────────────────────────────────────────────────────────────────
   const loadPlatformStatus = useCallback(async () => {
@@ -96,6 +108,15 @@ export function AdminHotmart() {
       setPlatformConfig(data);
     } catch {
       setPlatformConfig(null);
+    }
+  }, []);
+
+  const loadUserConnections = useCallback(async () => {
+    try {
+      const data = await apiFetch<UserHotmartConnection[]>("/api/hotmart/user-connections");
+      setUserConnections(data);
+    } catch {
+      setUserConnections([]);
     }
   }, []);
 
@@ -120,10 +141,10 @@ export function AdminHotmart() {
   const handleRefreshAll = useCallback(async () => {
     setRefreshing(true);
     setTestResult(null);
-    await Promise.all([loadPlatformStatus(), loadProducts(), loadEvents()]);
+    await Promise.all([loadPlatformStatus(), loadUserConnections(), loadProducts(), loadEvents()]);
     setLastUpdated(new Date());
     setRefreshing(false);
-  }, [loadPlatformStatus, loadProducts, loadEvents]);
+  }, [loadPlatformStatus, loadUserConnections, loadProducts, loadEvents]);
 
   useEffect(() => { void handleRefreshAll(); }, [handleRefreshAll]);
 
@@ -163,6 +184,20 @@ export function AdminHotmart() {
   const environmentLabel     = platformConfig?.environment === "production"
     ? "Produção" : platformConfig?.environment === "sandbox" ? "Sandbox" : "—";
 
+  const totalConnections  = userConnections.length;
+  const activeConnections = userConnections.filter(c => c.isActive).length;
+  const expiringConnections = userConnections.filter(c => {
+    if (!c.expiresAt) return false;
+    const exp = new Date(c.expiresAt);
+    const now = new Date();
+    return exp > now && exp < new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  }).length;
+  const lastConnectionAt = userConnections.length > 0
+    ? userConnections.reduce((a, b) =>
+        new Date(a.createdAt ?? 0) > new Date(b.createdAt ?? 0) ? a : b
+      ).createdAt
+    : null;
+
   return (
     <div className="p-6 space-y-5 max-w-4xl">
 
@@ -175,7 +210,7 @@ export function AdminHotmart() {
             </div>
             <div>
               <h1 className="text-lg font-bold text-white">Hotmart — Central da Plataforma</h1>
-              <p className="text-xs text-zinc-500">Integração, webhooks, eventos e saúde da API.</p>
+              <p className="text-xs text-zinc-500">Integração, usuários conectados e monitoramento da API.</p>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -217,69 +252,46 @@ export function AdminHotmart() {
         </div>
       )}
 
-      {/* ─── KPIs operacionais ───────────────────────────────────── */}
+      {/* ─── KPIs — Usuários e conexões ──────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
 
-        {/* Eventos Recebidos */}
         <Card className="bg-white/3 border-white/8">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Eventos</p>
-              <Activity className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Usuários</p>
+              <Users className="w-3.5 h-3.5 text-primary shrink-0" />
             </div>
-            <p className="text-2xl font-bold text-white">{events.length}</p>
-            <p className="text-[10px] text-zinc-600 mt-1">recebidos via webhook</p>
+            <p className="text-2xl font-bold text-white">{totalConnections}</p>
+            <p className="text-[10px] text-zinc-600 mt-1">contas conectadas</p>
           </CardContent>
         </Card>
 
-        {/* Saúde da API */}
         <Card className="bg-white/3 border-white/8">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider">API</p>
-              <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Conexões</p>
+              <UserCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
             </div>
-            <div className="mt-1">
-              <StatusPill
-                active={isPlatformActive}
-                inactive={isPlatformConfigured && !isPlatformActive}
-                pending={!isPlatformConfigured}
-                label={isPlatformActive ? "Online" : isPlatformConfigured ? "Inativo" : "Pendente"}
-              />
-            </div>
-            <p className="text-[10px] text-zinc-600 mt-2">saúde da integração</p>
+            <p className="text-2xl font-bold text-white">{activeConnections}</p>
+            <p className="text-[10px] text-zinc-600 mt-1">ativas no momento</p>
           </CardContent>
         </Card>
 
-        {/* Ambiente */}
         <Card className="bg-white/3 border-white/8">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Ambiente</p>
-              <BarChart2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Expirando</p>
+              <Timer className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             </div>
-            <div className="mt-1">
-              {platformConfig?.environment ? (
-                <Badge className={`text-[10px] px-2 py-0.5 ${
-                  platformConfig.environment === "production"
-                    ? "bg-primary/15 text-primary border-primary/30"
-                    : "bg-zinc-500/15 text-zinc-400 border-zinc-500/30"
-                }`}>
-                  {environmentLabel}
-                </Badge>
-              ) : (
-                <Badge className="bg-zinc-500/15 text-zinc-500 border-zinc-500/30 text-[10px] px-2 py-0.5">—</Badge>
-              )}
-            </div>
-            <p className="text-[10px] text-zinc-600 mt-2">modo de operação</p>
+            <p className="text-2xl font-bold text-white">{expiringConnections}</p>
+            <p className="text-[10px] text-zinc-600 mt-1">tokens em 24h</p>
           </CardContent>
         </Card>
 
-        {/* Última verificação */}
         <Card className="bg-white/3 border-white/8">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Verificação</p>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Atualizado</p>
               <Clock className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
             </div>
             <p className="text-sm font-semibold text-white">
@@ -291,6 +303,96 @@ export function AdminHotmart() {
           </CardContent>
         </Card>
 
+      </div>
+
+      {/* ─── Contas Conectadas ───────────────────────────────────── */}
+      <Card className="bg-white/3 border-white/8">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+            <Users className="w-4 h-4 text-zinc-500" />
+            Contas Conectadas
+            {totalConnections > 0 && (
+              <span className="text-[11px] font-normal text-zinc-500">({totalConnections})</span>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {userConnections.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center gap-1.5 px-5">
+              <div className="w-9 h-9 rounded-full bg-white/3 border border-white/8 flex items-center justify-center mb-1">
+                <Users className="w-4 h-4 text-zinc-700" />
+              </div>
+              <p className="text-sm text-zinc-500">Nenhuma conta conectada.</p>
+              <p className="text-[11px] text-zinc-700">Os usuários que conectarem suas contas Hotmart aparecerão aqui.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-white/5">
+                    <th className="text-left text-[10px] text-zinc-600 uppercase tracking-wider px-5 py-2 font-medium">Usuário</th>
+                    <th className="text-left text-[10px] text-zinc-600 uppercase tracking-wider px-3 py-2 font-medium hidden sm:table-cell">Conta Hotmart</th>
+                    <th className="text-left text-[10px] text-zinc-600 uppercase tracking-wider px-3 py-2 font-medium">Status</th>
+                    <th className="text-left text-[10px] text-zinc-600 uppercase tracking-wider px-3 py-2 font-medium hidden md:table-cell">Conectado em</th>
+                    <th className="text-right text-[10px] text-zinc-600 uppercase tracking-wider px-5 py-2 font-medium hidden lg:table-cell">Expira em</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {userConnections.map((conn) => {
+                    const isExpiring = conn.expiresAt
+                      ? new Date(conn.expiresAt) < new Date(Date.now() + 24 * 60 * 60 * 1000) && new Date(conn.expiresAt) > new Date()
+                      : false;
+                    const isExpired = conn.expiresAt ? new Date(conn.expiresAt) < new Date() : false;
+                    return (
+                      <tr key={conn.id} className="hover:bg-white/2 transition-colors">
+                        <td className="px-5 py-3 text-zinc-300 font-mono text-[10px] truncate max-w-[130px]">
+                          {conn.clerkUserId.replace("user_", "").slice(0, 16)}…
+                        </td>
+                        <td className="px-3 py-3 text-zinc-400 hidden sm:table-cell truncate max-w-[140px]">
+                          {conn.platformUsername ?? conn.platformUserId ?? "—"}
+                        </td>
+                        <td className="px-3 py-3">
+                          {conn.isActive && !isExpired ? (
+                            <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[9px] px-1.5">Ativo</Badge>
+                          ) : isExpired ? (
+                            <Badge className="bg-red-500/15 text-red-400 border-red-500/30 text-[9px] px-1.5">Expirado</Badge>
+                          ) : isExpiring ? (
+                            <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-[9px] px-1.5">Expirando</Badge>
+                          ) : (
+                            <Badge className="bg-zinc-500/15 text-zinc-400 border-zinc-500/30 text-[9px] px-1.5">Inativo</Badge>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 text-zinc-600 hidden md:table-cell">
+                          {conn.createdAt
+                            ? new Date(conn.createdAt).toLocaleString("pt-BR", {
+                                day: "2-digit", month: "2-digit", year: "2-digit",
+                                hour: "2-digit", minute: "2-digit",
+                              })
+                            : "—"}
+                        </td>
+                        <td className="px-5 py-3 text-right text-zinc-600 hidden lg:table-cell">
+                          {conn.expiresAt
+                            ? new Date(conn.expiresAt).toLocaleString("pt-BR", {
+                                day: "2-digit", month: "2-digit", year: "2-digit",
+                                hour: "2-digit", minute: "2-digit",
+                              })
+                            : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ─── Separador — Diagnóstico e Monitoramento ─────────────── */}
+      <div className="flex items-center gap-3 pt-2">
+        <div className="flex-1 h-px bg-white/5" />
+        <span className="text-[10px] text-zinc-600 uppercase tracking-widest font-medium">Diagnóstico e Monitoramento</span>
+        <div className="flex-1 h-px bg-white/5" />
       </div>
 
       {/* ─── Status Operacional ───────────────────────────────────── */}
@@ -364,6 +466,63 @@ export function AdminHotmart() {
         </CardContent>
       </Card>
 
+      {/* ─── KPIs operacionais secundários ───────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+
+        <Card className="bg-white/3 border-white/8">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Eventos</p>
+              <Activity className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            </div>
+            <p className="text-2xl font-bold text-white">{events.length}</p>
+            <p className="text-[10px] text-zinc-600 mt-1">recebidos via webhook</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/3 border-white/8">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wider">API</p>
+              <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            </div>
+            <div className="mt-1">
+              <StatusPill
+                active={isPlatformActive}
+                inactive={isPlatformConfigured && !isPlatformActive}
+                pending={!isPlatformConfigured}
+                label={isPlatformActive ? "Online" : isPlatformConfigured ? "Inativo" : "Pendente"}
+              />
+            </div>
+            <p className="text-[10px] text-zinc-600 mt-2">saúde da integração</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/3 border-white/8">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Ambiente</p>
+              <BarChart2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            </div>
+            <div className="mt-1">
+              {platformConfig?.environment ? (
+                <Badge className={`text-[10px] px-2 py-0.5 ${
+                  platformConfig.environment === "production"
+                    ? "bg-primary/15 text-primary border-primary/30"
+                    : "bg-zinc-500/15 text-zinc-400 border-zinc-500/30"
+                }`}>
+                  {environmentLabel}
+                </Badge>
+              ) : (
+                <Badge className="bg-zinc-500/15 text-zinc-500 border-zinc-500/30 text-[10px] px-2 py-0.5">—</Badge>
+              )}
+            </div>
+            <p className="text-[10px] text-zinc-600 mt-2">modo de operação</p>
+          </CardContent>
+        </Card>
+
+      </div>
+
       {/* ─── Eventos Recebidos via Webhook ────────────────────────── */}
       <Card className="bg-white/3 border-white/8">
         <CardHeader className="pb-3">
@@ -426,7 +585,7 @@ export function AdminHotmart() {
         </CardContent>
       </Card>
 
-      {/* ─── Dados da API (secundário) ────────────────────────────── */}
+      {/* ─── Dados da API ─────────────────────────────────────────── */}
       <Card className="bg-white/3 border-white/8">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">

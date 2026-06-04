@@ -4,7 +4,7 @@ import {
   Flame, X, Info, AlertCircle,
   Megaphone, ClipboardList, Link2,
   CheckCircle2, BarChart2, Package, TrendingUp,
-  Loader2, LogOut,
+  Loader2, LogOut, ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -91,6 +91,7 @@ export function Hotmart() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [platformUsername, setPlatformUsername] = useState<string | null>(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
 
   const showInfo = (
     title: string,
@@ -202,6 +203,66 @@ export function Hotmart() {
         />
       )}
 
+      {showConnectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-[#111111] border border-white/10 rounded-xl w-full max-w-md p-6 space-y-5"
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
+                  <Flame className="w-4 h-4 text-orange-400" />
+                </div>
+                <p className="text-sm font-semibold text-white">Conectar sua conta Hotmart</p>
+              </div>
+              <button
+                onClick={() => setShowConnectModal(false)}
+                className="text-muted-foreground hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Você será redirecionado para a página oficial da Hotmart para autorizar a integração.
+            </p>
+
+            <div className="space-y-2.5">
+              {[
+                "Conexão segura",
+                "Sua senha não é compartilhada com o IAttom",
+                "Autorização realizada diretamente pela Hotmart",
+              ].map((item) => (
+                <div key={item} className="flex items-center gap-2.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span className="text-xs text-zinc-400">{item}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <Button
+                onClick={() => { setShowConnectModal(false); void handleConnect(); }}
+                disabled={connecting}
+                className="flex-1 bg-orange-500 hover:bg-orange-400 text-white font-semibold"
+              >
+                {connecting ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : null}
+                {connecting ? "Redirecionando..." : "Continuar"}
+              </Button>
+              <Button
+                onClick={() => setShowConnectModal(false)}
+                variant="outline"
+                className="border-white/10 text-muted-foreground hover:text-white"
+              >
+                Cancelar
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
 
         {/* ── Header ───────────────────────────────────────────── */}
@@ -216,7 +277,7 @@ export function Hotmart() {
             </div>
           </div>
           <Button
-            onClick={isConnected ? undefined : () => void handleConnect()}
+            onClick={isConnected ? undefined : () => setShowConnectModal(true)}
             disabled={isConnected || statusLoading || connecting}
             className={
               isConnected
@@ -272,12 +333,11 @@ export function Hotmart() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => void handleConnect()}
-                  disabled={connecting}
+                  onClick={() => setShowConnectModal(true)}
                   className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10 ml-auto shrink-0"
                 >
-                  {connecting ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Link2 className="w-3 h-3 mr-1.5" />}
-                  {connecting ? "Redirecionando..." : "Conectar"}
+                  <Link2 className="w-3 h-3 mr-1.5" />
+                  Conectar
                 </Button>
               ) : null}
             </div>
@@ -411,12 +471,11 @@ export function Hotmart() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => void handleConnect()}
-                  disabled={connecting}
+                  onClick={() => setShowConnectModal(true)}
                   className="w-full border-orange-500/30 text-orange-400 hover:bg-orange-500/10 h-8 text-xs"
                 >
-                  {connecting ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Link2 className="w-3 h-3 mr-1.5" />}
-                  {connecting ? "Redirecionando..." : "Conectar conta"}
+                  <Link2 className="w-3 h-3 mr-1.5" />
+                  Conectar conta
                 </Button>
               )}
             </CardContent>
