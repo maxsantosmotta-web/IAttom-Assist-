@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useListAdminActivity } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
-import { translateAction, translateModule } from "@/lib/eventTranslations";
+import { translateAction, translateModule, translateDemoName } from "@/lib/eventTranslations";
 
 const moduleColors: Record<string, string> = {
   campaign: "text-amber-400 bg-amber-400/10 border-amber-400/20",
@@ -138,7 +138,7 @@ export function AdminActivity() {
                         </td>
                         <td className="px-4 py-3">
                           <p className="text-xs text-muted-foreground truncate max-w-36">
-                            {item.projectName ?? "—"}
+                            {item.projectName ? translateDemoName(item.projectName) : "—"}
                           </p>
                         </td>
                         <td className="px-4 py-3">

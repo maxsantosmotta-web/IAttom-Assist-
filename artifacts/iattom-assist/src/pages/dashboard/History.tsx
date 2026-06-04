@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { useListHistory, getListHistoryQueryKey } from "@workspace/api-client-react";
-import { translateAction } from "@/lib/eventTranslations";
+import { translateAction, translateDemoName } from "@/lib/eventTranslations";
 import { Button } from "@/components/ui/button";
 
 const moduleIcons: Record<string, React.ElementType> = {
@@ -145,7 +145,7 @@ export function History() {
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-medium text-zinc-200 group-hover:text-white transition-colors">{translateAction(item.action)}</p>
                       {item.projectName && (
-                        <p className="text-xs text-zinc-600 truncate mt-0.5">{item.projectName}</p>
+                        <p className="text-xs text-zinc-600 truncate mt-0.5">{translateDemoName(item.projectName)}</p>
                       )}
                     </div>
                     <div className="text-right shrink-0">

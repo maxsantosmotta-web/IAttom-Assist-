@@ -8,7 +8,7 @@ import {
   Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { useGetAdminStats, useGetAdminAnalytics, useListAdminActivity } from "@workspace/api-client-react";
-import { translateAction, translateModule } from "@/lib/eventTranslations";
+import { translateAction, translateModule, translateDemoName } from "@/lib/eventTranslations";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Loader2 } from "lucide-react";
 
@@ -254,7 +254,7 @@ export function AdminOverview() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-white truncate">{translateAction(item.action)}</p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {item.userEmail ?? "Usuário desconhecido"}{item.projectName ? ` · ${item.projectName}` : ""}
+                          {item.userEmail ?? "Usuário desconhecido"}{item.projectName ? ` · ${translateDemoName(item.projectName)}` : ""}
                         </p>
                       </div>
                       <p className="text-xs text-muted-foreground shrink-0">{timeAgo(item.createdAt)}</p>

@@ -41,7 +41,7 @@ const DEMO_NAME_MAP: Record<string, string> = {
   "ai tool validation": "Validação de Ferramenta de Inteligência",
 };
 
-function translateDemoName(text: string): string {
+export function translateDemoName(text: string): string {
   const lower = text.toLowerCase();
   for (const [key, pt] of Object.entries(DEMO_NAME_MAP)) {
     const idx = lower.indexOf(key);
