@@ -26,6 +26,7 @@ import mlUserRouter from "./mlUserRoutes.js";
 import adminApiConfigRouter from "./adminApiConfig.js";
 import tiktokRouter from "./tiktok.js";
 import savedItemsRouter from "./savedItems.js";
+import kiwifyOAuthExperimentRouter from "./kiwifyOAuthExperiment.js";
 
 const router: IRouter = Router();
 
@@ -56,5 +57,6 @@ router.use(mlUserRouter);
 router.use(adminApiConfigRouter);
 router.use(tiktokRouter);
 router.use(savedItemsRouter);
+router.use(kiwifyOAuthExperimentRouter);
 
 export default router;
