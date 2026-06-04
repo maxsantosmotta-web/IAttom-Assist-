@@ -13,6 +13,7 @@ import {
   kiwifyConfig,
   kiwifyEvents,
   userMlConnections,
+  userHotmartConnections,
 } from "@workspace/db";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
 import {
@@ -35,7 +36,7 @@ const router: IRouter = Router();
 // ─── GET /integrations/status — all 6 integrations (DB-based, for frontend) ──
 router.get("/integrations/status", requireAdmin, async (req, res): Promise<void> => {
   try {
-    const [meta, shopee, ml, hotmart, kiwify, mlActiveConns] = await Promise.all([
+    const [meta, shopee, ml, hotmart, kiwify, mlActiveConns, hotmartActiveConns] = await Promise.all([
       db.select().from(metaConfig).limit(1).then((r) => r[0] ?? null),
       db.select().from(shopeeConfig).limit(1).then((r) => r[0] ?? null),
       db.select().from(mlConfig).limit(1).then((r) => r[0] ?? null),
@@ -45,10 +46,15 @@ router.get("/integrations/status", requireAdmin, async (req, res): Promise<void>
         .from(userMlConnections)
         .where(eq(userMlConnections.isActive, true))
         .limit(1),
+      db.select({ id: userHotmartConnections.id })
+        .from(userHotmartConnections)
+        .where(eq(userHotmartConnections.isActive, true))
+        .limit(1),
     ]);
 
-    // ML isActive reflects real user OAuth connections, not just the platform flag
-    const mlIsActive = mlActiveConns.length > 0;
+    // isActive reflects real user OAuth connections, not just the platform flag
+    const mlIsActive      = mlActiveConns.length > 0;
+    const hotmartIsActive = hotmartActiveConns.length > 0;
 
     res.json([
       resolveIntegrationStatus(meta, "meta", "Meta (IG + FB)", {
@@ -62,7 +68,7 @@ router.get("/integrations/status", requireAdmin, async (req, res): Promise<void>
         extraInfo: ml?.userId ? `User ID: ${ml.userId}` : null,
         tokenExpired: ml?.tokenExpiry ? tokenIsExpired(ml.tokenExpiry) : false,
       }),
-      resolveIntegrationStatus(hotmart, "hotmart", "Hotmart", {
+      resolveIntegrationStatus(hotmart ? { ...hotmart, isActive: hotmartIsActive } : null, "hotmart", "Hotmart", {
         environment: hotmart?.environment ?? null,
       }),
       resolveIntegrationStatus(kiwify, "kiwify", "Kiwify", {
