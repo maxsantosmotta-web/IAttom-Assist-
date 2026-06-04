@@ -230,7 +230,7 @@ export interface AdminUser {
   id: number;
   clerkId: string;
   email: string;
-  name?: string;
+  name?: string | null;
   role: AdminUserRole;
   plan: AdminUserPlan;
   credits: number;

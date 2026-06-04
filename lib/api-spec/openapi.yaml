@@ -891,6 +891,7 @@ components:
           type: string
         name:
           type: string
+          nullable: true
         role:
           type: string
           enum: [user, admin]
