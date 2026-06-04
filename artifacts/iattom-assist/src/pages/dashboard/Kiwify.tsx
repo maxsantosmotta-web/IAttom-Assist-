@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Layers, X, Info, AlertCircle,
-  Megaphone, ClipboardList, Link2,
-  CheckCircle2, BarChart2, Package, TrendingUp,
-  Loader2, WifiOff, RefreshCw,
+  Layers, X, Info,
+  Megaphone, ClipboardList,
+  BarChart2, Package, TrendingUp,
+  Loader2, RefreshCw, ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -78,19 +78,11 @@ export function Kiwify() {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // ─── Helpers ───────────────────────────────────────────────────────────────
-
   const showInfo = (
     title: string,
     description: string,
     action?: { label: string; onClick: () => void },
   ) => setModal({ title, description, action });
-
-  // ─── On mount ──────────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    // placeholder — OAuth não implementado para Kiwify ainda
-  }, []);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -98,15 +90,9 @@ export function Kiwify() {
     setIsRefreshing(false);
   };
 
-  // ─── Connect ───────────────────────────────────────────────────────────────
+  // ─── Criar Produto na Kiwify ────────────────────────────────────────────────
 
-  const handleConnect = () => {
-    window.open("https://dashboard.kiwify.com.br/", "_blank", "noopener,noreferrer");
-  };
-
-  // ─── Criar Anúncio ─────────────────────────────────────────────────────────
-
-  const handleCriarAnuncio = () => {
+  const handleCriarProduto = () => {
     window.open("https://dashboard.kiwify.com/products", "_blank", "noopener,noreferrer");
   };
 
@@ -127,9 +113,8 @@ export function Kiwify() {
   // ─── Derived UI ────────────────────────────────────────────────────────────
 
   const activityRows = [
-    { icon: CheckCircle2, label: "Conexão",             value: "Aguardando", ok: false },
-    { icon: Package,      label: "Produtos conectados", value: "—",          ok: false },
-    { icon: BarChart2,    label: "Eventos recebidos",   value: "—",          ok: false },
+    { icon: Package,   label: "Produtos conectados", value: "—", ok: false },
+    { icon: BarChart2, label: "Eventos recebidos",   value: "—", ok: false },
   ];
 
   // ─── Render ────────────────────────────────────────────────────────────────
@@ -169,12 +154,12 @@ export function Kiwify() {
               Atualizar
             </Button>
             <Button
-              onClick={handleConnect}
+              onClick={handleCriarProduto}
               className="bg-primary hover:bg-primary/90 text-black font-semibold"
               size="sm"
             >
-              <Link2 className="w-3.5 h-3.5 mr-2" />
-              Conectar Kiwify
+              <ExternalLink className="w-3.5 h-3.5 mr-2" />
+              Criar Produto na Kiwify
             </Button>
           </div>
         </div>
@@ -183,22 +168,17 @@ export function Kiwify() {
         <Card className="bg-[#111111] border-white/[0.06] mb-5">
           <CardContent className="p-4">
             <div className="flex flex-wrap items-center gap-3">
-              <WifiOff className="w-4 h-4 text-muted-foreground shrink-0" />
               <div className="flex-1">
-                <p className="text-sm text-white font-medium">Conta Kiwify não conectada</p>
-                <p className="text-xs text-muted-foreground/60 mt-0.5">
-                  Conecte sua conta para acessar produtos, campanhas e vendas.
+                <div className="flex items-center gap-2 mb-0.5">
+                  <p className="text-sm text-white font-medium">Status</p>
+                  <span className="inline-flex items-center rounded-md bg-primary/10 border border-primary/20 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                    Acesso Externo
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground/70">
+                  A Kiwify é utilizada através de acesso externo assistido. Os produtos são criados e gerenciados diretamente na plataforma da Kiwify.
                 </p>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleConnect}
-                className="border-primary/30 text-primary hover:bg-primary/10 ml-auto shrink-0"
-              >
-                <Link2 className="w-3 h-3 mr-1.5" />
-                Conectar
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -284,15 +264,6 @@ export function Kiwify() {
                   <ClipboardList className="w-3 h-3 mr-1.5" />
                   Criar conteúdo
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleCriarAnuncio}
-                  className="w-full border-primary/30 text-primary hover:bg-primary/10 h-8 text-xs"
-                >
-                  <Megaphone className="w-3 h-3 mr-1.5" />
-                  Criar anúncio
-                </Button>
               </div>
             </CardContent>
           </Card>
@@ -322,15 +293,6 @@ export function Kiwify() {
                   </div>
                 ))}
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleConnect}
-                className="w-full border-primary/30 text-primary hover:bg-primary/10 h-8 text-xs"
-              >
-                <Link2 className="w-3 h-3 mr-1.5" />
-                Conectar conta
-              </Button>
             </CardContent>
           </Card>
 
@@ -353,8 +315,8 @@ export function Kiwify() {
               </p>
               <div className="grid grid-cols-2 gap-2 py-1">
                 {[
-                  { icon: Package,    label: "Produtos",    value: "—" },
-                  { icon: TrendingUp, label: "Conversões",  value: "—" },
+                  { icon: Package,    label: "Produtos",   value: "—" },
+                  { icon: TrendingUp, label: "Conversões", value: "—" },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="p-2 rounded bg-white/5 text-center">
                     <Icon className="w-3.5 h-3.5 text-muted-foreground mx-auto mb-1" />
