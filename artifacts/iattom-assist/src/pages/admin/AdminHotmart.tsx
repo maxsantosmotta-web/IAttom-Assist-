@@ -211,7 +211,7 @@ export function AdminHotmart() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
             <Users className="w-4 h-4 text-zinc-500" />
-            Contas Conectadas
+            Usuários Conectados
             {totalActive > 0 && (
               <span className="text-[11px] font-normal text-zinc-500">({totalActive})</span>
             )}
