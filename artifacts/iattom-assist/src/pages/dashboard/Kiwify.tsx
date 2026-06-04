@@ -101,19 +101,13 @@ export function Kiwify() {
   // ─── Connect ───────────────────────────────────────────────────────────────
 
   const handleConnect = () => {
-    showInfo(
-      "Conectar Kiwify",
-      "A conexão com Kiwify estará disponível em breve. Após ativar, você poderá acessar produtos, campanhas e vendas diretamente aqui.",
-    );
+    window.open("https://dashboard.kiwify.com.br/", "_blank", "noopener,noreferrer");
   };
 
   // ─── Criar Anúncio ─────────────────────────────────────────────────────────
 
   const handleCriarAnuncio = () => {
-    showInfo(
-      "Criar anúncio",
-      "Abra a Kiwify pelo painel oficial e configure sua página de venda manualmente.",
-    );
+    window.open("https://dashboard.kiwify.com.br/products/new", "_blank", "noopener,noreferrer");
   };
 
   const handleAnalytics = () => {
