@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, TrendingUp, Star, DollarSign, BarChart2, Loader2, AlertCircle, RefreshCw, Zap, Users, Save, Copy } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -41,6 +42,9 @@ export function FindProducts() {
   const { status, result, error, generate, reset } = useAiStream<FindProductsResult>();
   const { toast } = useToast();
   const { saveItem } = useSavedItems();
+  const { isFetching: fetchingCredits, refetch: refetchCredits } = useGetCreditsBalance({
+    query: { queryKey: getGetCreditsBalanceQueryKey(), staleTime: 0 },
+  });
 
   const isGenerating = status === "generating";
   const isDone = status === "done";
@@ -100,10 +104,16 @@ export function FindProducts() {
 
   return (
     <div className="space-y-8">
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Pesquisa de Produtos com Inteligência</p>
-        <h2 className="text-2xl font-bold text-white mb-1">Buscar Produtos</h2>
-        <p className="text-muted-foreground text-sm">Descubra produtos de alta margem e tendência de mercado real.</p>
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Pesquisa de Produtos com Inteligência</p>
+          <h2 className="text-2xl font-bold text-white mb-1">Buscar Produtos</h2>
+          <p className="text-muted-foreground text-sm">Descubra produtos de alta margem e tendência de mercado real.</p>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => void refetchCredits()} disabled={fetchingCredits} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
+          <RefreshCw className={`w-3.5 h-3.5 ${fetchingCredits ? "animate-spin" : ""}`} />
+          Atualizar
+        </Button>
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>

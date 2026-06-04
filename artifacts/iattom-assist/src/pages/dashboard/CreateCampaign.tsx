@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Megaphone, Target, Globe, Loader2, Copy, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Zap, Save, ExternalLink } from "lucide-react";
+import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
 import { saveProjectAssets } from "@/lib/assetStorage";
 import { getEffectiveProductType, detectIncompatibility, INCOMPATIBILITY_MESSAGES, detectProductTypeMismatch, PRODUCT_TYPE_MISMATCH_MESSAGE } from "@/lib/productPlatformCompatibility";
 import { useSavedItems } from "@/hooks/useSavedItems";
@@ -276,6 +277,9 @@ export function CreateCampaign() {
   const { status, result, error, generate, reset } = useAiStream<CampaignResult>();
   const { toast } = useToast();
   const { saveItem, saveItemAssets } = useSavedItems();
+  const { isFetching: fetchingCredits, refetch: refetchCredits } = useGetCreditsBalance({
+    query: { queryKey: getGetCreditsBalanceQueryKey(), staleTime: 0 },
+  });
 
   // Refund credits automatically on technical generation failure
   const refundCalledRef = useRef(false);
@@ -503,10 +507,16 @@ export function CreateCampaign() {
 
   return (
     <div className="space-y-8">
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Construtor de Campanha</p>
-        <h2 className="text-2xl font-bold text-white mb-1">Criar Campanha</h2>
-        <p className="text-muted-foreground text-sm">Gere uma estratégia completa de campanha com copy criado para cada plataforma.</p>
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Construtor de Campanha</p>
+          <h2 className="text-2xl font-bold text-white mb-1">Criar Campanha</h2>
+          <p className="text-muted-foreground text-sm">Gere uma estratégia completa de campanha com copy criado para cada plataforma.</p>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => void refetchCredits()} disabled={fetchingCredits} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
+          <RefreshCw className={`w-3.5 h-3.5 ${fetchingCredits ? "animate-spin" : ""}`} />
+          Atualizar
+        </Button>
       </motion.div>
 
       {isRestored && campaignData && (

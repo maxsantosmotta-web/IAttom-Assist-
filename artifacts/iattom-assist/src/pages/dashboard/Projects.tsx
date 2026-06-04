@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   FolderOpen, Plus, Trash2, Loader2, Search,
-  Megaphone, FileText, Sparkles, Video,
+  Megaphone, FileText, Sparkles, Video, RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,36 +65,39 @@ export function Projects() {
   const [search, setSearch] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [, navigate] = useLocation();
   const { toast } = useToast();
+
+  async function syncFromDB(showSpinner = false) {
+    if (showSpinner) setIsRefreshing(true);
+    try {
+      const apiItems = await getItems();
+      setSavedItems(apiItems as SavedItem[]);
+      if (apiItems.length > 0) {
+        try { localStorage.setItem("iattom_saved_items_v1", JSON.stringify(apiItems)); } catch { /* noop */ }
+      } else {
+        const local = readStorage();
+        if (local.length > 0) {
+          try {
+            await Promise.all(
+              local.map(item =>
+                saveItem({ id: item.id, title: item.title, type: item.type, platform: item.platform, content: item.content, data: item.data, hasImages: item.hasImages })
+              )
+            );
+            const migrated = await getItems();
+            setSavedItems(migrated as SavedItem[]);
+            try { localStorage.setItem("iattom_saved_items_v1", JSON.stringify(migrated)); } catch { /* noop */ }
+          } catch { /* migração falhou — mantém visão local */ }
+        }
+      }
+    } catch { /* API offline — mantém dados do localStorage */ }
+    finally { if (showSpinner) setIsRefreshing(false); }
+  }
 
   useEffect(() => {
     const expired = purgeExpired();
     for (const id of expired) void deleteProjectAssets(id).catch(() => {});
-
-    async function syncFromDB() {
-      try {
-        const apiItems = await getItems();
-        setSavedItems(apiItems as SavedItem[]);
-        if (apiItems.length > 0) {
-          try { localStorage.setItem("iattom_saved_items_v1", JSON.stringify(apiItems)); } catch { /* noop */ }
-        } else {
-          const local = readStorage();
-          if (local.length > 0) {
-            try {
-              await Promise.all(
-                local.map(item =>
-                  saveItem({ id: item.id, title: item.title, type: item.type, platform: item.platform, content: item.content, data: item.data, hasImages: item.hasImages })
-                )
-              );
-              const migrated = await getItems();
-              setSavedItems(migrated as SavedItem[]);
-              try { localStorage.setItem("iattom_saved_items_v1", JSON.stringify(migrated)); } catch { /* noop */ }
-            } catch { /* migração falhou — mantém visão local */ }
-          }
-        }
-      } catch { /* API offline — mantém dados do localStorage */ }
-    }
 
     void syncFromDB();
 
@@ -134,10 +137,16 @@ export function Projects() {
 
   return (
     <div className="space-y-8">
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Espaço de Trabalho</p>
-        <h2 className="text-2xl font-bold text-white mb-1">Projetos Salvos</h2>
-        <p className="text-muted-foreground text-sm">Campanhas, conteúdos, criativos e scripts gerados e salvos.</p>
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Espaço de Trabalho</p>
+          <h2 className="text-2xl font-bold text-white mb-1">Projetos Salvos</h2>
+          <p className="text-muted-foreground text-sm">Campanhas, conteúdos, criativos e scripts gerados e salvos.</p>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => void syncFromDB(true)} disabled={isRefreshing} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
+          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+          Atualizar
+        </Button>
       </motion.div>
 
       {/* Filtros */}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { User, Bell, Shield, CreditCard, Zap, ExternalLink, Save } from "lucide-react";
+import { User, Bell, Shield, CreditCard, Zap, ExternalLink, Save, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,7 +52,7 @@ function loadNotifPrefs(): NotifPrefs {
 export function Settings() {
   const { user, isLoaded } = useUser();
   const { openUserProfile } = useClerk();
-  const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), staleTime: 0 } });
+  const { data: me, isFetching: fetchingMe, refetch: refetchMe } = useGetMe({ query: { queryKey: getGetMeQueryKey(), staleTime: 0 } });
 
   const [, navigate] = useLocation();
   const [notifPrefs, setNotifPrefs] = useState<NotifPrefs>(loadNotifPrefs);
@@ -106,11 +106,22 @@ export function Settings() {
     openUserProfile();
   };
 
+  const handleSettingsRefresh = async () => {
+    void refetchMe();
+    try { await user?.reload(); } catch { /* clerk reload opcional */ }
+  };
+
   return (
     <div className="space-y-8 max-w-2xl">
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <h2 className="text-2xl font-bold text-white mb-1">Configurações</h2>
-        <p className="text-muted-foreground text-sm">Gerencie sua conta, notificações e preferências do workspace.</p>
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-1">Configurações</h2>
+          <p className="text-muted-foreground text-sm">Gerencie sua conta, notificações e preferências do workspace.</p>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => void handleSettingsRefresh()} disabled={fetchingMe} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
+          <RefreshCw className={`w-3.5 h-3.5 ${fetchingMe ? "animate-spin" : ""}`} />
+          Atualizar
+        </Button>
       </motion.div>
 
       <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-5">
@@ -118,8 +129,11 @@ export function Settings() {
         <motion.div variants={itemVariants}>
           <Card className="bg-[#111111] border-white/5">
             <CardHeader className="pb-4">
-              <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                <User className="w-4 h-4 text-primary" /> Perfil
+              <CardTitle className="text-sm font-semibold text-white flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2"><User className="w-4 h-4 text-primary" /> Perfil</span>
+                <button onClick={() => void handleSettingsRefresh()} disabled={fetchingMe} className="flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-40">
+                  <RefreshCw className={`w-3 h-3 ${fetchingMe ? "animate-spin" : ""}`} /> Atualizar
+                </button>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">

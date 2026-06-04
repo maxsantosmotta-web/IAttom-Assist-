@@ -238,16 +238,18 @@ export function Billing() {
   const [showComparison, setShowComparison] = useState(false);
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
 
-  const { data: plans = [], isLoading: plansLoading } = useGetStripePlans({
+  const { data: plans = [], isLoading: plansLoading, isFetching: fetchingPlans, refetch: refetchPlans } = useGetStripePlans({
     query: { queryKey: getGetStripePlansQueryKey(), retry: false, staleTime: 60_000 },
   });
-  const { data: subscription, isLoading: subLoading } = useGetStripeSubscription({
+  const { data: subscription, isLoading: subLoading, isFetching: fetchingSub, refetch: refetchSub } = useGetStripeSubscription({
     query: { queryKey: getGetStripeSubscriptionQueryKey(), retry: false, staleTime: 30_000 },
   });
-  const { data: me } = useGetMe({ query: { queryKey: getGetMeQueryKey(), retry: false, staleTime: 0 } });
-  const { data: creditsData } = useGetCreditsBalance({
+  const { data: me, isFetching: fetchingMe, refetch: refetchMe } = useGetMe({ query: { queryKey: getGetMeQueryKey(), retry: false, staleTime: 0 } });
+  const { data: creditsData, isFetching: fetchingCredits, refetch: refetchCredits } = useGetCreditsBalance({
     query: { queryKey: getGetCreditsBalanceQueryKey(), retry: false, staleTime: 0 },
   });
+  const isBillingFetching = fetchingPlans || fetchingSub || fetchingMe || fetchingCredits;
+  const handleBillingRefresh = () => { void refetchPlans(); void refetchSub(); void refetchMe(); void refetchCredits(); };
 
   const checkout = useCreateCheckoutSession({
     mutation: {
@@ -327,9 +329,15 @@ export function Billing() {
     <div className="space-y-8 max-w-5xl">
 
       {/* ── Header ────────────────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Assinatura e Planos</h1>
-        <p className="text-sm text-muted-foreground mt-1">Escolha o plano ideal e libere todos os recursos da plataforma.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Assinatura e Planos</h1>
+          <p className="text-sm text-muted-foreground mt-1">Escolha o plano ideal e libere todos os recursos da plataforma.</p>
+        </div>
+        <Button size="sm" variant="outline" onClick={handleBillingRefresh} disabled={isBillingFetching} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
+          <RefreshCw className={`w-3.5 h-3.5 ${isBillingFetching ? "animate-spin" : ""}`} />
+          Atualizar
+        </Button>
       </div>
 
       {/* ── Current Plan Status ────────────────────────────────────────── */}
