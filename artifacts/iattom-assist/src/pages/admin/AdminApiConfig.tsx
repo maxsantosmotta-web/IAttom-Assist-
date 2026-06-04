@@ -49,7 +49,7 @@ interface AllConfigs {
   shopee:   { configured: boolean; isActive: boolean; partnerId: string; partnerKey: string; redirectUrl: string; environment: string; updatedAt: string | null };
   ml:       { configured: boolean; isActive: boolean; appId: string; clientSecret: string; redirectUri: string; siteId: string; updatedAt: string | null };
   hotmart:  { configured: boolean; isActive: boolean; clientId: string; clientSecret: string; basicToken: string; webhookToken: string; environment: string; updatedAt: string | null };
-  kiwify:   { configured: boolean; isActive: boolean; storeId: string; clientId: string; clientSecret: string; webhookSecret: string; updatedAt: string | null };
+  kiwify:   { configured: boolean; isActive: boolean; accountId: string; clientId: string; clientSecret: string; webhookSecret: string; updatedAt: string | null };
   meta:     { configured: boolean; isActive: boolean; appId: string; appSecret: string; verifyToken: string; userAccessToken: string; webhookUrl: string; updatedAt: string | null };
   tiktok:   { configured: boolean; isActive: boolean; clientKey: string; clientSecret: string; redirectUri: string; environment: string; updatedAt: string | null };
 }
@@ -288,7 +288,7 @@ export function AdminApiConfig() {
   const [shopeeForm,   setShopeeForm]   = useState({ partnerId: "", partnerKey: "", redirectUrl: `${origin}${BASE}/api/shopee/oauth/callback`, environment: "production" });
   const [mlForm,       setMlForm]       = useState({ appId: "", clientSecret: "", redirectUri: `${origin}${BASE}/api/ml/oauth-callback`, siteId: "MLB" });
   const [hotmartForm,  setHotmartForm]  = useState({ clientId: "", clientSecret: "", basicToken: "", webhookToken: "", environment: "sandbox" });
-  const [kiwifyForm,   setKiwifyForm]   = useState({ storeId: "", clientId: "", clientSecret: "", webhookSecret: "" });
+  const [kiwifyForm,   setKiwifyForm]   = useState({ accountId: "", clientId: "", clientSecret: "", webhookSecret: "" });
   const [metaForm,     setMetaForm]     = useState({ appId: "", appSecret: "", verifyToken: "", userAccessToken: "", webhookUrl: `${origin}${BASE}/api/meta/webhook` });
   const [tiktokForm,   setTiktokForm]   = useState({ clientKey: "", clientSecret: "", redirectUri: `${origin}${BASE}/api/tiktok/oauth/callback`, environment: "sandbox" });
 
@@ -300,7 +300,7 @@ export function AdminApiConfig() {
       setShopeeForm(f   => ({ ...f, partnerId: data.shopee.partnerId,   partnerKey: data.shopee.partnerKey,   redirectUrl: data.shopee.redirectUrl || f.redirectUrl }));
       setMlForm(f       => ({ ...f, appId: data.ml.appId,               clientSecret: data.ml.clientSecret,   redirectUri: data.ml.redirectUri || f.redirectUri, siteId: data.ml.siteId || "MLB" }));
       setHotmartForm(f  => ({ ...f, clientId: data.hotmart.clientId,    clientSecret: data.hotmart.clientSecret, basicToken: data.hotmart.basicToken, webhookToken: data.hotmart.webhookToken, environment: data.hotmart.environment || "sandbox" }));
-      setKiwifyForm(f   => ({ ...f, storeId: data.kiwify.storeId,       clientId: data.kiwify.clientId,       clientSecret: data.kiwify.clientSecret, webhookSecret: data.kiwify.webhookSecret }));
+      setKiwifyForm(f   => ({ ...f, accountId: data.kiwify.accountId,   clientId: data.kiwify.clientId,       clientSecret: data.kiwify.clientSecret, webhookSecret: data.kiwify.webhookSecret }));
       setMetaForm(f     => ({ ...f, appId: data.meta.appId,             appSecret: data.meta.appSecret,       verifyToken: data.meta.verifyToken, userAccessToken: data.meta.userAccessToken, webhookUrl: data.meta.webhookUrl || f.webhookUrl }));
       setTiktokForm(f   => ({ ...f, clientKey: data.tiktok.clientKey,   clientSecret: data.tiktok.clientSecret, redirectUri: data.tiktok.redirectUri || f.redirectUri, environment: data.tiktok.environment || "sandbox" }));
     } catch {
@@ -595,16 +595,17 @@ export function AdminApiConfig() {
                   <CardContent className="space-y-4">
                     <CallbackBox url={`${origin}${BASE}/api/kiwify/webhook`} label="Webhook URL — cadastre no painel Kiwify" />
                     <div className="grid sm:grid-cols-2 gap-4">
-                      <PlainInput label="Store ID" name="storeId" value={kiwifyForm.storeId}
-                        onChange={v => setKiwifyForm(f => ({ ...f, storeId: v }))} placeholder="Ex: store_abc123" />
-                      <PlainInput label="Client ID / API Key" name="clientId" value={kiwifyForm.clientId}
-                        onChange={v => setKiwifyForm(f => ({ ...f, clientId: v }))} placeholder="Ex: kw_..." />
+                      <PlainInput label="Client ID" name="clientId" value={kiwifyForm.clientId}
+                        onChange={v => setKiwifyForm(f => ({ ...f, clientId: v }))} placeholder="Cole o client_id da Kiwify" />
+                      <SecretInput label="Client Secret" name="clientSecret" value={kiwifyForm.clientSecret}
+                        onChange={v => setKiwifyForm(f => ({ ...f, clientSecret: v }))} />
                     </div>
                     <div className="grid sm:grid-cols-2 gap-4">
-                      <SecretInput label="Client Secret / Token" name="clientSecret" value={kiwifyForm.clientSecret}
-                        onChange={v => setKiwifyForm(f => ({ ...f, clientSecret: v }))} />
+                      <PlainInput label="Account ID" name="accountId" value={kiwifyForm.accountId}
+                        onChange={v => setKiwifyForm(f => ({ ...f, accountId: v }))} placeholder="Cole o account_id da Kiwify" />
                       <SecretInput label="Webhook Secret" name="webhookSecret" value={kiwifyForm.webhookSecret}
-                        onChange={v => setKiwifyForm(f => ({ ...f, webhookSecret: v }))} />
+                        onChange={v => setKiwifyForm(f => ({ ...f, webhookSecret: v }))}
+                        hint="Opcional — para verificar assinatura dos eventos" />
                     </div>
                     <FormActions
                       onSave={() => void save("kiwify", kiwifyForm)}

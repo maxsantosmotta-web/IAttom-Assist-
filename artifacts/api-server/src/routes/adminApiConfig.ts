@@ -11,6 +11,7 @@ import {
   userTiktokConnections,
 } from "@workspace/db";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
+import { testKiwifyConnection } from "../lib/kiwify.js";
 
 const router: IRouter = Router();
 
@@ -76,9 +77,9 @@ router.get("/admin/integrations/config", requireAdmin, async (_req, res): Promis
       updatedAt: h?.updatedAt ?? null,
     },
     kiwify: {
-      configured: !!(k?.storeId && k?.clientId),
+      configured: !!(k?.clientId && k?.clientSecret && k?.storeId),
       isActive: k?.isActive ?? false,
-      storeId: k?.storeId ?? "",
+      accountId: k?.storeId ?? "",        // storeId column stores accountId
       clientId: k?.clientId ?? "",
       clientSecret: mask(k?.clientSecret),
       webhookSecret: mask(k?.webhookSecret),
@@ -169,12 +170,16 @@ router.post("/admin/integrations/config/:integration", requireAdmin, async (req,
       case "kiwify": {
         const [existing] = await db.select().from(kiwifyConfig).limit(1);
         const vals = {
-          ...(pick("storeId") !== undefined && { storeId: pick("storeId")! }),
-          ...(pick("clientId") !== undefined && { clientId: pick("clientId")! }),
+          // accountId from form → storeId column (repurposed)
+          ...(pick("accountId")    !== undefined && { storeId:      pick("accountId")! }),
+          ...(pick("clientId")     !== undefined && { clientId:     pick("clientId")! }),
           ...(pick("clientSecret") !== undefined && { clientSecret: pick("clientSecret")! }),
           ...(pick("webhookSecret") !== undefined && { webhookSecret: pick("webhookSecret")! }),
-          isActive: true,
-          updatedAt: new Date(),
+          isActive:    true,
+          // reset cached token when credentials change
+          accessToken: "",
+          tokenExpiry: null as Date | null,
+          updatedAt:   new Date(),
         };
         if (existing) {
           await db.update(kiwifyConfig).set(vals).where(eq(kiwifyConfig.id, existing.id));
@@ -267,11 +272,23 @@ router.post("/admin/integrations/config/:integration/test", requireAdmin, async 
       }
       case "kiwify": {
         const [cfg] = await db.select().from(kiwifyConfig).limit(1);
-        if (!cfg?.storeId || !cfg?.clientId) {
-          res.json({ ok: false, message: "Store ID e Client ID são obrigatórios." });
+        if (!cfg?.clientId || !cfg?.clientSecret || !cfg?.storeId) {
+          res.json({ ok: false, message: "Client ID, Client Secret e Account ID são obrigatórios." });
           return;
         }
-        res.json({ ok: true, message: "Credenciais Kiwify configuradas." });
+        // storeId column = accountId
+        const result = await testKiwifyConnection(cfg.clientId, cfg.clientSecret, cfg.storeId);
+        if (result.ok && result.accessToken) {
+          const expiresAt = result.expiresIn
+            ? new Date(Date.now() + result.expiresIn * 1000)
+            : new Date(Date.now() + 96 * 60 * 60 * 1000);
+          await db.update(kiwifyConfig)
+            .set({ accessToken: result.accessToken, tokenExpiry: expiresAt, updatedAt: new Date() })
+            .where(eq(kiwifyConfig.id, cfg.id));
+          res.json({ ok: true, message: `Conexão validada com a Kiwify${result.accountName ? ` — ${result.accountName}` : ""}.` });
+        } else {
+          res.json({ ok: false, message: result.error ?? "Falha ao conectar com a Kiwify." });
+        }
         return;
       }
       case "meta":
@@ -333,7 +350,10 @@ router.delete("/admin/integrations/config/:integration", requireAdmin, async (re
       case "kiwify": {
         const [existing] = await db.select().from(kiwifyConfig).limit(1);
         if (existing) {
-          await db.update(kiwifyConfig).set({ storeId: "", clientId: "", clientSecret: "", webhookSecret: "", isActive: false, updatedAt: new Date() }).where(eq(kiwifyConfig.id, existing.id));
+          await db.update(kiwifyConfig).set({
+            storeId: "", clientId: "", clientSecret: "", webhookSecret: "",
+            accessToken: "", tokenExpiry: null, isActive: false, updatedAt: new Date(),
+          }).where(eq(kiwifyConfig.id, existing.id));
         }
         break;
       }
