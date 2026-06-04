@@ -124,12 +124,9 @@ export function Kiwify() {
   };
 
   const handleCriarAnuncio = () => {
-    sessionStorage.setItem("iattom_campaign_prefill", JSON.stringify({
-      product:  "",
-      goal:     "Criar anúncio para produto Kiwify",
-      platform: "kiwify",
-    }));
-    window.location.href = `${BASE}/dashboard/create-campaign`;
+    toast({
+      description: "Abra a Kiwify pelo painel oficial e configure sua página de venda manualmente.",
+    });
   };
 
   // ── Derived ──────────────────────────────────────────────────────────────────
