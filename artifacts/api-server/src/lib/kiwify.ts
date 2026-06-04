@@ -49,10 +49,12 @@ export async function getKiwifyAccessToken(
 ): Promise<KiwifyTokenResponse> {
   logger.info("kiwify: fetching access token");
 
+  const body = new URLSearchParams({ client_id: clientId, client_secret: clientSecret });
+
   const res = await fetch(KIWIFY_TOKEN_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ client_id: clientId, client_secret: clientSecret }),
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
   });
 
   const data = (await res.json()) as KiwifyTokenResponse;
