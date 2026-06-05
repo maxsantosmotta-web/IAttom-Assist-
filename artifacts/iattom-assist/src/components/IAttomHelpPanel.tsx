@@ -92,6 +92,13 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
     if (!text || loading) return;
 
     const userMsg: Message = { id: crypto.randomUUID(), role: "user", content: text };
+
+    // Snapshot history BEFORE adding new messages — used for server context
+    const history = messages
+      .filter((m) => !m.streaming && m.content !== "")
+      .slice(-6)
+      .map((m) => ({ role: m.role, content: m.content }));
+
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     if (inputRef.current) {
@@ -106,12 +113,6 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
     ]);
 
     try {
-      // Build history from last 6 completed messages (exclude streaming placeholders)
-      const history = messages
-        .filter((m) => !m.streaming && m.content !== "")
-        .slice(-6)
-        .map((m) => ({ role: m.role, content: m.content }));
-
       const res = await fetch(`${BASE_URL}/api/help/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -134,13 +135,25 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
         for (const line of lines) {
           if (!line.startsWith("data: ")) continue;
           try {
-            const data = JSON.parse(line.slice(6)) as { type: string; content?: string };
+            const data = JSON.parse(line.slice(6)) as {
+              type: string;
+              content?: string;
+              message?: string;
+            };
+
             if (data.type === "chunk" && data.content) {
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === assistantId
                     ? { ...m, content: m.content + data.content }
                     : m
+                )
+              );
+            } else if (data.type === "error" && data.message) {
+              // Server-side error surfaced via SSE — display instead of leaving bubble empty
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantId ? { ...m, content: data.message! } : m
                 )
               );
             }
