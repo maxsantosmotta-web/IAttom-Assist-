@@ -31,17 +31,32 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
   const userId = user?.id;
   const firstName = user?.firstName || user?.fullName?.split(" ")[0] || "você";
 
-  const [messages, setMessages] = useState<Message[]>([getGreeting("você")]);
-  const [historyLoaded, setHistoryLoaded] = useState(false);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [confirmClear, setConfirmClear] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  // ── Stable refs — consumed by callbacks without creating hook dependencies ──
+  // Keeps loadHistory dep-free so the initial useEffect never re-fires on
+  // firstName changes (prevents spurious loading-dots flash = Correção 1A).
+  const firstNameRef = useRef(firstName);
+  const messagesRef  = useRef<Message[]>([]);
 
-  // ── Smart scroll: only auto-scroll if user is near the bottom ────────────────
+  const [messages,      setMessages]      = useState<Message[]>([getGreeting("você")]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [input,         setInput]         = useState("");
+  const [loading,       setLoading]       = useState(false);
+  const [syncing,       setSyncing]       = useState(false);
+  const [confirmClear,  setConfirmClear]  = useState(false);
+
+  const messagesEndRef    = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef          = useRef<HTMLTextAreaElement>(null);
+
+  // Tracks the Promise of the in-flight POST /api/help/save.
+  // syncHistory awaits this before fetching — eliminates the race condition (Correção 2).
+  const pendingSaveRef = useRef<Promise<void>>(Promise.resolve());
+
+  // Keep refs in sync with latest values on every render
+  useEffect(() => { firstNameRef.current = firstName; }, [firstName]);
+  useEffect(() => { messagesRef.current  = messages;  }, [messages]);
+
+  // ── Smart scroll ────────────────────────────────────────────────────────────
   const isNearBottom = useCallback(() => {
     const el = scrollContainerRef.current;
     if (!el) return true;
@@ -52,9 +67,11 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
     messagesEndRef.current?.scrollIntoView({ behavior });
   }, []);
 
-  // ── Load conversation history from DB ────────────────────────────────────────
+  // ── loadHistory — STABLE (empty deps array, uses refs) ─────────────────────
+  // No firstName dependency → the initial useEffect only fires when userId
+  // changes, never when Clerk finishes loading user data (Correção 1A).
   const loadHistory = useCallback(
-    (showGreetingIfEmpty: boolean) => {
+    (showGreetingIfEmpty: boolean, skipIfIdentical = false) => {
       return fetch(`${BASE_URL}/api/help/history`, { credentials: "include" })
         .then((r) =>
           r.ok
@@ -63,6 +80,14 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
         )
         .then((data) => {
           if (data && data.length > 0) {
+            // Correção 1C: skip setMessages when sync content is already identical
+            if (skipIfIdentical) {
+              const curr = messagesRef.current;
+              const isSame =
+                data.length === curr.length &&
+                data.every((item, i) => String(item.id) === curr[i]?.id);
+              if (isSame) return;
+            }
             setMessages(
               data.map((m) => ({
                 id: String(m.id),
@@ -71,41 +96,37 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
               }))
             );
           } else if (showGreetingIfEmpty) {
-            setMessages([getGreeting(firstName)]);
+            setMessages([getGreeting(firstNameRef.current)]);
           }
         })
         .catch(() => {
-          if (showGreetingIfEmpty) setMessages([getGreeting(firstName)]);
+          if (showGreetingIfEmpty) setMessages([getGreeting(firstNameRef.current)]);
         });
     },
-    [firstName]
+    [] // ← intentionally empty — stable reference via refs
   );
 
-  // Initial load when user resolves
+  // ── Initial load — only fires when userId changes (Correção 1A) ─────────────
   useEffect(() => {
     if (!userId) return;
     setHistoryLoaded(false);
     loadHistory(true).finally(() => setHistoryLoaded(true));
-  }, [userId, loadHistory]);
+  }, [userId, loadHistory]); // loadHistory is stable — no spurious re-fires
 
-  // Scroll to bottom after history loads (jump, not smooth)
+  // Scroll to bottom after initial history load
   useEffect(() => {
     if (historyLoaded) {
       setTimeout(() => scrollToBottom("auto"), 50);
     }
   }, [historyLoaded, scrollToBottom]);
 
-  // Auto-scroll on new messages — only when near bottom (Bloco 5 fix)
+  // Auto-scroll on new messages — only when near bottom (Correção do Bloco 5)
   useEffect(() => {
-    if (isNearBottom()) {
-      scrollToBottom("smooth");
-    }
+    if (isNearBottom()) scrollToBottom("smooth");
   }, [messages, isNearBottom, scrollToBottom]);
 
   useEffect(() => {
-    if (open) {
-      setTimeout(() => inputRef.current?.focus(), 320);
-    }
+    if (open) setTimeout(() => inputRef.current?.focus(), 320);
   }, [open]);
 
   const autoResize = (el: HTMLTextAreaElement) => {
@@ -113,29 +134,36 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
     el.style.height = Math.min(el.scrollHeight, 112) + "px";
   };
 
-  // ── Sincronizar: reload history from DB without clearing ──────────────────────
-  const syncHistory = () => {
+  // ── Sincronizar — awaits pending save, then silently refreshes (Correções 1+2)
+  const syncHistory = useCallback(async () => {
     if (syncing || loading || !historyLoaded) return;
+    // Wait for any in-flight save to land in the DB before fetching (Correção 2)
+    await pendingSaveRef.current;
     setSyncing(true);
-    loadHistory(false).finally(() => {
+    try {
+      // skipIfIdentical=true: no setMessages if content didn't change (Correção 1C)
+      // No historyLoaded(false): panel never shows loading dots on sync (Correção 1B)
+      // No scrollToBottom after: user stays at their current position (Correção 1B)
+      await loadHistory(false, true);
+    } finally {
       setSyncing(false);
-      // Scroll to bottom after sync
-      setTimeout(() => scrollToBottom("auto"), 50);
-    });
-  };
+    }
+  }, [syncing, loading, historyLoaded, loadHistory]);
 
-  // ── Persist exchange to DB after streaming completes ─────────────────────────
-  const saveExchange = (userContent: string, assistantContent: string) => {
+  // ── saveExchange — stores result in pendingSaveRef so syncHistory can await it
+  const saveExchange = (userContent: string, assistantContent: string): void => {
     if (!assistantContent) return;
-    fetch(`${BASE_URL}/api/help/save`, {
+    pendingSaveRef.current = fetch(`${BASE_URL}/api/help/save`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userMessage: userContent, assistantMessage: assistantContent }),
       credentials: "include",
-    }).catch(() => {});
+    })
+      .then(() => undefined)
+      .catch(() => undefined);
   };
 
-  // ── Limpar conversa ───────────────────────────────────────────────────────────
+  // ── Limpar conversa ─────────────────────────────────────────────────────────
   const clearConversation = async () => {
     try {
       await fetch(`${BASE_URL}/api/help/history`, {
@@ -143,20 +171,19 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
         credentials: "include",
       });
     } catch {
-      // reset state regardless
+      // reset state regardless of network error
     }
-    setMessages([getGreeting(firstName)]);
+    setMessages([getGreeting(firstNameRef.current)]);
     setConfirmClear(false);
   };
 
-  // ── Send message ──────────────────────────────────────────────────────────────
+  // ── Send message ─────────────────────────────────────────────────────────────
   const sendMessage = async () => {
     const text = input.trim();
     if (!text || loading) return;
 
     const userMsg: Message = { id: crypto.randomUUID(), role: "user", content: text };
 
-    // Snapshot history BEFORE adding new messages — used for server context
     const history = messages
       .filter((m) => !m.streaming && m.content !== "" && m.id !== "init")
       .slice(-6)
@@ -164,12 +191,8 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
 
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
-    if (inputRef.current) {
-      inputRef.current.style.height = "auto";
-    }
+    if (inputRef.current) inputRef.current.style.height = "auto";
     setLoading(true);
-
-    // Force scroll to bottom when user sends a message
     setTimeout(() => scrollToBottom("smooth"), 30);
 
     const assistantId = crypto.randomUUID();
@@ -178,7 +201,6 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
       { id: assistantId, role: "assistant", content: "", streaming: true },
     ]);
 
-    // Accumulated content — used to save the full response to DB after streaming
     let finalAssistantContent = "";
 
     try {
@@ -191,7 +213,7 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
 
       if (!res.ok || !res.body) throw new Error("Erro na resposta.");
 
-      const reader = res.body.getReader();
+      const reader  = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
 
@@ -209,14 +231,11 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
               content?: string;
               message?: string;
             };
-
             if (data.type === "chunk" && data.content) {
               finalAssistantContent += data.content;
               setMessages((prev) =>
                 prev.map((m) =>
-                  m.id === assistantId
-                    ? { ...m, content: m.content + data.content }
-                    : m
+                  m.id === assistantId ? { ...m, content: m.content + data.content } : m
                 )
               );
             } else if (data.type === "error" && data.message) {
@@ -235,24 +254,16 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId
-            ? {
-                ...m,
-                content:
-                  "Não foi possível processar sua mensagem. Tente novamente.",
-              }
+            ? { ...m, content: "Não foi possível processar sua mensagem. Tente novamente." }
             : m
         )
       );
     } finally {
       setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantId ? { ...m, streaming: false } : m
-        )
+        prev.map((m) => (m.id === assistantId ? { ...m, streaming: false } : m))
       );
       setLoading(false);
-      if (finalAssistantContent) {
-        saveExchange(text, finalAssistantContent);
-      }
+      if (finalAssistantContent) saveExchange(text, finalAssistantContent);
     }
   };
 
@@ -326,15 +337,13 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
                   <>
                     {/* Sincronizar */}
                     <button
-                      onClick={syncHistory}
+                      onClick={() => void syncHistory()}
                       disabled={syncing || loading || !historyLoaded}
                       className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-600 hover:text-zinc-400 hover:bg-white/[0.06] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                       title="Sincronizar conversa"
                       aria-label="Sincronizar conversa"
                     >
-                      <RefreshCw
-                        className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`}
-                      />
+                      <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
                     </button>
 
                     {/* Excluir conversa */}
@@ -350,10 +359,7 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
 
                     {/* Fechar */}
                     <button
-                      onClick={() => {
-                        setConfirmClear(false);
-                        onClose();
-                      }}
+                      onClick={() => { setConfirmClear(false); onClose(); }}
                       className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:text-white hover:bg-white/[0.06] transition-all"
                       aria-label="Fechar IAttom Help"
                     >
@@ -385,9 +391,7 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
                 messages.map((msg) => (
                   <div
                     key={msg.id}
-                    className={`flex gap-2.5 ${
-                      msg.role === "user" ? "flex-row-reverse" : "flex-row"
-                    }`}
+                    className={`flex gap-2.5 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
                   >
                     {msg.role === "assistant" && (
                       <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
@@ -404,18 +408,9 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
                       {msg.content}
                       {msg.streaming && msg.content === "" && (
                         <span className="inline-flex gap-1 items-center h-4">
-                          <span
-                            className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce"
-                            style={{ animationDelay: "0ms" }}
-                          />
-                          <span
-                            className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce"
-                            style={{ animationDelay: "150ms" }}
-                          />
-                          <span
-                            className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce"
-                            style={{ animationDelay: "300ms" }}
-                          />
+                          <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: "0ms" }} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: "150ms" }} />
+                          <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: "300ms" }} />
                         </span>
                       )}
                       {msg.streaming && msg.content !== "" && (
@@ -434,10 +429,7 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
                 <textarea
                   ref={inputRef}
                   value={input}
-                  onChange={(e) => {
-                    setInput(e.target.value);
-                    autoResize(e.target);
-                  }}
+                  onChange={(e) => { setInput(e.target.value); autoResize(e.target); }}
                   onKeyDown={handleKeyDown}
                   placeholder="Pergunte algo sobre o IAttom Assist..."
                   rows={1}

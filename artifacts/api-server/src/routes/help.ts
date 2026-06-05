@@ -84,7 +84,7 @@ Responda educadamente, em UMA frase, redirecionando o usuário:
 "Esse assunto não faz parte do foco do IAttom Assist. Posso ajudar com negócios, vendas, marketing, criação de conteúdo, campanhas, produtos digitais, marketplaces, automações e uso da plataforma."
 Não elabore. Apenas redirecione.`;
 
-// ── Helper: continuation detection (Bloco 6) ─────────────────────────────────
+// ── Helper: continuation detection ───────────────────────────────────────────
 
 const CONTINUATION_RE =
   /^(continua|continue|continuar|segue|seguir|e aí|o que mais|mais\b|e depois|incompleto|cortou|ficou incompleto|resposta incompleta|não completou|pode continuar|prossiga|faltou|faltou parte|faltou algo|termina|terminar|completa|completar)\b/i;
@@ -104,34 +104,149 @@ O usuário quer que você continue a resposta anterior. Continue diretamente do 
 ${lastAssistantContent}`;
 }
 
-// ── Helper: context contradiction check (Bloco 7) ────────────────────────────
-// If a meaningful word from the query appears in the LAST assistant response,
-// the assistant itself introduced that term — it must explain it, not refuse.
+// ── Helper: significant term extractor (Correção 3A) ────────────────────────
+// Keeps: uppercase siglas ≥2 chars (MIT, MITS, API, URL, OAuth).
+// Keeps: words ≥6 chars that aren't Portuguese stopwords.
+// Filters: short common words ("não", "que", "uma") that caused false positives.
 
-function wasTermIntroducedByAssistant(
-  query: string,
-  history: HistoryMessage[]
-): boolean {
-  const lastAssistant = [...history].reverse().find((m) => m.role === "assistant");
-  if (!lastAssistant) return false;
-  const words = query
-    .toLowerCase()
-    .split(/\W+/)
-    .filter((w) => w.length >= 3);
-  const lastText = lastAssistant.content.toLowerCase();
-  return words.some((w) => lastText.includes(w));
+const STOPWORDS_PT = new Set([
+  "não", "que", "uma", "uns", "umas", "como", "mais", "isso", "esta", "este",
+  "para", "por", "com", "sem", "mas", "seu", "sua", "tem", "são", "foi", "pode",
+  "vai", "ser", "ter", "nos", "era", "ele", "ela", "você", "voce", "sabe", "qual",
+  "quando", "onde", "quem", "esse", "essa", "dos", "das", "aos", "sobre", "muito",
+  "algum", "alguma", "nunca", "sempre", "ainda", "aqui", "apenas", "sim", "então",
+  "agora", "depois", "antes", "bem", "tudo", "cada", "outro", "outra", "mesmo",
+  "mesma", "todo", "toda", "todos", "todas", "tinha", "fazer", "feito", "veio",
+  "disse", "disso", "nesse", "nessa", "pelos", "pelas", "desse", "dessa", "fosse",
+]);
+
+function extractSignificantTerms(query: string): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const raw of query.split(/\s+/)) {
+    const word = raw.replace(/[^\wÀ-ÿA-Z]/g, "");
+    if (!word) continue;
+    // Uppercase siglas (MIT, MITS, API, URL …)
+    if (/^[A-Z]{2,}$/.test(word)) {
+      if (!seen.has(word)) { seen.add(word); result.push(word); }
+      continue;
+    }
+    // Long meaningful words (≥6 chars, not a stopword)
+    const lower = word.toLowerCase();
+    if (word.length >= 6 && !STOPWORDS_PT.has(lower) && !seen.has(lower)) {
+      seen.add(lower);
+      result.push(lower);
+    }
+  }
+  return result;
 }
 
-// ── Helper: refusal loop protection (Bloco 8) ────────────────────────────────
-// Prevent repeating "fora do escopo" when the previous response was already one.
+// ── Helper: detect "asking about term from history" patterns (Correção 3A) ──
+// Catches: "o que significa X", "o que é X", "esse termo", "o que você quis dizer", etc.
 
-const REFUSAL_SIGNATURE = "não faz parte do foco do iattom assist";
+const ASK_ABOUT_TERM_RE =
+  /\b(o que (significa|é|quer dizer|quis dizer|se refere)|essa palavra|esse termo|esses termos|que palavra|que termo|significado|definição|define|não entendi|o que você quis|o que quer dizer|quis dizer|quer dizer|pode explicar|me explica|me explicar|explica isso|explica esse|explica essa)\b/i;
+
+function isAskingAboutTerm(query: string): boolean {
+  return ASK_ABOUT_TERM_RE.test(query.trim());
+}
+
+// Check if any significant term from the query appears in recent assistant messages
+function isSignificantTermInAssistantHistory(
+  terms: string[],
+  history: HistoryMessage[]
+): boolean {
+  if (terms.length === 0) return false;
+  const recentAssistant = history
+    .filter((m) => m.role === "assistant")
+    .slice(-3)
+    .map((m) => m.content.toLowerCase())
+    .join(" ");
+  return terms.some((t) => recentAssistant.includes(t.toLowerCase()));
+}
+
+// ── Helper: multi-pattern refusal detection (Correção 3C) ────────────────────
+// Detects refusals regardless of exact phrasing (LLM may paraphrase).
+
+const REFUSAL_PATTERNS = [
+  "não faz parte do foco do iattom assist",
+  "fora do foco do iattom",
+  "fora do escopo do iattom",
+  "não está relacionado ao iattom",
+  "não está no foco do iattom",
+  "posso ajudar com negócios, vendas, marketing",
+  "esse assunto não faz parte",
+  "esse tema não faz parte",
+  "está fora do meu foco",
+  "não é meu foco",
+];
 
 function lastResponseWasRefusal(history: HistoryMessage[]): boolean {
   const lastAssistant = [...history].reverse().find((m) => m.role === "assistant");
-  return Boolean(
-    lastAssistant?.content.toLowerCase().includes(REFUSAL_SIGNATURE)
-  );
+  if (!lastAssistant) return false;
+  const lower = lastAssistant.content.toLowerCase();
+  return REFUSAL_PATTERNS.some((p) => lower.includes(p));
+}
+
+// ── Helper: detect user contesting / requesting clarification (Correção 3C) ──
+
+const CONTESTING_RE =
+  /\b(não sabe|não consegue|não entende|explicar?|o que (é|significa|quer dizer|quis dizer|se refere)|essa palavra|esse termo|esses termos|que palavra|que termo|palavra técnica|técnica que|se refere|referência|quis dizer|quer dizer|pode explicar|me explica|me explicar|explica isso|explica esse|explica essa|você falou|você disse|você usou|você mencionou|o que você quis|você não sabe)\b/i;
+
+function isContestingRefusal(query: string): boolean {
+  return CONTESTING_RE.test(query.trim());
+}
+
+// ── Override prompts — injected when protections fire (Correção 3B) ──────────
+// Explicitly overrides Rule 4 so the LLM doesn't produce the same refusal.
+
+function buildTermContextOverridePrompt(
+  terms: string[],
+  history: HistoryMessage[]
+): string {
+  const recentHistory = history
+    .slice(-4)
+    .map((m) => `${m.role === "user" ? "Usuário" : "IAttom"}: ${m.content}`)
+    .join("\n\n");
+
+  const termList = terms.length > 0 ? `"${terms.join('", "')}"` : "mencionado anteriormente";
+
+  return `${SYSTEM_PROMPT}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[OVERRIDE OBRIGATÓRIO — IGNORE A REGRA 4]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+O termo ${termList} aparece no histórico da conversa.
+O usuário está pedindo para você explicar esse termo ou referência.
+NÃO diga que está fora do foco. NÃO aplique a Regra 4.
+Explique o termo com base no contexto da conversa e na sua área de conhecimento em negócios digitais.
+Se o termo for técnico e não relacionado ao IAttom Assist, explique-o brevemente e conecte ao contexto do usuário.
+
+Histórico recente:
+${recentHistory}`;
+}
+
+function buildRefusalLoopOverridePrompt(history: HistoryMessage[]): string {
+  const recentHistory = history
+    .slice(-4)
+    .map((m) => `${m.role === "user" ? "Usuário" : "IAttom"}: ${m.content}`)
+    .join("\n\n");
+
+  return `${SYSTEM_PROMPT}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[OVERRIDE OBRIGATÓRIO — IGNORE A REGRA 4]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+O usuário está contestando ou pedindo esclarecimento sobre a última resposta.
+NÃO repita a recusa anterior. NÃO aplique a Regra 4 nesta resposta.
+
+Opções (escolha a mais adequada ao contexto):
+1. Se o usuário perguntou sobre um termo que você usou ou mencionou: explique esse termo.
+2. Se a pergunta tem alguma relação com negócios, marketing, produtos, vendas ou automações: tente ajudar com o que sabe.
+3. Se genuinamente não houver como ajudar: faça UMA pergunta curta e objetiva para entender melhor o contexto — ex: "Pode me contar em que contexto você encontrou esse termo?"
+
+Histórico recente:
+${recentHistory}`;
 }
 
 // ── Chat ─────────────────────────────────────────────────────────────────────
@@ -151,7 +266,7 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
     ? history.slice(-6)
     : [];
 
-  // ── Bloco 6: Continuation detection ───────────────────────────────────────
+  // ── Continuation detection ────────────────────────────────────────────────
   const isContinuation = detectContinuation(message);
   const lastAssistantContent =
     conversationHistory
@@ -164,24 +279,33 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
     conversationHistory
   );
 
-  // ── Bloco 7: Context contradiction — term used by assistant must be explained
-  if (outOfScope && wasTermIntroducedByAssistant(message, conversationHistory)) {
-    outOfScope = false;
-    // relevantContext stays empty — LLM will use conversation history as context
-  }
+  // ── Correção 3: Context + refusal loop protections ────────────────────────
 
-  // ── Bloco 8: Refusal loop — don't repeat refusal if previous was already one
-  if (outOfScope && lastResponseWasRefusal(conversationHistory)) {
-    outOfScope = false;
-    relevantContext = "";
-  }
+  // Extract significant terms from query (siglas ≥2 UPPERCASE, words ≥6 non-stopword)
+  const significantTerms = extractSignificantTerms(message);
+
+  // Bloco 7 (improved): term used by assistant OR user is asking about a term
+  const termInHistory = isSignificantTermInAssistantHistory(significantTerms, conversationHistory);
+  const askingAboutTerm = isAskingAboutTerm(message);
+  const isTermContext = outOfScope && (termInHistory || (askingAboutTerm && conversationHistory.length > 0));
+
+  // Bloco 8 (improved): last response was refusal AND user is contesting it
+  const wasRefusal = lastResponseWasRefusal(conversationHistory);
+  const isContesting = isContestingRefusal(message);
+  const isRefusalLoop = outOfScope && wasRefusal && (isContesting || askingAboutTerm);
 
   // ── Build system prompt ────────────────────────────────────────────────────
   let systemWithContext: string;
 
   if (isContinuation && lastAssistantContent) {
-    // Continuation mode takes priority
+    // Continuation takes highest priority
     systemWithContext = buildContinuationPrompt(lastAssistantContent);
+  } else if (isTermContext) {
+    // Correção 3B: explicit override — do NOT apply Rule 4, explain the term
+    systemWithContext = buildTermContextOverridePrompt(significantTerms, conversationHistory);
+  } else if (isRefusalLoop) {
+    // Correção 3C: explicit override — do NOT repeat the refusal
+    systemWithContext = buildRefusalLoopOverridePrompt(conversationHistory);
   } else if (outOfScope) {
     systemWithContext = OUT_OF_SCOPE_INSTRUCTION;
   } else if (relevantContext) {
@@ -223,7 +347,7 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
       req.log.warn({ msg: "LLM returned empty response", path: req.path });
       sendSSEError(
         res,
-        "Não consegui concluir essa resposta agora. Tente reformular a pergunta ou me diga seu objetivo dentro do IAttom Assist para eu te orientar melhor."
+        "Não consegui concluir essa resposta agora. Tente reformular a pergunta ou me diga seu objetivo dentro do IAttom Assist."
       );
       return;
     }
@@ -242,10 +366,7 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
 
 router.get("/help/history", requireAuth, async (req, res): Promise<void> => {
   const userId = getAuth(req)?.userId;
-  if (!userId) {
-    res.status(401).json({ error: "Não autenticado." });
-    return;
-  }
+  if (!userId) { res.status(401).json({ error: "Não autenticado." }); return; }
 
   try {
     const rows = await db
@@ -266,10 +387,7 @@ router.get("/help/history", requireAuth, async (req, res): Promise<void> => {
 
 router.post("/help/save", requireAuth, async (req, res): Promise<void> => {
   const userId = getAuth(req)?.userId;
-  if (!userId) {
-    res.status(401).json({ error: "Não autenticado." });
-    return;
-  }
+  if (!userId) { res.status(401).json({ error: "Não autenticado." }); return; }
 
   const { userMessage, assistantMessage } = req.body as {
     userMessage?: string;
@@ -277,10 +395,8 @@ router.post("/help/save", requireAuth, async (req, res): Promise<void> => {
   };
 
   if (
-    !userMessage ||
-    typeof userMessage !== "string" ||
-    !assistantMessage ||
-    typeof assistantMessage !== "string"
+    !userMessage || typeof userMessage !== "string" ||
+    !assistantMessage || typeof assistantMessage !== "string"
   ) {
     res.status(400).json({ error: "userMessage e assistantMessage são obrigatórios." });
     return;
@@ -288,7 +404,7 @@ router.post("/help/save", requireAuth, async (req, res): Promise<void> => {
 
   try {
     await db.insert(helpMessages).values([
-      { clerkUserId: userId, role: "user", content: userMessage.trim() },
+      { clerkUserId: userId, role: "user",      content: userMessage.trim() },
       { clerkUserId: userId, role: "assistant", content: assistantMessage.trim() },
     ]);
     res.json({ ok: true });
@@ -302,10 +418,7 @@ router.post("/help/save", requireAuth, async (req, res): Promise<void> => {
 
 router.delete("/help/history", requireAuth, async (req, res): Promise<void> => {
   const userId = getAuth(req)?.userId;
-  if (!userId) {
-    res.status(401).json({ error: "Não autenticado." });
-    return;
-  }
+  if (!userId) { res.status(401).json({ error: "Não autenticado." }); return; }
 
   try {
     await db.delete(helpMessages).where(eq(helpMessages.clerkUserId, userId));
