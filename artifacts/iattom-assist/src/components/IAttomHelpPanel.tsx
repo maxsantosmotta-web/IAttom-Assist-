@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, Loader2 } from "lucide-react";
 import { LogoMark } from "@/components/ui/Logo";
+import { useUser } from "@clerk/react";
 
 interface Message {
   id: string;
@@ -16,10 +17,32 @@ const INITIAL_MESSAGE: Message = {
   content: "Olá, eu sou o IAttom.\n\nPosso ajudar com qualquer dúvida relacionada ao IAttom Assist.",
 };
 
-// Session-scoped memory: persists across open/close during the same browser session
-let sessionMessages: Message[] = [INITIAL_MESSAGE];
-
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function storageKey(userId: string): string {
+  return `iattom_help_${userId}`;
+}
+
+function loadFromStorage(userId: string): Message[] {
+  try {
+    const raw = sessionStorage.getItem(storageKey(userId));
+    if (raw) {
+      const parsed = JSON.parse(raw) as Message[];
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {
+    // sessionStorage unavailable or parse error — fall through
+  }
+  return [INITIAL_MESSAGE];
+}
+
+function saveToStorage(userId: string, msgs: Message[]): void {
+  try {
+    sessionStorage.setItem(storageKey(userId), JSON.stringify(msgs));
+  } catch {
+    // sessionStorage unavailable — silent fail
+  }
+}
 
 interface IAttomHelpPanelProps {
   open: boolean;
@@ -27,16 +50,27 @@ interface IAttomHelpPanelProps {
 }
 
 export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
-  const [messages, setMessages] = useState<Message[]>(sessionMessages);
+  const { user } = useUser();
+  const userId = user?.id;
+
+  const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Keep module-level memory in sync (skip streaming-in-progress messages)
+  // When the authenticated user resolves or changes, load their conversation
   useEffect(() => {
-    sessionMessages = messages.filter((m) => !m.streaming);
-  }, [messages]);
+    if (!userId) return;
+    setMessages(loadFromStorage(userId));
+  }, [userId]);
+
+  // Persist conversation to sessionStorage whenever messages change
+  useEffect(() => {
+    if (!userId) return;
+    const toSave = messages.filter((m) => !m.streaming);
+    saveToStorage(userId, toSave);
+  }, [messages, userId]);
 
   useEffect(() => {
     if (open) {
