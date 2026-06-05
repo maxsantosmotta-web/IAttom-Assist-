@@ -7,6 +7,7 @@ import { credits } from "./credits.js";
 import { billing } from "./billing.js";
 import { workspace } from "./workspace.js";
 import { roadmap } from "./roadmap.js";
+import { classifyHelpIntent, type HelpIntent } from "../intentClassifier.js";
 
 export interface KnowledgeEntry {
   id: string;
@@ -33,6 +34,53 @@ const ALL_ENTRIES: KnowledgeEntry[] = [
 const entryById = new Map<string, KnowledgeEntry>(
   ALL_ENTRIES.map((e) => [e.id, e])
 );
+
+/**
+ * Priority entries injected by semantic intent.
+ * Order within each array matters — first entries are added first.
+ */
+const INTENT_ENTRY_MAP: Partial<Record<HelpIntent, string[]>> = {
+  START_FROM_ZERO: [
+    "platform-onboarding",
+    "platform-overview",
+    "journey-earn-money",
+  ],
+  MONETIZE_KNOWLEDGE: [
+    "journey-digital-product",
+    "journey-course",
+    "journey-ebook",
+    "create-content",
+  ],
+  DIGITAL_PRODUCT: [
+    "journey-digital-product",
+    "integration-hotmart",
+    "integration-kiwify",
+    "create-campaign",
+  ],
+  PHYSICAL_PRODUCT: [
+    "journey-physical-product",
+    "find-products",
+    "integration-shopee",
+    "integration-mercado-livre",
+  ],
+  CREATE_CAMPAIGN: [
+    "create-campaign",
+    "journey-full-campaign",
+    "create-content",
+    "video-scripts",
+  ],
+  COMPARE_OPTIONS: [],
+  GROW_BUSINESS: [
+    "journey-grow-business",
+    "create-campaign",
+    "create-content",
+  ],
+  PLATFORM_USAGE: [
+    "platform-overview",
+    "platform-onboarding",
+  ],
+  UNKNOWN: [],
+};
 
 function scoreEntry(entry: KnowledgeEntry, text: string): number {
   return entry.keywords.reduce((score, kw) => {
@@ -61,8 +109,7 @@ const COMPARISON_RE =
 /**
  * Domain keywords — used to distinguish "no keyword match for a valid
  * IAttom-related query" from "genuinely out of scope".
- * Substrings intentionally kept short to maximise recall (e.g. "começ" covers
- * both "começo" and "começar").
+ * Substrings intentionally kept short to maximise recall.
  */
 const DOMAIN_KEYWORDS = [
   // Platform itself
@@ -106,15 +153,27 @@ export interface RetrievalResult {
 /**
  * Returns the relevant knowledge context and an out-of-scope flag.
  *
- * Retrieval strategy (Etapa 3 + 5):
- * - Query carries 3× weight vs history (current question always wins)
- * - Only USER messages from history are used for scoring (avoids pollution from
- *   long assistant responses)
- * - Limit: 4 primary entries normally; 5 for comparison queries
- * - Journey entries expand the related-topic limit to 3 (for richer path context)
- * - When no entries match:
- *   - If query is domain-adjacent → broad fallback: platform-overview + platform-onboarding
- *   - If query is clearly out of scope → outOfScope: true
+ * Retrieval strategy:
+ *
+ * Layer 1 — Semantic intent classification:
+ *   classifyHelpIntent() determines WHAT the user wants to accomplish.
+ *   Intent drives priority entry injection, bypassing keyword dependency.
+ *
+ * Layer 2 — Keyword scoring (support):
+ *   Exact keyword matching still runs. Results supplement intent entries.
+ *   Query carries 3× weight vs history (current question always wins).
+ *   Only USER messages from history are scored (avoids response verbosity).
+ *
+ * Layer 3 — Merge + dedup:
+ *   Intent entries injected first (priority), then keyword-scored additions.
+ *   Max 4 intent entries + 2 keyword supplements (4 for comparison queries).
+ *
+ * Layer 4 — Related topic expansion:
+ *   1 related entry added when intent is classified; 3 for UNKNOWN journeys.
+ *
+ * Layer 5 — Fallback:
+ *   Zero matches + domain query → platform-overview + platform-onboarding.
+ *   Zero matches + non-domain → outOfScope: true.
  */
 export function getRelevantContext(
   query: string,
@@ -130,9 +189,13 @@ export function getRelevantContext(
     .join(" ")
     .toLowerCase();
 
-  const isComparison = COMPARISON_RE.test(query);
+  // ── Layer 1: Semantic intent ─────────────────────────────────────────────
+  const intent = classifyHelpIntent(queryText);
 
-  // Score: query = 3× priority, history = 1× support
+  // ── Layer 2: Keyword scoring ─────────────────────────────────────────────
+  const isComparison =
+    COMPARISON_RE.test(query) || intent === "COMPARE_OPTIONS";
+
   const scored = ALL_ENTRIES
     .map((entry) => {
       const queryScore = scoreEntry(entry, queryText) * 3;
@@ -142,14 +205,31 @@ export function getRelevantContext(
     .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score);
 
-  // Comparison queries get an extra slot so both sides land in context
-  const primaryLimit = isComparison ? 5 : 4;
-  const topEntries = scored.slice(0, primaryLimit).map(({ entry }) => entry);
+  // ── Layer 3: Merge intent entries + keyword supplements ──────────────────
+  const intentIds = INTENT_ENTRY_MAP[intent] ?? [];
+  const intentEntries = intentIds
+    .map((id) => entryById.get(id))
+    .filter((e): e is KnowledgeEntry => e !== undefined)
+    .slice(0, 4);
 
-  // When no specific entries matched, use domain detection to decide fallback
+  const includedIds = new Set<string>(intentEntries.map((e) => e.id));
+  const topEntries: KnowledgeEntry[] = [...intentEntries];
+
+  // Keyword-scored entries supplement intent entries
+  const supplementLimit = isComparison ? 4 : 2;
+  let supplementCount = 0;
+  for (const { entry } of scored) {
+    if (supplementCount >= supplementLimit) break;
+    if (!includedIds.has(entry.id)) {
+      topEntries.push(entry);
+      includedIds.add(entry.id);
+      supplementCount++;
+    }
+  }
+
+  // ── Layer 5: Zero-match fallback ─────────────────────────────────────────
   if (topEntries.length === 0) {
     if (isDomainQuery(queryText)) {
-      // Broad domain query with no specific match → return platform overview + onboarding
       const fallback = [
         entryById.get("platform-overview"),
         entryById.get("platform-onboarding"),
@@ -162,17 +242,20 @@ export function getRelevantContext(
     return { context: "", outOfScope: true };
   }
 
-  // Journey entries warrant richer related-topic expansion (full path context)
+  // ── Layer 4: Related topic expansion ────────────────────────────────────
   const hasJourneyOrPlatform = topEntries.some(
     (e) => e.category === "journeys" || e.category === "platform"
   );
-  const relatedLimit = hasJourneyOrPlatform ? 3 : 1;
+  // When intent is classified, 1 related entry is enough (context already rich).
+  // When intent is UNKNOWN, expand up to 3 for journey/platform entries.
+  const relatedLimit = hasJourneyOrPlatform
+    ? intent !== "UNKNOWN"
+      ? 1
+      : 3
+    : 1;
 
-  // Resolve related topics
-  const includedIds = new Set(topEntries.map((e) => e.id));
   const relatedIds = topEntries.flatMap((e) => e.relatedTopics ?? []);
   let added = 0;
-
   for (const id of relatedIds) {
     if (added >= relatedLimit) break;
     if (includedIds.has(id)) continue;
