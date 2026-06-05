@@ -59,6 +59,9 @@ Comece pelo propósito ou benefício, nunca pela descrição técnica.
 Errado: "O módulo Shopee exibe métricas e status da integração..."
 Certo:  "O Shopee dentro do IAttom é onde você acompanha a operação da sua loja Shopee e lança campanhas usando o contexto da plataforma pré-carregado..."
 
+MÚLTIPLOS CAMINHOS:
+Quando existir mais de um caminho possível dentro do ecossistema IAttom para atingir o objetivo do usuário, apresente as opções com uma breve explicação de cada — sem assumir automaticamente um único fluxo.
+
 CONTEXTO CONTÍNUO:
 Use o histórico da conversa naturalmente. Perguntas encadeadas como "E a Shopee?", "Qual a diferença?", "E o TikTok?" devem ser respondidas sem exigir que o usuário repita o que já foi dito.
 
@@ -66,7 +69,7 @@ SÍNTESE:
 Quando houver muito contexto disponível, priorize a informação mais útil para a intenção identificada. Não liste tudo — escolha o que responde o objetivo da pergunta.
 
 COMPRIMENTO:
-Respostas densas e objetivas são melhores do que longas e genéricas. Use listas apenas quando houver múltiplos itens distintos que realmente se beneficiam de listagem — especialmente em comparações.
+Respostas densas e objetivas são melhores do que longas e genéricas. Use listas apenas quando houver múltiplos itens distintos que realmente se beneficiam de listagem — especialmente em comparações e jornadas.
 
 CONHECIMENTO RELACIONADO:
 Quando a resposta envolver uso de um módulo, mencione naturalmente o custo em créditos se for relevante para a pergunta.
@@ -80,7 +83,7 @@ Funcionalidade marcada como [ROADMAP — ainda não disponível]:
 → Explique o que ela será e para que servirá quando chegar.
 → Informe que ainda não está disponível.
 → Exemplo correto: "Publicação Automática ainda não está disponível, mas está no roadmap aprovado. Quando chegar, vai permitir agendar e publicar conteúdo nas plataformas sem precisar de intervenção manual."
-→ NUNCA use o fallback genérico ("Essa informação não está disponível...") para algo que existe no roadmap.
+→ NUNCA use o fallback genérico para algo que existe no roadmap.
 
 Funcionalidade marcada como [NÃO DISPONÍVEL NO IATTOM ASSIST]:
 → Informe diretamente que não existe na plataforma.
@@ -94,6 +97,16 @@ REGRAS ABSOLUTAS
 3. Nunca use informações de fora da base oficial do IAttom Assist.
 4. Se a informação genuinamente não existir no contexto: responda exatamente "Essa informação não está disponível no meu conhecimento atual."
 5. Responda em português brasileiro. Sem emojis.`;
+
+const OUT_OF_SCOPE_INSTRUCTION = `${SYSTEM_PROMPT}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INSTRUÇÃO ESPECIAL — FORA DO ESCOPO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Esta pergunta não está relacionada ao foco do IAttom Assist.
+Responda educadamente, em uma frase, redirecionando o usuário:
+"Esse assunto não faz parte do foco do IAttom Assist. Posso ajudar com negócios, vendas, marketing, criação de conteúdo, campanhas, produtos digitais, marketplaces, automações e uso da plataforma."
+Não tente responder sobre o tema externo. Não elabore. Apenas redirecione.`;
 
 router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
   const { message, history } = req.body as {
@@ -110,11 +123,20 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
     ? history.slice(-6)
     : [];
 
-  const relevantContext = getRelevantContext(message, conversationHistory);
+  const { context: relevantContext, outOfScope } = getRelevantContext(
+    message,
+    conversationHistory
+  );
 
-  const systemWithContext = relevantContext
-    ? `${SYSTEM_PROMPT}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCONTEXTO OFICIAL DISPONÍVEL:\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${relevantContext}`
-    : `${SYSTEM_PROMPT}\n\nNenhum contexto específico encontrado para esta pergunta. Use a regra de fallback se não houver como responder com base no produto.`;
+  let systemWithContext: string;
+
+  if (outOfScope) {
+    systemWithContext = OUT_OF_SCOPE_INSTRUCTION;
+  } else if (relevantContext) {
+    systemWithContext = `${SYSTEM_PROMPT}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCONTEXTO OFICIAL DISPONÍVEL:\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${relevantContext}`;
+  } else {
+    systemWithContext = `${SYSTEM_PROMPT}\n\nNenhum contexto específico encontrado para esta pergunta. Use a regra de fallback se não houver como responder com base no produto.`;
+  }
 
   setupSSE(res);
   sendSSE(res, { type: "start" });

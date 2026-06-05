@@ -4,7 +4,9 @@ export type KnowledgeCategory =
   | "credits"
   | "billing"
   | "workspace"
-  | "roadmap";
+  | "roadmap"
+  | "platform"
+  | "journeys";
 
 export const CATEGORY_LABELS: Record<KnowledgeCategory, string> = {
   modules: "Módulos de IA",
@@ -13,4 +15,6 @@ export const CATEGORY_LABELS: Record<KnowledgeCategory, string> = {
   billing: "Faturamento",
   workspace: "Espaço de Trabalho",
   roadmap: "Roadmap e Limitações",
+  platform: "Sobre o IAttom Assist",
+  journeys: "Jornadas e Objetivos",
 };
