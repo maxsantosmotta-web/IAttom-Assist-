@@ -18,6 +18,8 @@ import { AdminGuard } from "@/pages/admin/AdminGuard";
 import { LandingPage } from "@/pages/LandingPage";
 import { TermsPage } from "@/pages/TermsPage";
 import { PrivacyPage } from "@/pages/PrivacyPage";
+import { AboutPage } from "@/pages/AboutPage";
+import { HelpPage } from "@/pages/HelpPage";
 import { BetaGate } from "@/components/BetaGate";
 import { PlanGate } from "@/components/PlanGate";
 
@@ -357,6 +359,8 @@ function ClerkProviderWithRoutes() {
               <Route path="/admin/*?" component={ProtectedAdmin} />
               <Route path="/terms" component={TermsPage} />
               <Route path="/privacy" component={PrivacyPage} />
+              <Route path="/about" component={AboutPage} />
+              <Route path="/help" component={HelpPage} />
               <Route component={NotFound} />
             </Switch>
           </ErrorBoundary>

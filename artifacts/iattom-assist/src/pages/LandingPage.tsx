@@ -156,13 +156,24 @@ export function LandingPage() {
             </button>
           </motion.div>
 
-          <motion.p
+          <motion.div
             variants={fadeUp}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-            className="text-[10px] text-white/20 tracking-wide"
+            className="flex flex-col items-center gap-2"
           >
-            &copy; {new Date().getFullYear()} IAttom Assist. Todos os direitos reservados.
-          </motion.p>
+            <p className="text-[10px] text-white/20 tracking-wide">
+              &copy; {new Date().getFullYear()} IAttom Assist. Todos os direitos reservados.
+            </p>
+            <div className="flex items-center gap-3 text-[10px] text-white/20">
+              <a href="/about" className="hover:text-white/50 transition-colors">Sobre</a>
+              <span className="text-white/10">·</span>
+              <a href="/terms" className="hover:text-white/50 transition-colors">Termos</a>
+              <span className="text-white/10">·</span>
+              <a href="/privacy" className="hover:text-white/50 transition-colors">Privacidade</a>
+              <span className="text-white/10">·</span>
+              <a href="/help" className="hover:text-white/50 transition-colors">Ajuda</a>
+            </div>
+          </motion.div>
         </motion.div>
       </div>
 
