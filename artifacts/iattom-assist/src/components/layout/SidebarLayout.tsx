@@ -62,7 +62,9 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(
+    () => sessionStorage.getItem("iattom_help_open") === "1"
+  );
   const { user, isLoaded, isSignedIn } = useUser();
   const { signOut } = useClerk();
   const qc = useQueryClient();
@@ -97,6 +99,11 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   }, [isLoaded, isSignedIn]);
 
   useEffect(() => { setIsMobileOpen(false); }, [location]);
+
+  // Bloco 4: persist Help panel state across refresh
+  useEffect(() => {
+    sessionStorage.setItem("iattom_help_open", helpOpen ? "1" : "0");
+  }, [helpOpen]);
 
   const openPalette = useCallback(() => setCmdOpen(true), []);
 

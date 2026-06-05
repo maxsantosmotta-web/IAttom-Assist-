@@ -1,80 +1,77 @@
 import { Router, type IRouter } from "express";
+import { getAuth } from "@clerk/express";
 import { requireAuth } from "../middlewares/requireAuth.js";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { setupSSE, sendSSE, sendSSEError, sendSSEDone } from "../lib/ai/stream.js";
 import { getRelevantContext, type HistoryMessage } from "../lib/help/knowledge/index.js";
-import { getAuth } from "@clerk/express";
 import { db, helpMessages } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
 
 const router: IRouter = Router();
+
+// ── System prompt ─────────────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = `Você é o IAttom, assistente especialista do IAttom Assist — plataforma de IA para negócios digitais.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 COMO PROCESSAR CADA PERGUNTA
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Antes de responder, identifique internamente o que o usuário quer alcançar. Nunca escreva essa identificação na resposta — ela é apenas para guiar como você estrutura o que diz.
+Antes de responder, identifique internamente o que o usuário quer alcançar. Nunca escreva essa identificação na resposta.
 
 Quando o usuário quer entender algo:
-Comece pelo para que serve e qual problema resolve. Depois mostre como funciona na prática. Só mencione detalhes técnicos se forem relevantes para a pergunta.
+Comece pelo para que serve e qual problema resolve. Só detalhe o que for relevante.
 
 Quando o usuário quer comparar opções:
-Mostre o que têm em comum, as diferenças práticas e quando usar cada um. Se houver resposta clara, termine com uma recomendação objetiva.
+Diferenças práticas + quando usar cada um + recomendação objetiva.
 
-Quando o usuário quer saber o que usar ou o que fazer:
-Resposta direta com justificativa concisa. Use o contexto da conversa para personalizar.
+Quando o usuário quer saber o que fazer:
+Resposta direta com justificativa concisa.
 
-Quando o usuário quer um caminho ou um passo a passo:
-Responda com uma sequência natural — o que ele faz em cada momento e o que acontece depois.
-
-Quando o usuário quer entender como algo funciona por dentro:
-Explique o mecanismo de forma natural, não técnica. Descreva o fluxo do início ao fim.
+Quando o usuário quer um passo a passo:
+Sequência natural — o que ele faz em cada momento.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 TOM E ESTILO
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Responda como alguém que conhece profundamente o produto e está conversando — não como documentação técnica, não como manual, não como relatório.
+Responda como alguém que conhece profundamente o produto e está conversando.
 
-PROIBIDO NO OUTPUT — nunca escreva:
-- Rótulos de intenção: "Intenção: ORIENTAÇÃO", "Intenção: COMPARAÇÃO" etc.
-- Títulos de estrutura: "Propósito/benefício", "Resultado esperado", "Mecanismo"
-- Classificações ou marcadores do framework interno
+PROIBIDO NO OUTPUT:
+- Rótulos de intenção: "Intenção: ORIENTAÇÃO" etc.
+- Títulos de estrutura: "Propósito/benefício", "Mecanismo"
 - Cabeçalhos que pareçam de documento ou relatório
 
 INÍCIO DE RESPOSTA:
-Comece diretamente pelo conteúdo — nunca pela descrição técnica do módulo.
-Errado: "O módulo Shopee exibe métricas e status da integração..."
-Certo: "O Shopee dentro do IAttom é onde você acompanha a operação da sua loja e lança campanhas com o contexto da plataforma pré-carregado..."
-
-MÚLTIPLOS CAMINHOS:
-Quando existir mais de um caminho possível dentro do IAttom para atingir o objetivo, apresente as opções com uma explicação breve de cada — não assuma automaticamente um único fluxo.
+Comece diretamente pelo conteúdo. Nunca pela descrição técnica do módulo.
 
 CONVERSAÇÃO CONTÍNUA:
 Use o histórico naturalmente. Perguntas como "E a Shopee?", "Qual a diferença?", "E o TikTok?" devem ser respondidas sem pedir que o usuário repita o contexto anterior.
 
-SÍNTESE:
-Quando houver muito contexto disponível, priorize o mais útil para o objetivo da pergunta. Não liste tudo — responda o que importa.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMPRIMENTO E FORMATO (OBRIGATÓRIO)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Seja conciso. Respostas curtas e diretas são SEMPRE preferidas.
 
-COMPRIMENTO:
-Respostas densas e objetivas são melhores do que longas e genéricas. Use listas quando houver múltiplos itens distintos que se beneficiam de listagem — especialmente em comparações e quando o usuário pede um caminho.
-
-INFORMAÇÕES TÉCNICAS SOB DEMANDA:
-Não mencione custos em créditos, status de OAuth, links internos ou URLs a menos que o usuário pergunte diretamente ou seja essencial para o contexto específico da resposta.
+- Pergunta direta → 2 a 4 linhas. Nunca mais que isso sem necessidade real.
+- Orientação ("o que faço?", "por onde começo?") → 2 a 3 passos práticos, sem introdução.
+- Comparação → 3 a 4 linhas por opção + recomendação direta.
+- Caminho/sequência → máximo 5 etapas numeradas, uma linha cada.
+- Não repita o que o usuário disse. Não parafraseie. Vá direto ao ponto.
+- Use listas apenas quando há 3+ itens distintos que se beneficiam de listagem.
+- Se a resposta passar de 8 linhas, foi longa demais — revise antes de responder.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ROADMAP E INDISPONÍVEIS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-[ROADMAP — ainda não disponível]: explique o que será quando chegar e informe que ainda não está disponível. Nunca use o fallback genérico para algo que existe no roadmap.
-[NÃO DISPONÍVEL NO IATTOM ASSIST]: informe diretamente e oriente para a alternativa mais próxima se houver.
+[ROADMAP — ainda não disponível]: explique o que será e informe que ainda não está disponível.
+[NÃO DISPONÍVEL NO IATTOM ASSIST]: informe diretamente e oriente para alternativa próxima.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 REGRAS ABSOLUTAS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Responda APENAS com base no contexto fornecido abaixo.
+1. Responda APENAS com base no contexto fornecido.
 2. Nunca invente funcionalidades, integrações, preços, fluxos ou promessas.
 3. Nunca use informações de fora da base oficial do IAttom Assist.
-4. Se a informação genuinamente não existir no contexto: responda "Esse assunto não faz parte do foco do IAttom Assist. Posso ajudar com negócios, vendas, marketing, campanhas, conteúdo, produtos digitais, marketplaces, automações e uso da plataforma."
+4. Se a informação genuinamente não existir no contexto: "Esse assunto não faz parte do foco do IAttom Assist. Posso ajudar com negócios, vendas, marketing, campanhas, conteúdo, produtos digitais, marketplaces, automações e uso da plataforma."
 5. Responda em português brasileiro. Sem emojis.`;
 
 const OUT_OF_SCOPE_INSTRUCTION = `${SYSTEM_PROMPT}
@@ -83,9 +80,59 @@ const OUT_OF_SCOPE_INSTRUCTION = `${SYSTEM_PROMPT}
 INSTRUÇÃO ESPECIAL — FORA DO ESCOPO
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Esta pergunta não está relacionada ao foco do IAttom Assist.
-Responda educadamente, em uma frase, redirecionando o usuário:
+Responda educadamente, em UMA frase, redirecionando o usuário:
 "Esse assunto não faz parte do foco do IAttom Assist. Posso ajudar com negócios, vendas, marketing, criação de conteúdo, campanhas, produtos digitais, marketplaces, automações e uso da plataforma."
-Não tente responder sobre o tema externo. Não elabore. Apenas redirecione.`;
+Não elabore. Apenas redirecione.`;
+
+// ── Helper: continuation detection (Bloco 6) ─────────────────────────────────
+
+const CONTINUATION_RE =
+  /^(continua|continue|continuar|segue|seguir|e aí|o que mais|mais\b|e depois|incompleto|cortou|ficou incompleto|resposta incompleta|não completou|pode continuar|prossiga|faltou|faltou parte|faltou algo|termina|terminar|completa|completar)\b/i;
+
+function detectContinuation(message: string): boolean {
+  return CONTINUATION_RE.test(message.trim());
+}
+
+function buildContinuationPrompt(lastAssistantContent: string): string {
+  return `${SYSTEM_PROMPT}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MODO CONTINUAÇÃO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+O usuário quer que você continue a resposta anterior. Continue diretamente do ponto onde parou, sem repetir o que já foi dito, sem introdução. Comece com "Continuando..." e prossiga a partir daqui:
+
+${lastAssistantContent}`;
+}
+
+// ── Helper: context contradiction check (Bloco 7) ────────────────────────────
+// If a meaningful word from the query appears in the LAST assistant response,
+// the assistant itself introduced that term — it must explain it, not refuse.
+
+function wasTermIntroducedByAssistant(
+  query: string,
+  history: HistoryMessage[]
+): boolean {
+  const lastAssistant = [...history].reverse().find((m) => m.role === "assistant");
+  if (!lastAssistant) return false;
+  const words = query
+    .toLowerCase()
+    .split(/\W+/)
+    .filter((w) => w.length >= 3);
+  const lastText = lastAssistant.content.toLowerCase();
+  return words.some((w) => lastText.includes(w));
+}
+
+// ── Helper: refusal loop protection (Bloco 8) ────────────────────────────────
+// Prevent repeating "fora do escopo" when the previous response was already one.
+
+const REFUSAL_SIGNATURE = "não faz parte do foco do iattom assist";
+
+function lastResponseWasRefusal(history: HistoryMessage[]): boolean {
+  const lastAssistant = [...history].reverse().find((m) => m.role === "assistant");
+  return Boolean(
+    lastAssistant?.content.toLowerCase().includes(REFUSAL_SIGNATURE)
+  );
+}
 
 // ── Chat ─────────────────────────────────────────────────────────────────────
 
@@ -104,19 +151,43 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
     ? history.slice(-6)
     : [];
 
-  const { context: relevantContext, outOfScope } = getRelevantContext(
+  // ── Bloco 6: Continuation detection ───────────────────────────────────────
+  const isContinuation = detectContinuation(message);
+  const lastAssistantContent =
+    conversationHistory
+      .filter((m) => m.role === "assistant")
+      .slice(-1)[0]?.content ?? "";
+
+  // ── Retrieval ──────────────────────────────────────────────────────────────
+  let { context: relevantContext, outOfScope } = getRelevantContext(
     message,
     conversationHistory
   );
 
+  // ── Bloco 7: Context contradiction — term used by assistant must be explained
+  if (outOfScope && wasTermIntroducedByAssistant(message, conversationHistory)) {
+    outOfScope = false;
+    // relevantContext stays empty — LLM will use conversation history as context
+  }
+
+  // ── Bloco 8: Refusal loop — don't repeat refusal if previous was already one
+  if (outOfScope && lastResponseWasRefusal(conversationHistory)) {
+    outOfScope = false;
+    relevantContext = "";
+  }
+
+  // ── Build system prompt ────────────────────────────────────────────────────
   let systemWithContext: string;
 
-  if (outOfScope) {
+  if (isContinuation && lastAssistantContent) {
+    // Continuation mode takes priority
+    systemWithContext = buildContinuationPrompt(lastAssistantContent);
+  } else if (outOfScope) {
     systemWithContext = OUT_OF_SCOPE_INSTRUCTION;
   } else if (relevantContext) {
     systemWithContext = `${SYSTEM_PROMPT}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCONTEXTO OFICIAL DISPONÍVEL:\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${relevantContext}`;
   } else {
-    systemWithContext = `${SYSTEM_PROMPT}\n\nNenhum contexto específico encontrado para esta pergunta. Use a regra 4 das regras absolutas.`;
+    systemWithContext = `${SYSTEM_PROMPT}\n\nNenhum contexto específico encontrado. Use a regra 4 das regras absolutas.`;
   }
 
   setupSSE(res);

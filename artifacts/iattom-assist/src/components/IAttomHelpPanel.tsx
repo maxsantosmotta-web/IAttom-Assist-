@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, Loader2, Trash2 } from "lucide-react";
+import { X, Send, Loader2, Trash2, RefreshCw } from "lucide-react";
 import { LogoMark } from "@/components/ui/Logo";
 import { useUser } from "@clerk/react";
 
@@ -11,13 +11,15 @@ interface Message {
   streaming?: boolean;
 }
 
-const INITIAL_MESSAGE: Message = {
-  id: "init",
-  role: "assistant",
-  content: "Olá, eu sou o IAttom.\n\nPosso ajudar com qualquer dúvida relacionada ao IAttom Assist.",
-};
-
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function getGreeting(name: string): Message {
+  return {
+    id: "init",
+    role: "assistant",
+    content: `Olá, ${name}.\nSou o IAttom.\nComo posso ajudar você hoje?`,
+  };
+}
 
 interface IAttomHelpPanelProps {
   open: boolean;
@@ -27,49 +29,78 @@ interface IAttomHelpPanelProps {
 export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
   const { user } = useUser();
   const userId = user?.id;
+  const firstName = user?.firstName || user?.fullName?.split(" ")[0] || "você";
 
-  const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
+  const [messages, setMessages] = useState<Message[]>([getGreeting("você")]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load conversation history from DB when the authenticated user resolves
+  // ── Smart scroll: only auto-scroll if user is near the bottom ────────────────
+  const isNearBottom = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 150;
+  }, []);
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  }, []);
+
+  // ── Load conversation history from DB ────────────────────────────────────────
+  const loadHistory = useCallback(
+    (showGreetingIfEmpty: boolean) => {
+      return fetch(`${BASE_URL}/api/help/history`, { credentials: "include" })
+        .then((r) =>
+          r.ok
+            ? (r.json() as Promise<{ id: number; role: string; content: string }[]>)
+            : null
+        )
+        .then((data) => {
+          if (data && data.length > 0) {
+            setMessages(
+              data.map((m) => ({
+                id: String(m.id),
+                role: m.role as "user" | "assistant",
+                content: m.content,
+              }))
+            );
+          } else if (showGreetingIfEmpty) {
+            setMessages([getGreeting(firstName)]);
+          }
+        })
+        .catch(() => {
+          if (showGreetingIfEmpty) setMessages([getGreeting(firstName)]);
+        });
+    },
+    [firstName]
+  );
+
+  // Initial load when user resolves
   useEffect(() => {
     if (!userId) return;
     setHistoryLoaded(false);
-    fetch(`${BASE_URL}/api/help/history`, { credentials: "include" })
-      .then((r) => (r.ok ? (r.json() as Promise<{ id: number; role: string; content: string }[]>) : null))
-      .then((data) => {
-        if (data && data.length > 0) {
-          setMessages(
-            data.map((m) => ({
-              id: String(m.id),
-              role: m.role as "user" | "assistant",
-              content: m.content,
-            }))
-          );
-        } else {
-          setMessages([INITIAL_MESSAGE]);
-        }
-      })
-      .catch(() => setMessages([INITIAL_MESSAGE]))
-      .finally(() => setHistoryLoaded(true));
-  }, [userId]);
+    loadHistory(true).finally(() => setHistoryLoaded(true));
+  }, [userId, loadHistory]);
 
-  // Scroll to bottom when panel opens after history loads
+  // Scroll to bottom after history loads (jump, not smooth)
   useEffect(() => {
     if (historyLoaded) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+      setTimeout(() => scrollToBottom("auto"), 50);
     }
-  }, [historyLoaded]);
+  }, [historyLoaded, scrollToBottom]);
 
-  // Scroll to bottom as messages arrive
+  // Auto-scroll on new messages — only when near bottom (Bloco 5 fix)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (isNearBottom()) {
+      scrollToBottom("smooth");
+    }
+  }, [messages, isNearBottom, scrollToBottom]);
 
   useEffect(() => {
     if (open) {
@@ -82,7 +113,18 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
     el.style.height = Math.min(el.scrollHeight, 112) + "px";
   };
 
-  // Persist exchange to DB after streaming completes — fire and forget
+  // ── Sincronizar: reload history from DB without clearing ──────────────────────
+  const syncHistory = () => {
+    if (syncing || loading || !historyLoaded) return;
+    setSyncing(true);
+    loadHistory(false).finally(() => {
+      setSyncing(false);
+      // Scroll to bottom after sync
+      setTimeout(() => scrollToBottom("auto"), 50);
+    });
+  };
+
+  // ── Persist exchange to DB after streaming completes ─────────────────────────
   const saveExchange = (userContent: string, assistantContent: string) => {
     if (!assistantContent) return;
     fetch(`${BASE_URL}/api/help/save`, {
@@ -93,6 +135,7 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
     }).catch(() => {});
   };
 
+  // ── Limpar conversa ───────────────────────────────────────────────────────────
   const clearConversation = async () => {
     try {
       await fetch(`${BASE_URL}/api/help/history`, {
@@ -100,12 +143,13 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
         credentials: "include",
       });
     } catch {
-      // reset state regardless of network error
+      // reset state regardless
     }
-    setMessages([INITIAL_MESSAGE]);
+    setMessages([getGreeting(firstName)]);
     setConfirmClear(false);
   };
 
+  // ── Send message ──────────────────────────────────────────────────────────────
   const sendMessage = async () => {
     const text = input.trim();
     if (!text || loading) return;
@@ -114,7 +158,7 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
 
     // Snapshot history BEFORE adding new messages — used for server context
     const history = messages
-      .filter((m) => !m.streaming && m.content !== "")
+      .filter((m) => !m.streaming && m.content !== "" && m.id !== "init")
       .slice(-6)
       .map((m) => ({ role: m.role, content: m.content }));
 
@@ -124,6 +168,9 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
       inputRef.current.style.height = "auto";
     }
     setLoading(true);
+
+    // Force scroll to bottom when user sends a message
+    setTimeout(() => scrollToBottom("smooth"), 30);
 
     const assistantId = crypto.randomUUID();
     setMessages((prev) => [
@@ -173,7 +220,6 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
                 )
               );
             } else if (data.type === "error" && data.message) {
-              // Server-side error surfaced via SSE — display instead of leaving bubble empty
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === assistantId ? { ...m, content: data.message! } : m
@@ -189,7 +235,11 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantId
-            ? { ...m, content: "Não foi possível processar sua mensagem. Tente novamente." }
+            ? {
+                ...m,
+                content:
+                  "Não foi possível processar sua mensagem. Tente novamente.",
+              }
             : m
         )
       );
@@ -200,7 +250,6 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
         )
       );
       setLoading(false);
-      // Persist the completed exchange to DB
       if (finalAssistantContent) {
         saveExchange(text, finalAssistantContent);
       }
@@ -214,7 +263,9 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
     }
   };
 
-  const hasHistory = messages.length > 1 || (messages.length === 1 && messages[0].id !== "init");
+  const hasHistory =
+    messages.length > 1 ||
+    (messages.length === 1 && messages[0].id !== "init");
 
   return (
     <AnimatePresence>
@@ -246,14 +297,18 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
                 </div>
                 <div>
                   <p className="text-[13px] font-bold text-white leading-tight">IAttom</p>
-                  <p className="text-[10px] text-zinc-600 leading-none mt-0.5">Assistente IAttom Assist</p>
+                  <p className="text-[10px] text-zinc-600 leading-none mt-0.5">
+                    Assistente IAttom Assist
+                  </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-1">
                 {confirmClear ? (
                   <>
-                    <span className="text-[11px] text-zinc-400 mr-1 whitespace-nowrap">Apagar conversa?</span>
+                    <span className="text-[11px] text-zinc-400 mr-1 whitespace-nowrap">
+                      Apagar conversa?
+                    </span>
                     <button
                       onClick={() => void clearConversation()}
                       className="px-2.5 py-1 text-[11px] font-medium rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all"
@@ -268,28 +323,52 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
                     </button>
                   </>
                 ) : (
-                  <button
-                    onClick={() => setConfirmClear(true)}
-                    disabled={loading || !hasHistory}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-600 hover:text-zinc-400 hover:bg-white/[0.06] transition-all disabled:opacity-0 disabled:pointer-events-none"
-                    title="Limpar conversa"
-                    aria-label="Limpar conversa"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <>
+                    {/* Sincronizar */}
+                    <button
+                      onClick={syncHistory}
+                      disabled={syncing || loading || !historyLoaded}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-600 hover:text-zinc-400 hover:bg-white/[0.06] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Sincronizar conversa"
+                      aria-label="Sincronizar conversa"
+                    >
+                      <RefreshCw
+                        className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`}
+                      />
+                    </button>
+
+                    {/* Excluir conversa */}
+                    <button
+                      onClick={() => setConfirmClear(true)}
+                      disabled={loading || !hasHistory}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-600 hover:text-zinc-400 hover:bg-white/[0.06] transition-all disabled:opacity-0 disabled:pointer-events-none"
+                      title="Excluir conversa"
+                      aria-label="Excluir conversa"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* Fechar */}
+                    <button
+                      onClick={() => {
+                        setConfirmClear(false);
+                        onClose();
+                      }}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:text-white hover:bg-white/[0.06] transition-all"
+                      aria-label="Fechar IAttom Help"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </>
                 )}
-                <button
-                  onClick={() => { setConfirmClear(false); onClose(); }}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:text-white hover:bg-white/[0.06] transition-all"
-                  aria-label="Fechar IAttom Help"
-                >
-                  <X className="w-4 h-4" />
-                </button>
               </div>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4 sidebar-scroll">
+            <div
+              ref={scrollContainerRef}
+              className="flex-1 overflow-y-auto px-4 py-5 space-y-4 sidebar-scroll"
+            >
               {!historyLoaded ? (
                 <div className="flex items-center justify-center h-full">
                   <span className="inline-flex gap-1.5 items-center">
@@ -306,7 +385,9 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
                 messages.map((msg) => (
                   <div
                     key={msg.id}
-                    className={`flex gap-2.5 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
+                    className={`flex gap-2.5 ${
+                      msg.role === "user" ? "flex-row-reverse" : "flex-row"
+                    }`}
                   >
                     {msg.role === "assistant" && (
                       <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
@@ -370,10 +451,11 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
                   className="w-7 h-7 flex items-center justify-center rounded-lg bg-primary text-black shrink-0 mb-0.5 disabled:opacity-30 disabled:cursor-not-allowed hover:brightness-110 active:scale-95 transition-all"
                   aria-label="Enviar mensagem"
                 >
-                  {loading
-                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    : <Send className="w-3.5 h-3.5" />
-                  }
+                  {loading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Send className="w-3.5 h-3.5" />
+                  )}
                 </button>
               </div>
             </div>
