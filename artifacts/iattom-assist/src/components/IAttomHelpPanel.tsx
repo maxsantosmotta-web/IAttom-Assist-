@@ -139,26 +139,31 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
     el.style.height = Math.min(el.scrollHeight, 112) + "px";
   };
 
-  // ── Sincronizar — awaits pending save, calls real API, shows real feedback ──
-  // "Sincronizando..." while request is in flight.
-  // "Atualizado às HH:mm" on success (real API response, not a fake timeout).
-  // "Erro ao sincronizar" if the GET /api/help/history call fails.
+  // ── Sincronizar — real API call + minimum overlay display time ──────────────
+  // Shows overlay over the messages area during the full sync cycle.
+  // "Sincronizando conversa..." while in flight (minimum 600ms visible).
+  // "Conversa atualizada" on success (visible 900ms before dismissing).
+  // "Não foi possível sincronizar agora." on error (visible 2200ms).
   const syncHistory = useCallback(async () => {
     if (syncStatus !== "idle" || loading || !historyLoaded) return;
     await pendingSaveRef.current;
     setSyncStatus("syncing");
-    const success = await loadHistory(false, true);
+    // Guarantee minimum visual time even if API responds instantly
+    const MIN_MS = 600;
+    const [success] = await Promise.all([
+      loadHistory(false, true),
+      new Promise<void>((resolve) => setTimeout(resolve, MIN_MS)),
+    ]);
+    if (syncDoneTimerRef.current) clearTimeout(syncDoneTimerRef.current);
     if (success) {
       const now = new Date();
       const hhmm = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
       setSyncDoneLabel(`Atualizado às ${hhmm}`);
       setSyncStatus("done");
-      if (syncDoneTimerRef.current) clearTimeout(syncDoneTimerRef.current);
-      syncDoneTimerRef.current = setTimeout(() => setSyncStatus("idle"), 2200);
+      syncDoneTimerRef.current = setTimeout(() => setSyncStatus("idle"), 900);
     } else {
       setSyncStatus("error");
-      if (syncDoneTimerRef.current) clearTimeout(syncDoneTimerRef.current);
-      syncDoneTimerRef.current = setTimeout(() => setSyncStatus("idle"), 2500);
+      syncDoneTimerRef.current = setTimeout(() => setSyncStatus("idle"), 2200);
     }
   }, [syncStatus, loading, historyLoaded, loadHistory]);
 
@@ -399,11 +404,46 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
               </div>
             </div>
 
-            {/* Messages */}
-            <div
-              ref={scrollContainerRef}
-              className="flex-1 overflow-y-auto px-4 py-5 space-y-4 sidebar-scroll"
-            >
+            {/* Messages — relative wrapper hosts the sync overlay */}
+            <div className="flex-1 relative min-h-0">
+
+              {/* Sync overlay — visible during "syncing", "done", "error" */}
+              <AnimatePresence>
+                {syncStatus !== "idle" && (
+                  <motion.div
+                    key="sync-overlay"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[#0a0a0a]/80 backdrop-blur-[2px]"
+                  >
+                    {syncStatus === "syncing" && (
+                      <>
+                        <RefreshCw className="w-5 h-5 text-primary/70 animate-spin" />
+                        <p className="text-[12px] text-zinc-400 font-medium tracking-wide">
+                          Sincronizando conversa...
+                        </p>
+                      </>
+                    )}
+                    {syncStatus === "done" && (
+                      <p className="text-[12px] text-primary/80 font-medium tracking-wide">
+                        Conversa atualizada
+                      </p>
+                    )}
+                    {syncStatus === "error" && (
+                      <p className="text-[12px] text-red-400/90 font-medium tracking-wide">
+                        Não foi possível sincronizar agora.
+                      </p>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div
+                ref={scrollContainerRef}
+                className="h-full overflow-y-auto px-4 py-5 space-y-4 sidebar-scroll"
+              >
               {!historyLoaded ? (
                 <div className="flex items-center justify-center h-full">
                   <span className="inline-flex gap-1.5 items-center">
@@ -450,7 +490,8 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
                 ))
               )}
               <div ref={messagesEndRef} />
-            </div>
+              </div>
+            </div>{/* end relative wrapper */}
 
             {/* Input */}
             <div className="px-4 pb-5 pt-3 border-t border-white/[0.07] shrink-0">
@@ -462,7 +503,7 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
                   onKeyDown={handleKeyDown}
                   placeholder="Pergunte algo sobre o IAttom Assist..."
                   rows={1}
-                  disabled={loading || !historyLoaded}
+                  disabled={loading || !historyLoaded || syncStatus !== "idle"}
                   className="flex-1 resize-none bg-transparent text-[13px] text-zinc-200 placeholder:text-zinc-600 outline-none leading-relaxed overflow-y-auto sidebar-scroll"
                   style={{ minHeight: "20px", maxHeight: "112px" }}
                 />
