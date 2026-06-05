@@ -28,7 +28,7 @@ export function TermsPage() {
             Termos de Uso
           </h1>
           <p className="text-zinc-400 text-sm">
-            Última atualização: maio de 2025
+            Última atualização: maio de 2026
           </p>
         </div>
 
