@@ -152,6 +152,11 @@ export interface RetrievalResult {
   context: string;
   outOfScope: boolean;
   intent: HelpIntent;
+  /**
+   * true when the query is inside the IAttom domain but no entry scored.
+   * Triggers contextual reasoning instead of a generic platform-overview dump.
+   */
+  nearDomain?: boolean;
 }
 
 /**
@@ -234,15 +239,10 @@ export function getRelevantContext(
   // ── Layer 5: Zero-match fallback ─────────────────────────────────────────
   if (topEntries.length === 0) {
     if (isDomainQuery(queryText)) {
-      const fallback = [
-        entryById.get("platform-overview"),
-        entryById.get("platform-onboarding"),
-      ].filter((e): e is KnowledgeEntry => e !== undefined);
-      return {
-        context: fallback.map(formatEntry).join("\n\n---\n\n"),
-        outOfScope: false,
-        intent,
-      };
+      // Domain query with no keyword match → contextual reasoning path.
+      // nearDomain=true signals help.ts to use buildContextualReasoningPrompt()
+      // instead of dumping platform-overview generically.
+      return { context: "", outOfScope: false, intent, nearDomain: true };
     }
     return { context: "", outOfScope: true, intent };
   }

@@ -71,12 +71,29 @@ ROADMAP E INDISPONÍVEIS
 [NÃO DISPONÍVEL NO IATTOM ASSIST]: informe diretamente e oriente para alternativa próxima.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ORIENTAÇÃO CONTEXTUAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Quando perceber pelo contexto que o usuário está em um destes estágios, oriente o próximo passo lógico — sem esperar a pergunta exata:
+
+Começando: oriente os primeiros passos, identifique se é produto digital ou físico e sugira o caminho mais direto.
+Validando produto: ajude a confirmar demanda, diferenciar do mercado e estruturar a oferta.
+Criando campanha: oriente a estrutura da campanha, o copy e o canal mais adequado ao produto.
+Preparando publicação: guie para o módulo correto dentro da plataforma.
+Conectando plataformas: explique o benefício prático e onde se encaixa no fluxo do usuário.
+Sem saber por onde começar: identifique o que o usuário tem (produto, conhecimento, ideia) e oriente o próximo passo a partir daí.
+
+Não liste módulos como resposta a perguntas de orientação. Identifique o estágio e responda com direção, não com menu.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 REGRAS ABSOLUTAS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Responda APENAS com base no contexto fornecido.
-2. Nunca invente funcionalidades, integrações, preços, fluxos ou promessas.
+1. Use o contexto fornecido como fonte principal.
+   Quando a pergunta estiver dentro do ecossistema IAttom — negócios digitais, vendas, produtos, campanhas, marketplaces, integrações ou uso da plataforma — raciocine livremente para ajudar o usuário.
+   Nunca invente funcionalidades específicas, preços, integrações ou fluxos do IAttom que não estejam confirmados.
+   Quando faltar contexto específico, responda com o melhor raciocínio baseado no ecossistema e, se realmente necessário, faça UMA pergunta curta de esclarecimento.
+2. Nunca invente funcionalidades, integrações, preços, fluxos ou promessas específicas do IAttom que não estejam no contexto.
 3. Nunca use informações de fora da base oficial do IAttom Assist.
-4. Se a informação genuinamente não existir no contexto: "Esse assunto não faz parte do foco do IAttom Assist. Posso ajudar com negócios, vendas, marketing, campanhas, conteúdo, produtos digitais, marketplaces, automações e uso da plataforma."
+4. Se a pergunta for genuinamente fora do ecossistema: "Esse assunto não faz parte do foco do IAttom Assist. Posso ajudar com negócios, vendas, marketing, campanhas, conteúdo, produtos digitais, marketplaces, automações e uso da plataforma."
 5. Responda em português brasileiro. Sem emojis.`;
 
 const OUT_OF_SCOPE_INSTRUCTION = `${SYSTEM_PROMPT}
@@ -231,6 +248,41 @@ Histórico recente:
 ${recentHistory}`;
 }
 
+// ── Near-domain contextual reasoning — no keyword match but valid domain ─────
+// Used when the query is inside the IAttom ecosystem but no entry scored.
+// Gives the LLM full reasoning freedom within the domain.
+// Prevents generic platform-overview dump; instead asks LLM to reason or
+// ask ONE clarifying question when it genuinely needs more context.
+function buildContextualReasoningPrompt(history: HistoryMessage[]): string {
+  const recentHistory = history
+    .slice(-4)
+    .map((m) => `${m.role === "user" ? "Usuário" : "IAttom"}: ${m.content}`)
+    .join("\n\n");
+
+  const historyBlock = recentHistory
+    ? `\nHistórico recente:\n${recentHistory}`
+    : "";
+
+  return `${SYSTEM_PROMPT}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INSTRUÇÃO ATIVA — RACIOCÍNIO CONTEXTUAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+A pergunta do usuário está dentro do ecossistema de negócios digitais, vendas ou uso do IAttom Assist, mas não há contexto específico disponível no banco de conhecimento.
+
+FAÇA:
+- Raciocine com o que sabe sobre negócios digitais, marketing, produtos, vendas e marketplaces para ajudar o usuário.
+- Identifique o estágio do usuário (começo, validação, campanha, publicação, integração) e oriente o próximo passo lógico.
+- Se a pergunta for sobre ganhar dinheiro, vender ou monetizar sem mais detalhes: identifique o que o usuário tem (produto, conhecimento, ideia) e oriente por aí.
+- Se genuinamente precisar de mais contexto para dar uma resposta útil: faça UMA pergunta curta e objetiva — ex: "Você já tem um produto definido, ou ainda está decidindo o que vender?"
+
+NÃO FAÇA:
+- Não liste todos os módulos da plataforma como resposta.
+- Não responda com um menu genérico de funcionalidades.
+- Não diga que está "fora do foco" — a pergunta está dentro do ecossistema.
+- Não invente funcionalidades, preços ou fluxos específicos do IAttom que não estejam confirmados.${historyBlock}`;
+}
+
 // ── INTEGRATION_PURPOSE prompt — benefit-first, zero technical jargon ────────
 function buildIntegrationPurposePrompt(context: string): string {
   return `${SYSTEM_PROMPT}
@@ -307,7 +359,7 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
       .slice(-1)[0]?.content ?? "";
 
   // ── Retrieval ──────────────────────────────────────────────────────────────
-  let { context: relevantContext, outOfScope, intent } = getRelevantContext(
+  let { context: relevantContext, outOfScope, intent, nearDomain } = getRelevantContext(
     message,
     conversationHistory
   );
@@ -343,11 +395,16 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
     // Benefit-first response — technical details explicitly suppressed
     systemWithContext = buildIntegrationPurposePrompt(relevantContext);
   } else if (outOfScope) {
+    // Genuinely outside the IAttom ecosystem
     systemWithContext = OUT_OF_SCOPE_INSTRUCTION;
+  } else if (nearDomain) {
+    // Domain query with no keyword match — allow contextual reasoning, no generic dump
+    systemWithContext = buildContextualReasoningPrompt(conversationHistory);
   } else if (relevantContext) {
     systemWithContext = `${SYSTEM_PROMPT}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCONTEXTO OFICIAL DISPONÍVEL:\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${relevantContext}`;
   } else {
-    systemWithContext = `${SYSTEM_PROMPT}\n\nNenhum contexto específico encontrado. Use a regra 4 das regras absolutas.`;
+    // Safety net — should rarely be reached after nearDomain covers domain queries
+    systemWithContext = buildContextualReasoningPrompt(conversationHistory);
   }
 
   setupSSE(res);
