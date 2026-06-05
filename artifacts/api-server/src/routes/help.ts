@@ -134,11 +134,22 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
       stream: true,
     });
 
+    let chunkCount = 0;
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content;
       if (content) {
         sendSSE(res, { type: "chunk", content });
+        chunkCount++;
       }
+    }
+
+    if (chunkCount === 0) {
+      req.log.warn({ msg: "LLM returned empty response", path: req.path });
+      sendSSEError(
+        res,
+        "Não consegui concluir essa resposta agora. Tente reformular a pergunta ou me diga seu objetivo dentro do IAttom Assist para eu te orientar melhor."
+      );
+      return;
     }
   } catch {
     sendSSEError(

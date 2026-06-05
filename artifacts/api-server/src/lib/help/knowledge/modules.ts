@@ -5,7 +5,7 @@ export const modules: KnowledgeEntry[] = [
     id: "find-products",
     category: "modules",
     topic: "Buscar Produtos",
-    keywords: ["buscar produtos", "buscar", "produto", "descoberta", "oportunidade", "nicho", "find products", "pesquisar produto"],
+    keywords: ["buscar produtos", "buscar", "descoberta", "oportunidade", "nicho", "find products", "pesquisar produto"],
     status: "active",
     content: `O módulo Buscar Produtos usa IA para identificar oportunidades de produtos com potencial de mercado.
 O usuário descreve o nicho ou contexto e a IA retorna sugestões estruturadas com análise de viabilidade, demanda, margem, tendência e público-alvo.
