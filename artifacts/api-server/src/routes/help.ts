@@ -3,6 +3,9 @@ import { requireAuth } from "../middlewares/requireAuth.js";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { setupSSE, sendSSE, sendSSEError, sendSSEDone } from "../lib/ai/stream.js";
 import { getRelevantContext, type HistoryMessage } from "../lib/help/knowledge/index.js";
+import { getAuth } from "@clerk/express";
+import { db, helpMessages } from "@workspace/db";
+import { eq, asc } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -84,6 +87,8 @@ Responda educadamente, em uma frase, redirecionando o usuário:
 "Esse assunto não faz parte do foco do IAttom Assist. Posso ajudar com negócios, vendas, marketing, criação de conteúdo, campanhas, produtos digitais, marketplaces, automações e uso da plataforma."
 Não tente responder sobre o tema externo. Não elabore. Apenas redirecione.`;
 
+// ── Chat ─────────────────────────────────────────────────────────────────────
+
 router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
   const { message, history } = req.body as {
     message?: string;
@@ -160,6 +165,84 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
   }
 
   sendSSEDone(res);
+});
+
+// ── History: load ─────────────────────────────────────────────────────────────
+
+router.get("/help/history", requireAuth, async (req, res): Promise<void> => {
+  const userId = getAuth(req)?.userId;
+  if (!userId) {
+    res.status(401).json({ error: "Não autenticado." });
+    return;
+  }
+
+  try {
+    const rows = await db
+      .select()
+      .from(helpMessages)
+      .where(eq(helpMessages.clerkUserId, userId))
+      .orderBy(asc(helpMessages.createdAt))
+      .limit(100);
+
+    res.json(rows.map((r) => ({ id: r.id, role: r.role, content: r.content })));
+  } catch {
+    req.log.error({ msg: "Error loading help history", userId });
+    res.status(500).json({ error: "Erro ao carregar histórico." });
+  }
+});
+
+// ── History: save exchange ────────────────────────────────────────────────────
+
+router.post("/help/save", requireAuth, async (req, res): Promise<void> => {
+  const userId = getAuth(req)?.userId;
+  if (!userId) {
+    res.status(401).json({ error: "Não autenticado." });
+    return;
+  }
+
+  const { userMessage, assistantMessage } = req.body as {
+    userMessage?: string;
+    assistantMessage?: string;
+  };
+
+  if (
+    !userMessage ||
+    typeof userMessage !== "string" ||
+    !assistantMessage ||
+    typeof assistantMessage !== "string"
+  ) {
+    res.status(400).json({ error: "userMessage e assistantMessage são obrigatórios." });
+    return;
+  }
+
+  try {
+    await db.insert(helpMessages).values([
+      { clerkUserId: userId, role: "user", content: userMessage.trim() },
+      { clerkUserId: userId, role: "assistant", content: assistantMessage.trim() },
+    ]);
+    res.json({ ok: true });
+  } catch {
+    req.log.error({ msg: "Error saving help messages", userId });
+    res.status(500).json({ error: "Erro ao salvar mensagem." });
+  }
+});
+
+// ── History: clear ────────────────────────────────────────────────────────────
+
+router.delete("/help/history", requireAuth, async (req, res): Promise<void> => {
+  const userId = getAuth(req)?.userId;
+  if (!userId) {
+    res.status(401).json({ error: "Não autenticado." });
+    return;
+  }
+
+  try {
+    await db.delete(helpMessages).where(eq(helpMessages.clerkUserId, userId));
+    res.json({ ok: true });
+  } catch {
+    req.log.error({ msg: "Error clearing help history", userId });
+    res.status(500).json({ error: "Erro ao limpar histórico." });
+  }
 });
 
 export default router;
