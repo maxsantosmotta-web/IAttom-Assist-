@@ -106,10 +106,16 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
     ]);
 
     try {
+      // Build history from last 6 completed messages (exclude streaming placeholders)
+      const history = messages
+        .filter((m) => !m.streaming && m.content !== "")
+        .slice(-6)
+        .map((m) => ({ role: m.role, content: m.content }));
+
       const res = await fetch(`${BASE_URL}/api/help/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, history }),
         credentials: "include",
       });
 
