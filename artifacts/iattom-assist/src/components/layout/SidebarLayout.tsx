@@ -8,7 +8,7 @@ import {
   Flame, Layers, Instagram, Facebook, HelpCircle,
 } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -65,6 +65,10 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const [helpOpen, setHelpOpen] = useState(
     () => sessionStorage.getItem("iattom_help_open") === "1"
   );
+  // When Help was already open at page load (sessionStorage restore), skip the
+  // slide-in animation on first mount so pull-to-refresh doesn't feel like the
+  // panel flying in from the side.  Cleared as soon as the user manually closes.
+  const helpRestoredRef = useRef(sessionStorage.getItem("iattom_help_open") === "1");
   const { user, isLoaded, isSignedIn } = useUser();
   const { signOut } = useClerk();
   const qc = useQueryClient();
@@ -453,7 +457,11 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
 
       <FeedbackModal />
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
-      <IAttomHelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} />
+      <IAttomHelpPanel
+        open={helpOpen}
+        skipEntryAnimation={helpRestoredRef.current}
+        onClose={() => { helpRestoredRef.current = false; setHelpOpen(false); }}
+      />
     </div>
   );
 }

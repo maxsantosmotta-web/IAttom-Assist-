@@ -21,19 +21,21 @@ function getGreeting(name: string): Message {
   };
 }
 
+type SyncStatus = "idle" | "syncing" | "done";
+
 interface IAttomHelpPanelProps {
   open: boolean;
   onClose: () => void;
+  /** When true the panel appears instantly (no slide-in) — used on session restore / pull-to-refresh */
+  skipEntryAnimation?: boolean;
 }
 
-export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
+export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: IAttomHelpPanelProps) {
   const { user } = useUser();
   const userId = user?.id;
   const firstName = user?.firstName || user?.fullName?.split(" ")[0] || "você";
 
   // ── Stable refs — consumed by callbacks without creating hook dependencies ──
-  // Keeps loadHistory dep-free so the initial useEffect never re-fires on
-  // firstName changes (prevents spurious loading-dots flash = Correção 1A).
   const firstNameRef = useRef(firstName);
   const messagesRef  = useRef<Message[]>([]);
 
@@ -41,20 +43,26 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [input,         setInput]         = useState("");
   const [loading,       setLoading]       = useState(false);
-  const [syncing,       setSyncing]       = useState(false);
+  const [syncStatus,    setSyncStatus]    = useState<SyncStatus>("idle");
   const [confirmClear,  setConfirmClear]  = useState(false);
 
-  const messagesEndRef    = useRef<HTMLDivElement>(null);
+  const messagesEndRef     = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const inputRef          = useRef<HTMLTextAreaElement>(null);
+  const inputRef           = useRef<HTMLTextAreaElement>(null);
 
   // Tracks the Promise of the in-flight POST /api/help/save.
-  // syncHistory awaits this before fetching — eliminates the race condition (Correção 2).
+  // syncHistory awaits this before fetching — eliminates the race condition.
   const pendingSaveRef = useRef<Promise<void>>(Promise.resolve());
+  // Auto-reset timer for syncStatus="done"
+  const syncDoneTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Keep refs in sync with latest values on every render
   useEffect(() => { firstNameRef.current = firstName; }, [firstName]);
   useEffect(() => { messagesRef.current  = messages;  }, [messages]);
+
+  // Cleanup sync timer on unmount
+  useEffect(() => () => {
+    if (syncDoneTimerRef.current) clearTimeout(syncDoneTimerRef.current);
+  }, []);
 
   // ── Smart scroll ────────────────────────────────────────────────────────────
   const isNearBottom = useCallback(() => {
@@ -67,9 +75,7 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
     messagesEndRef.current?.scrollIntoView({ behavior });
   }, []);
 
-  // ── loadHistory — STABLE (empty deps array, uses refs) ─────────────────────
-  // No firstName dependency → the initial useEffect only fires when userId
-  // changes, never when Clerk finishes loading user data (Correção 1A).
+  // ── loadHistory — STABLE (empty deps, uses refs) ───────────────────────────
   const loadHistory = useCallback(
     (showGreetingIfEmpty: boolean, skipIfIdentical = false) => {
       return fetch(`${BASE_URL}/api/help/history`, { credentials: "include" })
@@ -80,7 +86,6 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
         )
         .then((data) => {
           if (data && data.length > 0) {
-            // Correção 1C: skip setMessages when sync content is already identical
             if (skipIfIdentical) {
               const curr = messagesRef.current;
               const isSame =
@@ -103,24 +108,20 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
           if (showGreetingIfEmpty) setMessages([getGreeting(firstNameRef.current)]);
         });
     },
-    [] // ← intentionally empty — stable reference via refs
+    []
   );
 
-  // ── Initial load — only fires when userId changes (Correção 1A) ─────────────
+  // ── Initial load — only fires when userId changes ─────────────────────────
   useEffect(() => {
     if (!userId) return;
     setHistoryLoaded(false);
     loadHistory(true).finally(() => setHistoryLoaded(true));
-  }, [userId, loadHistory]); // loadHistory is stable — no spurious re-fires
+  }, [userId, loadHistory]);
 
-  // Scroll to bottom after initial history load
   useEffect(() => {
-    if (historyLoaded) {
-      setTimeout(() => scrollToBottom("auto"), 50);
-    }
+    if (historyLoaded) setTimeout(() => scrollToBottom("auto"), 50);
   }, [historyLoaded, scrollToBottom]);
 
-  // Auto-scroll on new messages — only when near bottom (Correção do Bloco 5)
   useEffect(() => {
     if (isNearBottom()) scrollToBottom("smooth");
   }, [messages, isNearBottom, scrollToBottom]);
@@ -134,23 +135,22 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
     el.style.height = Math.min(el.scrollHeight, 112) + "px";
   };
 
-  // ── Sincronizar — awaits pending save, then silently refreshes (Correções 1+2)
+  // ── Sincronizar — awaits pending save, then refreshes with clear feedback ──
   const syncHistory = useCallback(async () => {
-    if (syncing || loading || !historyLoaded) return;
-    // Wait for any in-flight save to land in the DB before fetching (Correção 2)
+    if (syncStatus !== "idle" || loading || !historyLoaded) return;
     await pendingSaveRef.current;
-    setSyncing(true);
+    setSyncStatus("syncing");
     try {
-      // skipIfIdentical=true: no setMessages if content didn't change (Correção 1C)
-      // No historyLoaded(false): panel never shows loading dots on sync (Correção 1B)
-      // No scrollToBottom after: user stays at their current position (Correção 1B)
       await loadHistory(false, true);
-    } finally {
-      setSyncing(false);
+      setSyncStatus("done");
+      if (syncDoneTimerRef.current) clearTimeout(syncDoneTimerRef.current);
+      syncDoneTimerRef.current = setTimeout(() => setSyncStatus("idle"), 1600);
+    } catch {
+      setSyncStatus("idle");
     }
-  }, [syncing, loading, historyLoaded, loadHistory]);
+  }, [syncStatus, loading, historyLoaded, loadHistory]);
 
-  // ── saveExchange — stores result in pendingSaveRef so syncHistory can await it
+  // ── saveExchange ───────────────────────────────────────────────────────────
   const saveExchange = (userContent: string, assistantContent: string): void => {
     if (!assistantContent) return;
     pendingSaveRef.current = fetch(`${BASE_URL}/api/help/save`, {
@@ -171,7 +171,7 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
         credentials: "include",
       });
     } catch {
-      // reset state regardless of network error
+      // reset state regardless
     }
     setMessages([getGreeting(firstNameRef.current)]);
     setConfirmClear(false);
@@ -278,13 +278,24 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
     messages.length > 1 ||
     (messages.length === 1 && messages[0].id !== "init");
 
+  // Subtitle shown below the panel title — shows sync status feedback
+  const subtitleText =
+    syncStatus === "syncing" ? "Sincronizando..." :
+    syncStatus === "done"    ? "Atualizado" :
+    "Assistente IAttom Assist";
+
+  const subtitleColor =
+    syncStatus === "syncing" ? "text-zinc-400" :
+    syncStatus === "done"    ? "text-primary/70" :
+    "text-zinc-600";
+
   return (
     <AnimatePresence>
       {open && (
         <>
           {/* Mobile backdrop */}
           <motion.div
-            initial={{ opacity: 0 }}
+            initial={skipEntryAnimation ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
@@ -292,9 +303,9 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
             onClick={onClose}
           />
 
-          {/* Panel */}
+          {/* Panel — initial={false} skips slide-in on session restore (pull-to-refresh fix) */}
           <motion.div
-            initial={{ x: "100%" }}
+            initial={skipEntryAnimation ? false : { x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 340, damping: 36 }}
@@ -308,8 +319,8 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
                 </div>
                 <div>
                   <p className="text-[13px] font-bold text-white leading-tight">IAttom</p>
-                  <p className="text-[10px] text-zinc-600 leading-none mt-0.5">
-                    Assistente IAttom Assist
+                  <p className={`text-[10px] leading-none mt-0.5 transition-colors duration-300 ${subtitleColor}`}>
+                    {subtitleText}
                   </p>
                 </div>
               </div>
@@ -338,12 +349,16 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
                     {/* Sincronizar */}
                     <button
                       onClick={() => void syncHistory()}
-                      disabled={syncing || loading || !historyLoaded}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-600 hover:text-zinc-400 hover:bg-white/[0.06] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                      disabled={syncStatus !== "idle" || loading || !historyLoaded}
+                      className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed
+                        ${syncStatus === "done"
+                          ? "text-primary/80 hover:bg-primary/10"
+                          : "text-zinc-600 hover:text-zinc-400 hover:bg-white/[0.06]"
+                        }`}
                       title="Sincronizar conversa"
                       aria-label="Sincronizar conversa"
                     >
-                      <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
+                      <RefreshCw className={`w-3.5 h-3.5 ${syncStatus === "syncing" ? "animate-spin" : ""}`} />
                     </button>
 
                     {/* Excluir conversa */}
