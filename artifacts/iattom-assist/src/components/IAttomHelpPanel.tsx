@@ -16,6 +16,9 @@ const INITIAL_MESSAGE: Message = {
   content: "Olá, eu sou o IAttom.\n\nPosso ajudar com qualquer dúvida relacionada ao IAttom Assist.",
 };
 
+// Session-scoped memory: persists across open/close during the same browser session
+let sessionMessages: Message[] = [INITIAL_MESSAGE];
+
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 interface IAttomHelpPanelProps {
@@ -24,11 +27,16 @@ interface IAttomHelpPanelProps {
 }
 
 export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
-  const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
+  const [messages, setMessages] = useState<Message[]>(sessionMessages);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Keep module-level memory in sync (skip streaming-in-progress messages)
+  useEffect(() => {
+    sessionMessages = messages.filter((m) => !m.streaming);
+  }, [messages]);
 
   useEffect(() => {
     if (open) {
@@ -242,9 +250,6 @@ export function IAttomHelpPanel({ open, onClose }: IAttomHelpPanelProps) {
                   }
                 </button>
               </div>
-              <p className="text-[10px] text-zinc-700 mt-2 text-center">
-                Enter para enviar · Shift+Enter para nova linha
-              </p>
             </div>
           </motion.div>
         </>
