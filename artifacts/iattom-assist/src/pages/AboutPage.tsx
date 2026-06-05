@@ -8,7 +8,7 @@ export function AboutPage() {
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/">
             <span className="cursor-pointer">
-              <Logo size={32} showWordmark />
+              <Logo size={32} />
             </span>
           </Link>
           <Link href="/terms">
