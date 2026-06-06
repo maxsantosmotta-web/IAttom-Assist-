@@ -10,7 +10,9 @@
 
 export type HelpIntent =
   | "ADVISOR_MODE"
+  | "DECISION_MODE"
   | "WHAT_NOT_TO_DO"
+  | "PRIORITIZATION_MODE"
   | "PRE_MORTEM_MODE"
   | "PREMISE_CHALLENGE"
   | "START_FROM_ZERO"
@@ -38,10 +40,12 @@ interface IntentSignals {
  * Consultive intents rank above informational; specific above general.
  */
 const INTENT_PRIORITY: HelpIntent[] = [
-  "ADVISOR_MODE",       // most specific — user explicitly wants a partner/mentor opinion
-  "WHAT_NOT_TO_DO",     // user wants to avoid mistakes — leads with risks
-  "PRE_MORTEM_MODE",    // user asks where plan fails / what risks exist — adversarial analysis
-  "PREMISE_CHALLENGE",  // user asks if they should do X — check prerequisites first
+  "ADVISOR_MODE",         // most specific — user explicitly wants a partner/mentor opinion
+  "DECISION_MODE",        // user asks what to choose — takes position, shows trade-offs
+  "WHAT_NOT_TO_DO",       // user wants to avoid mistakes — leads with risks
+  "PRIORITIZATION_MODE",  // user has multiple options — eliminate, rank, justify
+  "PRE_MORTEM_MODE",      // user asks where plan fails / what risks exist — adversarial analysis
+  "PREMISE_CHALLENGE",    // user asks if they should do X — check prerequisites first
   "COMPARE_OPTIONS",
   "INTEGRATION_PURPOSE",
   "START_FROM_ZERO",
@@ -55,6 +59,119 @@ const INTENT_PRIORITY: HelpIntent[] = [
 ];
 
 const SIGNALS: Record<Exclude<HelpIntent, "UNKNOWN">, IntentSignals> = {
+
+  // ─── DECISION_MODE ────────────────────────────────────────────────────────
+  // User asks what to choose between specific options, or which path to take.
+  // Triggers decisive response: take a position, name the choice, show trade-offs,
+  // explain why NOT the other options.
+  // Distinct from ADVISOR_MODE (broader strategy) and COMPARE_OPTIONS (neutral comparison).
+  DECISION_MODE: {
+    phrases: [
+      // Direct choice requests
+      "o que você escolheria",
+      "qual você escolheria",
+      "qual caminho seguiria",
+      "que caminho tomaria",
+      "qual decisão tomaria",
+      "qual seria sua decisão",
+      "qual a sua escolha",
+      "qual escolha faria",
+      "qual opção escolheria",
+      "qual plataforma escolheria",
+      "que plataforma escolheria",
+      "qual canal escolheria",
+      // Decision-seeking framing
+      "me ajude a decidir",
+      "me ajude a escolher",
+      "preciso decidir",
+      "não sei qual escolher",
+      "como decidir entre",
+      "me diga qual",
+      "qual seria a melhor decisão",
+      // Regret / stakes framing
+      "qual decisão tem maior chance de arrependimento",
+      "qual tem maior chance de arrependimento",
+      "qual arrependeria mais",
+      "qual erro tem mais consequência",
+      // Trade-off awareness
+      "o que ganho e perco",
+      "o que ganho com cada",
+      "o que perco com cada",
+      // Specific platform pairs — explicit choice framing
+      "shopee ou mercado livre",
+      "hotmart ou mercado livre",
+      "hotmart ou kiwify",
+      "kiwify ou hotmart",
+      "mercado livre ou shopee",
+      "produto físico ou digital",
+      "físico ou digital",
+      "digital ou físico",
+    ],
+    words: ["decidir", "decisão", "escolher", "escolha"],
+    threshold: 2,
+  },
+
+  // ─── PRIORITIZATION_MODE ──────────────────────────────────────────────────
+  // User has multiple options and needs to rank, order or focus.
+  // Triggers: eliminate incompatible options → apply 6 criteria → rank → decide first.
+  // Distinct from DECISION_MODE (binary choice) — this is about ordering a set.
+  PRIORITIZATION_MODE: {
+    phrases: [
+      // Explicit ordering requests
+      "qual faço primeiro",
+      "qual fazer primeiro",
+      "qual atacar primeiro",
+      "qual começo primeiro",
+      "por qual começar",
+      "por onde atacar",
+      "em que ordem",
+      "ordem de prioridade",
+      // Abandonment / elimination framing
+      "qual abandono",
+      "qual abandono primeiro",
+      "qual descarto",
+      "qual elimino",
+      "o que elimino",
+      "o que descarto",
+      "o que corto",
+      // Prioritization verbs
+      "o que priorizo",
+      "o que priorizar",
+      "como priorizar",
+      "qual priorizo",
+      "quais priorizo",
+      // Multiple options framing
+      "tenho várias opções",
+      "tenho muitas opções",
+      "tenho três opções",
+      "tenho duas opções",
+      "tenho muitas ideias",
+      "tenho várias ideias",
+      "não sei qual primeiro",
+      "não sei por qual começar",
+      // Focus with resource constraints
+      "onde focar primeiro",
+      "onde devo focar",
+      "no que focar",
+      "em que focar",
+      "onde colocar energia",
+      "onde colocar atenção",
+      "qual merece atenção agora",
+      "qual merece minha atenção",
+      // Impact / return framing
+      "qual tem maior impacto",
+      "o que tem maior impacto",
+      "maior retorno primeiro",
+      "maior impacto primeiro",
+      // Resource constraint + "what first"
+      "com pouco tempo",
+      "com pouco dinheiro",
+      "pouco tempo e não sei",
+      "pouco dinheiro e não sei",
+    ],
+    words: ["priorizar", "prioridade", "prioridades", "ranquear", "ranking"],
+    threshold: 2,
+  },
 
   // ─── ADVISOR_MODE ─────────────────────────────────────────────────────────
   // User asks for a direct recommendation, as if speaking to a partner or mentor.

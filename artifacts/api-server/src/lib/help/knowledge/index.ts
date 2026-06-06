@@ -89,6 +89,17 @@ const INTENT_ENTRY_MAP: Partial<Record<HelpIntent, string[]>> = {
     "create-content",
     "video-scripts",
   ],
+  PRIORITIZATION_MODE: [
+    "platform-onboarding",    // O QUE NÃO FAZER + sequência estratégica — base for elimination
+    "journey-earn-money",     // paths available + criteria for each
+    "journey-grow-business",  // scaling criteria + gargalo identification
+  ],
+  DECISION_MODE: [
+    "journey-earn-money",         // physical vs digital decision tree + criteria
+    "journey-digital-product",    // digital path specifics for trade-off analysis
+    "journey-physical-product",   // physical path specifics for trade-off analysis
+    "platform-onboarding",        // context for what each choice implies
+  ],
   COMPARE_OPTIONS: [],
   INTEGRATION_PURPOSE: [
     "platform-overview", // IAttom context; specific integration arrives via keyword scoring
@@ -174,6 +185,10 @@ const DOMAIN_KEYWORDS = [
   "anúncio", "anúncios", "tráfego",
   // Adversarial / risk queries (PRE_MORTEM_MODE)
   "risco", "falha", "falhar", "fraqueza", "premissa", "quebrar",
+  // Prioritization and decision queries (PRIORITIZATION_MODE + DECISION_MODE)
+  "priorizar", "prioridade", "prioridades", "ranquear", "ranking",
+  "decidir", "decisão", "escolher", "escolha", "elimin", "descart",
+  "primeiro", "ordem", "focar",
 ];
 
 function isDomainQuery(text: string): boolean {
