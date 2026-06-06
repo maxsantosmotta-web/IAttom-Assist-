@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookMarked, Copy, Trash2, Plus, Search, Check, X, RefreshCw,
-  Wand2, Pencil, ChevronLeft, ClipboardList, AlertTriangle,
+  Wand2, Pencil, ChevronLeft, AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,8 +86,7 @@ export function SavedPrompts() {
   const [editTitle, setEditTitle]     = useState("");
   const [editPrompt, setEditPrompt]   = useState("");
   const [savingEdit, setSavingEdit]   = useState(false);
-  const [modalCopied, setModalCopied]         = useState(false);
-  const [modalCopiedAll, setModalCopiedAll]   = useState(false);
+  const [modalCopied, setModalCopied] = useState(false);
 
   // card-level copy feedback
   const [copiedId, setCopiedId] = useState<number | null>(null);
@@ -131,7 +130,8 @@ export function SavedPrompts() {
 
   // ── Copy helpers ────────────────────────────────────────────────────
   const copyPromptOnly = (p: SavedPrompt) => {
-    navigator.clipboard.writeText(p.prompt).then(() => {
+    const text = `${p.title}\n\n${p.prompt}`;
+    navigator.clipboard.writeText(text).then(() => {
       setCopiedId(p.id);
       setTimeout(() => setCopiedId(null), 2000);
       toast({ description: "Copiado para a área de transferência" });
@@ -163,7 +163,6 @@ export function SavedPrompts() {
     setEditTitle(p.title);
     setEditPrompt(p.prompt);
     setModalCopied(false);
-    setModalCopiedAll(false);
   };
 
   const closeView = () => {
@@ -202,20 +201,11 @@ export function SavedPrompts() {
 
   const modalCopyOnly = () => {
     if (!viewPrompt) return;
-    navigator.clipboard.writeText(viewPrompt.prompt).then(() => {
+    const text = `${viewPrompt.title}\n\n${viewPrompt.prompt}`;
+    navigator.clipboard.writeText(text).then(() => {
       setModalCopied(true);
       setTimeout(() => setModalCopied(false), 2000);
       toast({ description: "Copiado para a área de transferência" });
-    });
-  };
-
-  const modalCopyAll = () => {
-    if (!viewPrompt) return;
-    const text = `${viewPrompt.title}\n\n${viewPrompt.prompt}`;
-    navigator.clipboard.writeText(text).then(() => {
-      setModalCopiedAll(true);
-      setTimeout(() => setModalCopiedAll(false), 2000);
-      toast({ description: "Título e prompt copiados" });
     });
   };
 
@@ -702,13 +692,6 @@ export function SavedPrompts() {
                     >
                       {modalCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                       {modalCopied ? "Copiado" : "Copiar"}
-                    </button>
-                    <button
-                      onClick={modalCopyAll}
-                      className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition-colors px-3 py-1.5 rounded-lg hover:bg-white/[0.05] border border-white/[0.07]"
-                    >
-                      {modalCopiedAll ? <Check className="w-3.5 h-3.5" /> : <ClipboardList className="w-3.5 h-3.5" />}
-                      {modalCopiedAll ? "Copiado" : "Copiar tudo"}
                     </button>
                     <button
                       onClick={startEdit}
