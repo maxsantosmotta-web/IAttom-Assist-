@@ -50,6 +50,11 @@ const INTENT_ENTRY_MAP: Partial<Record<HelpIntent, string[]>> = {
     "journey-earn-money",     // Quando NÃO se aplica + Risco mais comum
     "journey-grow-business",  // Casos negativos + Diagnóstico de gargalo
   ],
+  PRE_MORTEM_MODE: [
+    "platform-onboarding",    // O QUE NÃO FAZER + sequência estratégica de riscos
+    "journey-earn-money",     // Risco mais comum + Quando NÃO se aplica
+    "journey-grow-business",  // Diagnóstico de gargalo + casos negativos
+  ],
   PREMISE_CHALLENGE: [
     "platform-onboarding",    // O QUE NÃO FAZER AO COMEÇAR + SOBRE CONECTAR
     "journey-full-campaign",  // Quando NÃO se aplica (campanha sem produto)
@@ -167,6 +172,8 @@ const DOMAIN_KEYWORDS = [
   "opção", "opções", "alternativa",
   // Acquisition channel queries
   "anúncio", "anúncios", "tráfego",
+  // Adversarial / risk queries (PRE_MORTEM_MODE)
+  "risco", "falha", "falhar", "fraqueza", "premissa", "quebrar",
 ];
 
 function isDomainQuery(text: string): boolean {

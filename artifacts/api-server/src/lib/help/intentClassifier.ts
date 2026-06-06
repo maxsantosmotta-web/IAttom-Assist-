@@ -11,6 +11,7 @@
 export type HelpIntent =
   | "ADVISOR_MODE"
   | "WHAT_NOT_TO_DO"
+  | "PRE_MORTEM_MODE"
   | "PREMISE_CHALLENGE"
   | "START_FROM_ZERO"
   | "MONETIZE_KNOWLEDGE"
@@ -39,6 +40,7 @@ interface IntentSignals {
 const INTENT_PRIORITY: HelpIntent[] = [
   "ADVISOR_MODE",       // most specific — user explicitly wants a partner/mentor opinion
   "WHAT_NOT_TO_DO",     // user wants to avoid mistakes — leads with risks
+  "PRE_MORTEM_MODE",    // user asks where plan fails / what risks exist — adversarial analysis
   "PREMISE_CHALLENGE",  // user asks if they should do X — check prerequisites first
   "COMPARE_OPTIONS",
   "INTEGRATION_PURPOSE",
@@ -82,6 +84,72 @@ const SIGNALS: Record<Exclude<HelpIntent, "UNKNOWN">, IntentSignals> = {
       "me dá um conselho",
     ],
     words: ["sócio", "aconselha", "aconselharia"],
+    threshold: 2,
+  },
+
+  // ─── PRE_MORTEM_MODE ──────────────────────────────────────────────────────
+  // User asks where a plan fails, what risks exist, or declares a risky action.
+  // Triggers adversarial analysis: assume failure → work backwards → find causes.
+  // Distinct from WHAT_NOT_TO_DO: this is backward-looking (assume it failed),
+  // not forward-looking (what to avoid). Ranked above PREMISE_CHALLENGE.
+  PRE_MORTEM_MODE: {
+    phrases: [
+      // Explicit failure location
+      "onde falha",
+      "onde isso falha",
+      "onde meu plano falha",
+      "onde ele falha",
+      "onde ela falha",
+      "onde pode falhar",
+      "o que pode falhar",
+      "o que vai falhar",
+      "onde provavelmente falha",
+      // Risk / weakness identification
+      "qual o risco",
+      "qual é o risco",
+      "quais os riscos",
+      "quais são os riscos",
+      "qual risco",
+      "qual a fraqueza",
+      "qual é a fraqueza",
+      "qual o ponto fraco",
+      "quais os pontos fracos",
+      "qual o ponto de falha",
+      // Blind spots
+      "o que eu não estou vendo",
+      "o que não estou enxergando",
+      "não estou enxergando",
+      "qual risco não estou",
+      "risco que não estou",
+      "o que estou ignorando",
+      "o que estou deixando de ver",
+      "o que pode estar errado",
+      // Failure scenario
+      "se isso der errado",
+      "se der errado",
+      "se esse plano falhar",
+      "se o plano falhar",
+      "se esse negócio falhar",
+      "se falhar",
+      "quando falhar",
+      "causa mais provável",
+      "causa provável",
+      // Fragile premise
+      "qual a premissa errada",
+      "premissa que pode estar errada",
+      "premissa errada",
+      "premissa frágil",
+      // Risky imminent actions — user declares action, system should warn
+      "vou investir todo meu dinheiro",
+      "vou investir tudo",
+      "vou colocar tudo",
+      "vou gastar tudo",
+      "curso completo antes de",
+      "criar tudo antes de vender",
+      "criar tudo antes de lançar",
+      "vou criar um curso completo",
+    ],
+    words: ["falha", "fraqueza", "premissa"],
     threshold: 2,
   },
 

@@ -90,6 +90,14 @@ Quando identificar que o usuário está prestes a cometer um erro estratégico:
 3. Mostre o caminho alternativo.
 Nunca omita um erro estratégico para parecer mais prestativo. Deixar o usuário cometer o erro não é ajudar.
 
+[F — PRE-MORTEM (ANÁLISE ADVERSARIAL)]
+Quando o usuário perguntar onde algo falha, qual o risco, o que pode dar errado, ou declarar uma ação com risco implícito:
+— Assuma que o plano JÁ FALHOU. Trabalhe de trás para frente — não avalie se vai funcionar.
+— Identifique as causas prováveis: dependências frágeis, gargalos ocultos, premissas não validadas, riscos financeiros, pontos cegos.
+— Ranqueie por probabilidade — a causa mais provável vem primeiro. Não liste riscos aleatoriamente.
+— Só DEPOIS de identificar os riscos: sugira o que verificar ou corrigir antes de avançar.
+— PROIBIDO: começar com incentivo, assumir que o plano é bom, listar riscos genéricos sem contexto.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 COMO PROCESSAR CADA PERGUNTA
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -692,6 +700,58 @@ PROIBIDO NESTA RESPOSTA:
 Se não houver informação suficiente sobre o objetivo do usuário: faça UMA pergunta direta antes de recomendar.${contextSection}${recentHistoryBlock}`;
 }
 
+// ── FASE 3: PRE_MORTEM_MODE — adversarial failure analysis ────────────────────
+// Triggered when user asks where a plan fails, what risks exist, or declares
+// a risky action. Protocol: assume failure → work backwards → find causes.
+// Distinct from WHAT_NOT_TO_DO (forward-looking) — this is backward-looking.
+
+function buildPreMortemPrompt(context: string, recentHistoryBlock: string): string {
+  const contextSection = context
+    ? `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCONTEXTO DE REFERÊNCIA:\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${context}`
+    : "";
+
+  return `${SYSTEM_PROMPT}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INSTRUÇÃO ATIVA — ANÁLISE ADVERSARIAL / PRE-MORTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+O usuário quer saber onde um plano, ideia ou ação pode falhar — ou declarou uma ação com risco implícito.
+
+PROTOCOLO OBRIGATÓRIO — EXECUTE ESTA SEQUÊNCIA ANTES DE RESPONDER:
+
+PASSO 1 — ASSUMIR FALHA:
+Não avalie se vai funcionar. Assuma que já falhou. Sua tarefa é identificar POR QUÊ falhou.
+
+PASSO 2 — INVESTIGAR AS CAUSAS PROVÁVEIS:
+Examine cada dimensão:
+— Dependências: o que precisa ser verdadeiro para funcionar e pode não ser?
+— Gargalos: onde o fluxo trava se um elo quebrar?
+— Premissas frágeis: o que o usuário está assumindo sem ter validado?
+— Pontos cegos: o que provavelmente não foi considerado?
+— Risco financeiro: onde o capital pode ser esgotado antes do retorno?
+— Timing: a sequência de execução cria alguma dependência perigosa?
+
+PASSO 3 — RANKEAR POR PROBABILIDADE:
+A causa mais provável de falha vem primeiro. Não liste riscos em ordem aleatória.
+Use linguagem de probabilidade: "o risco mais provável é...", "o segundo risco relevante é..."
+
+PASSO 4 — SÓ ENTÃO: o que verificar ou corrigir ANTES de avançar.
+Nunca inverta essa ordem. Correções antes da análise de risco produzem otimismo falso.
+
+ESTRUTURA DA RESPOSTA:
+1. Causa mais provável de falha — e por quê é a mais provável
+2. Segunda causa relevante (se existir no contexto do usuário)
+3. O que verificar ou corrigir antes de avançar
+
+PROIBIDO NESTA RESPOSTA:
+- Começar com incentivo ("boa ideia!", "faz sentido", "está no caminho certo")
+- Assumir que o plano é bom ou razoável
+- Listar riscos genéricos desconectados do contexto real do usuário
+- Sugerir correções antes de explicar as causas de falha
+- Terminar sem indicar qual verificação é mais urgente
+- Usar lista de riscos sem rankear por probabilidade${contextSection}${recentHistoryBlock}`;
+}
+
 // ── P2: PREMISE_CHALLENGE — verify prerequisites before answering ─────────────
 // Triggered when user asks if they should do X. Checks if X makes sense first.
 
@@ -846,6 +906,9 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
   } else if (intent === "WHAT_NOT_TO_DO" && !outOfScope) {
     // P2: Risks-first — errors and consequences before solutions
     systemWithContext = buildWhatNotToDoPrompt(relevantContext, recentHistoryBlock);
+  } else if (intent === "PRE_MORTEM_MODE" && !outOfScope) {
+    // FASE 3: Adversarial failure analysis — assume failure, work backwards
+    systemWithContext = buildPreMortemPrompt(relevantContext, recentHistoryBlock);
   } else if (intent === "PREMISE_CHALLENGE" && !outOfScope) {
     // P2: Verify prerequisites before validating the user's proposed action
     systemWithContext = buildPremiseChallengePrompt(relevantContext, recentHistoryBlock);
