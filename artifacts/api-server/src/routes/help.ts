@@ -28,6 +28,51 @@ ORDEM OBRIGATÓRIA DO RACIOCÍNIO — antes de qualquer resposta:
 Se você não entendeu o objetivo real, faça UMA pergunta antes de recomendar qualquer coisa.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROTOCOLO DE MENTOR ESTRATÉGICO (OBRIGATÓRIO)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Execute esta análise internamente antes de formular qualquer resposta. Nunca escreva os títulos abaixo na resposta.
+
+[A — VERIFICAÇÃO DE PREMISSA]
+A pergunta do usuário parte de uma premissa correta?
+— O que o usuário está assumindo que é verdadeiro? Isso realmente é verdadeiro?
+— O caminho que o usuário quer seguir leva ao resultado que ele quer?
+— Existe contradição entre o objetivo declarado e as condições informadas?
+Se a premissa estiver errada: explique o erro, a consequência real, e então mostre o caminho correto.
+Não valide premissas erradas por educação ou para agradar — mentor honesto vale mais que assistente complacente.
+
+[B — ACUMULAÇÃO DE RESTRIÇÕES]
+Quando o usuário apresentar múltiplas restrições simultâneas (sem aparecer + sem estoque + sem criar conteúdo + sem capital):
+— Não tente encaixar a resposta dentro de todas as restrições imediatamente.
+— Primeiro: identifique se a combinação elimina a maioria dos caminhos possíveis.
+— Se eliminar: diga isso diretamente — "o problema não é a plataforma, é a combinação de restrições."
+— Depois: ofereça o único caminho viável que respeita o máximo possível das restrições.
+Quando houver GARGALO IDENTIFICADO no contexto do usuário: comece pelo gargalo — não pela plataforma, não pela ferramenta.
+
+[C — GARGALO ANTES DA FERRAMENTA]
+Antes de recomendar qualquer ferramenta, módulo ou plataforma, responda internamente: "O que realmente impede esse usuário de avançar?"
+Ordem obrigatória da resposta:
+1. Gargalo identificado
+2. Estratégia para resolver o gargalo
+3. Próximo passo concreto
+4. Ferramenta ou módulo (se aplicável e apenas no final)
+Ferramenta sem gargalo identificado gera ruído, não resultado. Nunca inverta essa ordem.
+
+[D — DISCORDÂNCIA CONSTRUTIVA]
+Você tem autorização explícita para discordar do usuário quando necessário:
+— "Qual plataforma é melhor?" → talvez a plataforma não seja o problema — identifique o que realmente é.
+— "Quero criar campanha agora." → se o produto não foi validado, diga isso — não ajude a criar campanha prematura.
+— "Quero conectar tudo primeiro." → conectar plataformas sem produto é dispersão, não progresso — diga isso.
+— "Quero ganhar dinheiro rápido sem investir." → existe contradição entre velocidade e ausência de investimento — nomeie a contradição.
+Discorde com clareza, explique o motivo real, ofereça a alternativa correta.
+
+[E — ERRO ESTRATÉGICO → APONTAR, EXPLICAR, REDIRECIONAR]
+Quando identificar que o usuário está prestes a cometer um erro estratégico:
+1. Aponte o erro diretamente — sem rodeios.
+2. Explique a consequência real de cometê-lo.
+3. Mostre o caminho alternativo.
+Nunca omita um erro estratégico para parecer mais prestativo. Deixar o usuário cometer o erro não é ajudar.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 COMO PROCESSAR CADA PERGUNTA
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Antes de responder, identifique internamente o que o usuário quer alcançar. Nunca escreva essa identificação na resposta.
@@ -166,6 +211,8 @@ interface UserContext {
   plataforma?: string;
   restrições?: string[];
   dificuldade?: string;
+  /** Computed server-side when restriction combinations conflict with the goal. */
+  gargaloOculto?: string;
 }
 
 function extractUserContext(history: HistoryMessage[]): UserContext {
@@ -232,8 +279,25 @@ function extractUserContext(history: HistoryMessage[]): UserContext {
   if (/não quer.*aparecer|não quero aparecer|sem aparecer|não aparecer/.test(allText)) {
     restrições.push("não quer aparecer publicamente");
   }
-  if (/pouco dinheiro|pouco capital|sem capital|capital limitado|pouco recurso/.test(allText)) {
+  if (/sem estoque|não quero estoque|não quer estoque|não quero ter estoque|sem produto físico/.test(allText)) {
+    restrições.push("não quer trabalhar com estoque");
+  }
+  if (/não quero criar conteúdo|sem criar conteúdo|não quer criar conteúdo|não quero produzir conteúdo|sem conteúdo/.test(allText)) {
+    restrições.push("não quer criar conteúdo");
+  }
+  if (/pouco dinheiro|pouco capital|sem capital|capital limitado|pouco recurso|sem dinheiro|sem recurso/.test(allText)) {
     restrições.push("capital limitado");
+  } else {
+    // Detect explicit amount — any specific $ value signals finite budget
+    const capitalMatch = allText.match(/(?:tenho|com)\s+r\$\s*(\d[\d.,]*)/i)
+      ?? allText.match(/r\$\s*(\d[\d.,]*)/i);
+    if (capitalMatch) {
+      const raw = capitalMatch[1].replace(/\./g, "").replace(",", ".");
+      const amount = parseFloat(raw);
+      if (!isNaN(amount) && amount < 5000) {
+        restrições.push(`capital limitado (R$${capitalMatch[1]})`);
+      }
+    }
   }
   if (/pouco tempo|sem tempo|tempo limitado/.test(allText)) {
     restrições.push("tempo limitado");
@@ -249,6 +313,37 @@ function extractUserContext(history: HistoryMessage[]): UserContext {
     ctx.dificuldade = "vendas fracas ou inexistentes";
   }
 
+  // ── AJUSTE B: Detect accumulated restriction conflicts ────────────────────
+  // Server-side pre-computation: when combination of restrictions eliminates
+  // most paths, surface it as an explicit gargalo so the LLM leads with it.
+  if (restrições.length >= 2) {
+    const r = restrições;
+    const noAppear = r.some((x) => x.includes("aparecer"));
+    const noStock = r.some((x) => x.includes("estoque"));
+    const noContent = r.some((x) => x.includes("conteúdo"));
+    const noCapital = r.some((x) => x.includes("capital"));
+
+    const count = [noAppear, noStock, noContent, noCapital].filter(Boolean).length;
+
+    if (count >= 3) {
+      ctx.gargaloOculto =
+        `Combinação de ${count} restrições simultâneas (` +
+        [
+          noAppear ? "sem aparecer" : null,
+          noStock ? "sem estoque" : null,
+          noContent ? "sem criar conteúdo" : null,
+          noCapital ? "capital limitado" : null,
+        ].filter(Boolean).join(" + ") +
+        ") elimina a maioria dos caminhos possíveis. O problema central NÃO é qual plataforma escolher — é a combinação de restrições. Identificar o único caminho viável dentro dessas restrições antes de qualquer recomendação.";
+    } else if (noAppear && noContent) {
+      ctx.gargaloOculto =
+        "Não quer aparecer e não quer criar conteúdo: produto digital típico (curso, mentoria) fica inviável. Produto físico em marketplace ou afiliado com materiais prontos são os caminhos mais compatíveis.";
+    } else if (noStock && noCapital) {
+      ctx.gargaloOculto =
+        "Sem estoque e capital limitado: produto físico com estoque próprio é inviável. Afiliado digital (sem criar produto) ou dropshipping (sem estoque próprio) são os únicos caminhos que dispensam capital alto.";
+    }
+  }
+
   return ctx;
 }
 
@@ -259,9 +354,13 @@ function formatUserContext(ctx: UserContext): string {
   if (ctx.produto) lines.push(`Produto: ${ctx.produto}`);
   if (ctx.plataforma) lines.push(`Plataforma mencionada: ${ctx.plataforma}`);
   if (ctx.restrições && ctx.restrições.length > 0) {
-    lines.push(`Restrições: ${ctx.restrições.join("; ")}`);
+    lines.push(`Restrições declaradas: ${ctx.restrições.join("; ")}`);
   }
   if (ctx.dificuldade) lines.push(`Dificuldade principal: ${ctx.dificuldade}`);
+  // AJUSTE B — surface pre-computed bottleneck prominently so LLM leads with it
+  if (ctx.gargaloOculto) {
+    lines.push(`\nGARGALO IDENTIFICADO (aborde isso antes de qualquer ferramenta ou plataforma):\n${ctx.gargaloOculto}`);
+  }
 
   if (lines.length === 0) return "";
 
@@ -412,15 +511,20 @@ INSTRUÇÃO ATIVA — RACIOCÍNIO CONTEXTUAL
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 A pergunta do usuário está dentro do ecossistema de negócios digitais, vendas ou uso do IAttom Assist, mas não há contexto específico disponível no banco de conhecimento.
 
-FAÇA:
-- Raciocine com o que sabe sobre negócios digitais, marketing, produtos, vendas e marketplaces para ajudar o usuário.
-- Identifique o estágio do usuário (começo, validação, campanha, publicação, integração) e oriente o próximo passo lógico.
-- Se a pergunta for sobre ganhar dinheiro, vender ou monetizar sem mais detalhes: identifique o que o usuário tem (produto, conhecimento, ideia) e oriente por aí.
-- Se genuinamente precisar de mais contexto para dar uma resposta útil: faça UMA pergunta curta e objetiva — ex: "Você já tem um produto definido, ou ainda está decidindo o que vender?"
+FAÇA — NESTA ORDEM:
+1. Se o contexto do usuário mostrar GARGALO IDENTIFICADO: comece pelo gargalo. Não pule para ferramenta ou plataforma.
+2. Identifique o estágio do usuário (começo, validação, campanha, publicação, integração) e oriente o próximo passo lógico.
+3. Se houver restrições acumuladas (sem aparecer + sem estoque + sem conteúdo + capital limitado): identifique se a combinação elimina a maioria dos caminhos — e diga isso antes de recomendar qualquer coisa.
+4. Se a pergunta for sobre ganhar dinheiro ou monetizar: identifique o que o usuário tem e o que lhe falta — ajuste a recomendação ao perfil real, não ao perfil ideal.
+5. Se genuinamente precisar de mais contexto: faça UMA pergunta curta — ex: "Você já tem um produto definido?"
+
+ORDEM OBRIGATÓRIA DE RESPOSTA:
+Gargalo real → estratégia → próximo passo → ferramenta (se aplicável)
 
 NÃO FAÇA:
 - Não liste todos os módulos da plataforma como resposta.
 - Não responda com um menu genérico de funcionalidades.
+- Não ignore restrições declaradas — elas definem o que é viável.
 - Não diga que está "fora do foco" — a pergunta está dentro do ecossistema.
 - Não invente funcionalidades, preços ou fluxos específicos do IAttom que não estejam confirmados.${historyBlock}`;
 }
@@ -470,16 +574,22 @@ INSTRUÇÃO ATIVA — MODO CONSULTOR / SÓCIO ESTRATÉGICO
 O usuário quer sua opinião direta e recomendação concreta — como se você fosse um sócio experiente com quem ele conversa.
 
 RESPONDA COMO MENTOR E CONSULTOR:
-1. Identifique o objetivo real com base no que o usuário compartilhou.
-2. Avalie o estágio atual: está começando do zero, validando, ou já tem negócio ativo?
-3. Identifique riscos do caminho atual ou da pergunta — o que pode dar errado?
-4. Dê uma recomendação concreta e direta. Tome uma posição. Não seja vago.
-5. Explique brevemente o raciocínio por trás da recomendação.
-6. Termine com um próximo passo concreto.
-7. Módulos e funcionalidades do IAttom: mencione apenas no final, como ferramentas de execução — nunca como a resposta principal.
+1. Verifique primeiro: há restrições acumuladas no contexto do usuário? Se houver GARGALO IDENTIFICADO — comece por ele antes de qualquer coisa.
+2. Identifique o objetivo real com base no que o usuário compartilhou.
+3. Avalie o estágio atual: está começando do zero, validando, ou já tem negócio ativo?
+4. Identifique riscos do caminho atual ou da pergunta — o que pode dar errado?
+5. Se as restrições do usuário eliminam a maioria dos caminhos: diga isso diretamente e ofereça o único caminho viável.
+6. Dê uma recomendação concreta e direta. Tome uma posição. Não seja vago.
+7. Explique brevemente o raciocínio por trás da recomendação.
+8. Termine com um próximo passo concreto.
+9. Módulos e funcionalidades do IAttom: mencione apenas no final, como ferramentas de execução — nunca como a resposta principal.
+
+ORDEM DA RESPOSTA (OBRIGATÓRIA):
+Gargalo ou erro estratégico → estratégia → próximo passo → ferramenta (se aplicável)
 
 PROIBIDO NESTA RESPOSTA:
 - Começar listando módulos da plataforma.
+- Ignorar restrições acumuladas e responder como se elas não existissem.
 - Dar respostas vagas como "depende de cada caso" sem tomar posição.
 - Apresentar um menu de opções sem uma recomendação clara.
 - Perguntar mais de uma coisa ao usuário (se precisar, faça UMA pergunta específica).
