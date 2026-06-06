@@ -98,9 +98,9 @@ Regras obrigatórias:
 - Estruturado com contexto claro + instruções + critérios de qualidade
 - Não usar placeholders como [produto] ou [nicho]
 
-Responda exatamente neste formato (duas linhas, sem mais nada):
-TITULO: [título conciso, máximo 60 caracteres]
-PROMPT: [o prompt completo aqui, pode ter múltiplas linhas]`;
+Responda exatamente neste formato, sem colchetes, sem explicações adicionais:
+TITULO: escreva o título aqui
+PROMPT: escreva o prompt completo aqui`;
 
   try {
     const completion = await openai.chat.completions.create({
@@ -109,8 +109,7 @@ PROMPT: [o prompt completo aqui, pode ter múltiplas linhas]`;
         { role: "system", content: systemMsg },
         { role: "user", content: `Tipo: ${tipo}\nAssunto: ${subject}` },
       ],
-      temperature: 0.7,
-      max_tokens: 900,
+      max_completion_tokens: 4000,
     });
 
     const raw = (completion.choices[0]?.message?.content ?? "").trim();
