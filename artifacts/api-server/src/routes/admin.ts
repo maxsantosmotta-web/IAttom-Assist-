@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, ilike, count, desc, and, gte, or, isNull } from "drizzle-orm";
+import { eq, ilike, count, desc, and, gte, or, isNull, ne, sql } from "drizzle-orm";
 import { db, users, projectsTable, historyTable, creditsTransactions, waitlistTable, feedbackTable } from "@workspace/db";
 import { requireAdmin } from "../middlewares/requireAdmin";
 import {
@@ -202,17 +202,45 @@ router.get("/admin/analytics", requireAdmin, async (_req, res): Promise<void> =>
   const totalP = totalProjectsRes.count;
   const now = new Date();
 
-  const userGrowth = Array.from({ length: 7 }, (_, i) => {
+  const sixMonthsAgo = new Date(now);
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+  sixMonthsAgo.setDate(1);
+  sixMonthsAgo.setHours(0, 0, 0, 0);
+
+  const [newUsersByMonth, newProjectsByMonth] = await Promise.all([
+    db.select({
+      month: sql<string>`date_trunc('month', ${users.createdAt})::text`,
+      total: count(),
+    })
+    .from(users)
+    .where(gte(users.createdAt, sixMonthsAgo))
+    .groupBy(sql`date_trunc('month', ${users.createdAt})`)
+    .orderBy(sql`date_trunc('month', ${users.createdAt})`),
+
+    db.select({
+      month: sql<string>`date_trunc('month', ${projectsTable.createdAt})::text`,
+      total: count(),
+    })
+    .from(projectsTable)
+    .where(gte(projectsTable.createdAt, sixMonthsAgo))
+    .groupBy(sql`date_trunc('month', ${projectsTable.createdAt})`)
+    .orderBy(sql`date_trunc('month', ${projectsTable.createdAt})`),
+  ]);
+
+  const uMap = new Map(newUsersByMonth.map((r) => [r.month.slice(0, 7), r.total]));
+  const pMap = new Map(newProjectsByMonth.map((r) => [r.month.slice(0, 7), r.total]));
+
+  const userGrowth = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(now);
-    d.setMonth(d.getMonth() - (6 - i));
-    const fraction = (i + 1) / 7;
+    d.setMonth(d.getMonth() - (5 - i));
+    d.setDate(1);
+    const key = d.toISOString().slice(0, 7);
     return {
-      month: d.toLocaleString("default", { month: "short", year: "2-digit" }),
-      users: Math.max(0, Math.round(totalU * fraction * (0.82 + (i * 0.03)))),
-      projects: Math.max(0, Math.round(totalP * fraction * (0.78 + (i * 0.04)))),
+      month: d.toLocaleString("pt-BR", { month: "short", year: "2-digit" }),
+      users: uMap.get(key) ?? 0,
+      projects: pMap.get(key) ?? 0,
     };
   });
-  userGrowth[6] = { ...userGrowth[6], users: totalU, projects: totalP };
 
   const moduleRows = await db
     .select({ module: historyTable.module, count: count() })
@@ -412,6 +440,76 @@ router.patch("/admin/feedback/:id", requireAdmin, async (req, res): Promise<void
 
   if (!entry) { res.status(404).json({ error: "Not found" }); return; }
   res.json({ entry });
+});
+
+/* ── GET /admin/subscriptions — lista usuários com planos pagos ─────────────── */
+router.get("/admin/subscriptions", requireAdmin, async (req, res): Promise<void> => {
+  const limit = Math.min(parseInt((req.query.limit as string) || "100", 10), 200);
+
+  const paidUsers = await db.select({
+    id:                      users.id,
+    clerkId:                 users.clerkId,
+    email:                   users.email,
+    name:                    users.name,
+    plan:                    users.plan,
+    stripeCustomerId:        users.stripeCustomerId,
+    stripeSubscriptionId:    users.stripeSubscriptionId,
+    stripeSubscriptionStatus: users.stripeSubscriptionStatus,
+    createdAt:               users.createdAt,
+  })
+  .from(users)
+  .where(ne(users.plan, "free"))
+  .orderBy(desc(users.createdAt))
+  .limit(limit);
+
+  type SubRow = (typeof paidUsers)[number] & {
+    currentPeriodEnd: string | null;
+    cancelAtPeriodEnd: boolean;
+  };
+
+  let enriched: SubRow[] = paidUsers.map((u) => ({
+    ...u,
+    currentPeriodEnd: null,
+    cancelAtPeriodEnd: false,
+  }));
+
+  try {
+    const customerIds = paidUsers
+      .map((u) => u.stripeCustomerId)
+      .filter((id): id is string => !!id);
+
+    if (customerIds.length > 0) {
+      const result = await db.execute(
+        sql`SELECT customer, current_period_end, cancel_at_period_end
+            FROM stripe.subscriptions
+            WHERE customer IN (${sql.join(customerIds.map((id) => sql`${id}`), sql`, `)})
+              AND status IN ('active', 'trialing')
+            ORDER BY created DESC`,
+      );
+
+      type StripeRow = { customer: string; current_period_end: number | null; cancel_at_period_end: boolean };
+      const stripeMap = new Map<string, { currentPeriodEnd: string | null; cancelAtPeriodEnd: boolean }>();
+      for (const row of result.rows as StripeRow[]) {
+        if (!stripeMap.has(row.customer)) {
+          stripeMap.set(row.customer, {
+            currentPeriodEnd: row.current_period_end
+              ? new Date(row.current_period_end * 1000).toISOString()
+              : null,
+            cancelAtPeriodEnd: !!row.cancel_at_period_end,
+          });
+        }
+      }
+
+      enriched = enriched.map((u) => {
+        const s = u.stripeCustomerId ? stripeMap.get(u.stripeCustomerId) : undefined;
+        return s ? { ...u, ...s } : u;
+      });
+    }
+  } catch {
+    // stripe schema not yet available — return DB-only data
+  }
+
+  res.json({ subscriptions: enriched, total: enriched.length });
 });
 
 export default router;

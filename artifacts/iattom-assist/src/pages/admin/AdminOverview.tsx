@@ -74,6 +74,19 @@ const PLAN_COLORS: Record<string, string> = {
 const BASE = (import.meta.env.BASE_URL as string).replace(/\/$/, "");
 
 /* ─── types ──────────────────────────────────────────────────────── */
+interface SubscriptionRow {
+  id: number;
+  clerkId: string;
+  email: string;
+  name: string | null;
+  plan: string;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  stripeSubscriptionStatus: string | null;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+}
+
 interface GrowthStats {
   mrr: number;
   activeSubscribers: number;
@@ -162,6 +175,9 @@ export function AdminOverview() {
   const [growthLoading, setGrowthLoading] = useState(true);
   const [growthTick, setGrowthTick]       = useState(0);
 
+  const [subs, setSubs]           = useState<SubscriptionRow[]>([]);
+  const [subsLoading, setSubsLoading] = useState(true);
+
   useEffect(() => {
     setGrowthLoading(true);
     (async () => {
@@ -173,6 +189,23 @@ export function AdminOverview() {
         });
         if (res.ok) setGrowthStats(await res.json() as GrowthStats);
       } finally { setGrowthLoading(false); }
+    })();
+  }, [growthTick, getToken]);
+
+  useEffect(() => {
+    setSubsLoading(true);
+    (async () => {
+      try {
+        const token = await getToken();
+        const res = await fetch(`${BASE}/api/admin/subscriptions`, {
+          headers: { Authorization: `Bearer ${token}` },
+          credentials: "include",
+        });
+        if (res.ok) {
+          const data = await res.json() as { subscriptions: SubscriptionRow[] };
+          setSubs(data.subscriptions);
+        }
+      } finally { setSubsLoading(false); }
     })();
   }, [growthTick, getToken]);
 
@@ -463,6 +496,98 @@ export function AdminOverview() {
                   <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, color: "#71717a" }} />
                 </AreaChart>
               </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* ══════════════════════════════════════════════════════════ */}
+      {/* SEÇÃO: ASSINATURAS                                       */}
+      {/* ══════════════════════════════════════════════════════════ */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.30 }}>
+        <SectionLabel>Assinaturas</SectionLabel>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.32 }}
+      >
+        <Card className="bg-[#111111] border-white/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-primary" />
+              Assinantes com Plano Pago
+              <span className="text-[10px] text-zinc-600 font-normal ml-auto">
+                {subsLoading ? "..." : `${subs.length} registro${subs.length !== 1 ? "s" : ""}`}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {subsLoading ? (
+              <div className="p-4 space-y-2">
+                {[...Array(4)].map((_, i) => (
+                  <Skeleton key={i} className="h-8 w-full bg-white/5 rounded" />
+                ))}
+              </div>
+            ) : subs.length === 0 ? (
+              <div className="h-24 flex items-center justify-center">
+                <p className="text-xs text-muted-foreground">Nenhuma assinatura paga registrada.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-white/5">
+                      <th className="text-left text-zinc-500 font-medium px-4 py-2.5">Usuário</th>
+                      <th className="text-left text-zinc-500 font-medium px-4 py-2.5">Plano</th>
+                      <th className="text-left text-zinc-500 font-medium px-4 py-2.5">Status Stripe</th>
+                      <th className="text-left text-zinc-500 font-medium px-4 py-2.5">Período Atual</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {subs.map((s) => (
+                      <tr key={s.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
+                        <td className="px-4 py-2.5">
+                          <p className="text-zinc-200 font-medium truncate max-w-[200px]">{s.name ?? s.email}</p>
+                          <p className="text-zinc-500 truncate max-w-[200px]">{s.email}</p>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${
+                            s.plan === "agency"   ? "bg-purple-400/10 text-purple-300 border border-purple-400/20" :
+                            s.plan === "business" ? "bg-emerald-400/10 text-emerald-300 border border-emerald-400/20" :
+                            "bg-primary/10 text-primary border border-primary/20"
+                          }`}>
+                            {s.plan}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <span className={`inline-flex items-center gap-1.5 font-medium ${
+                            s.stripeSubscriptionStatus === "active"   ? "text-emerald-400" :
+                            s.stripeSubscriptionStatus === "trialing" ? "text-blue-400"    :
+                            s.stripeSubscriptionStatus                ? "text-zinc-400"    :
+                            "text-zinc-600"
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                              s.stripeSubscriptionStatus === "active"   ? "bg-emerald-400" :
+                              s.stripeSubscriptionStatus === "trialing" ? "bg-blue-400"    :
+                              "bg-zinc-600"
+                            }`} />
+                            {s.stripeSubscriptionStatus ?? "sem assinatura"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-zinc-400">
+                          {s.currentPeriodEnd
+                            ? new Date(s.currentPeriodEnd).toLocaleDateString("pt-BR")
+                            : "—"}
+                          {s.cancelAtPeriodEnd && (
+                            <span className="ml-2 text-rose-400 font-medium">cancela</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </CardContent>
         </Card>

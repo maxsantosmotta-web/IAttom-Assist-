@@ -1,6 +1,6 @@
 // ─── Shared utilities for all integration modules ────────────────────────────
 
-export type IntegrationId = "meta" | "shopee" | "ml" | "hotmart" | "kiwify";
+export type IntegrationId = "meta" | "shopee" | "ml" | "hotmart" | "kiwify" | "tiktok";
 
 export interface IntegrationHealthStatus {
   id: IntegrationId;

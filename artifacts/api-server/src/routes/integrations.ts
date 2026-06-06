@@ -12,8 +12,10 @@ import {
   hotmartEvents,
   kiwifyConfig,
   kiwifyEvents,
+  tiktokConfig,
   userMlConnections,
   userHotmartConnections,
+  userTiktokConnections,
 } from "@workspace/db";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
 import {
@@ -36,12 +38,13 @@ const router: IRouter = Router();
 // ─── GET /integrations/status — all 6 integrations (DB-based, for frontend) ──
 router.get("/integrations/status", requireAdmin, async (req, res): Promise<void> => {
   try {
-    const [meta, shopee, ml, hotmart, kiwify, mlActiveConns, hotmartActiveConns] = await Promise.all([
+    const [meta, shopee, ml, hotmart, kiwify, tiktok, mlActiveConns, hotmartActiveConns, tiktokActiveConns] = await Promise.all([
       db.select().from(metaConfig).limit(1).then((r) => r[0] ?? null),
       db.select().from(shopeeConfig).limit(1).then((r) => r[0] ?? null),
       db.select().from(mlConfig).limit(1).then((r) => r[0] ?? null),
       db.select().from(hotmartConfig).limit(1).then((r) => r[0] ?? null),
       db.select().from(kiwifyConfig).limit(1).then((r) => r[0] ?? null),
+      db.select().from(tiktokConfig).limit(1).then((r) => r[0] ?? null),
       db.select({ id: userMlConnections.id })
         .from(userMlConnections)
         .where(eq(userMlConnections.isActive, true))
@@ -50,11 +53,16 @@ router.get("/integrations/status", requireAdmin, async (req, res): Promise<void>
         .from(userHotmartConnections)
         .where(eq(userHotmartConnections.isActive, true))
         .limit(1),
+      db.select({ id: userTiktokConnections.id })
+        .from(userTiktokConnections)
+        .where(eq(userTiktokConnections.isActive, true))
+        .limit(1),
     ]);
 
     // isActive reflects real user OAuth connections, not just the platform flag
     const mlIsActive      = mlActiveConns.length > 0;
     const hotmartIsActive = hotmartActiveConns.length > 0;
+    const tiktokIsActive  = tiktokActiveConns.length > 0;
 
     res.json([
       resolveIntegrationStatus(meta, "meta", "Meta (IG + FB)", {
@@ -75,6 +83,12 @@ router.get("/integrations/status", requireAdmin, async (req, res): Promise<void>
         extraInfo: kiwify?.storeId ? `Store: ${kiwify.storeId}` : null,
         tokenExpired: kiwify?.tokenExpiry ? tokenIsExpired(kiwify.tokenExpiry) : false,
       }),
+      resolveIntegrationStatus(
+        tiktok ? { ...tiktok, isActive: tiktokIsActive } : null,
+        "tiktok",
+        "TikTok",
+        { environment: tiktok?.environment ?? null },
+      ),
     ]);
   } catch (err) {
     req.log.error({ err }, "integrations: failed to fetch status");
