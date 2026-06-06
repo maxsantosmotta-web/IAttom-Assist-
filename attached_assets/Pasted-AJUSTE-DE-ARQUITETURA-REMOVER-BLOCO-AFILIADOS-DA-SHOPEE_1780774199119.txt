@@ -1,0 +1,128 @@
+AJUSTE DE ARQUITETURA — REMOVER BLOCO "AFILIADOS" DA SHOPEE
+
+NÃO MEXER EM HOTMART.
+NÃO MEXER EM MERCADO LIVRE.
+NÃO MEXER EM TIKTOK.
+NÃO MEXER EM FACEBOOK.
+NÃO MEXER EM INSTAGRAM.
+NÃO MEXER EM KIWIFY.
+NÃO MEXER NO PAINEL ADM.
+
+ALTERAR APENAS O MÓDULO SHOPEE (USER).
+
+━━━━━━━━━━━━━━━━━━━━━━
+OBJETIVO
+━━━━━━━━━━━━━━━━━━━━━━
+
+Remover o bloco "Afiliados" da plataforma Shopee.
+
+Esta é uma decisão de arquitetura e padronização.
+
+O bloco atualmente funciona apenas como armazenamento local de links.
+
+Ele:
+
+- não sincroniza produtos;
+- não publica anúncios;
+- não gera automação;
+- não monitora desempenho;
+- não cria campanhas automaticamente;
+- não possui integração operacional real.
+
+Na prática ele funciona apenas como uma lista local de links.
+
+━━━━━━━━━━━━━━━━━━━━━━
+JUSTIFICATIVA
+━━━━━━━━━━━━━━━━━━━━━━
+
+Todas as demais plataformas também possuem programas de afiliados:
+
+- Hotmart
+- Mercado Livre
+- TikTok
+- Shopee
+
+Manter um bloco exclusivo de afiliados apenas na Shopee quebra a padronização da plataforma.
+
+O foco do IAttom deve permanecer:
+
+- Criar
+- Publicar
+- Automatizar
+- Monitorar
+
+Não armazenar links.
+
+━━━━━━━━━━━━━━━━━━━━━━
+AJUSTE
+━━━━━━━━━━━━━━━━━━━━━━
+
+1. Remover completamente da interface Shopee:
+
+- bloco Afiliados;
+- lista de afiliados;
+- contador de afiliados;
+- cards de afiliados;
+- ações associadas;
+- botão adicionar afiliado;
+- botão remover afiliado;
+- qualquer seção visual relacionada.
+
+2. Remover da navegação interna da Shopee qualquer referência visual ao módulo Afiliados.
+
+3. Se existirem componentes exclusivos usados apenas por esse bloco:
+
+- identificar;
+- remover referências não utilizadas.
+
+4. Se existirem estados locais usados apenas por Afiliados:
+
+- identificar;
+- remover estados órfãos.
+
+5. Se existirem hooks exclusivos usados apenas por Afiliados:
+
+- remover apenas se não forem utilizados em mais nenhum lugar.
+
+━━━━━━━━━━━━━━━━━━━━━━
+IMPORTANTE
+━━━━━━━━━━━━━━━━━━━━━━
+
+NÃO quebrar:
+
+- campanhas;
+- projetos;
+- integrações;
+- sincronizações;
+- monitoramento;
+- status da Shopee.
+
+Remover apenas o que pertence ao bloco Afiliados.
+
+━━━━━━━━━━━━━━━━━━━━━━
+VALIDAÇÃO
+━━━━━━━━━━━━━━━━━━━━━━
+
+Após o ajuste:
+
+1. Abrir módulo Shopee.
+2. Confirmar que não existe mais bloco Afiliados.
+3. Confirmar que não existem espaços vazios.
+4. Confirmar que o layout continua alinhado.
+5. Confirmar que não existem erros de console.
+6. Confirmar funcionamento desktop.
+7. Confirmar funcionamento mobile.
+
+━━━━━━━━━━━━━━━━━━━━━━
+RELATÓRIO FINAL
+━━━━━━━━━━━━━━━━━━━━━━
+
+Entregar:
+
+1. Arquivos alterados.
+2. Componentes removidos.
+3. Estados removidos.
+4. Hooks removidos (se houver).
+5. Confirmação de que nenhuma outra plataforma foi alterada.
+6. Resultado do typecheck.
+7. Confirmação de que a Shopee permanece funcional após a remoção.
