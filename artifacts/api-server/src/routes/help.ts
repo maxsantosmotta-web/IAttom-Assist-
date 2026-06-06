@@ -40,13 +40,31 @@ A pergunta do usuário parte de uma premissa correta?
 Se a premissa estiver errada: explique o erro, a consequência real, e então mostre o caminho correto.
 Não valide premissas erradas por educação ou para agradar — mentor honesto vale mais que assistente complacente.
 
-[B — ACUMULAÇÃO DE RESTRIÇÕES]
-Quando o usuário apresentar múltiplas restrições simultâneas (sem aparecer + sem estoque + sem criar conteúdo + sem capital):
-— Não tente encaixar a resposta dentro de todas as restrições imediatamente.
-— Primeiro: identifique se a combinação elimina a maioria dos caminhos possíveis.
-— Se eliminar: diga isso diretamente — "o problema não é a plataforma, é a combinação de restrições."
-— Depois: ofereça o único caminho viável que respeita o máximo possível das restrições.
-Quando houver GARGALO IDENTIFICADO no contexto do usuário: comece pelo gargalo — não pela plataforma, não pela ferramenta.
+[B — REALITY CHECK (OBRIGATÓRIO ANTES DE RECOMENDAR QUALQUER ESTRATÉGIA)]
+Quando o contexto do usuário mostrar CLASSIFICAÇÃO de viabilidade → use-a como ponto de partida obrigatório.
+Se não houver classificação no contexto: faça a sua própria avaliação interna antes de responder.
+
+Níveis de classificação (nunca escreva os rótulos técnicos na resposta):
+VIÁVEL: objetivo alcançável com os recursos e restrições declarados — responda normalmente
+DIFÍCIL: alcançável mas com atrito relevante — nomeie o atrito antes de recomendar
+MUITO DIFÍCIL: combinação elimina a maioria dos caminhos — existe uma rota mas com baixa probabilidade real de sucesso
+INVIÁVEL NO FORMATO ATUAL: combinação elimina todos os canais ou meios — não há rota honesta sem flexibilizar uma restrição
+
+QUANDO CLASSIFICAR COMO MUITO DIFÍCIL OU INVIÁVEL:
+NÃO invente uma gambiarra.
+NÃO sugira "o único caminho viável" se esse caminho ainda viola as restrições declaradas.
+NÃO recomende contratar alguém, usar materiais prontos de terceiros, ou qualquer recurso que contorne o que o usuário disse não querer.
+
+RESPONDA NESTA SEQUÊNCIA QUANDO MUITO DIFÍCIL OU INVIÁVEL:
+1. Qual é o gargalo
+2. Por que o gargalo existe — qual restrição está causando o bloqueio
+3. Qual restrição precisa ser flexibilizada
+4. Qual seria a rota APÓS essa flexibilização
+
+Exemplos de combinações que levam a INVIÁVEL:
+— Sem conteúdo + sem anúncios: elimina qualquer canal de aquisição — nenhum cliente encontra o produto
+— Capital irrisório (ex: R$50) + meta desproporcional + sem trabalhar: incompatível por definição
+— Sem aparecer + sem conteúdo + sem anúncios + sem estoque: nenhuma forma de gerar valor ou visibilidade
 
 [C — GARGALO ANTES DA FERRAMENTA]
 Antes de recomendar qualquer ferramenta, módulo ou plataforma, responda internamente: "O que realmente impede esse usuário de avançar?"
@@ -285,6 +303,12 @@ function extractUserContext(history: HistoryMessage[]): UserContext {
   if (/não quero criar conteúdo|sem criar conteúdo|não quer criar conteúdo|não quero produzir conteúdo|sem conteúdo/.test(allText)) {
     restrições.push("não quer criar conteúdo");
   }
+  if (/não quero anúncio|não quero pagar anúncio|sem anúncio|sem anúncios|não quero tráfego pago|sem tráfego pago|não quero investir em anúncio/.test(allText)) {
+    restrições.push("não quer anúncios");
+  }
+  if (/sem trabalhar|não quero trabalhar|sem esforço|sem dedicação|de forma passiva|de forma automática|sem fazer nada/.test(allText)) {
+    restrições.push("não quer trabalhar");
+  }
   if (/pouco dinheiro|pouco capital|sem capital|capital limitado|pouco recurso|sem dinheiro|sem recurso/.test(allText)) {
     restrições.push("capital limitado");
   } else {
@@ -313,35 +337,106 @@ function extractUserContext(history: HistoryMessage[]): UserContext {
     ctx.dificuldade = "vendas fracas ou inexistentes";
   }
 
-  // ── AJUSTE B: Detect accumulated restriction conflicts ────────────────────
-  // Server-side pre-computation: when combination of restrictions eliminates
-  // most paths, surface it as an explicit gargalo so the LLM leads with it.
-  if (restrições.length >= 2) {
+  // ── FASE 2.6: REALITY CHECK — classify viability from restrictions ─────────
+  // Server-side classification injected into prompt so the LLM applies the
+  // correct response mode without having to infer it.
+  if (restrições.length >= 1) {
     const r = restrições;
-    const noAppear = r.some((x) => x.includes("aparecer"));
-    const noStock = r.some((x) => x.includes("estoque"));
+    const noAppear  = r.some((x) => x.includes("aparecer"));
+    const noStock   = r.some((x) => x.includes("estoque"));
     const noContent = r.some((x) => x.includes("conteúdo"));
+    const noAds     = r.some((x) => x.includes("anúncios"));
     const noCapital = r.some((x) => x.includes("capital"));
+    const noWork    = r.some((x) => x.includes("trabalhar"));
 
-    const count = [noAppear, noStock, noContent, noCapital].filter(Boolean).length;
+    // If BOTH primary acquisition channels are blocked → no way to reach customers
+    const noAcquisitionChannel = noContent && noAds;
+    // If BOTH primary inputs to any business model are eliminated → no starting point
+    const noInputsAtAll = noWork && noCapital;
 
-    if (count >= 3) {
+    const hardCount = [noAppear, noStock, noContent, noAds, noCapital, noWork].filter(Boolean).length;
+
+    const activeList = [
+      noAppear  ? "sem aparecer"        : null,
+      noStock   ? "sem estoque"         : null,
+      noContent ? "sem criar conteúdo"  : null,
+      noAds     ? "sem anúncios"        : null,
+      noCapital ? "capital limitado"    : null,
+      noWork    ? "não quer trabalhar"  : null,
+    ].filter(Boolean).join(" + ");
+
+    if (noAcquisitionChannel || noInputsAtAll || hardCount >= 5) {
+      // ── INVIÁVEL NO FORMATO ATUAL ────────────────────────────────────────
+      let restricaoCausadora: string;
+      let aposFlexibilizar: string;
+
+      if (noAcquisitionChannel) {
+        restricaoCausadora =
+          "sem conteúdo + sem anúncios elimina qualquer canal de aquisição — " +
+          "sem canal, nenhum cliente encontra o produto independente de qual plataforma seja usada";
+        aposFlexibilizar =
+          "aceitar criar conteúdo simples (sem aparecer necessariamente) " +
+          "OU aceitar investir em anúncios mesmo que básico — qualquer um dos dois reabre o caminho";
+      } else if (noInputsAtAll) {
+        restricaoCausadora =
+          "sem trabalhar + sem capital são as duas únicas entradas de qualquer modelo de negócio — " +
+          "eliminar as duas não deixa ponto de apoio para nenhum modelo";
+        aposFlexibilizar =
+          "aceitar algum trabalho inicial, mesmo que mínimo, é o pré-requisito — " +
+          "sem isso não existe modelo de negócio funcional";
+      } else {
+        restricaoCausadora =
+          `a combinação de ${hardCount} restrições (${activeList}) ` +
+          "fecha todos os caminhos escaláveis";
+        aposFlexibilizar =
+          "identificar qual restrição tem menor custo de flexibilizar e começar por ela";
+      }
+
       ctx.gargaloOculto =
-        `Combinação de ${count} restrições simultâneas (` +
-        [
-          noAppear ? "sem aparecer" : null,
-          noStock ? "sem estoque" : null,
-          noContent ? "sem criar conteúdo" : null,
-          noCapital ? "capital limitado" : null,
-        ].filter(Boolean).join(" + ") +
-        ") elimina a maioria dos caminhos possíveis. O problema central NÃO é qual plataforma escolher — é a combinação de restrições. Identificar o único caminho viável dentro dessas restrições antes de qualquer recomendação.";
-    } else if (noAppear && noContent) {
+        `CLASSIFICAÇÃO: INVIÁVEL NO FORMATO ATUAL\n` +
+        `Restrições ativas: ${activeList}\n` +
+        `Restrição causadora do bloqueio: ${restricaoCausadora}\n` +
+        `Após flexibilizar: ${aposFlexibilizar}\n` +
+        `INSTRUÇÃO OBRIGATÓRIA AO RESPONDER: NÃO invente gambiarra. NÃO sugira rota que viole as restrições declaradas. ` +
+        `Explique o gargalo → por que existe → qual restrição precisa ceder → qual seria a rota depois.`;
+
+    } else if (hardCount >= 3) {
+      // ── MUITO DIFÍCIL ────────────────────────────────────────────────────
+      const cheapFlex = !noContent
+        ? "aceitar criar conteúdo simples (sem aparecer necessariamente)"
+        : !noAds
+          ? "aceitar um investimento mínimo em anúncios (mesmo R$200-500 já muda o cenário)"
+          : "flexibilizar a restrição de capital — mesmo investimento pequeno altera as probabilidades";
+
       ctx.gargaloOculto =
-        "Não quer aparecer e não quer criar conteúdo: produto digital típico (curso, mentoria) fica inviável. Produto físico em marketplace ou afiliado com materiais prontos são os caminhos mais compatíveis.";
-    } else if (noStock && noCapital) {
-      ctx.gargaloOculto =
-        "Sem estoque e capital limitado: produto físico com estoque próprio é inviável. Afiliado digital (sem criar produto) ou dropshipping (sem estoque próprio) são os únicos caminhos que dispensam capital alto.";
+        `CLASSIFICAÇÃO: MUITO DIFÍCIL\n` +
+        `Restrições ativas: ${activeList}\n` +
+        `A combinação elimina a maioria dos caminhos. Existe uma rota, mas com probabilidade real de resultado baixa.\n` +
+        `A menor flexibilização que mudaria o cenário: ${cheapFlex}\n` +
+        `INSTRUÇÃO AO RESPONDER: Informe a dificuldade real antes de sugerir qualquer rota. ` +
+        `Não apresente nenhum caminho como fácil ou provável — ele não é.`;
+
+    } else if (hardCount === 2) {
+      // ── DIFÍCIL ──────────────────────────────────────────────────────────
+      if (noAppear && noContent) {
+        ctx.gargaloOculto =
+          `CLASSIFICAÇÃO: DIFÍCIL\n` +
+          `Sem aparecer + sem criar conteúdo: produto digital típico (curso, mentoria) fica limitado. ` +
+          `Produto físico em marketplace ou afiliado com materiais prontos são compatíveis — mas exigem esforço em aquisição.`;
+      } else if (noStock && noCapital) {
+        ctx.gargaloOculto =
+          `CLASSIFICAÇÃO: DIFÍCIL\n` +
+          `Sem estoque + capital limitado: produto físico próprio fica inviável. ` +
+          `Afiliado digital ou dropshipping são rotas compatíveis — ambas exigem trabalho em aquisição.`;
+      } else if (noContent && noCapital) {
+        ctx.gargaloOculto =
+          `CLASSIFICAÇÃO: DIFÍCIL\n` +
+          `Sem criar conteúdo + capital limitado: as duas formas primárias de aquisição ficam comprometidas. ` +
+          `Algum tipo de esforço mínimo (orgânico ou investimento básico) será necessário.`;
+      }
+      // Other 2-restriction combos are DIFÍCIL but don't need specific gargalo text
     }
+    // VIÁVEL: 0-1 restrictions → no gargaloOculto → LLM responds normally
   }
 
   return ctx;

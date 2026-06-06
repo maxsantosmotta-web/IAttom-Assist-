@@ -165,6 +165,8 @@ const DOMAIN_KEYWORDS = [
   "devo", "vale a pena", "faz sentido",
   // Follow-up / option exploration
   "opção", "opções", "alternativa",
+  // Acquisition channel queries
+  "anúncio", "anúncios", "tráfego",
 ];
 
 function isDomainQuery(text: string): boolean {
