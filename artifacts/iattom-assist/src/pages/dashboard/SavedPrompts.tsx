@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookMarked, Copy, Trash2, Plus, Search, Check, X, RefreshCw,
-  Sparkles, FileText, Megaphone, CheckCircle, Video,
+  Sparkles, FileText, Megaphone, CheckCircle, Video, Wand2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,17 +39,30 @@ const MODULE_META: Record<string, { label: string; color: string; icon: React.El
 
 const fadeUp = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } };
 
+type CreateMode = "manual" | "guided";
+
 export function SavedPrompts() {
   const [prompts, setPrompts] = useState<SavedPrompt[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
+  const [createMode, setCreateMode] = useState<CreateMode>("guided");
   const [copiedId, setCopiedId] = useState<number | null>(null);
+
+  // shared fields (used by both modes)
   const [newTitle, setNewTitle] = useState("");
   const [newPrompt, setNewPrompt] = useState("");
   const [newModule, setNewModule] = useState("product_discovery");
   const [saving, setSaving] = useState(false);
+
+  // guided-mode fields
+  const [guidedProduct, setGuidedProduct] = useState("");
+  const [guidedObjective, setGuidedObjective] = useState("");
+  const [guidedObservations, setGuidedObservations] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [generated, setGenerated] = useState(false);
+
   const { toast } = useToast();
 
   const fetchPrompts = async () => {
@@ -70,6 +83,24 @@ export function SavedPrompts() {
     return matchModule && matchSearch;
   });
 
+  const resetCreateForm = () => {
+    setCreating(false);
+    setNewTitle("");
+    setNewPrompt("");
+    setNewModule("product_discovery");
+    setGuidedProduct("");
+    setGuidedObjective("");
+    setGuidedObservations("");
+    setGenerated(false);
+  };
+
+  const switchMode = (mode: CreateMode) => {
+    setCreateMode(mode);
+    setNewTitle("");
+    setNewPrompt("");
+    setGenerated(false);
+  };
+
   const copyPrompt = (p: SavedPrompt) => {
     navigator.clipboard.writeText(p.prompt).then(() => {
       setCopiedId(p.id);
@@ -84,6 +115,36 @@ export function SavedPrompts() {
     toast({ description: "Prompt excluído" });
   };
 
+  const generatePrompt = async () => {
+    if (!guidedProduct.trim() || !guidedObjective.trim()) return;
+    setGenerating(true);
+    setGenerated(false);
+    try {
+      const res = await fetch("/api/prompts/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product: guidedProduct.trim(),
+          objective: guidedObjective.trim(),
+          module: newModule,
+          observations: guidedObservations.trim() || undefined,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json() as { title: string; prompt: string };
+        setNewTitle(data.title);
+        setNewPrompt(data.prompt);
+        setGenerated(true);
+        toast({ description: "Prompt gerado. Revise e salve." });
+      } else {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        toast({ description: err.error ?? "Erro ao gerar prompt. Tente novamente.", variant: "destructive" });
+      }
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const savePrompt = async () => {
     if (!newTitle.trim() || !newPrompt.trim()) return;
     setSaving(true);
@@ -94,17 +155,18 @@ export function SavedPrompts() {
         body: JSON.stringify({ title: newTitle.trim(), prompt: newPrompt.trim(), module: newModule }),
       });
       if (res.ok) {
-        const created = await res.json();
+        const created = await res.json() as SavedPrompt;
         setPrompts((prev) => [created, ...prev]);
-        setCreating(false);
-        setNewTitle("");
-        setNewPrompt("");
+        resetCreateForm();
         toast({ description: "Prompt salvo" });
       }
     } finally {
       setSaving(false);
     }
   };
+
+  const canGenerate = guidedProduct.trim().length > 0 && guidedObjective.trim().length > 0;
+  const canSave = newTitle.trim().length > 0 && newPrompt.trim().length > 0;
 
   return (
     <div className="space-y-6 pb-4">
@@ -148,44 +210,195 @@ export function SavedPrompts() {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="bg-[#0f0f0f] border border-primary/20 rounded-2xl p-5 space-y-3">
-              <div className="flex items-center justify-between mb-1">
+            <div className="bg-[#0f0f0f] border border-primary/20 rounded-2xl p-5 space-y-4">
+              {/* Form header + close */}
+              <div className="flex items-center justify-between">
                 <p className="text-sm font-bold text-white">Novo Prompt</p>
-                <button onClick={() => setCreating(false)} className="text-zinc-600 hover:text-zinc-400 transition-colors">
+                <button onClick={resetCreateForm} className="text-zinc-600 hover:text-zinc-400 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <Input
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="Título do prompt..."
-                className="bg-[#111111] border-white/[0.08] text-zinc-200 placeholder:text-zinc-700 h-9"
-              />
-              <Textarea
-                value={newPrompt}
-                onChange={(e) => setNewPrompt(e.target.value)}
-                placeholder="Cole seu prompt aqui..."
-                className="bg-[#111111] border-white/[0.08] text-zinc-200 placeholder:text-zinc-700 h-28 resize-none text-sm"
-              />
-              <div className="flex items-center gap-3">
+
+              {/* Mode toggle */}
+              <div className="flex items-center gap-1 p-1 bg-black/40 rounded-lg w-fit">
+                <button
+                  onClick={() => switchMode("guided")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all duration-150 ${
+                    createMode === "guided"
+                      ? "bg-primary text-black"
+                      : "text-zinc-500 hover:text-zinc-300"
+                  }`}
+                >
+                  <Wand2 className="w-3 h-3" />
+                  Criação Guiada
+                </button>
+                <button
+                  onClick={() => switchMode("manual")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all duration-150 ${
+                    createMode === "manual"
+                      ? "bg-primary text-black"
+                      : "text-zinc-500 hover:text-zinc-300"
+                  }`}
+                >
+                  <FileText className="w-3 h-3" />
+                  Manual
+                </button>
+              </div>
+
+              {/* Module selector — shared */}
+              <div className="flex items-center gap-2">
+                <label className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold shrink-0">Módulo</label>
                 <select
                   value={newModule}
                   onChange={(e) => setNewModule(e.target.value)}
-                  className="flex-1 h-9 text-xs rounded-lg bg-[#111111] border border-white/[0.08] text-zinc-300 px-3 outline-none"
+                  className="flex-1 h-8 text-xs rounded-lg bg-[#111111] border border-white/[0.08] text-zinc-300 px-3 outline-none"
                 >
                   {MODULE_OPTIONS.filter((m) => m.value !== "all").map((m) => (
                     <option key={m.value} value={m.value}>{m.label}</option>
                   ))}
                 </select>
-                <Button
-                  onClick={savePrompt}
-                  disabled={!newTitle.trim() || !newPrompt.trim() || saving}
-                  size="sm"
-                  className="bg-primary text-black hover:bg-primary/90 font-bold text-xs h-9 px-4"
-                >
-                  {saving ? "Salvando..." : "Salvar Prompt"}
-                </Button>
               </div>
+
+              {/* GUIDED MODE */}
+              {createMode === "guided" && (
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key="guided"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="space-y-3"
+                  >
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold">Produto / Nicho</label>
+                        <Input
+                          value={guidedProduct}
+                          onChange={(e) => setGuidedProduct(e.target.value)}
+                          placeholder="Ex: suplementos fitness, curso de inglês..."
+                          className="bg-[#111111] border-white/[0.08] text-zinc-200 placeholder:text-zinc-700 h-9 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold">Objetivo</label>
+                        <Input
+                          value={guidedObjective}
+                          onChange={(e) => setGuidedObjective(e.target.value)}
+                          placeholder="Ex: encontrar produtos com alta demanda..."
+                          className="bg-[#111111] border-white/[0.08] text-zinc-200 placeholder:text-zinc-700 h-9 text-xs"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold">
+                        Observações <span className="text-zinc-700 normal-case tracking-normal">(opcional)</span>
+                      </label>
+                      <Input
+                        value={guidedObservations}
+                        onChange={(e) => setGuidedObservations(e.target.value)}
+                        placeholder="Ex: público iniciante, sem investimento inicial..."
+                        className="bg-[#111111] border-white/[0.08] text-zinc-200 placeholder:text-zinc-700 h-9 text-xs"
+                      />
+                    </div>
+
+                    <Button
+                      onClick={() => void generatePrompt()}
+                      disabled={!canGenerate || generating}
+                      size="sm"
+                      className="bg-primary text-black hover:bg-primary/90 font-bold text-xs h-9 w-full gap-2"
+                    >
+                      <Wand2 className={`w-3.5 h-3.5 ${generating ? "animate-spin" : ""}`} />
+                      {generating ? "Gerando prompt..." : "Gerar Prompt"}
+                    </Button>
+
+                    {/* Generated result — editable before save */}
+                    {generated && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="space-y-3 pt-2 border-t border-white/[0.06]"
+                      >
+                        <p className="text-[10px] text-primary font-bold uppercase tracking-widest">Prompt gerado — revise e salve</p>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold">Título</label>
+                          <Input
+                            value={newTitle}
+                            onChange={(e) => setNewTitle(e.target.value)}
+                            className="bg-[#111111] border-white/[0.08] text-zinc-200 h-9 text-xs"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold">Prompt</label>
+                          <Textarea
+                            value={newPrompt}
+                            onChange={(e) => setNewPrompt(e.target.value)}
+                            className="bg-[#111111] border-white/[0.08] text-zinc-200 h-40 resize-none text-xs leading-relaxed"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            onClick={() => void generatePrompt()}
+                            disabled={generating}
+                            size="sm"
+                            variant="outline"
+                            className="border-white/10 text-zinc-400 hover:text-white text-xs h-9 gap-1.5"
+                          >
+                            <Wand2 className="w-3 h-3" />
+                            Gerar novamente
+                          </Button>
+                          <Button
+                            onClick={() => void savePrompt()}
+                            disabled={!canSave || saving}
+                            size="sm"
+                            className="bg-primary text-black hover:bg-primary/90 font-bold text-xs h-9 px-5 ml-auto"
+                          >
+                            {saving ? "Salvando..." : "Salvar Prompt"}
+                          </Button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              )}
+
+              {/* MANUAL MODE */}
+              {createMode === "manual" && (
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key="manual"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="space-y-3"
+                  >
+                    <Input
+                      value={newTitle}
+                      onChange={(e) => setNewTitle(e.target.value)}
+                      placeholder="Título do prompt..."
+                      className="bg-[#111111] border-white/[0.08] text-zinc-200 placeholder:text-zinc-700 h-9"
+                    />
+                    <Textarea
+                      value={newPrompt}
+                      onChange={(e) => setNewPrompt(e.target.value)}
+                      placeholder="Cole seu prompt aqui..."
+                      className="bg-[#111111] border-white/[0.08] text-zinc-200 placeholder:text-zinc-700 h-28 resize-none text-sm"
+                    />
+                    <div className="flex justify-end">
+                      <Button
+                        onClick={() => void savePrompt()}
+                        disabled={!canSave || saving}
+                        size="sm"
+                        className="bg-primary text-black hover:bg-primary/90 font-bold text-xs h-9 px-4"
+                      >
+                        {saving ? "Salvando..." : "Salvar Prompt"}
+                      </Button>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              )}
             </div>
           </motion.div>
         )}

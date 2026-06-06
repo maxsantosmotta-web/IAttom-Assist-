@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import { db, savedPromptsTable } from "@workspace/db";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
+import { openai } from "@workspace/integrations-openai-ai-server";
 import { z } from "zod/v4";
 
 const router: IRouter = Router();
@@ -43,6 +44,71 @@ router.post("/prompts", requireAuth, async (req, res): Promise<void> => {
     .values({ clerkUserId, title, prompt, module })
     .returning();
   res.status(201).json(created);
+});
+
+const GeneratePromptBody = z.object({
+  product: z.string().min(1).max(200),
+  objective: z.string().min(1).max(500),
+  module: z.string().min(1),
+  observations: z.string().max(500).optional(),
+});
+
+const MODULE_CONTEXT: Record<string, string> = {
+  product_discovery: "Buscar Produtos — analisa nichos e encontra produtos com potencial de venda em marketplaces",
+  product_validation: "Validar Produtos — avalia se um produto tem demanda real, concorrência saudável e potencial de lucro",
+  campaign: "Criar Campanha — gera campanhas de marketing completas com ângulos, copies e estratégia de tráfego",
+  content: "Criar Conteúdo — gera textos, posts, artigos e conteúdos para canais digitais",
+  creative: "Gerador Criativo — gera descrições detalhadas para imagens publicitárias e criativos visuais",
+  video_script: "Scripts de Vídeo — cria roteiros completos para vídeos de vendas, reels e anúncios em vídeo",
+};
+
+router.post("/prompts/generate", requireAuth, async (req, res): Promise<void> => {
+  const parsed = GeneratePromptBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Dados inválidos" });
+    return;
+  }
+  const { product, objective, module, observations } = parsed.data;
+  const moduleCtx = MODULE_CONTEXT[module] ?? module;
+
+  const systemMsg = `Você é especialista em criar prompts profissionais para sistemas de IA voltados a negócios digitais em português brasileiro.
+Sua tarefa é gerar um prompt completo e pronto para uso no módulo: ${moduleCtx}.
+
+Regras do prompt gerado:
+- Específico para o produto/nicho informado — sem generalizações
+- Orientado diretamente ao objetivo declarado
+- Linguagem direta e profissional em português brasileiro
+- Estruturado com contexto + instruções claras + critérios de análise
+- Imediatamente utilizável — sem placeholders vagos como "[produto]"
+- Entre 80 e 300 palavras
+- Título conciso e descritivo (máximo 60 caracteres)
+
+Responda APENAS com JSON válido neste formato exato, sem markdown, sem explicações adicionais:
+{"title":"Título do prompt aqui","prompt":"O prompt completo aqui"}`;
+
+  const userMsg = `Produto/Nicho: ${product}\nObjetivo: ${objective}${observations ? `\nObservações: ${observations}` : ""}`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-5-mini",
+      messages: [
+        { role: "system", content: systemMsg },
+        { role: "user", content: userMsg },
+      ],
+      temperature: 0.7,
+      max_tokens: 800,
+    });
+
+    const raw = (completion.choices[0]?.message?.content ?? "").trim();
+    const jsonStart = raw.indexOf("{");
+    const jsonEnd = raw.lastIndexOf("}");
+    if (jsonStart === -1 || jsonEnd === -1) throw new Error("no json");
+    const result = JSON.parse(raw.slice(jsonStart, jsonEnd + 1)) as { title?: string; prompt?: string };
+    if (!result.title || !result.prompt) throw new Error("invalid shape");
+    res.json({ title: result.title, prompt: result.prompt });
+  } catch {
+    res.status(500).json({ error: "Falha ao gerar prompt. Tente novamente." });
+  }
 });
 
 router.delete("/prompts/:id", requireAuth, async (req, res): Promise<void> => {
