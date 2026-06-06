@@ -93,6 +93,28 @@ const PieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) 
   );
 };
 
+interface CreditAnalytics {
+  byFeature: Array<{ feature: string | null; total: number; ops: number }>;
+  byDay:     Array<{ day: string; total: number }>;
+  byPlan:    Array<{ plan: string; total: number; userCount: number }>;
+  days:      number;
+}
+
+const FEATURE_PT: Record<string, string> = {
+  campaign_creation:  "Criar Campanha",
+  creative_generator: "Gerar Criativo",
+  content_creation:   "Criar Conteúdo",
+  video_script:       "Script de Vídeo",
+  product_discovery:  "Descoberta de Produto",
+  product_validation: "Validação de Produto",
+  marketing:          "Marketing",
+  prompt:             "Prompt",
+};
+
+const PLAN_PT_SHORT: Record<string, string> = {
+  free: "Gratuito", pro: "Pro", business: "Empresarial", agency: "Agência",
+};
+
 interface GrowthStats {
   mrr: number;
   activeSubscribers: number;
@@ -139,6 +161,22 @@ export function AdminAnalytics() {
       } finally {
         setGrowthLoading(false);
       }
+    })();
+  }, [growthTick, getToken]);
+
+  const [creditsData, setCreditsData]     = useState<CreditAnalytics | null>(null);
+  const [creditsLoading, setCreditsLoading] = useState(true);
+
+  useEffect(() => {
+    setCreditsLoading(true);
+    (async () => {
+      try {
+        const token = await getToken();
+        const res = await fetch(`${basePath}/api/admin/credits-analytics`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) setCreditsData(await res.json() as CreditAnalytics);
+      } finally { setCreditsLoading(false); }
     })();
   }, [growthTick, getToken]);
 
@@ -424,6 +462,136 @@ export function AdminAnalytics() {
             </CardContent>
           </Card>
         </motion.div>
+      )}
+
+      {/* ── ANÁLISE DE CRÉDITOS ──────────────────────────────────── */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.28 }}>
+        <p className="text-[10px] text-primary uppercase tracking-widest font-medium">Análise de Créditos</p>
+        <h3 className="text-base font-semibold text-white mt-0.5">Consumo dos últimos {creditsData?.days ?? 30} dias</h3>
+      </motion.div>
+
+      {creditsLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Skeleton className="h-52 bg-white/5 rounded-xl" />
+          <Skeleton className="h-52 bg-white/5 rounded-xl" />
+          <Skeleton className="h-40 col-span-full bg-white/5 rounded-xl" />
+        </div>
+      ) : !creditsData || (creditsData.byFeature.length === 0 && creditsData.byDay.length === 0) ? (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+          <Card className="bg-[#111111] border-white/5">
+            <CardContent className="flex items-center justify-center h-28">
+              <p className="text-xs text-muted-foreground">Nenhum consumo de créditos registrado nesse período.</p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Consumo por módulo */}
+            {creditsData.byFeature.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }}>
+                <Card className="bg-[#111111] border-white/5 h-full">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-primary" /> Consumo por Módulo
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2.5">
+                      {creditsData.byFeature.map((f, i) => {
+                        const label = FEATURE_PT[f.feature ?? ""] ?? f.feature ?? "Desconhecido";
+                        const maxTotal = creditsData.byFeature[0]?.total ?? 1;
+                        const pct = Math.round((f.total / maxTotal) * 100);
+                        return (
+                          <div key={f.feature ?? i} className="flex items-center gap-3">
+                            <p className="text-xs text-muted-foreground w-36 shrink-0 truncate">{label}</p>
+                            <div className="flex-1 bg-white/5 rounded-full h-2">
+                              <div className="h-2 rounded-full transition-all duration-700"
+                                style={{ width: `${pct}%`, backgroundColor: FEATURE_COLORS[i % FEATURE_COLORS.length] }} />
+                            </div>
+                            <p className="text-xs font-semibold text-white w-12 text-right shrink-0">{f.total.toLocaleString("pt-BR")}</p>
+                            <p className="text-xs text-muted-foreground w-12 text-right shrink-0">{f.ops} ops</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* Consumo por plano */}
+            {creditsData.byPlan.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.32 }}>
+                <Card className="bg-[#111111] border-white/5 h-full">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                      <Users className="w-4 h-4 text-primary" /> Consumo por Plano
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={180}>
+                      <BarChart data={creditsData.byPlan.map((p) => ({ ...p, planLabel: PLAN_PT_SHORT[p.plan] ?? p.plan }))} margin={{ top: 4, right: 8, left: -16, bottom: 0 }} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+                        <XAxis type="number" tick={{ fill: "#71717a", fontSize: 10 }} />
+                        <YAxis type="category" dataKey="planLabel" tick={{ fill: "#71717a", fontSize: 11 }} width={80} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar dataKey="total" name="Créditos" radius={[0, 4, 4, 0]}>
+                          {creditsData.byPlan.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {creditsData.byPlan.map((p, i) => (
+                        <div key={p.plan} className="flex items-center gap-2 text-xs">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                          <span className="text-zinc-400 truncate">{PLAN_PT_SHORT[p.plan] ?? p.plan}</span>
+                          <span className="text-zinc-600 ml-auto">{p.userCount} usr</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Consumo diário */}
+          {creditsData.byDay.length > 0 && (
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.34 }}>
+              <Card className="bg-[#111111] border-white/5">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-primary" /> Consumo Diário de Créditos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <AreaChart
+                      data={creditsData.byDay.map((d) => ({
+                        ...d,
+                        dayLabel: new Date(d.day).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+                      }))}
+                      margin={{ top: 4, right: 8, left: -16, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient id="credGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={GOLD} stopOpacity={0.3} />
+                          <stop offset="95%" stopColor={GOLD} stopOpacity={0.02} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                      <XAxis dataKey="dayLabel" tick={{ fill: "#71717a", fontSize: 10 }} interval="preserveStartEnd" />
+                      <YAxis tick={{ fill: "#71717a", fontSize: 10 }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Area type="monotone" dataKey="total" name="Créditos" stroke={GOLD} strokeWidth={2} fill="url(#credGrad)" dot={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </>
       )}
     </div>
   );

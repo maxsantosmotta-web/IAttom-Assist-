@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Loader2, Users, Edit2, Zap, Plus, Minus, RefreshCw } from "lucide-react";
+import { Search, Loader2, Users, Edit2, Zap, Plus, Minus, RefreshCw, Eye, Activity, CreditCard, FolderOpen } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,9 @@ import {
   getListAdminUsersQueryKey,
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@clerk/react";
+
+const BASE = (import.meta.env.BASE_URL as string).replace(/\/$/, "");
 
 const planColors: Record<string, string> = {
   free: "text-zinc-400 bg-zinc-400/10 border-zinc-400/20",
@@ -31,10 +34,10 @@ const planColors: Record<string, string> = {
 };
 
 const planLabels: Record<string, string> = {
-  free: "Start",
-  pro: "Completo",
-  business: "Premium",
-  agency: "Pro",
+  free: "Gratuito",
+  pro: "Pro",
+  business: "Empresarial",
+  agency: "Agência",
 };
 
 const roleColors: Record<string, string> = {
@@ -68,6 +71,44 @@ type CreditAdjust = {
   description: string;
 };
 
+type UserProfile = AdminUser & {
+  stripeSubscriptionStatus: string | null;
+  currentPeriodEnd:   string | null;
+  cancelAtPeriodEnd:  boolean;
+  recentCredits: Array<{
+    id: number; amount: number; type: string; feature: string | null;
+    description: string | null; balanceBefore: number; balanceAfter: number; createdAt: string;
+  }>;
+  recentActivity: Array<{
+    id: number; action: string; module: string; projectName: string | null; createdAt: string;
+  }>;
+};
+
+const roleLabels: Record<string, string> = { user: "Usuário", admin: "Admin" };
+
+const statusPT: Record<string, string> = {
+  active:             "Ativa",
+  trialing:           "Em Teste",
+  canceled:           "Cancelada",
+  past_due:           "Pagamento Pendente",
+  incomplete:         "Incompleta",
+  incomplete_expired: "Expirada",
+  unpaid:             "Não Pago",
+  paused:             "Pausada",
+};
+
+const planPT: Record<string, string> = {
+  free: "Gratuito", pro: "Pro", business: "Empresarial", agency: "Agência",
+};
+
+const creditTypePT: Record<string, string> = {
+  initial:    "Inicial",
+  credit:     "Crédito",
+  debit:      "Débito",
+  adjustment: "Ajuste",
+  refund:     "Reembolso",
+};
+
 export function AdminUsers() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -91,6 +132,26 @@ export function AdminUsers() {
   const { data, isLoading, isFetching, refetch } = useListAdminUsers(params, {
     query: { queryKey: getListAdminUsersQueryKey(params) },
   });
+
+  const { getToken } = useAuth();
+  const [profileUser, setProfileUser] = useState<AdminUser | null>(null);
+  const [profileData, setProfileData] = useState<UserProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  const openProfile = (user: AdminUser) => {
+    setProfileUser(user);
+    setProfileData(null);
+    setProfileLoading(true);
+    void (async () => {
+      try {
+        const token = await getToken();
+        const res = await fetch(`${BASE}/api/admin/users/${user.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) setProfileData(await res.json() as UserProfile);
+      } finally { setProfileLoading(false); }
+    })();
+  };
 
   const openEdit = (user: AdminUser) => {
     setEditingUser(user);
@@ -129,10 +190,10 @@ export function AdminUsers() {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListAdminUsersQueryKey() });
           setCreditAdjust(null);
-          toast({ description: `Credits ${amount > 0 ? "added" : "removed"} successfully.` });
+          toast({ description: `Créditos ${amount > 0 ? "adicionados" : "removidos"} com sucesso.` });
         },
         onError: () => {
-          toast({ description: "Failed to adjust credits.", variant: "destructive" });
+          toast({ description: "Falha ao ajustar créditos.", variant: "destructive" });
         },
       },
     );
@@ -249,8 +310,8 @@ export function AdminUsers() {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <Badge variant="outline" className={`text-xs capitalize ${roleColors[user.role]}`}>
-                            {user.role}
+                          <Badge variant="outline" className={`text-xs ${roleColors[user.role]}`}>
+                            {roleLabels[user.role] ?? user.role}
                           </Badge>
                         </td>
                         <td className="px-4 py-3">
@@ -262,20 +323,27 @@ export function AdminUsers() {
                         <td className="px-4 py-3 text-right text-muted-foreground text-sm">{user.projectCount}</td>
                         <td className="px-4 py-3 text-right text-muted-foreground text-sm">{user.actionCount}</td>
                         <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                          {new Date(user.createdAt).toLocaleDateString()}
+                          {new Date(user.createdAt).toLocaleDateString("pt-BR")}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
                             <button
+                              onClick={() => openProfile(user)}
+                              title="Ver perfil"
+                              className="text-muted-foreground hover:text-primary transition-colors p-1"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                            <button
                               onClick={() => openCreditAdjust(user)}
-                              title="Adjust credits"
+                              title="Ajustar créditos"
                               className="text-muted-foreground hover:text-primary transition-colors p-1"
                             >
                               <Zap className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => openEdit(user)}
-                              title="Edit user"
+                              title="Editar usuário"
                               className="text-muted-foreground hover:text-primary transition-colors p-1"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
@@ -295,14 +363,14 @@ export function AdminUsers() {
       <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
         <DialogContent className="bg-[#111111] border-white/10 text-white max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-white">Edit User</DialogTitle>
+            <DialogTitle className="text-white">Editar Usuário</DialogTitle>
             {editingUser && (
               <p className="text-xs text-muted-foreground">{editingUser.email}</p>
             )}
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Role</Label>
+              <Label className="text-xs text-muted-foreground">Função</Label>
               <Select
                 value={editState.role}
                 onValueChange={(v) => setEditState((s) => ({ ...s, role: v as "user" | "admin" }))}
@@ -311,13 +379,13 @@ export function AdminUsers() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-[#111111] border-white/10">
-                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="user">Usuário</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Plan</Label>
+              <Label className="text-xs text-muted-foreground">Plano</Label>
               <Select
                 value={editState.plan}
                 onValueChange={(v) => setEditState((s) => ({ ...s, plan: v as "free" | "pro" | "business" | "agency" }))}
@@ -326,15 +394,15 @@ export function AdminUsers() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-[#111111] border-white/10">
-                  <SelectItem value="free">Start</SelectItem>
-                  <SelectItem value="pro">Completo</SelectItem>
-                  <SelectItem value="business">Premium</SelectItem>
-                  <SelectItem value="agency">Pro</SelectItem>
+                  <SelectItem value="free">Gratuito</SelectItem>
+                  <SelectItem value="pro">Pro</SelectItem>
+                  <SelectItem value="business">Empresarial</SelectItem>
+                  <SelectItem value="agency">Agência</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Credits (direct set)</Label>
+              <Label className="text-xs text-muted-foreground">Créditos (valor direto)</Label>
               <Input
                 type="number"
                 value={editState.credits}
@@ -346,14 +414,14 @@ export function AdminUsers() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setEditingUser(null)} className="text-muted-foreground">
-              Cancel
+              Cancelar
             </Button>
             <Button
               onClick={handleSave}
               disabled={updateUser.isPending}
               className="bg-primary text-black hover:bg-primary/90 font-semibold"
             >
-              {updateUser.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Changes"}
+              {updateUser.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -364,7 +432,7 @@ export function AdminUsers() {
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <Zap className="w-4 h-4 text-primary" />
-              Adjust Credits
+              Ajustar Créditos
             </DialogTitle>
             {creditAdjust && (
               <p className="text-xs text-muted-foreground">{creditAdjust.userEmail}</p>
@@ -372,7 +440,7 @@ export function AdminUsers() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Amount (positive = add, negative = remove)</Label>
+              <Label className="text-xs text-muted-foreground">Valor (positivo = adicionar, negativo = remover)</Label>
               <div className="flex gap-2">
                 <button
                   onClick={() => setCreditAdjust((s) => s ? { ...s, amount: s.amount.startsWith("-") ? s.amount.slice(1) : s.amount } : s)}
@@ -382,7 +450,7 @@ export function AdminUsers() {
                 </button>
                 <Input
                   type="number"
-                  placeholder="e.g. 100 or -50"
+                  placeholder="ex: 100 ou -50"
                   value={creditAdjust?.amount ?? ""}
                   onChange={(e) => setCreditAdjust((s) => s ? { ...s, amount: e.target.value } : s)}
                   className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50 flex-1"
@@ -400,9 +468,9 @@ export function AdminUsers() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Reason / Description</Label>
+              <Label className="text-xs text-muted-foreground">Motivo / Descrição</Label>
               <Input
-                placeholder="e.g. Manual top-up by admin"
+                placeholder="ex: Recarga manual pelo admin"
                 value={creditAdjust?.description ?? ""}
                 onChange={(e) => setCreditAdjust((s) => s ? { ...s, description: e.target.value } : s)}
                 className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50"
@@ -411,7 +479,7 @@ export function AdminUsers() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setCreditAdjust(null)} className="text-muted-foreground">
-              Cancel
+              Cancelar
             </Button>
             <Button
               onClick={handleCreditAdjust}
@@ -424,9 +492,164 @@ export function AdminUsers() {
               }
               className="bg-primary text-black hover:bg-primary/90 font-semibold"
             >
-              {adjustCredits.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply Adjustment"}
+              {adjustCredits.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Aplicar Ajuste"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* ── DIALOG: Perfil Expandido ──────────────────────────────── */}
+      <Dialog open={!!profileUser} onOpenChange={(open) => { if (!open) { setProfileUser(null); setProfileData(null); } }}>
+        <DialogContent className="bg-[#0d0d0d] border-white/10 text-white max-w-2xl w-full max-h-[90vh] overflow-y-auto p-0">
+          {/* Header */}
+          <div className="p-6 border-b border-white/5">
+            <div className="flex items-start gap-4">
+              <div className="w-14 h-14 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                <span className="text-xl font-bold text-primary">
+                  {((profileUser?.name ?? profileUser?.email ?? "U")
+                    .split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2))}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg font-bold text-white truncate">{profileUser?.name ?? "—"}</h2>
+                <p className="text-sm text-zinc-400 truncate">{profileUser?.email}</p>
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <Badge variant="outline" className={`text-xs ${roleColors[profileUser?.role ?? "user"]}`}>
+                    {roleLabels[profileUser?.role ?? "user"] ?? profileUser?.role}
+                  </Badge>
+                  <Badge variant="outline" className={`text-xs ${planColors[profileUser?.plan ?? "free"]}`}>
+                    {planPT[profileUser?.plan ?? "free"] ?? profileUser?.plan}
+                  </Badge>
+                  {profileData?.stripeSubscriptionStatus && (
+                    <span className={`text-xs font-medium flex items-center gap-1 ${
+                      profileData.stripeSubscriptionStatus === "active"   ? "text-emerald-400" :
+                      profileData.stripeSubscriptionStatus === "trialing" ? "text-blue-400"    :
+                      "text-zinc-400"
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        profileData.stripeSubscriptionStatus === "active"   ? "bg-emerald-400" :
+                        profileData.stripeSubscriptionStatus === "trialing" ? "bg-blue-400"    :
+                        "bg-zinc-500"
+                      }`} />
+                      {statusPT[profileData.stripeSubscriptionStatus] ?? profileData.stripeSubscriptionStatus}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {profileLoading ? (
+            <div className="p-6 space-y-3">
+              <Skeleton className="h-16 w-full bg-white/5 rounded-xl" />
+              <Skeleton className="h-32 w-full bg-white/5 rounded-xl" />
+              <Skeleton className="h-32 w-full bg-white/5 rounded-xl" />
+            </div>
+          ) : profileData ? (
+            <div className="p-6 space-y-5">
+              {/* KPI tiles */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { icon: Zap,        label: "Créditos",        value: profileData.credits.toLocaleString("pt-BR"),      color: "text-primary" },
+                  { icon: FolderOpen, label: "Projetos",        value: profileData.projectCount.toLocaleString("pt-BR"), color: "text-blue-400" },
+                  { icon: Activity,   label: "Ações",           value: profileData.actionCount.toLocaleString("pt-BR"),  color: "text-emerald-400" },
+                  { icon: CreditCard, label: "Cadastro",        value: new Date(profileData.createdAt).toLocaleDateString("pt-BR"), color: "text-zinc-400" },
+                ].map(({ icon: Icon, label, value, color }) => (
+                  <div key={label} className="bg-[#111111] border border-white/5 rounded-xl p-3">
+                    <Icon className={`w-4 h-4 ${color} mb-2`} />
+                    <p className="text-base font-bold text-white">{value}</p>
+                    <p className="text-[10px] text-zinc-500 mt-0.5">{label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {profileData.currentPeriodEnd && (
+                <div className="text-xs text-zinc-500 bg-white/[0.02] border border-white/5 rounded-lg px-3 py-2">
+                  Próxima renovação: <span className="text-zinc-300 font-medium">{new Date(profileData.currentPeriodEnd).toLocaleDateString("pt-BR")}</span>
+                  {profileData.cancelAtPeriodEnd && <span className="ml-2 text-rose-400 font-medium">— cancelamento no vencimento</span>}
+                </div>
+              )}
+
+              {/* Histórico de créditos */}
+              <div>
+                <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest mb-2">Últimas Transações de Créditos</p>
+                {profileData.recentCredits.length === 0 ? (
+                  <p className="text-xs text-zinc-600 italic">Nenhuma transação registrada.</p>
+                ) : (
+                  <div className="rounded-xl border border-white/5 overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-white/5 bg-white/[0.02]">
+                          <th className="text-left text-zinc-500 px-3 py-2 font-medium">Tipo</th>
+                          <th className="text-left text-zinc-500 px-3 py-2 font-medium">Módulo</th>
+                          <th className="text-right text-zinc-500 px-3 py-2 font-medium">Valor</th>
+                          <th className="text-right text-zinc-500 px-3 py-2 font-medium">Saldo</th>
+                          <th className="text-left text-zinc-500 px-3 py-2 font-medium">Data</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {profileData.recentCredits.map((tx) => (
+                          <tr key={tx.id} className="border-b border-white/5 last:border-0">
+                            <td className="px-3 py-2">
+                              <span className={`${tx.amount >= 0 ? "text-emerald-400" : "text-rose-400"} font-medium`}>
+                                {creditTypePT[tx.type] ?? tx.type}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-zinc-400 truncate max-w-[100px]">
+                              {tx.feature ?? tx.description ?? "—"}
+                            </td>
+                            <td className={`px-3 py-2 text-right font-mono font-semibold ${tx.amount >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                              {tx.amount >= 0 ? "+" : ""}{tx.amount}
+                            </td>
+                            <td className="px-3 py-2 text-right text-zinc-400 font-mono">{tx.balanceAfter}</td>
+                            <td className="px-3 py-2 text-zinc-500 whitespace-nowrap">
+                              {new Date(tx.createdAt).toLocaleDateString("pt-BR")}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Histórico de atividade */}
+              <div>
+                <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest mb-2">Últimas Atividades</p>
+                {profileData.recentActivity.length === 0 ? (
+                  <p className="text-xs text-zinc-600 italic">Nenhuma atividade registrada.</p>
+                ) : (
+                  <div className="rounded-xl border border-white/5 overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-white/5 bg-white/[0.02]">
+                          <th className="text-left text-zinc-500 px-3 py-2 font-medium">Ação</th>
+                          <th className="text-left text-zinc-500 px-3 py-2 font-medium">Módulo</th>
+                          <th className="text-left text-zinc-500 px-3 py-2 font-medium">Projeto</th>
+                          <th className="text-left text-zinc-500 px-3 py-2 font-medium">Data</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {profileData.recentActivity.map((act) => (
+                          <tr key={act.id} className="border-b border-white/5 last:border-0">
+                            <td className="px-3 py-2 text-zinc-300 truncate max-w-[150px]">{act.action}</td>
+                            <td className="px-3 py-2 text-zinc-400">{act.module}</td>
+                            <td className="px-3 py-2 text-zinc-500 truncate max-w-[100px]">{act.projectName ?? "—"}</td>
+                            <td className="px-3 py-2 text-zinc-500 whitespace-nowrap">
+                              {new Date(act.createdAt).toLocaleDateString("pt-BR")}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="p-6 flex items-center justify-center h-28">
+              <p className="text-xs text-zinc-600">Não foi possível carregar o perfil.</p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

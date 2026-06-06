@@ -53,6 +53,21 @@ const CYAN    = "#22d3ee";
 const FEATURE_COLORS  = [GOLD, PURPLE, EMERALD, BLUE, ORANGE, ROSE, AMBER];
 const FALLBACK_COLORS = [GOLD, BLUE, PURPLE, EMERALD, ROSE, ORANGE, AMBER, CYAN];
 
+const SUB_STATUS_PT: Record<string, string> = {
+  active:             "Ativa",
+  trialing:           "Em Teste",
+  canceled:           "Cancelada",
+  past_due:           "Pagamento Pendente",
+  incomplete:         "Incompleta",
+  incomplete_expired: "Expirada",
+  unpaid:             "Não Pago",
+  paused:             "Pausada",
+};
+
+const SUB_PLAN_PT: Record<string, string> = {
+  free: "Gratuito", pro: "Pro", business: "Empresarial", agency: "Agência",
+};
+
 const FEATURE_NAME_MAP: Record<string, string> = {
   "Product Discovery":  "Descoberta",
   "Product Validation": "Validação",
@@ -557,7 +572,7 @@ export function AdminOverview() {
                             s.plan === "business" ? "bg-emerald-400/10 text-emerald-300 border border-emerald-400/20" :
                             "bg-primary/10 text-primary border border-primary/20"
                           }`}>
-                            {s.plan}
+                            {SUB_PLAN_PT[s.plan] ?? s.plan}
                           </span>
                         </td>
                         <td className="px-4 py-2.5">
@@ -572,7 +587,7 @@ export function AdminOverview() {
                               s.stripeSubscriptionStatus === "trialing" ? "bg-blue-400"    :
                               "bg-zinc-600"
                             }`} />
-                            {s.stripeSubscriptionStatus ?? "sem assinatura"}
+                            {s.stripeSubscriptionStatus ? (SUB_STATUS_PT[s.stripeSubscriptionStatus] ?? s.stripeSubscriptionStatus) : "sem assinatura"}
                           </span>
                         </td>
                         <td className="px-4 py-2.5 text-zinc-400">

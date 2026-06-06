@@ -442,6 +442,92 @@ router.patch("/admin/feedback/:id", requireAdmin, async (req, res): Promise<void
   res.json({ entry });
 });
 
+/* ── GET /admin/users/:id — perfil expandido de um usuário ─────────────────── */
+router.get("/admin/users/:id", requireAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(req.params["id"] as string, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
+
+  const [user] = await db.select().from(users).where(eq(users.id, id));
+  if (!user) { res.status(404).json({ error: "Usuário não encontrado" }); return; }
+
+  const [[pc], [ac], recentCredits, recentActivity] = await Promise.all([
+    db.select({ count: count() }).from(projectsTable).where(eq(projectsTable.clerkUserId, user.clerkId)),
+    db.select({ count: count() }).from(historyTable).where(eq(historyTable.clerkUserId, user.clerkId)),
+    db.select()
+      .from(creditsTransactions)
+      .where(eq(creditsTransactions.clerkUserId, user.clerkId))
+      .orderBy(desc(creditsTransactions.createdAt))
+      .limit(10),
+    db.select()
+      .from(historyTable)
+      .where(and(eq(historyTable.clerkUserId, user.clerkId), isNull(historyTable.deletedAt)))
+      .orderBy(desc(historyTable.createdAt))
+      .limit(10),
+  ]);
+
+  let currentPeriodEnd: string | null = null;
+  let cancelAtPeriodEnd = false;
+  if (user.stripeCustomerId) {
+    try {
+      const result = await db.execute(
+        sql`SELECT current_period_end, cancel_at_period_end
+            FROM stripe.subscriptions
+            WHERE customer = ${user.stripeCustomerId}
+              AND status IN ('active','trialing')
+            ORDER BY created DESC LIMIT 1`,
+      );
+      if (result.rows.length > 0) {
+        const row = result.rows[0] as { current_period_end: number | null; cancel_at_period_end: boolean };
+        currentPeriodEnd = row.current_period_end ? new Date(row.current_period_end * 1000).toISOString() : null;
+        cancelAtPeriodEnd = !!row.cancel_at_period_end;
+      }
+    } catch { /* stripe schema indisponível */ }
+  }
+
+  res.json({ ...user, projectCount: pc.count, actionCount: ac.count, recentCredits, recentActivity, currentPeriodEnd, cancelAtPeriodEnd });
+});
+
+/* ── GET /admin/credits-analytics — consumo de créditos agregado ────────────── */
+router.get("/admin/credits-analytics", requireAdmin, async (req, res): Promise<void> => {
+  const days = Math.min(parseInt((req.query.days as string) || "30", 10), 90);
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  const [byFeature, byDay, byPlan] = await Promise.all([
+    db.select({
+      feature: creditsTransactions.feature,
+      total:   sql<number>`abs(sum(${creditsTransactions.amount}))::int`,
+      ops:     count(),
+    })
+    .from(creditsTransactions)
+    .where(and(gte(creditsTransactions.createdAt, since), sql`${creditsTransactions.amount} < 0`))
+    .groupBy(creditsTransactions.feature)
+    .orderBy(sql`abs(sum(${creditsTransactions.amount})) desc`)
+    .limit(12),
+
+    db.select({
+      day:   sql<string>`date_trunc('day', ${creditsTransactions.createdAt})::text`,
+      total: sql<number>`abs(sum(${creditsTransactions.amount}))::int`,
+    })
+    .from(creditsTransactions)
+    .where(and(gte(creditsTransactions.createdAt, since), sql`${creditsTransactions.amount} < 0`))
+    .groupBy(sql`date_trunc('day', ${creditsTransactions.createdAt})`)
+    .orderBy(sql`date_trunc('day', ${creditsTransactions.createdAt})`),
+
+    db.select({
+      plan:      users.plan,
+      total:     sql<number>`abs(sum(${creditsTransactions.amount}))::int`,
+      userCount: sql<number>`count(distinct ${creditsTransactions.clerkUserId})::int`,
+    })
+    .from(creditsTransactions)
+    .innerJoin(users, eq(users.clerkId, creditsTransactions.clerkUserId))
+    .where(and(gte(creditsTransactions.createdAt, since), sql`${creditsTransactions.amount} < 0`))
+    .groupBy(users.plan)
+    .orderBy(sql`abs(sum(${creditsTransactions.amount})) desc`),
+  ]);
+
+  res.json({ byFeature, byDay, byPlan, days });
+});
+
 /* ── GET /admin/subscriptions — lista usuários com planos pagos ─────────────── */
 router.get("/admin/subscriptions", requireAdmin, async (req, res): Promise<void> => {
   const limit = Math.min(parseInt((req.query.limit as string) || "100", 10), 200);
