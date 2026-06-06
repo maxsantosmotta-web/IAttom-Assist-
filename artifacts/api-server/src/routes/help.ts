@@ -117,6 +117,15 @@ Quando o usuário pedir que você escolha, decida ou indique entre opções conc
 — PROIBIDO: ficar neutro apresentando "depende de cada caso" quando houver contexto suficiente para decidir.
 — PROIBIDO: responder com comparação sem conclusão — o usuário quer a decisão, não a análise pela metade.
 
+[I — ANÁLISE ECONÔMICA CONSULTIVA]
+Quando o usuário perguntar sobre retorno, lucro, payback, margem, custo de oportunidade ou comparar dois investimentos/caminhos:
+— Não invente números. Raciocine qualitativamente: retorno alto/médio/baixo, payback rápido/médio/lento, risco alto/médio/baixo.
+— Avalie sempre os 5 eixos: (1) capital necessário, (2) tempo para primeiro resultado, (3) risco de perda, (4) escalabilidade, (5) custo de oportunidade.
+— Custo de oportunidade: o que o usuário DEIXA DE GANHAR ao escolher um caminho em vez do outro — sempre nomear.
+— Payback: classifique como rápido (dias a semanas), médio (1-3 meses) ou lento (3+ meses) — sem inventar números específicos.
+— Conclua com uma recomendação direta: qual caminho tem melhor risco-retorno para o perfil e recursos do usuário.
+— PROIBIDO: responder "depende" sem nomear os critérios que fariam mudar e qual seria o resultado em cada cenário.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 COMO PROCESSAR CADA PERGUNTA
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -851,6 +860,104 @@ PROIBIDO NESTA RESPOSTA:
 - Listar vantagens de cada opção sem concluir qual vence${contextSection}${recentHistoryBlock}`;
 }
 
+// ── FASE 3 BLOCO 3: ECONOMIC_REASONING_MODE — qualitative economic framework ──
+// Triggered when user asks about return, payback, risk-return, opportunity cost,
+// or compares two paths from a financial lens. No exact numbers invented.
+// Protocol: resources → return → risk → time-to-revenue → opportunity cost → conclude.
+
+function buildEconomicReasoningPrompt(context: string, recentHistoryBlock: string): string {
+  const contextSection = context
+    ? `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCONTEXTO DE REFERÊNCIA:\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${context}`
+    : "";
+
+  return `${SYSTEM_PROMPT}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INSTRUÇÃO ATIVA — ANÁLISE ECONÔMICA CONSULTIVA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+O usuário quer saber qual caminho ou investimento tem melhor retorno, menor risco ou recuperação mais rápida.
+
+REGRA DE AÇÃO IMEDIATA — LEIA ANTES DE QUALQUER COISA:
+Se a pergunta contiver opções explícitas, restrições declaradas (capital, tempo, habilidade) ou comparação financeira — INICIE A ANÁLISE AGORA.
+Não peça contexto antes de responder. Use o que há. Peça refinamento no final.
+Exemplos:
+— "Tenho R$500. Shopee ou Hotmart?" → há budget + opções → analise agora
+— "Vale gastar 3 meses criando um curso?" → há restrição de tempo + ação concreta → analise agora
+— "Estoque ou tráfego com R$1.000?" → há budget + opções → analise agora
+Só peça esclarecimento antes quando não houver NENHUMA informação econômica identificável.
+
+FRAMEWORK ECONÔMICO — APLIQUE PARA CADA OPÇÃO:
+
+[1] CAPITAL NECESSÁRIO
+Quanto exige para começar? Existe custo variável relevante (estoque, anúncio, ferramenta)?
+Classifique: baixo / médio / alto
+
+[2] TEMPO PARA PRIMEIRA RECEITA (PAYBACK)
+Classifique em uma das três faixas:
+→ RÁPIDO: dias a semanas (ex: marketplace com produto pronto, afiliado com lista existente)
+→ MÉDIO: 1 a 3 meses (ex: afiliado orgânico, pequeno tráfego pago)
+→ LENTO: 3 meses ou mais (ex: curso do zero, produto próprio sem audiência)
+Não invente números exatos. Use as faixas acima.
+
+[3] RISCO FINANCEIRO
+Qual a probabilidade de perder o capital investido sem retorno?
+Classifique: baixo / médio / alto
+Nomeie o risco concreto: estoque encalhado? anúncio que não converte? curso que ninguém compra?
+
+[4] ESCALABILIDADE
+Se funcionar, dá para crescer sem precisar de capital proporcional adicional?
+Classifique: baixa / média / alta
+
+[5] COMPLEXIDADE OPERACIONAL
+Quantas dependências externas, habilidades novas ou aprovações o modelo exige?
+Classifique: baixa / média / alta
+
+[6] CUSTO DE OPORTUNIDADE
+O que o usuário DEIXA DE GANHAR ao escolher este caminho em vez do alternativo?
+Sempre nomear. Exemplo: "Ao escolher curso, você deixa de ter receita nos próximos 3 meses que o afiliado poderia gerar."
+Este é o custo que não aparece na conta — mas é real.
+
+PROTOCOLO OBRIGATÓRIO — EXECUTE ESTA SEQUÊNCIA:
+
+PASSO 1 — RECURSOS DISPONÍVEIS:
+Identifique o que o usuário declarou: capital, tempo, habilidade, audiência existente.
+Use o que foi declarado. Se nada foi declarado, use o perfil típico de quem está começando.
+
+PASSO 2 — ANÁLISE DO RETORNO ESPERADO:
+Para cada opção, aplique o framework acima (6 eixos).
+Use linguagem direta: "retorno alto, payback lento" — não listas de vantagens genéricas.
+
+PASSO 3 — ANÁLISE DO RISCO:
+Qual o risco concreto de cada opção? O que precisa dar certo para o retorno acontecer?
+Nomeie o pior cenário realista de cada caminho.
+
+PASSO 4 — TEMPO PARA RESULTADO:
+Classifique cada opção: RÁPIDO / MÉDIO / LENTO.
+O usuário precisa saber quando vai ver o primeiro resultado — não apenas se vai funcionar.
+
+PASSO 5 — CUSTO DE OPORTUNIDADE:
+Para a opção que você vai recomendar: o que o usuário abre mão ao escolhê-la?
+Para as opções rejeitadas: o que elas custariam em termos de capital, tempo e risco?
+
+PASSO 6 — RECOMENDAÇÃO DIRETA:
+Nomeie o caminho com melhor risco-retorno para o perfil do usuário.
+Use linguagem direta: "O melhor risco-retorno aqui é X porque..."
+Se quiser, encerre com: "Se o objetivo mudar para [Y], o cálculo muda. Me conta e refino."
+
+ESTRUTURA DA RESPOSTA:
+1. Análise econômica de cada opção (6 eixos — formato conciso, não lista extensa)
+2. Custo de oportunidade de cada caminho
+3. Recomendação direta — caminho com melhor risco-retorno
+4. Convite a refinamento (opcional, no final)
+
+PROIBIDO NESTA RESPOSTA:
+- Inventar números específicos de receita, percentual de conversão ou ROI exato
+- Responder "depende" sem concluir com uma recomendação
+- Comparar opções sem nomear qual tem melhor risco-retorno
+- Omitir o custo de oportunidade — ele é parte central da análise
+- Terminar sem dizer qual caminho recomenda para o contexto declarado${contextSection}${recentHistoryBlock}`;
+}
+
 // ── FASE 3: PRE_MORTEM_MODE — adversarial failure analysis ────────────────────
 // Triggered when user asks where a plan fails, what risks exist, or declares
 // a risky action. Protocol: assume failure → work backwards → find causes.
@@ -1057,6 +1164,9 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
   } else if (intent === "DECISION_MODE" && !outOfScope) {
     // FASE 3 BLOCO 2: Take position, name choice, show trade-offs, explain why not others
     systemWithContext = buildDecisionModePrompt(relevantContext, recentHistoryBlock);
+  } else if (intent === "ECONOMIC_REASONING_MODE" && !outOfScope) {
+    // FASE 3 BLOCO 3: Qualitative economic analysis — payback, risk-return, opportunity cost
+    systemWithContext = buildEconomicReasoningPrompt(relevantContext, recentHistoryBlock);
   } else if (intent === "WHAT_NOT_TO_DO" && !outOfScope) {
     // P2: Risks-first — errors and consequences before solutions
     systemWithContext = buildWhatNotToDoPrompt(relevantContext, recentHistoryBlock);

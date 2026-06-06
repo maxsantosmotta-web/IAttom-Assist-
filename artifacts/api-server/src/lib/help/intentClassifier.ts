@@ -11,6 +11,7 @@
 export type HelpIntent =
   | "ADVISOR_MODE"
   | "DECISION_MODE"
+  | "ECONOMIC_REASONING_MODE"
   | "WHAT_NOT_TO_DO"
   | "PRIORITIZATION_MODE"
   | "PRE_MORTEM_MODE"
@@ -40,12 +41,13 @@ interface IntentSignals {
  * Consultive intents rank above informational; specific above general.
  */
 const INTENT_PRIORITY: HelpIntent[] = [
-  "ADVISOR_MODE",         // most specific — user explicitly wants a partner/mentor opinion
-  "DECISION_MODE",        // user asks what to choose — takes position, shows trade-offs
-  "WHAT_NOT_TO_DO",       // user wants to avoid mistakes — leads with risks
-  "PRIORITIZATION_MODE",  // user has multiple options — eliminate, rank, justify
-  "PRE_MORTEM_MODE",      // user asks where plan fails / what risks exist — adversarial analysis
-  "PREMISE_CHALLENGE",    // user asks if they should do X — check prerequisites first
+  "ADVISOR_MODE",            // most specific — user explicitly wants a partner/mentor opinion
+  "DECISION_MODE",           // user asks what to choose — takes position, shows trade-offs
+  "ECONOMIC_REASONING_MODE", // user asks about return, payback, risk-return, opportunity cost
+  "WHAT_NOT_TO_DO",          // user wants to avoid mistakes — leads with risks
+  "PRIORITIZATION_MODE",     // user has multiple options — eliminate, rank, justify
+  "PRE_MORTEM_MODE",         // user asks where plan fails / what risks exist — adversarial analysis
+  "PREMISE_CHALLENGE",       // user asks if they should do X — check prerequisites first
   "COMPARE_OPTIONS",
   "INTEGRATION_PURPOSE",
   "START_FROM_ZERO",
@@ -108,6 +110,86 @@ const SIGNALS: Record<Exclude<HelpIntent, "UNKNOWN">, IntentSignals> = {
       "digital ou físico",
     ],
     words: ["decidir", "decisão", "escolher", "escolha"],
+    threshold: 2,
+  },
+
+  // ─── ECONOMIC_REASONING_MODE ──────────────────────────────────────────────
+  // User asks about financial return, payback, risk-return, opportunity cost,
+  // or compares two investments/paths from an economic lens.
+  // Triggers: qualitative economic framework — capital, time-to-revenue, risk,
+  // scalability, opportunity cost, payback speed. No exact numbers invented.
+  // Distinct from DECISION_MODE (which option) — this is about economic quality of options.
+  ECONOMIC_REASONING_MODE: {
+    phrases: [
+      // Return / profit queries
+      "qual dá mais retorno",
+      "qual dá mais lucro",
+      "qual tem mais retorno",
+      "qual tem maior retorno",
+      "qual tem melhor retorno",
+      "qual tem melhor margem",
+      "qual tem mais margem",
+      "maior margem",
+      "mais lucro",
+      "mais retorno",
+      // "Is it worth it?" framing
+      "vale a pena investir",
+      "vale gastar",
+      "compensa investir",
+      "compensa gastar",
+      "vale o investimento",
+      "vale o esforço",
+      // Where does money/time yield more
+      "onde meu dinheiro rende mais",
+      "onde meu capital rende mais",
+      "onde meu tempo rende mais",
+      "onde meu tempo vale mais",
+      "onde vale investir",
+      "em que investir",
+      // Payback / recovery
+      "qual recupera mais rápido",
+      "qual recupera meu investimento",
+      "recuperar o investimento",
+      "recuperar o capital",
+      "qual tem payback",
+      "payback mais rápido",
+      "retorno mais rápido",
+      "qual gera caixa primeiro",
+      "gerar caixa primeiro",
+      "qual gera caixa",
+      // Risk-return
+      "qual tem melhor risco-retorno",
+      "melhor risco-retorno",
+      "risco-retorno",
+      "relação risco",
+      "menor risco com maior retorno",
+      // Explicit investment comparisons
+      "estoque ou tráfego",
+      "tráfego ou estoque",
+      "curso ou afiliado",
+      "afiliado ou curso",
+      "invisto em anúncios ou",
+      "invisto em estoque ou",
+      "invisto no tráfego ou",
+      "shopee ou hotmart",
+      "hotmart ou shopee",
+      "mercado livre ou hotmart",
+      "hotmart ou mercado livre",
+      "marketplace ou hotmart",
+      "físico ou digital",
+      "digital ou físico",
+      "anúncio ou estoque",
+      "estoque ou anúncio",
+      // Opportunity cost framing
+      "custo de oportunidade",
+      "o que deixo de ganhar",
+      "o que perco ao",
+      "vale 3 meses",
+      "vale gastar meses",
+      "compensa criar",
+      "compensa antes de",
+    ],
+    words: ["retorno", "lucro", "margem", "payback", "compensa", "rende"],
     threshold: 2,
   },
 

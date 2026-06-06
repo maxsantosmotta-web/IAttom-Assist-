@@ -100,6 +100,12 @@ const INTENT_ENTRY_MAP: Partial<Record<HelpIntent, string[]>> = {
     "journey-physical-product",   // physical path specifics for trade-off analysis
     "platform-onboarding",        // context for what each choice implies
   ],
+  ECONOMIC_REASONING_MODE: [
+    "journey-earn-money",         // fundamental paths — economic profile of each
+    "journey-digital-product",    // digital product economics: margin, payback, scalability
+    "journey-physical-product",   // physical product economics: capital, margin, risk
+    "journey-grow-business",      // growth economics: ad spend, return, scaling thresholds
+  ],
   COMPARE_OPTIONS: [],
   INTEGRATION_PURPOSE: [
     "platform-overview", // IAttom context; specific integration arrives via keyword scoring
@@ -189,6 +195,9 @@ const DOMAIN_KEYWORDS = [
   "priorizar", "prioridade", "prioridades", "ranquear", "ranking",
   "decidir", "decisão", "escolher", "escolha", "elimin", "descart",
   "primeiro", "ordem", "focar",
+  // Economic reasoning queries (ECONOMIC_REASONING_MODE)
+  "retorno", "lucro", "margem", "payback", "compensa", "rende",
+  "investimento", "caixa", "recuperar", "custo de oportunidade",
 ];
 
 function isDomainQuery(text: string): boolean {
