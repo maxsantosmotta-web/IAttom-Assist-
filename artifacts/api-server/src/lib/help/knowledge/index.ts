@@ -40,6 +40,21 @@ const entryById = new Map<string, KnowledgeEntry>(
  * Order within each array matters — first entries are added first.
  */
 const INTENT_ENTRY_MAP: Partial<Record<HelpIntent, string[]>> = {
+  // ─── Consultive intents — strategy-first entries ────────────────────────
+  ADVISOR_MODE: [
+    "platform-onboarding",   // caminho mais simples + o que não fazer
+    "journey-earn-money",    // fundamental decision tree (physical vs digital)
+  ],
+  WHAT_NOT_TO_DO: [
+    "platform-onboarding",    // O QUE NÃO FAZER AO COMEÇAR section
+    "journey-earn-money",     // Quando NÃO se aplica + Risco mais comum
+    "journey-grow-business",  // Casos negativos + Diagnóstico de gargalo
+  ],
+  PREMISE_CHALLENGE: [
+    "platform-onboarding",    // O QUE NÃO FAZER AO COMEÇAR + SOBRE CONECTAR
+    "journey-full-campaign",  // Quando NÃO se aplica (campanha sem produto)
+  ],
+  // ─── Informational intents ──────────────────────────────────────────────
   START_FROM_ZERO: [
     "platform-onboarding",
     "platform-overview",
@@ -144,6 +159,12 @@ const DOMAIN_KEYWORDS = [
   "projeto", "salvar",
   // Consultant / orientation triggers — catch advisory queries without explicit product/action
   "conectar", "sócio", "caminho", "errado", "deveria", "lugar",
+  // Negative-case and risk queries
+  "evitar", "erro", "erros",
+  // Premise-challenge queries
+  "devo", "vale a pena", "faz sentido",
+  // Follow-up / option exploration
+  "opção", "opções", "alternativa",
 ];
 
 function isDomainQuery(text: string): boolean {

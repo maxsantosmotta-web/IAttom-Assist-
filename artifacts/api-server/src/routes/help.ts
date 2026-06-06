@@ -155,6 +155,119 @@ O usuário quer que você continue a resposta anterior. Continue diretamente do 
 ${lastAssistantContent}`;
 }
 
+// ── P1: Intra-session user context ───────────────────────────────────────────
+// Extracted from conversation history on every request.
+// Never persisted — session-only. Injected into all prompts.
+
+interface UserContext {
+  objetivo?: string;
+  estágio?: string;
+  produto?: string;
+  plataforma?: string;
+  restrições?: string[];
+  dificuldade?: string;
+}
+
+function extractUserContext(history: HistoryMessage[]): UserContext {
+  if (history.length === 0) return {};
+
+  const userMessages = history
+    .filter((m) => m.role === "user")
+    .map((m) => m.content.toLowerCase());
+
+  if (userMessages.length === 0) return {};
+
+  const allText = userMessages.join(" ");
+  const ctx: UserContext = {};
+  const restrições: string[] = [];
+
+  // Objetivo
+  if (/ganhar dinheiro|renda extra|renda online|faturar|monetiz/.test(allText)) {
+    ctx.objetivo = "ganhar dinheiro / monetizar";
+  } else if (/vender.*produto|lançar.*produto|criar.*produto/.test(allText)) {
+    ctx.objetivo = "criar e vender produto";
+  } else if (/crescer.*negócio|escalar|vender mais|mais clientes/.test(allText)) {
+    ctx.objetivo = "crescer negócio existente";
+  } else if (/criar.*campanha|fazer.*campanha|divulgar/.test(allText)) {
+    ctx.objetivo = "criar campanha / divulgar produto";
+  } else if (/criar.*conteúdo|produzir.*conteúdo/.test(allText)) {
+    ctx.objetivo = "criar conteúdo";
+  }
+
+  // Estágio
+  if (/iniciante|começando agora|do zero|nunca vendi|nunca fiz|nunca trabalhei|sem experiência|não tenho experiência/.test(allText)) {
+    ctx.estágio = "iniciante (começando do zero)";
+  } else if (/já vendo|já vend|já tenho produto|negócio ativo|já tenho negócio/.test(allText)) {
+    ctx.estágio = "negócio ativo";
+  } else if (/validando|estou validando|testando.*produto|confirmando demanda/.test(allText)) {
+    ctx.estágio = "validando produto";
+  }
+
+  // Produto
+  if (/\bcurso\b/.test(allText)) {
+    ctx.produto = "curso online";
+  } else if (/ebook|e-book/.test(allText)) {
+    ctx.produto = "eBook";
+  } else if (/mentoria/.test(allText)) {
+    ctx.produto = "mentoria";
+  } else if (/infoproduto|produto digital/.test(allText)) {
+    ctx.produto = "produto digital";
+  } else if (/produto físico|para revender|revenda/.test(allText)) {
+    ctx.produto = "produto físico";
+  }
+
+  // Plataforma mencionada
+  const platforms: string[] = [];
+  if (/\bshopee\b/.test(allText)) platforms.push("Shopee");
+  if (/mercado livre/.test(allText)) platforms.push("Mercado Livre");
+  if (/\bhotmart\b/.test(allText)) platforms.push("Hotmart");
+  if (/\bkiwify\b/.test(allText)) platforms.push("Kiwify");
+  if (/\btiktok\b/.test(allText)) platforms.push("TikTok");
+  if (/\binstagram\b/.test(allText)) platforms.push("Instagram");
+  if (/\bfacebook\b/.test(allText)) platforms.push("Facebook");
+  if (/\bwhatsapp\b/.test(allText)) platforms.push("WhatsApp");
+  if (platforms.length > 0) ctx.plataforma = platforms.join(", ");
+
+  // Restrições declaradas
+  if (/não quer.*aparecer|não quero aparecer|sem aparecer|não aparecer/.test(allText)) {
+    restrições.push("não quer aparecer publicamente");
+  }
+  if (/pouco dinheiro|pouco capital|sem capital|capital limitado|pouco recurso/.test(allText)) {
+    restrições.push("capital limitado");
+  }
+  if (/pouco tempo|sem tempo|tempo limitado/.test(allText)) {
+    restrições.push("tempo limitado");
+  }
+  if (restrições.length > 0) ctx.restrições = restrições;
+
+  // Dificuldade principal
+  if (/não sei o que vender/.test(allText)) {
+    ctx.dificuldade = "não sabe o que vender";
+  } else if (/não sei por onde começar/.test(allText)) {
+    ctx.dificuldade = "não sabe por onde começar";
+  } else if (/vendas fracas|não está vendendo|não estou vendendo/.test(allText)) {
+    ctx.dificuldade = "vendas fracas ou inexistentes";
+  }
+
+  return ctx;
+}
+
+function formatUserContext(ctx: UserContext): string {
+  const lines: string[] = [];
+  if (ctx.objetivo) lines.push(`Objetivo: ${ctx.objetivo}`);
+  if (ctx.estágio) lines.push(`Estágio: ${ctx.estágio}`);
+  if (ctx.produto) lines.push(`Produto: ${ctx.produto}`);
+  if (ctx.plataforma) lines.push(`Plataforma mencionada: ${ctx.plataforma}`);
+  if (ctx.restrições && ctx.restrições.length > 0) {
+    lines.push(`Restrições: ${ctx.restrições.join("; ")}`);
+  }
+  if (ctx.dificuldade) lines.push(`Dificuldade principal: ${ctx.dificuldade}`);
+
+  if (lines.length === 0) return "";
+
+  return `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCONTEXTO DO USUÁRIO (acumulado nesta sessão)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${lines.join("\n")}`;
+}
+
 // ── Helper: significant term extractor (Correção 3A) ────────────────────────
 // Keeps: uppercase siglas ≥2 chars (MIT, MITS, API, URL, OAuth).
 // Keeps: words ≥6 chars that aren't Portuguese stopwords.
@@ -340,6 +453,95 @@ CONTEXTO DO IATTOM ASSIST:
 ${context}`;
 }
 
+// ── P2: ADVISOR_MODE — mentor/partner prompt ─────────────────────────────────
+// Triggered when user explicitly asks for a recommendation as if the AI were a partner.
+// Strategy before modules. Never list modules first.
+
+function buildAdvisorModePrompt(context: string, recentHistoryBlock: string): string {
+  const contextSection = context
+    ? `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCONTEXTO DE REFERÊNCIA:\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${context}`
+    : "";
+
+  return `${SYSTEM_PROMPT}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INSTRUÇÃO ATIVA — MODO CONSULTOR / SÓCIO ESTRATÉGICO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+O usuário quer sua opinião direta e recomendação concreta — como se você fosse um sócio experiente com quem ele conversa.
+
+RESPONDA COMO MENTOR E CONSULTOR:
+1. Identifique o objetivo real com base no que o usuário compartilhou.
+2. Avalie o estágio atual: está começando do zero, validando, ou já tem negócio ativo?
+3. Identifique riscos do caminho atual ou da pergunta — o que pode dar errado?
+4. Dê uma recomendação concreta e direta. Tome uma posição. Não seja vago.
+5. Explique brevemente o raciocínio por trás da recomendação.
+6. Termine com um próximo passo concreto.
+7. Módulos e funcionalidades do IAttom: mencione apenas no final, como ferramentas de execução — nunca como a resposta principal.
+
+PROIBIDO NESTA RESPOSTA:
+- Começar listando módulos da plataforma.
+- Dar respostas vagas como "depende de cada caso" sem tomar posição.
+- Apresentar um menu de opções sem uma recomendação clara.
+- Perguntar mais de uma coisa ao usuário (se precisar, faça UMA pergunta específica).
+
+Se não houver informação suficiente sobre o objetivo do usuário: faça UMA pergunta direta antes de recomendar.${contextSection}${recentHistoryBlock}`;
+}
+
+// ── P2: PREMISE_CHALLENGE — verify prerequisites before answering ─────────────
+// Triggered when user asks if they should do X. Checks if X makes sense first.
+
+function buildPremiseChallengePrompt(context: string, recentHistoryBlock: string): string {
+  const contextSection = context
+    ? `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCONTEXTO DE REFERÊNCIA:\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${context}`
+    : "";
+
+  return `${SYSTEM_PROMPT}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INSTRUÇÃO ATIVA — DESAFIO DE PREMISSA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+O usuário está perguntando se deve fazer X. ANTES de responder "como fazer", verifique se as condições para X estão presentes.
+
+PROCESSO OBRIGATÓRIO:
+1. Identifique o que está sendo proposto (criar campanha, conectar plataforma, lançar produto, investir, etc.).
+2. Verifique os pré-requisitos: o produto está validado? O público está definido? A oferta está clara? O momento é certo?
+3. Se os pré-requisitos NÃO estão presentes: diga isso primeiro e explique o que falta. Só então redirecione.
+4. Se os pré-requisitos ESTÃO presentes: responda SIM ou NÃO com justificativa concisa e objetivo.
+5. Termine sempre com o próximo passo correto — nunca deixe o usuário sem saída.
+
+EXEMPLOS DO QUE EVITAR:
+- Responder "como criar a campanha" sem verificar se o produto existe e foi validado.
+- Dizer "sim, conecte tudo" sem verificar se há produto ou objetivo definido.
+- Dar um passo a passo técnico sem antes avaliar se a premissa faz sentido.${contextSection}${recentHistoryBlock}`;
+}
+
+// ── P2: WHAT_NOT_TO_DO — risks and errors first ───────────────────────────────
+// Triggered when user asks what to avoid or what goes wrong. Leads with risks.
+
+function buildWhatNotToDoPrompt(context: string, recentHistoryBlock: string): string {
+  const contextSection = context
+    ? `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCONTEXTO DE REFERÊNCIA:\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${context}`
+    : "";
+
+  return `${SYSTEM_PROMPT}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INSTRUÇÃO ATIVA — RISCOS E ERROS A EVITAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+O usuário quer saber o que evitar. COMECE pelos riscos e erros — não pelas soluções.
+
+ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
+1. Os erros mais comuns no contexto do usuário — 2 a 4 erros específicos, não genéricos.
+2. Para cada erro: qual a consequência prática de cometê-lo.
+3. Depois dos erros: o caminho correto — o que fazer em vez disso.
+4. Módulos do IAttom: mencione apenas se forem diretamente relevantes para evitar algum dos erros listados.
+
+PROIBIDO NESTA RESPOSTA:
+- Começar pelo que fazer — comece sempre pelo que NÃO fazer.
+- Listar erros genéricos desconectados do contexto do usuário ("não desistir", "ter paciência").
+- Terminar sem oferecer o caminho correto e um próximo passo.${contextSection}${recentHistoryBlock}`;
+}
+
 function buildRefusalLoopOverridePrompt(history: HistoryMessage[]): string {
   const recentHistory = history
     .slice(-4)
@@ -387,6 +589,10 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
       .filter((m) => m.role === "assistant")
       .slice(-1)[0]?.content ?? "";
 
+  // ── P1: Extract intra-session user context from history ────────────────────
+  const sessionUserCtx = extractUserContext(conversationHistory);
+  const sessionUserCtxBlock = formatUserContext(sessionUserCtx);
+
   // ── Retrieval ──────────────────────────────────────────────────────────────
   let { context: relevantContext, outOfScope, intent, nearDomain } = getRelevantContext(
     message,
@@ -408,6 +614,15 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
   const isContesting = isContestingRefusal(message);
   const isRefusalLoop = outOfScope && wasRefusal && (isContesting || askingAboutTerm);
 
+  // ── Shared: recent history block for consultive prompts ───────────────────
+  const recentHistoryBlock =
+    conversationHistory.length > 0
+      ? `\n\nHistórico recente:\n${conversationHistory
+          .slice(-4)
+          .map((m) => `${m.role === "user" ? "Usuário" : "IAttom"}: ${m.content}`)
+          .join("\n\n")}`
+      : "";
+
   // ── Build system prompt ────────────────────────────────────────────────────
   let systemWithContext: string;
 
@@ -420,6 +635,15 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
   } else if (isRefusalLoop) {
     // Correção 3C: explicit override — do NOT repeat the refusal
     systemWithContext = buildRefusalLoopOverridePrompt(conversationHistory);
+  } else if (intent === "ADVISOR_MODE" && !outOfScope) {
+    // P2: Mentor/partner mode — strategy before modules
+    systemWithContext = buildAdvisorModePrompt(relevantContext, recentHistoryBlock);
+  } else if (intent === "WHAT_NOT_TO_DO" && !outOfScope) {
+    // P2: Risks-first — errors and consequences before solutions
+    systemWithContext = buildWhatNotToDoPrompt(relevantContext, recentHistoryBlock);
+  } else if (intent === "PREMISE_CHALLENGE" && !outOfScope) {
+    // P2: Verify prerequisites before validating the user's proposed action
+    systemWithContext = buildPremiseChallengePrompt(relevantContext, recentHistoryBlock);
   } else if (intent === "INTEGRATION_PURPOSE" && !outOfScope && relevantContext) {
     // Benefit-first response — technical details explicitly suppressed
     systemWithContext = buildIntegrationPurposePrompt(relevantContext);
@@ -434,6 +658,12 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
   } else {
     // Safety net — should rarely be reached after nearDomain covers domain queries
     systemWithContext = buildContextualReasoningPrompt(conversationHistory);
+  }
+
+  // ── P1: Inject accumulated user context into all prompts ──────────────────
+  // Appended last so it is always visible regardless of which prompt was chosen.
+  if (sessionUserCtxBlock) {
+    systemWithContext += sessionUserCtxBlock;
   }
 
   setupSSE(res);
@@ -451,7 +681,7 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
 
     const stream = await openai.chat.completions.create({
       model: "gpt-5-mini",
-      max_completion_tokens: 1024,
+      max_completion_tokens: 2048,
       messages,
       stream: true,
     });
@@ -465,11 +695,39 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
       }
     }
 
+    // P3: Smart fallback — retry with simplified contextual reasoning prompt
+    // before giving up. Covers empty responses from complex system prompts
+    // (reasoning-heavy models may exhaust visible token budget on first pass).
     if (chunkCount === 0) {
-      req.log.warn({ msg: "LLM returned empty response", path: req.path });
+      req.log.warn({ msg: "Empty LLM response, retrying with simplified prompt", intent, path: req.path });
+      try {
+        const retryMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
+          { role: "system", content: buildContextualReasoningPrompt(conversationHistory) + sessionUserCtxBlock },
+          { role: "user", content: message },
+        ];
+        const retryStream = await openai.chat.completions.create({
+          model: "gpt-5-mini",
+          max_completion_tokens: 1024,
+          messages: retryMessages,
+          stream: true,
+        });
+        for await (const chunk of retryStream) {
+          const content = chunk.choices[0]?.delta?.content;
+          if (content) {
+            sendSSE(res, { type: "chunk", content });
+            chunkCount++;
+          }
+        }
+      } catch {
+        // retry also failed — fall through to error below
+      }
+    }
+
+    if (chunkCount === 0) {
+      req.log.warn({ msg: "LLM returned empty after retry", intent, path: req.path });
       sendSSEError(
         res,
-        "Não consegui concluir essa resposta agora. Tente reformular a pergunta ou me diga seu objetivo dentro do IAttom Assist."
+        "Não consegui processar essa resposta agora. Tente reformular a pergunta ou me conte seu objetivo."
       );
       return;
     }

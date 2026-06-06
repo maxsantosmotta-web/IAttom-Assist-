@@ -9,6 +9,9 @@
  */
 
 export type HelpIntent =
+  | "ADVISOR_MODE"
+  | "WHAT_NOT_TO_DO"
+  | "PREMISE_CHALLENGE"
   | "START_FROM_ZERO"
   | "MONETIZE_KNOWLEDGE"
   | "DIGITAL_PRODUCT"
@@ -31,11 +34,14 @@ interface IntentSignals {
 
 /**
  * Priority order for tie-breaking when two intents score equally.
- * More specific intents rank above general ones.
+ * Consultive intents rank above informational; specific above general.
  */
 const INTENT_PRIORITY: HelpIntent[] = [
+  "ADVISOR_MODE",       // most specific — user explicitly wants a partner/mentor opinion
+  "WHAT_NOT_TO_DO",     // user wants to avoid mistakes — leads with risks
+  "PREMISE_CHALLENGE",  // user asks if they should do X — check prerequisites first
   "COMPARE_OPTIONS",
-  "INTEGRATION_PURPOSE",   // above DIGITAL/PHYSICAL so "para que serve hotmart" wins correctly
+  "INTEGRATION_PURPOSE",
   "START_FROM_ZERO",
   "MONETIZE_KNOWLEDGE",
   "DIGITAL_PRODUCT",
@@ -47,6 +53,94 @@ const INTENT_PRIORITY: HelpIntent[] = [
 ];
 
 const SIGNALS: Record<Exclude<HelpIntent, "UNKNOWN">, IntentSignals> = {
+
+  // ─── ADVISOR_MODE ─────────────────────────────────────────────────────────
+  // User asks for a direct recommendation, as if speaking to a partner or mentor.
+  // Triggers mentor/partner persona — strategy before any module listing.
+  ADVISOR_MODE: {
+    phrases: [
+      "se você fosse meu sócio",
+      "se fosse meu sócio",
+      "o que você faria",
+      "o que faria no meu lugar",
+      "qual caminho você escolheria",
+      "qual você escolheria",
+      "me dá sua recomendação",
+      "sua recomendação",
+      "como você faria",
+      "o que você recomenda",
+      "o que você faria primeiro",
+      "me aconselha",
+      "se fosse você",
+      "você no meu lugar",
+      "qual seria sua escolha",
+      "o que você escolheria",
+      "o que você indicaria",
+      "o que você acha que devo",
+      "me indica o caminho",
+      "o que você faria se fosse eu",
+      "me dá um conselho",
+    ],
+    words: ["sócio", "aconselha", "aconselharia"],
+    threshold: 2,
+  },
+
+  // ─── WHAT_NOT_TO_DO ───────────────────────────────────────────────────────
+  // User wants to know what to avoid, errors to prevent, or common mistakes.
+  // Leads with risks and negative cases — not with modules.
+  WHAT_NOT_TO_DO: {
+    phrases: [
+      "o que não deveria fazer",
+      "o que eu não deveria",
+      "o que não devo fazer",
+      "o que não devo",
+      "qual erro evitar",
+      "quais erros evitar",
+      "erro mais comum",
+      "erros mais comuns",
+      "o que costuma dar errado",
+      "o que dá errado",
+      "o que pode dar errado",
+      "o que não funciona",
+      "o que evitar",
+      "quero evitar erros",
+      "como não errar",
+      "evitar errar",
+      "não errar",
+    ],
+    words: ["evitar", "erros"],
+    threshold: 2,
+  },
+
+  // ─── PREMISE_CHALLENGE ────────────────────────────────────────────────────
+  // User is asking whether they should do X — check prerequisites before answering.
+  PREMISE_CHALLENGE: {
+    phrases: [
+      "devo criar campanha",
+      "devo fazer campanha",
+      "devo conectar",
+      "vale a pena",
+      "vale a pena fazer",
+      "vale a pena criar",
+      "faz sentido",
+      "faz sentido criar",
+      "faz sentido fazer",
+      "devo fazer isso",
+      "devo fazer isso agora",
+      "devo investir",
+      "deveria criar campanha",
+      "deveria conectar",
+      "deveria lançar",
+      "deveria publicar",
+      "preciso fazer isso antes",
+      "faz sentido agora",
+      "esse é o momento",
+      "é a hora certa",
+      "é o momento de",
+    ],
+    words: [],
+    threshold: 2,
+  },
 
   // ─── COMPARE_OPTIONS ─────────────────────────────────────────────────────
   // User wants to choose between two options or understand which is better.
