@@ -150,7 +150,7 @@ export function AdminActivity() {
                   <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Usuário</th>
                   <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Projeto</th>
                   <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Horário</th>
-                  <th className="px-4 py-3 w-10" />
+                  <th className="text-left px-4 py-3 text-xs text-muted-foreground font-medium">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -235,7 +235,7 @@ export function AdminActivity() {
                             <button
                               onClick={() => setConfirmDeleteId(item.id)}
                               disabled={isDeleting}
-                              className="opacity-0 group-hover:opacity-100 text-zinc-700 hover:text-red-400 transition-all duration-150 p-1 rounded hover:bg-red-400/10 disabled:opacity-50"
+                              className="text-zinc-600 hover:text-red-400 transition-colors p-1 rounded hover:bg-red-400/10 disabled:opacity-50"
                               title="Remover atividade"
                             >
                               {isDeleting
