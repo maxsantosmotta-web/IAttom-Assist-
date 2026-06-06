@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, ilike, count, desc, and, gte, or } from "drizzle-orm";
+import { eq, ilike, count, desc, and, gte, or, isNull } from "drizzle-orm";
 import { db, users, projectsTable, historyTable, creditsTransactions, waitlistTable, feedbackTable } from "@workspace/db";
 import { requireAdmin } from "../middlewares/requireAdmin";
 import {
@@ -147,6 +147,7 @@ router.get("/admin/activity", requireAdmin, async (req, res): Promise<void> => {
     })
     .from(historyTable)
     .leftJoin(users, eq(historyTable.clerkUserId, users.clerkId))
+    .where(isNull(historyTable.deletedAt))
     .orderBy(desc(historyTable.createdAt))
     .limit(limit);
 
@@ -159,6 +160,33 @@ router.get("/admin/activity", requireAdmin, async (req, res): Promise<void> => {
     userName: item.userName ?? undefined,
     createdAt: item.createdAt,
   })));
+});
+
+/* ── DELETE /admin/activity/:id — soft-delete any user's entry ─────── */
+router.delete("/admin/activity/:id", requireAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id as string, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID inválido" }); return; }
+
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+  await db
+    .update(historyTable)
+    .set({ deletedAt: now, expiresAt })
+    .where(and(eq(historyTable.id, id), isNull(historyTable.deletedAt)));
+
+  res.json({ ok: true });
+});
+
+/* ── POST /admin/activity/clear — soft-delete all active entries ────── */
+router.post("/admin/activity/clear", requireAdmin, async (_req, res): Promise<void> => {
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+  await db
+    .update(historyTable)
+    .set({ deletedAt: now, expiresAt })
+    .where(isNull(historyTable.deletedAt));
+
+  res.json({ ok: true });
 });
 
 router.get("/admin/analytics", requireAdmin, async (_req, res): Promise<void> => {

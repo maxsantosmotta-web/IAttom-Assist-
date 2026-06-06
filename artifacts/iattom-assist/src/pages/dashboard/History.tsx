@@ -238,7 +238,7 @@ export function History() {
                           <button
                             onClick={() => setConfirmDeleteId(item.id)}
                             disabled={isDeleting}
-                            className="opacity-0 group-hover:opacity-100 text-zinc-700 hover:text-red-400 transition-all duration-150 p-1 rounded hover:bg-red-400/10 disabled:opacity-50"
+                            className="opacity-60 sm:opacity-0 sm:group-hover:opacity-100 text-zinc-700 hover:text-red-400 transition-all duration-150 p-1 rounded hover:bg-red-400/10 disabled:opacity-50"
                             title="Mover para lixeira"
                           >
                             {isDeleting
