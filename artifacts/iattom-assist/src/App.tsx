@@ -342,11 +342,70 @@ const clerkLocalization = {
   ...ptBR,
   unstable__errors: {
     ...(ptBR.unstable__errors ?? {}),
+    // Chave confirmada no Clerk SDK v6 para acesso negado / usuário banido
+    not_allowed_access: BLOCKED_MSG,
+    // Chaves extras como rede de segurança (cobertura de variações da API do Clerk)
     banned_user: BLOCKED_MSG,
     user_locked: BLOCKED_MSG,
-    not_allowed_access: BLOCKED_MSG,
+    user_banned: BLOCKED_MSG,
   },
 };
+
+function BannedUserGuard() {
+  const { addListener } = useClerk();
+  const [blocked, setBlocked] = useState(false);
+
+  useEffect(() => {
+    const unsub = addListener(({ session }) => {
+      if (session && (session as { status?: string }).status === "revoked") {
+        setBlocked(true);
+      }
+    });
+    return unsub;
+  }, [addListener]);
+
+  if (!blocked) return null;
+
+  return (
+    <div
+      role="alert"
+      className="fixed inset-0 z-[9999] bg-[#0a0a0a] flex flex-col items-center justify-center gap-6 px-4"
+    >
+      <div className="flex flex-col items-center gap-4 text-center max-w-xs">
+        <div className="w-14 h-14 rounded-full bg-red-950/40 border border-red-500/20 flex items-center justify-center">
+          <svg
+            className="w-7 h-7 text-red-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+            />
+          </svg>
+        </div>
+        <div className="space-y-1">
+          <p className="text-base font-semibold text-white">Acesso bloqueado.</p>
+          <p className="text-sm text-zinc-400">Entre em contato com o suporte.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setBlocked(false);
+            window.location.href = (import.meta.env.BASE_URL as string) || "/";
+          }}
+          className="mt-2 text-xs text-zinc-600 hover:text-zinc-400 transition-colors underline underline-offset-2"
+        >
+          Voltar ao início
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
@@ -367,6 +426,7 @@ function ClerkProviderWithRoutes() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <ClerkQueryInvalidator />
+          <BannedUserGuard />
           <ErrorBoundary>
             <Switch>
               <Route path="/" component={HomeRedirect} />
