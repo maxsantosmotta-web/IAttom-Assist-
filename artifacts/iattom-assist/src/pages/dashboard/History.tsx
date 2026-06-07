@@ -116,36 +116,36 @@ export function History() {
     <div className="space-y-8">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <div className="flex items-start justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Registro de Atividades</p>
             <h2 className="text-2xl font-bold text-white mb-1">Atividades</h2>
             <p className="text-muted-foreground text-sm">Histórico completo de todas as ações realizadas no seu espaço de trabalho.</p>
           </div>
-          <div className="flex items-center gap-2 shrink-0 mt-1">
-            <Button
-              size="sm" variant="outline"
-              onClick={() => void refetch()}
-              disabled={isFetching}
-              className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} />
-              Atualizar
-            </Button>
-            {hasItems && (
-              <Button
-                size="sm" variant="outline"
-                onClick={() => setConfirmClearAll(true)}
-                disabled={clearingAll || isFetching}
-                className="border-white/10 text-zinc-600 hover:text-red-400 hover:border-red-400/30 gap-1.5"
-              >
-                {clearingAll
-                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  : <Trash2 className="w-3.5 h-3.5" />}
-                Limpar Tudo
-              </Button>
-            )}
-          </div>
+          <Button
+            size="sm" variant="outline"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
         </div>
+        {hasItems && (
+          <div className="flex justify-end mt-2">
+            <Button
+              size="sm" variant="ghost"
+              onClick={() => setConfirmClearAll(true)}
+              disabled={clearingAll || isFetching}
+              className="text-zinc-600 hover:text-red-400 hover:bg-red-400/5 gap-1.5 text-xs h-7 px-2"
+            >
+              {clearingAll
+                ? <Loader2 className="w-3 h-3 animate-spin" />
+                : <Trash2 className="w-3 h-3" />}
+              Limpar Tudo
+            </Button>
+          </div>
+        )}
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
