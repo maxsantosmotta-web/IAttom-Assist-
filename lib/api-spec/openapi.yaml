@@ -381,6 +381,23 @@ paths:
           content:
             text/event-stream: {}
 
+  /ai/generate-video:
+    post:
+      operationId: aiGenerateVideo
+      tags: [ai]
+      summary: Generate a talking avatar video via HeyGen (SSE stream)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiGenerateVideoBody"
+      responses:
+        "200":
+          description: SSE stream of video generation progress and result
+          content:
+            text/event-stream: {}
+
   /admin/stats:
     get:
       operationId: getAdminStats
@@ -837,7 +854,7 @@ components:
       properties:
         feature:
           type: string
-          enum: [product_discovery, product_validation, campaign, content, creativeImage1, creativeImage2, creativeImage3, video_script]
+          enum: [product_discovery, product_validation, campaign, content, creativeImage1, creativeImage2, creativeImage3, video_script, creativeVideo20]
       required:
         - feature
 
@@ -1269,3 +1286,22 @@ components:
           type: string
       required:
         - product
+
+    AiGenerateVideoBody:
+      type: object
+      properties:
+        videoType:
+          type: string
+          enum: [executivo, casual]
+        videoAvatar:
+          type: string
+          enum: [masculino, feminino]
+        videoAmbiente:
+          type: string
+        videoPrompt:
+          type: string
+      required:
+        - videoType
+        - videoAvatar
+        - videoAmbiente
+        - videoPrompt

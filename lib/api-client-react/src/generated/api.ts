@@ -27,6 +27,7 @@ import type {
   AiCreateContentBody,
   AiCreativeIdeasBody,
   AiFindProductsBody,
+  AiGenerateVideoBody,
   AiRefineCampaignBlockBody,
   AiRefineCampaignBlockResult,
   AiValidateProductBody,
@@ -1745,6 +1746,92 @@ export const useAiVideoScript = <
   TContext
 > => {
   return useMutation(getAiVideoScriptMutationOptions(options));
+};
+
+/**
+ * @summary Generate a talking avatar video via HeyGen (SSE stream)
+ */
+export const getAiGenerateVideoUrl = () => {
+  return `/api/ai/generate-video`;
+};
+
+export const aiGenerateVideo = async (
+  aiGenerateVideoBody: AiGenerateVideoBody,
+  options?: RequestInit,
+): Promise<unknown> => {
+  return customFetch<unknown>(getAiGenerateVideoUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(aiGenerateVideoBody),
+  });
+};
+
+export const getAiGenerateVideoMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof aiGenerateVideo>>,
+    TError,
+    { data: BodyType<AiGenerateVideoBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof aiGenerateVideo>>,
+  TError,
+  { data: BodyType<AiGenerateVideoBody> },
+  TContext
+> => {
+  const mutationKey = ["aiGenerateVideo"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof aiGenerateVideo>>,
+    { data: BodyType<AiGenerateVideoBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return aiGenerateVideo(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AiGenerateVideoMutationResult = NonNullable<
+  Awaited<ReturnType<typeof aiGenerateVideo>>
+>;
+export type AiGenerateVideoMutationBody = BodyType<AiGenerateVideoBody>;
+export type AiGenerateVideoMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate a talking avatar video via HeyGen (SSE stream)
+ */
+export const useAiGenerateVideo = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof aiGenerateVideo>>,
+    TError,
+    { data: BodyType<AiGenerateVideoBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof aiGenerateVideo>>,
+  TError,
+  { data: BodyType<AiGenerateVideoBody> },
+  TContext
+> => {
+  return useMutation(getAiGenerateVideoMutationOptions(options));
 };
 
 /**

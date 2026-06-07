@@ -9,6 +9,7 @@ import {
   AiCreateContentBody,
   AiCreativeIdeasBody,
   AiVideoScriptBody,
+  AiGenerateVideoBody,
 } from "@workspace/api-zod";
 import { streamFindProducts } from "../lib/ai/findProducts.js";
 import { streamValidateProduct } from "../lib/ai/validateProduct.js";
@@ -16,6 +17,7 @@ import { streamCreateCampaign, refineCampaignBlock } from "../lib/ai/createCampa
 import { streamCreateContent } from "../lib/ai/createContent.js";
 import { streamCreativeIdeas } from "../lib/ai/creativeIdeas.js";
 import { streamVideoScript } from "../lib/ai/videoScript.js";
+import { streamVideoGeneration } from "../lib/ai/videoGeneration.js";
 import { analyzeReference } from "../lib/ai/analyzeReference.js";
 
 const router: IRouter = Router();
@@ -118,6 +120,18 @@ router.post("/ai/video-script", requireAuth, async (req, res): Promise<void> => 
   const ac = new AbortController();
   req.on("close", () => ac.abort());
   await streamVideoScript(parsed.data, res, clerkUserId, ac.signal);
+});
+
+router.post("/ai/generate-video", requireAuth, async (req, res): Promise<void> => {
+  const { clerkUserId } = req as AuthenticatedRequest;
+  const parsed = AiGenerateVideoBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const ac = new AbortController();
+  req.on("close", () => ac.abort());
+  await streamVideoGeneration(parsed.data, res, clerkUserId, ac.signal);
 });
 
 router.post("/ai/analyze-reference", requireAuth, async (req, res): Promise<void> => {

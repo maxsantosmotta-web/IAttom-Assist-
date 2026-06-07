@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Loader2, RefreshCw, AlertCircle, Image, Save, Download, Video, Lock } from "lucide-react";
+import { Sparkles, Loader2, RefreshCw, AlertCircle, Image, Save, Download, Video } from "lucide-react";
 import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
 import { saveProjectAssets } from "@/lib/assetStorage";
 import { useSavedItems } from "@/hooks/useSavedItems";
@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { CreditsGate } from "@/components/CreditsGate";
 import { useAiStream } from "@/hooks/useAiStream";
-import type { CreativeIdeasResult, CreativeConcept } from "@/types/ai";
+import type { CreativeIdeasResult, CreativeConcept, VideoGenerationResult } from "@/types/ai";
 import type { FeatureKey } from "@/lib/credits";
 
 type CreativeType = "image" | "video";
@@ -47,6 +47,111 @@ function downloadImage(base64: string, filename: string) {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+}
+
+function VideoResultCard({
+  result,
+  onSave,
+  isSaving,
+  onReset,
+}: {
+  result: VideoGenerationResult;
+  onSave: () => void;
+  isSaving: boolean;
+  onReset: () => void;
+}) {
+  const ambienteLabel =
+    result.videoType === "executivo"
+      ? "Executivo"
+      : result.videoAmbiente.charAt(0).toUpperCase() + result.videoAmbiente.slice(1);
+  const personagemLabel = result.videoAvatar === "masculino" ? "Masculino" : "Feminino";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
+          Vídeo Gerado
+        </h3>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onSave}
+            disabled={isSaving}
+            className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+            {isSaving ? "Salvando..." : "Salvar"}
+          </button>
+          <button
+            onClick={onReset}
+            className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"
+          >
+            <RefreshCw className="w-3 h-3" /> Gerar novamente
+          </button>
+        </div>
+      </div>
+
+      <Card className="bg-[#111111] border-white/5 overflow-hidden">
+        {result.isMock ? (
+          <div className="aspect-video bg-[#0a0a0a] flex flex-col items-center justify-center gap-3 border-b border-white/5">
+            <div className="w-14 h-14 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+              <Video className="w-6 h-6 text-primary" />
+            </div>
+            <p className="text-xs text-zinc-500 text-center max-w-xs px-4">
+              Modo demonstração — configure HeyGen para gerar vídeos reais
+            </p>
+          </div>
+        ) : (
+          <video
+            src={result.videoUrl}
+            controls
+            playsInline
+            className="w-full aspect-video bg-black"
+          />
+        )}
+
+        <CardContent className="p-4 space-y-2">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-400">
+                  {ambienteLabel}
+                </span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-400">
+                  {personagemLabel}
+                </span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-400">
+                  {result.durationSeconds}s
+                </span>
+              </div>
+              <p className="text-xs text-zinc-600 truncate max-w-xs">{result.prompt}</p>
+            </div>
+            {!result.isMock && result.videoUrl && (
+              <a
+                href={result.videoUrl}
+                download="iattom-video.mp4"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors shrink-0"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Baixar
+              </a>
+            )}
+          </div>
+          {!result.isMock && (
+            <p className="text-xs text-amber-500/70">
+              Faça o download agora — o link expira em alguns dias.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
 }
 
 function ConceptCard({ concept, index }: { concept: CreativeConcept; index: number }) {
@@ -101,6 +206,14 @@ export function CreativeGenerator() {
   const [videoPrompt, setVideoPrompt] = useState("");
 
   const { status, result, error, generate, reset } = useAiStream<CreativeIdeasResult>();
+  const {
+    status: videoStatus,
+    result: videoResult,
+    error: videoError,
+    generate: videoGenerate,
+    reset: videoReset,
+  } = useAiStream<VideoGenerationResult>();
+  const [videoIsSaving, setVideoIsSaving] = useState(false);
   const { toast } = useToast();
   const { saveItem, saveItemAssets } = useSavedItems();
   const { isFetching: fetchingCredits, refetch: refetchCredits } = useGetCreditsBalance({
@@ -109,6 +222,8 @@ export function CreativeGenerator() {
 
   const refundCalledRef = useRef(false);
   const chargedFeatureRef = useRef<FeatureKey>("creativeImage1");
+  const videoRefundCalledRef = useRef(false);
+  const videoChargedFeatureRef = useRef<FeatureKey>("creativeVideo20");
 
   useEffect(() => {
     if (status === "error" && !refundCalledRef.current) {
@@ -124,6 +239,22 @@ export function CreativeGenerator() {
       refundCalledRef.current = false;
     }
   }, [status]);
+
+  // Refund automático — vídeo
+  useEffect(() => {
+    if (videoStatus === "error" && !videoRefundCalledRef.current) {
+      videoRefundCalledRef.current = true;
+      fetch("/api/credits/refund", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feature: videoChargedFeatureRef.current }),
+        credentials: "include",
+      }).catch(() => {});
+    }
+    if (videoStatus === "idle" || videoStatus === "generating") {
+      videoRefundCalledRef.current = false;
+    }
+  }, [videoStatus]);
 
   // Limpar formatos ao trocar plataforma
   useEffect(() => { setSelectedFormats([]); }, [platform]);
@@ -269,6 +400,73 @@ export function CreativeGenerator() {
   const currentPlatformFormats = platform ? (PLATFORMS.find((p) => p.key === platform)?.formats ?? []) : [];
   const loadingCount = Math.max(selectedFormats.length, 1);
   const resultCount = activeResult?.concepts?.length ?? 0;
+
+  // ── Vídeo ────────────────────────────────────────────────────────────────
+  const canGenerateVideo = !!videoPrompt.trim();
+  const isVideoGenerating = videoStatus === "generating";
+  const isVideoDone = videoStatus === "done";
+  const isVideoError = videoStatus === "error";
+
+  const runVideoGenerate = (charge: () => void) => {
+    videoChargedFeatureRef.current = "creativeVideo20";
+    videoGenerate("/api/ai/generate-video", {
+      videoType,
+      videoAvatar,
+      videoAmbiente: videoType === "executivo" ? "executivo" : videoAmbiente,
+      videoPrompt: videoPrompt.trim(),
+    }).then((res) => {
+      if (res !== null) charge();
+    });
+  };
+
+  const handleSaveVideo = async () => {
+    if (!videoResult || videoIsSaving) return;
+    setVideoIsSaving(true);
+
+    const tipoLabel = videoResult.videoType === "executivo" ? "Executivo" : "Casual";
+    const ambLabel = videoResult.videoAmbiente.charAt(0).toUpperCase() + videoResult.videoAmbiente.slice(1);
+    const content = [
+      `Tipo: Vídeo`,
+      `Estilo: ${tipoLabel}`,
+      `Personagem: ${videoResult.videoAvatar === "masculino" ? "Masculino" : "Feminino"}`,
+      `Ambiente: ${ambLabel}`,
+      `Prompt: ${videoResult.prompt}`,
+    ].join(" | ");
+
+    const data = JSON.stringify({
+      type: "video",
+      videoType: videoResult.videoType,
+      videoAvatar: videoResult.videoAvatar,
+      videoAmbiente: videoResult.videoAmbiente,
+      prompt: videoResult.prompt,
+      videoUrl: videoResult.videoUrl,
+      durationSeconds: videoResult.durationSeconds,
+      generatedAt: videoResult.generatedAt,
+      isMock: videoResult.isMock,
+    });
+
+    const projectId = crypto.randomUUID();
+    const title = `Vídeo ${tipoLabel} — ${videoResult.prompt.slice(0, 55) || "Criativo"}`;
+
+    try {
+      const raw = localStorage.getItem("iattom_saved_items_v1");
+      const existing = raw ? (JSON.parse(raw) as object[]) : [];
+      existing.unshift({
+        id: projectId, title, type: "creative", content, data, hasImages: false,
+        createdAt: new Date().toISOString(),
+      });
+      localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
+    } catch { /* ignore */ }
+
+    try {
+      await saveItem({ id: projectId, title, type: "creative", content, data, hasImages: false });
+      toast({ description: "Vídeo salvo em Projetos." });
+    } catch {
+      toast({ description: "Erro ao salvar. Tente novamente.", variant: "destructive" });
+    } finally {
+      setVideoIsSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -549,16 +747,27 @@ export function CreativeGenerator() {
                   />
                 </div>
 
-                {/* Aviso + botão desabilitado */}
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-                  <Lock className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
-                  <p className="text-xs text-zinc-600">Funcionalidade em preparação.</p>
-                </div>
-
-                <Button disabled className="w-full opacity-40 cursor-not-allowed">
-                  <Video className="w-4 h-4 mr-2" />
-                  Em breve
-                </Button>
+                {/* Gerar vídeo */}
+                <CreditsGate
+                  feature="creativeVideo20"
+                  onSuccess={runVideoGenerate}
+                  disabled={!canGenerateVideo || isVideoGenerating}
+                  hideCostBadge
+                >
+                  {({ trigger, isLoading }) => (
+                    <Button
+                      onClick={trigger}
+                      disabled={!canGenerateVideo || isVideoGenerating || isLoading}
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
+                    >
+                      {isVideoGenerating || isLoading ? (
+                        <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Gerando vídeo...</>
+                      ) : (
+                        <><Sparkles className="w-4 h-4 mr-2" /> Gerar Vídeo</>
+                      )}
+                    </Button>
+                  )}
+                </CreditsGate>
               </CardContent>
             </Card>
           </motion.div>
@@ -670,6 +879,57 @@ export function CreativeGenerator() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Resultados — Vídeo */}
+      {creativeType === "video" && (
+        <AnimatePresence mode="wait">
+          {isVideoGenerating && (
+            <motion.div key="video-generating" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <div className="flex items-center gap-3 text-muted-foreground mb-5">
+                <div className="flex gap-1">
+                  {[0, 1, 2].map((i) => (
+                    <span key={i} className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                  ))}
+                </div>
+                <span className="text-sm">Gerando vídeo...</span>
+              </div>
+              <div className="aspect-video rounded-lg bg-white/5 border border-white/5 animate-pulse" />
+            </motion.div>
+          )}
+
+          {isVideoError && (
+            <motion.div key="video-error" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+              <Card className="bg-red-950/20 border-red-500/20">
+                <CardContent className="p-5 flex items-center gap-4">
+                  <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-red-400">Falha na geração do vídeo</p>
+                    <p className="text-xs text-muted-foreground">{videoError}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={videoReset}
+                    className="border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Tentar novamente
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {isVideoDone && videoResult && (
+            <VideoResultCard
+              key="video-result"
+              result={videoResult}
+              onSave={() => void handleSaveVideo()}
+              isSaving={videoIsSaving}
+              onReset={videoReset}
+            />
+          )}
+        </AnimatePresence>
+      )}
     </div>
   );
 }

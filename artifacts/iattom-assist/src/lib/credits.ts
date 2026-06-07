@@ -7,6 +7,7 @@ export const FEATURE_COSTS = {
   creativeImage1: 10,  // 1 imagem
   creativeImage2: 15,  // 2 imagens
   creativeImage3: 20,  // 3 imagens
+  creativeVideo20: 40, // 1 vídeo de 20s com avatar HeyGen
   video_script: 10,
 } as const;
 

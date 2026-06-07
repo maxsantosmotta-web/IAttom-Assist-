@@ -189,6 +189,7 @@ export const UseCreditsBodyFeature = {
   creativeImage2: "creativeImage2",
   creativeImage3: "creativeImage3",
   video_script: "video_script",
+  creativeVideo20: "creativeVideo20",
 } as const;
 
 export interface UseCreditsBody {
@@ -458,6 +459,29 @@ export interface AiVideoScriptBody {
   duration?: string;
   hook?: string;
   style?: string;
+}
+
+export type AiGenerateVideoBodyVideoType =
+  (typeof AiGenerateVideoBodyVideoType)[keyof typeof AiGenerateVideoBodyVideoType];
+
+export const AiGenerateVideoBodyVideoType = {
+  executivo: "executivo",
+  casual: "casual",
+} as const;
+
+export type AiGenerateVideoBodyVideoAvatar =
+  (typeof AiGenerateVideoBodyVideoAvatar)[keyof typeof AiGenerateVideoBodyVideoAvatar];
+
+export const AiGenerateVideoBodyVideoAvatar = {
+  masculino: "masculino",
+  feminino: "feminino",
+} as const;
+
+export interface AiGenerateVideoBody {
+  videoType: AiGenerateVideoBodyVideoType;
+  videoAvatar: AiGenerateVideoBodyVideoAvatar;
+  videoAmbiente: string;
+  videoPrompt: string;
 }
 
 export type ListHistoryParams = {

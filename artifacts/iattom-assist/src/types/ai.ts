@@ -80,6 +80,17 @@ export interface ScriptScene {
   direction: string;
 }
 
+export interface VideoGenerationResult {
+  videoUrl: string;
+  durationSeconds: number;
+  videoType: "executivo" | "casual";
+  videoAvatar: "masculino" | "feminino";
+  videoAmbiente: string;
+  prompt: string;
+  generatedAt: string;
+  isMock: boolean;
+}
+
 export interface VideoScriptResult {
   title: string;
   duration: string;

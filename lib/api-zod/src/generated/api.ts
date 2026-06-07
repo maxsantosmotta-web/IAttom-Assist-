@@ -271,6 +271,7 @@ export const UseCreditsBody = zod.object({
     "creativeImage2",
     "creativeImage3",
     "video_script",
+    "creativeVideo20",
   ]),
 });
 
@@ -369,6 +370,16 @@ export const AiVideoScriptBody = zod.object({
   duration: zod.string().optional(),
   hook: zod.string().optional(),
   style: zod.string().optional(),
+});
+
+/**
+ * @summary Generate a talking avatar video via HeyGen (SSE stream)
+ */
+export const AiGenerateVideoBody = zod.object({
+  videoType: zod.enum(["executivo", "casual"]),
+  videoAvatar: zod.enum(["masculino", "feminino"]),
+  videoAmbiente: zod.string(),
+  videoPrompt: zod.string(),
 });
 
 /**
