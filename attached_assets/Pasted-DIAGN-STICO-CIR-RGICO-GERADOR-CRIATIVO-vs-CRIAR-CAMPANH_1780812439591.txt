@@ -1,0 +1,112 @@
+DIAGNÓSTICO CIRÚRGICO — GERADOR CRIATIVO vs CRIAR CAMPANHA
+
+NÃO EXECUTAR NADA.
+NÃO ALTERAR NADA.
+NÃO MEXER EM CRÉDITOS.
+NÃO MEXER EM IMAGENS.
+NÃO MEXER EM CAMPANHAS SALVAS.
+NÃO MEXER EM PROJETOS SALVOS.
+
+OBJETIVO:
+
+Mapear claramente a diferença entre:
+
+1. Gerador Criativo
+2. Criar Campanha
+
+e identificar sobreposição, duplicação e oportunidades de especialização por plataforma.
+
+━━━━━━━━━━━━━━━━━━━━━━━
+PARTE 1 — GERADOR CRIATIVO
+━━━━━━━━━━━━━━━━━━━━━━━
+
+Investigar:
+
+1. O que o Gerador Criativo gera hoje.
+2. Quais blocos de texto gera.
+3. Quais imagens gera.
+4. Se existe diferenciação por plataforma.
+5. Quais campos são sempre gerados.
+6. Quais campos são opcionais.
+7. Se existe template genérico para todas as plataformas.
+
+Para cada plataforma informar:
+
+- Instagram
+- Facebook
+- TikTok
+- Mercado Livre
+- Shopee
+- Hotmart
+- Kiwify
+- WhatsApp
+
+Mostrar:
+
+- o que gera hoje;
+- o que faz sentido gerar;
+- o que está sobrando;
+- o que está faltando.
+
+━━━━━━━━━━━━━━━━━━━━━━━
+PARTE 2 — CRIAR CAMPANHA
+━━━━━━━━━━━━━━━━━━━━━━━
+
+Investigar:
+
+1. O que o módulo Criar Campanha gera hoje.
+2. Quais blocos de texto gera.
+3. Quais criativos gera.
+4. Quais campos são específicos por plataforma.
+5. Se existe template genérico.
+6. Se existe adaptação por plataforma.
+7. Como a plataforma escolhida influencia o resultado.
+
+Para cada plataforma informar:
+
+- Instagram
+- Facebook
+- TikTok
+- Mercado Livre
+- Shopee
+- Hotmart
+- Kiwify
+- WhatsApp
+
+Mostrar:
+
+- o que gera hoje;
+- o que faz sentido gerar;
+- o que está sobrando;
+- o que está faltando.
+
+━━━━━━━━━━━━━━━━━━━━━━━
+PARTE 3 — COMPARAÇÃO
+━━━━━━━━━━━━━━━━━━━━━━━
+
+Responder:
+
+1. O que o Gerador Criativo faz que o Criar Campanha já faz.
+2. O que o Criar Campanha faz que o Gerador Criativo já faz.
+3. Onde existe duplicação.
+4. Onde existe conflito.
+5. Onde existe desperdício de tokens.
+6. Onde existe desperdício de créditos.
+7. Se um módulo está herdando lógica do outro.
+8. Se os dois módulos estão respeitando a visão original do IAttom.
+
+━━━━━━━━━━━━━━━━━━━━━━━
+ENTREGA FINAL
+━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Estrutura atual do Gerador Criativo.
+2. Estrutura atual do Criar Campanha.
+3. Duplicações encontradas.
+4. Oportunidades de melhoria.
+5. Impacto técnico.
+6. Complexidade.
+7. Risco.
+
+APENAS DIAGNÓSTICO.
+
+NÃO EXECUTAR NADA.
