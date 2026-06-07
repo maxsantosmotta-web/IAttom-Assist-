@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import {
   FolderOpen, Plus, Trash2, Loader2, Search,
   Megaphone, FileText, Sparkles, Video, RefreshCw,
+  BookOpen, Calendar, Globe, ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,18 +20,24 @@ interface SavedItem extends SavedItemBase {
   type: "campaign" | "content" | "creative" | "video_script" | "product_discovery" | "product_validation";
 }
 
-const typeConfig: Record<string, { label: string; icon: React.ElementType; badge: string }> = {
-  campaign:          { label: "Campanha",  icon: Megaphone, badge: "bg-amber-400/10 text-amber-400 border-amber-400/20" },
-  content:           { label: "Conteúdo",  icon: FileText,  badge: "bg-blue-400/10 text-blue-400 border-blue-400/20" },
-  creative:          { label: "Criativo",  icon: Sparkles,  badge: "bg-purple-400/10 text-purple-400 border-purple-400/20" },
-  video_script:      { label: "Script",    icon: Video,     badge: "bg-rose-400/10 text-rose-400 border-rose-400/20" },
-  product_discovery: { label: "Produtos",  icon: Search,    badge: "bg-emerald-400/10 text-emerald-400 border-emerald-400/20" },
-  product_validation:{ label: "Validação", icon: Search,    badge: "bg-emerald-400/10 text-emerald-400 border-emerald-400/20" },
-};
+type TabKey = "all" | "campaign" | "content" | "creative" | "video_script" | "product_discovery";
 
-const typeLabels: Record<string, string> = {
-  campaign: "Campanhas", content: "Conteúdos", creative: "Criativos",
-  video_script: "Scripts", product_discovery: "Produtos",
+const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
+  { key: "all",               label: "Todos",           icon: BookOpen   },
+  { key: "campaign",          label: "Campanhas",       icon: Megaphone  },
+  { key: "content",           label: "Conteúdos",       icon: FileText   },
+  { key: "creative",          label: "Criativos",       icon: Sparkles   },
+  { key: "video_script",      label: "Scripts de Vídeo", icon: Video      },
+  { key: "product_discovery", label: "Produtos",        icon: Search     },
+];
+
+const TYPE_CONFIG: Record<string, { label: string; icon: React.ElementType; badge: string; cardIcon: string }> = {
+  campaign:           { label: "Campanha",        icon: Megaphone, badge: "text-primary bg-primary/10 border-primary/20",           cardIcon: "text-primary" },
+  content:            { label: "Conteúdo",         icon: FileText,  badge: "text-blue-400 bg-blue-500/10 border-blue-500/20",         cardIcon: "text-blue-400" },
+  creative:           { label: "Criativo",         icon: Sparkles,  badge: "text-violet-400 bg-violet-500/10 border-violet-500/20",   cardIcon: "text-violet-400" },
+  video_script:       { label: "Script de Vídeo",  icon: Video,     badge: "text-pink-400 bg-pink-500/10 border-pink-500/20",         cardIcon: "text-pink-400" },
+  product_discovery:  { label: "Produtos",         icon: Search,    badge: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20", cardIcon: "text-emerald-400" },
+  product_validation: { label: "Validação",        icon: Search,    badge: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20", cardIcon: "text-emerald-400" },
 };
 
 const platformLabels: Record<string, string> = {
@@ -39,13 +46,8 @@ const platformLabels: Record<string, string> = {
   instagram: "Instagram", facebook: "Facebook",
 };
 
-function timeAgo(date: string): string {
-  const s = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-  if (s < 60) return "agora mesmo";
-  if (s < 3600) return `há ${Math.floor(s / 60)}min`;
-  if (s < 86400) return `há ${Math.floor(s / 3600)}h`;
-  return `há ${Math.floor(s / 86400)}d`;
-}
+const fmtDate = (d: string) =>
+  new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
 
 function readStorage(): SavedItem[] {
   try {
@@ -54,15 +56,14 @@ function readStorage(): SavedItem[] {
   } catch { return []; }
 }
 
-const containerVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
-const itemVariants = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
+const containerVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.05 } } };
+const itemVariants = { hidden: { opacity: 0, scale: 0.97 }, show: { opacity: 1, scale: 1, transition: { duration: 0.2 } } };
 
 export function Projects() {
   const { getItems, trashItem, saveItem } = useSavedItems();
-  // Lazy initializer: reads localStorage synchronously on first render — sem flash de estado vazio
   const [savedItems, setSavedItems] = useState<SavedItem[]>(readStorage);
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [search, setSearch] = useState("");
+  const [tab, setTab]               = useState<TabKey>("all");
+  const [search, setSearch]         = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -98,9 +99,7 @@ export function Projects() {
   useEffect(() => {
     const expired = purgeExpired();
     for (const id of expired) void deleteProjectAssets(id).catch(() => {});
-
     void syncFromDB();
-
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible") void syncFromDB();
     };
@@ -110,10 +109,15 @@ export function Projects() {
   }, []);
 
   const filteredItems = savedItems.filter((item) => {
-    if (typeFilter !== "all" && item.type !== typeFilter) return false;
-    if (search && !item.title.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
+    const matchTab    = tab === "all" || item.type === tab;
+    const matchSearch = !search || item.title.toLowerCase().includes(search.toLowerCase());
+    return matchTab && matchSearch;
   });
+
+  const counts = TABS.reduce<Record<string, number>>((acc, t) => {
+    acc[t.key] = t.key === "all" ? savedItems.length : savedItems.filter((i) => i.type === t.key).length;
+    return acc;
+  }, {});
 
   const handleOpenItem = (item: SavedItem) => navigate(`/dashboard/projects/${item.id}`);
 
@@ -137,117 +141,184 @@ export function Projects() {
 
   return (
     <div className="space-y-8">
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Espaço de Trabalho</p>
-          <h2 className="text-2xl font-bold text-white mb-1">Projetos Salvos</h2>
-          <p className="text-muted-foreground text-sm">Campanhas, conteúdos, criativos e scripts gerados e salvos.</p>
+
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Espaço de Trabalho</p>
+            <h2 className="text-2xl font-bold text-white mb-1">Projetos Salvos</h2>
+            <p className="text-muted-foreground text-sm">
+              Campanhas, conteúdos, criativos e scripts gerados e salvos.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void syncFromDB(true)}
+            disabled={isRefreshing}
+            className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
         </div>
-        <Button size="sm" variant="outline" onClick={() => void syncFromDB(true)} disabled={isRefreshing} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
-          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
-          Atualizar
-        </Button>
       </motion.div>
 
-      {/* Filtros */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.05 }} className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar projetos salvos..."
-            className="pl-10 bg-[#111111] border-white/5 focus-visible:ring-primary/50"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="flex gap-1 p-1 bg-[#111111] border border-white/[0.06] rounded-lg shrink-0 flex-wrap">
-          {[{ val: "all", label: "Todos" }, ...Object.entries(typeLabels).map(([val, label]) => ({ val, label }))].map(({ val, label }) => (
+      {/* Tabs com contadores */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }}
+        className="flex flex-wrap gap-2"
+      >
+        {TABS.map((t) => {
+          const Icon = t.icon;
+          const active = tab === t.key;
+          const count = counts[t.key] ?? 0;
+          if (t.key !== "all" && count === 0) return null;
+          return (
             <button
-              key={val}
-              onClick={() => setTypeFilter(val)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                typeFilter === val
-                  ? "bg-primary/10 text-primary border border-primary/20"
-                  : "text-muted-foreground hover:text-white"
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                active
+                  ? "bg-primary/15 text-primary border-primary/30"
+                  : "text-zinc-500 border-white/8 hover:border-white/20 hover:text-zinc-300"
               }`}
             >
-              {label}
+              <Icon className="w-3.5 h-3.5" />
+              {t.label}
+              <span className={`text-[10px] ${active ? "text-primary/70" : "text-zinc-700"}`}>
+                {count}
+              </span>
             </button>
-          ))}
-        </div>
+          );
+        })}
       </motion.div>
 
-      {/* Lista */}
-      <div className={`transition-opacity duration-150 ${isRefreshing ? "opacity-50 pointer-events-none" : ""}`}>
-      {filteredItems.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.38 }}
-          className="flex flex-col items-center justify-center py-24 text-center"
-        >
-          <div className="relative mb-6">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-white/[0.04] to-transparent border border-white/[0.07] flex items-center justify-center shadow-depth">
-              <FolderOpen className="w-8 h-8 text-white/[0.15]" />
+      {/* Busca */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.08 }}
+        className="relative"
+      >
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+        <Input
+          placeholder="Buscar projetos salvos..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-10 bg-[#111111] border-white/5 focus-visible:ring-primary/50"
+        />
+      </motion.div>
+
+      {/* Grid de cards */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.12 }}
+        className={`transition-opacity duration-150 ${isRefreshing ? "opacity-50 pointer-events-none" : ""}`}
+      >
+        {filteredItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="relative mb-6">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-white/[0.04] to-transparent border border-white/[0.07] flex items-center justify-center">
+                <FolderOpen className="w-8 h-8 text-white/[0.15]" />
+              </div>
+              <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl bg-primary/[0.12] border border-primary/25 flex items-center justify-center">
+                <Plus className="w-4 h-4 text-primary" />
+              </div>
             </div>
-            <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl bg-primary/[0.12] border border-primary/25 flex items-center justify-center">
-              <Plus className="w-4 h-4 text-primary" />
-            </div>
+            <p className="text-base font-semibold text-zinc-300 mb-1.5">
+              {search || tab !== "all" ? "Nenhum item encontrado" : "Sem projetos salvos ainda"}
+            </p>
+            <p className="text-sm text-zinc-600 max-w-[260px] leading-relaxed">
+              {search || tab !== "all"
+                ? "Tente outro filtro ou termo de busca."
+                : "Gere e salve campanhas, criativos, conteúdos e scripts."}
+            </p>
           </div>
-          <p className="text-base font-semibold text-zinc-300 mb-1.5">
-            {search || typeFilter !== "all" ? "Nenhum item encontrado" : "Sem projetos salvos ainda"}
-          </p>
-          <p className="text-sm text-zinc-600 max-w-[260px] leading-relaxed">
-            {search || typeFilter !== "all"
-              ? "Tente outro filtro ou termo de busca."
-              : "Gere e salve campanhas, criativos, conteúdos e scripts."}
-          </p>
-        </motion.div>
-      ) : (
-        <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-2">
-          {filteredItems.map((item) => {
-            const cfg = typeConfig[item.type] ?? typeConfig.campaign;
-            const Icon = cfg.icon;
-            return (
-              <motion.div key={item.id} variants={itemVariants}>
-                <Card className="bg-[#0f0f0f] border-white/[0.055] hover:border-white/[0.10] hover:bg-[#111111] transition-all duration-200 group overflow-hidden shadow-depth-sm">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105 ${cfg.badge}`}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                          <p className="text-sm font-medium text-zinc-200 group-hover:text-white transition-colors truncate max-w-[300px]">{item.title}</p>
-                          <Badge variant="outline" className={`text-[10px] shrink-0 px-1.5 py-0 ${cfg.badge}`}>{cfg.label}</Badge>
-                          {item.platform && platformLabels[item.platform] && (
-                            <Badge variant="outline" className="text-[10px] shrink-0 px-1.5 py-0 bg-white/[0.04] text-zinc-500 border-white/[0.08]">
-                              {platformLabels[item.platform]}
-                            </Badge>
-                          )}
+        ) : (
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+          >
+            {filteredItems.map((item) => {
+              const cfg = TYPE_CONFIG[item.type] ?? TYPE_CONFIG.campaign;
+              const Icon = cfg.icon;
+              const preview = item.content?.slice(0, 120).trim() ?? "";
+              return (
+                <motion.div key={item.id} variants={itemVariants}>
+                  <Card className="bg-[#111111] border-white/5 hover:border-white/10 transition-colors group h-full flex flex-col">
+                    <CardContent className="p-4 flex flex-col gap-3 flex-1">
+
+                      {/* Topo: ícone + título + botão lixeira */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${cfg.badge}`}>
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <p className="text-sm font-semibold text-white truncate">{item.title}</p>
                         </div>
-                        <p className="text-[11px] text-zinc-600">{timeAgo(item.createdAt)}</p>
+                        <button
+                          onClick={() => setConfirmDeleteId(item.id)}
+                          className="text-zinc-700 hover:text-red-400 transition-colors p-1 opacity-0 group-hover:opacity-100 shrink-0"
+                          title="Mover para lixeira"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
+
+                      {/* Badges */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${cfg.badge}`}>
+                          {cfg.label}
+                        </Badge>
+                        {item.platform && platformLabels[item.platform] && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-zinc-500 bg-white/[0.03] border-white/10">
+                            <Globe className="w-2.5 h-2.5 mr-1" />
+                            {platformLabels[item.platform]}
+                          </Badge>
+                        )}
+                        {item.hasImages && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-violet-400 bg-violet-500/8 border-violet-500/15">
+                            imagens
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Preview do conteúdo */}
+                      {preview && (
+                        <p className="text-[11px] text-zinc-500 leading-relaxed line-clamp-3 flex-1">
+                          {preview}{(item.content?.length ?? 0) > 120 ? "…" : ""}
+                        </p>
+                      )}
+
+                      {/* Rodapé: data + botão Abrir */}
+                      <div className="flex items-center justify-between mt-auto pt-1">
+                        <div className="flex items-center gap-1 text-[10px] text-zinc-700">
+                          <Calendar className="w-3 h-3" />
+                          {fmtDate(item.createdAt)}
+                        </div>
                         <Button
                           size="sm"
                           onClick={() => handleOpenItem(item)}
-                          className="h-7 px-3 text-xs bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 hover:border-primary/30"
+                          className="h-6 px-2.5 text-[10px] bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 hover:border-primary/30 gap-1"
                         >
+                          <ExternalLink className="w-2.5 h-2.5" />
                           Abrir
                         </Button>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            );
-          })}
-        </motion.div>
-      )}
-      </div>
 
-      {/* Confirm: enviar para lixeira global */}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        )}
+      </motion.div>
+
+      {/* Dialog: confirmar lixeira */}
       <Dialog open={!!confirmDeleteId} onOpenChange={(open) => { if (!open) setConfirmDeleteId(null); }}>
-        <DialogContent className="bg-[#0f0f0f] border-white/[0.10] text-white max-w-sm shadow-depth-lg animate-scale-in">
+        <DialogContent className="bg-[#0f0f0f] border-white/[0.10] text-white max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-white text-base">Enviar para lixeira?</DialogTitle>
           </DialogHeader>
@@ -265,7 +336,7 @@ export function Projects() {
             </Button>
             <Button
               size="sm"
-              onClick={() => confirmDeleteId && handleConfirmTrash(confirmDeleteId)}
+              onClick={() => confirmDeleteId && void handleConfirmTrash(confirmDeleteId)}
               disabled={!!deletingId}
               className="bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20"
             >
@@ -275,6 +346,7 @@ export function Projects() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }

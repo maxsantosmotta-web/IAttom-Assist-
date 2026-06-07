@@ -6,7 +6,7 @@ import {
   Command, BarChart2, BookMarked, Gift, Trash2,
   ShoppingCart, ShoppingBag, Music2,
   Flame, Layers, Instagram, Facebook, HelpCircle,
-  BookOpen, Target,
+  Target,
 } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -47,7 +47,6 @@ const navItems = [
   { href: "/dashboard/kiwify", label: "Kiwify", icon: Layers },
   { href: "/dashboard/facebook", label: "Facebook", icon: Facebook },
   { href: "/dashboard/instagram", label: "Instagram", icon: Instagram },
-  { href: "/dashboard/library", label: "Biblioteca", icon: BookOpen },
   { href: "/dashboard/projects", label: "Projetos Salvos", icon: FolderOpen },
   { href: "/dashboard/history", label: "Atividades", icon: Clock },
   { href: "/dashboard/analytics", label: "Análises", icon: BarChart2 },
