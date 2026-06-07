@@ -281,8 +281,8 @@ export function CreativeGenerator() {
       >
         <div>
           <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Módulo Criativo</p>
-          <h2 className="text-2xl font-bold text-white mb-1">Gerador de Imagens</h2>
-          <p className="text-muted-foreground text-sm">Gere imagens prontas para publicação.</p>
+          <h2 className="text-2xl font-bold text-white mb-1">Gerador Criativo</h2>
+          <p className="text-muted-foreground text-sm">Gere imagens e vídeos prontos para publicação.</p>
         </div>
         <Button
           size="sm"
