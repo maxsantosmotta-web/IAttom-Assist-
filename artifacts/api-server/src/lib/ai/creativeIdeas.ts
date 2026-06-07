@@ -4,6 +4,7 @@ import { generateImageBuffer } from "@workspace/integrations-openai-ai-server/im
 import { setupSSE, sendSSE, sendSSEError, sendSSEDone } from "./stream.js";
 import { logAiUsage } from "./logger.js";
 import { logger } from "../logger.js";
+import { buildRefinedContext } from "./interpretationEngine.js";
 
 interface CreativeIdeasInput {
   prompt: string;
@@ -135,6 +136,9 @@ export async function streamCreativeIdeas(
     logger.info({ productName, platform, selectedFormats }, "[creativeIdeas] generating");
   }
 
+  // Motor de Interpretação e Especialistas (BLOCO 1.5)
+  const refinedCtx = buildRefinedContext(productName, platform);
+
   const formatList = selectedFormats
     .map((fmt, i) => `- Conceito ${i + 1}: ${getFormatLabel(platform, fmt)} (${getCompositionHint(platform, fmt)})`)
     .join("\n");
@@ -148,6 +152,8 @@ export async function streamCreativeIdeas(
 PRODUTO: "${productName}"
 PLATAFORMA: ${platformLabel}
 QUANTIDADE: ${numConcepts} imagem${numConcepts === 1 ? "" : "ns"}
+
+${refinedCtx.systemEnhancement}
 
 FORMATOS SOLICITADOS:
 ${formatList}
@@ -176,13 +182,14 @@ Retorne APENAS JSON puro sem markdown:
     .join("\n");
 
   const userPrompt = `PRODUTO: "${productName}"
+${refinedCtx.userEnhancement}
 
 Gere ${numConcepts} criativo${numConcepts === 1 ? "" : "s"} visual${numConcepts === 1 ? "" : "is"} premium para ${platformLabel}.
 
 Formatos e composições obrigatórias:
 ${formatDetails}
 
-INSTRUÇÃO: O imagePrompt de cada conceito deve iniciar com "${productName}". Adapte a composição ao enquadramento específico de cada formato.`;
+INSTRUÇÃO: O imagePrompt de cada conceito deve iniciar com "${productName}". Aplique as diretrizes do especialista e adapte a composição ao enquadramento de cada formato.`;
 
   try {
     let llmOutput: LLMOutputRaw | null = null;
