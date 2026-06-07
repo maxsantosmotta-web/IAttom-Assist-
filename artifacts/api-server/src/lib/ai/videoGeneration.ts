@@ -123,7 +123,7 @@ Retorne apenas o texto da fala em português do Brasil.`;
   const stream = await openai.chat.completions.create(
     {
       model: "gpt-5-mini",
-      max_completion_tokens: 300,
+      max_completion_tokens: 2000,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
