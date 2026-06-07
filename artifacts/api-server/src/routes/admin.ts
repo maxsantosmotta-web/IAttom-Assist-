@@ -647,11 +647,20 @@ router.get("/admin/export/users", requireAdmin, async (_req, res): Promise<void>
     return `"${s.replace(/"/g, '""')}"`;
   };
 
+  const PLAN_PT: Record<string, string> = { free: "Gratuito", pro: "Pro", business: "Completo", agency: "Agência" };
+  const ROLE_PT: Record<string, string> = { user: "Usuário", admin: "Admin" };
+
   const header = "Nome,Email,Plano,Função,Créditos,Cadastro\n";
   const body = rows
     .map((r) =>
-      [r.name, r.email, r.plan, r.role, r.credits, r.createdAt?.toISOString() ?? ""]
-        .map(esc).join(",")
+      [
+        r.name,
+        r.email,
+        PLAN_PT[r.plan ?? ""] ?? r.plan,
+        ROLE_PT[r.role ?? ""] ?? r.role,
+        r.credits,
+        r.createdAt?.toISOString() ?? "",
+      ].map(esc).join(",")
     )
     .join("\n");
 
@@ -683,11 +692,52 @@ router.get("/admin/export/activity", requireAdmin, async (_req, res): Promise<vo
     return `"${s.replace(/"/g, '""')}"`;
   };
 
+  const MODULE_PT: Record<string, string> = {
+    campaign: "Campanha", content: "Conteúdo", creative: "Criativo",
+    video_script: "Roteiro de Vídeo", product_discovery: "Descoberta de Produto",
+    product_validation: "Validação de Produto", marketing: "Marketing",
+    Campaign: "Campanha", Content: "Conteúdo", Creative: "Criativo",
+    "Video Script": "Roteiro de Vídeo", "Product Discovery": "Descoberta de Produto",
+    "Product Validation": "Validação de Produto",
+  };
+  const ACTION_PT: Record<string, string> = {
+    "Campaign created": "Campanha criada",
+    "Creative generated": "Criativo gerado",
+    "Creatives generated": "Criativos gerados",
+    "Content created": "Conteúdo criado",
+    "Generated content": "Conteúdo gerado",
+    "Content generated": "Conteúdo gerado",
+    "Video script generated": "Roteiro de vídeo gerado",
+    "Created campaign": "Campanha criada",
+    "Project updated": "Projeto atualizado",
+    "Project created": "Projeto criado",
+    "Updated project": "Projeto atualizado",
+    "Created project": "Projeto criado",
+    "Completed project": "Projeto concluído",
+    "Ran product validation": "Validação de produto executada",
+    "Product discovery": "Descoberta de produto",
+    "AI product discovery": "Descoberta de produto com inteligência",
+  };
+  const xlateAction = (a: string | null): string => {
+    if (!a) return "";
+    if (ACTION_PT[a]) return ACTION_PT[a];
+    for (const [en, pt] of Object.entries(ACTION_PT)) {
+      if (a.toLowerCase().startsWith(en.toLowerCase() + ":")) {
+        return pt + a.slice(en.length);
+      }
+    }
+    return a;
+  };
+
   const header = "Usuário,Email,Ação,Módulo,Projeto,Data\n";
   const body = rows
     .map((r) =>
-      [r.userName, r.userEmail, r.action, r.module, r.projectName, r.createdAt?.toISOString() ?? ""]
-        .map(esc).join(",")
+      [
+        r.userName, r.userEmail,
+        xlateAction(r.action),
+        MODULE_PT[r.module ?? ""] ?? r.module,
+        r.projectName, r.createdAt?.toISOString() ?? "",
+      ].map(esc).join(",")
     )
     .join("\n");
 

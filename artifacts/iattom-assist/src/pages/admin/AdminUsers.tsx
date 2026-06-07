@@ -23,6 +23,7 @@ import {
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@clerk/react";
+import { translateAction, translateModule } from "@/lib/eventTranslations";
 
 const BASE = (import.meta.env.BASE_URL as string).replace(/\/$/, "");
 
@@ -653,8 +654,8 @@ export function AdminUsers() {
                       <tbody>
                         {profileData.recentActivity.map((act) => (
                           <tr key={act.id} className="border-b border-white/5 last:border-0">
-                            <td className="px-3 py-2 text-zinc-300 truncate max-w-[150px]">{act.action}</td>
-                            <td className="px-3 py-2 text-zinc-400">{act.module}</td>
+                            <td className="px-3 py-2 text-zinc-300 truncate max-w-[150px]">{translateAction(act.action)}</td>
+                            <td className="px-3 py-2 text-zinc-400">{translateModule(act.module)}</td>
                             <td className="px-3 py-2 text-zinc-500 truncate max-w-[100px]">{act.projectName ?? "—"}</td>
                             <td className="px-3 py-2 text-zinc-500 whitespace-nowrap">
                               {new Date(act.createdAt).toLocaleDateString("pt-BR")}
