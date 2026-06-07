@@ -1,0 +1,403 @@
+DIAGNÓSTICO CIRÚRGICO PROFUNDO — BLOCO 2 / GERAÇÃO DE VÍDEO NO MÓDULO CRIATIVO
+
+NÃO IMPLEMENTAR NADA.
+NÃO ALTERAR CÓDIGO.
+NÃO CRIAR ROTAS.
+NÃO CONECTAR API.
+NÃO MEXER EM CRÉDITOS.
+NÃO MEXER EM PROJETOS SALVOS.
+NÃO MEXER EM LIXEIRA.
+NÃO MEXER EM CAMPANHA.
+NÃO EXECUTAR CORREÇÕES.
+
+OBJETIVO:
+Mapear profundamente tudo que será necessário para ativar a geração real de vídeo no módulo Criativo, sem deixar dependências ocultas, riscos técnicos ou retrabalho para depois.
+
+CONTEXTO ATUAL VALIDADO:
+
+O módulo Criativo já possui estrutura visual para Vídeo:
+
+- Tipo de Vídeo:
+  - Executivo
+  - Casual
+
+- Personagem:
+  - Masculino
+  - Feminino
+
+- Duração:
+  - 20 segundos
+
+- Prompt:
+  - campo de texto
+
+- Ambiente:
+  - aparece somente quando Tipo = Casual
+  - opções:
+    - Loja
+    - Shopping
+    - Restaurante
+    - Rua
+    - Casa
+    - Livre
+
+Regras validadas:
+
+1. Vídeo sempre será gerado sozinho.
+2. Nunca gerar vídeo + imagem na mesma solicitação.
+3. Sempre gerar apenas 1 vídeo por solicitação.
+4. Duração fixa inicial: 20 segundos.
+5. Idioma: português do Brasil.
+6. Fala natural, humana, não robótica.
+7. Prompt obrigatório.
+8. Executivo usa pacote fixo:
+   - escritório corporativo
+   - mesa
+   - notebook/computador
+   - ambiente profissional
+   - boa aparência
+   - postura executiva
+9. Casual usa ambiente escolhido:
+   - Loja
+   - Shopping
+   - Restaurante
+   - Rua
+   - Casa
+   - Livre
+10. Se Ambiente = Livre, o cenário deve ser decidido a partir do prompt do usuário.
+11. Personagem masculino/feminino deve ter boa aparência.
+12. O Motor de Interpretação já existe e deve ser avaliado para reutilização.
+
+─────────────────────────────
+PARTE 1 — MAPEAR FRONTEND
+─────────────────────────────
+
+Investigar no módulo Criativo:
+
+1. Arquivo principal do componente.
+2. Estados já existentes:
+   - creativeType
+   - videoType
+   - videoAvatar
+   - videoPrompt
+   - videoAmbiente
+   - outros estados relacionados.
+3. Como o botão atual “Em breve” está implementado.
+4. Onde entraria o botão real “Gerar vídeo”.
+5. Como impedir conflito entre:
+   - geração de imagem;
+   - geração de vídeo.
+6. Se o formulário de vídeo já pode chamar uma função separada.
+7. Se o prompt pode ser validado antes de permitir gerar.
+8. Como exibir loading de vídeo.
+9. Como exibir resultado de vídeo.
+10. Como exibir erro de vídeo.
+11. Como manter a imagem funcionando sem impacto.
+
+ENTREGAR:
+- arquivos envolvidos;
+- estados já prontos;
+- estados faltantes;
+- componentes a criar;
+- pontos exatos onde conectar a geração.
+
+─────────────────────────────
+PARTE 2 — MAPEAR BACKEND
+─────────────────────────────
+
+Investigar:
+
+1. Rotas atuais de IA.
+2. Padrão atual de geração de imagem.
+3. Padrão atual de streaming/SSE.
+4. Se existe alguma rota ou serviço já preparado para vídeo.
+5. Se existe helper de mídia reaproveitável.
+6. Se o backend suporta retorno de arquivos grandes.
+7. Se será necessário:
+   - base64;
+   - URL pública;
+   - storage;
+   - upload externo;
+   - arquivo temporário.
+
+ENTREGAR:
+- rotas existentes reaproveitáveis;
+- rotas novas necessárias;
+- arquivos novos prováveis;
+- padrão recomendado para retorno do vídeo.
+
+─────────────────────────────
+PARTE 3 — MAPEAR API / ENGINE DE VÍDEO
+─────────────────────────────
+
+Investigar se o projeto já possui:
+
+1. Dependência ou integração de vídeo.
+2. Variável de ambiente para vídeo.
+3. Provider configurado.
+4. Replit integration disponível.
+5. OpenAI video, Runway, Kling, Hailuo, Replicate ou outro provider já mencionado/configurado.
+6. Se existe limitação de duração.
+7. Se aceita:
+   - texto para vídeo;
+   - avatar;
+   - voz;
+   - fala em português;
+   - duração de 20 segundos;
+   - personagem masculino/feminino;
+   - cenário controlado;
+   - geração com áudio.
+
+ENTREGAR:
+- se existe provider atual;
+- se não existir, quais adaptações seriam necessárias;
+- se o vídeo com fala em português é tecnicamente suportado;
+- se avatar falando é suportado ou se seria apenas vídeo visual sem fala;
+- riscos técnicos.
+
+─────────────────────────────
+PARTE 4 — MAPEAR PROMPT E ROTEIRIZAÇÃO
+─────────────────────────────
+
+Investigar qual fluxo é tecnicamente melhor:
+
+Opção A:
+Prompt do usuário → vídeo direto.
+
+Opção B:
+Prompt do usuário → roteiro interno de 20s → vídeo.
+
+Opção C:
+Prompt do usuário → Motor de Interpretação → roteiro interno → vídeo.
+
+Avaliar qual é melhor para qualidade.
+
+Regras:
+
+- O usuário não deve ver roteiro interno.
+- O usuário só vê o vídeo final.
+- A IA deve falar português Brasil.
+- Fala natural.
+- Duração aproximada de 20 segundos.
+- Não gerar vídeo genérico sem prompt.
+
+ENTREGAR:
+- melhor arquitetura recomendada;
+- se o roteiro interno é obrigatório;
+- onde o Motor de Interpretação entra;
+- como evitar vídeo genérico;
+- como garantir coerência com Executivo/Casual.
+
+─────────────────────────────
+PARTE 5 — MOTOR DE INTERPRETAÇÃO
+─────────────────────────────
+
+Investigar:
+
+1. Como reutilizar:
+   - buildRefinedContext()
+   - specialist
+   - interpretation
+   - systemEnhancement
+   - userEnhancement
+
+2. Como adaptar para vídeo:
+   - Executivo
+   - Casual
+   - Personagem masculino/feminino
+   - Ambiente Casual
+   - Duração 20s
+   - Português Brasil
+
+3. Se será necessário criar:
+   - Video Specialist
+   - Avatar Specialist
+   - Speech Specialist
+
+ENTREGAR:
+- se o motor atual é suficiente;
+- se precisa extensão;
+- qual extensão mínima;
+- como reaproveitar sem duplicar lógica.
+
+─────────────────────────────
+PARTE 6 — PERSONAGEM / AVATAR
+─────────────────────────────
+
+Investigar:
+
+1. Como representar personagem masculino/feminino no prompt.
+2. Se o provider de vídeo aceita escolha de avatar real.
+3. Se o provider gera personagem por descrição.
+4. Se é possível manter consistência visual.
+5. Se “boa aparência” deve entrar como regra interna.
+6. Como evitar resultados estranhos ou inconsistentes.
+
+ENTREGAR:
+- melhor forma técnica de tratar personagem;
+- riscos;
+- limitações;
+- se precisa biblioteca de avatares no futuro.
+
+─────────────────────────────
+PARTE 7 — ÁUDIO / VOZ / IDIOMA
+─────────────────────────────
+
+Investigar:
+
+1. O vídeo terá voz?
+2. A API/provider suporta fala em português?
+3. Se suporta voz masculina/feminina.
+4. Se a fala vem do próprio provider ou precisa TTS separado.
+5. Se será necessário:
+   - gerar roteiro;
+   - gerar áudio;
+   - juntar áudio + vídeo;
+   - sincronizar boca/voz.
+
+ENTREGAR:
+- caminho mais simples;
+- caminho mais profissional;
+- riscos de sincronização;
+- impacto técnico.
+
+─────────────────────────────
+PARTE 8 — CRÉDITOS
+─────────────────────────────
+
+NÃO ALTERAR.
+
+Apenas mapear:
+
+1. Onde entraria o custo de vídeo.
+2. Chave provável:
+   - creativeVideo20
+3. Como impedir consumo antes da validação do prompt.
+4. Como reembolsar se falhar.
+5. Se CreditsGate atual serve para vídeo.
+6. Se precisa lógica separada.
+
+ENTREGAR:
+- pontos de impacto;
+- sugestão técnica sem implementar;
+- risco de cobrança indevida.
+
+─────────────────────────────
+PARTE 9 — PROJETOS SALVOS
+─────────────────────────────
+
+Investigar:
+
+1. Como salvar vídeo.
+2. Se o tipo atual "creative" suporta vídeo.
+3. Se precisa subtipo:
+   - creative:image
+   - creative:video
+4. Como reabrir vídeo salvo.
+5. Como baixar vídeo salvo.
+6. Como restaurar da lixeira.
+7. Se localStorage aguenta vídeo ou precisa URL/storage.
+8. Se base64 de vídeo é inviável.
+
+ENTREGAR:
+- estrutura recomendada;
+- risco de peso/tamanho;
+- melhor padrão de armazenamento.
+
+─────────────────────────────
+PARTE 10 — STORAGE / DOWNLOAD
+─────────────────────────────
+
+Investigar:
+
+1. Onde o vídeo ficará salvo.
+2. Se deve ser:
+   - base64;
+   - arquivo temporário;
+   - storage externo;
+   - URL persistente.
+3. Como fazer download.
+4. Como evitar perder vídeo ao atualizar a tela.
+5. Como evitar sobrecarregar banco/localStorage.
+
+ENTREGAR:
+- recomendação técnica;
+- riscos;
+- menor caminho seguro.
+
+─────────────────────────────
+PARTE 11 — UX / VALIDAÇÃO SEM GERAR VÍDEO
+─────────────────────────────
+
+Mapear o que pode ser validado sem consumir geração:
+
+1. Botão habilita/desabilita conforme prompt.
+2. Executivo oculta ambiente.
+3. Casual mostra ambiente.
+4. Personagem funciona.
+5. Prompt obrigatório funciona.
+6. Nenhum crédito consome antes de gerar.
+7. Imagem continua funcionando.
+
+ENTREGAR:
+- checklist visual;
+- checklist técnico;
+- checklist antes de liberar geração real.
+
+─────────────────────────────
+PARTE 12 — RISCOS
+─────────────────────────────
+
+Listar riscos por categoria:
+
+1. Custo alto.
+2. Tempo de geração longo.
+3. Provider não suporta avatar com fala.
+4. Provider não suporta português natural.
+5. Vídeo pesado demais para banco/localStorage.
+6. Salvamento quebrado.
+7. Download quebrado.
+8. Rate limit.
+9. Falha sem reembolso.
+10. Resultado ruim ou genérico.
+11. Retrabalho em Campanha/Script.
+12. Conflito com geração de imagem.
+
+Para cada risco, indicar:
+- probabilidade;
+- impacto;
+- mitigação.
+
+─────────────────────────────
+ENTREGA FINAL OBRIGATÓRIA
+─────────────────────────────
+
+Responder em formato organizado:
+
+A) O que já está pronto.
+
+B) O que falta obrigatoriamente.
+
+C) O que é opcional.
+
+D) Arquivos envolvidos.
+
+E) Rotas novas necessárias.
+
+F) Dependências/API necessárias.
+
+G) Melhor arquitetura recomendada.
+
+H) Menor caminho seguro para implementar.
+
+I) O que NÃO deve ser feito.
+
+J) Checklist antes da execução.
+
+K) Estimativa de risco:
+- baixo
+- médio
+- alto
+
+NÃO IMPLEMENTAR NADA.
+APENAS DIAGNOSTICAR PROFUNDAMENTE.
