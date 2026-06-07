@@ -26,11 +26,11 @@ const PLATFORMS: {
 }[] = [
   { key: "instagram",     label: "Instagram",    formats: [{ key: "feed", label: "Feed" }, { key: "stories", label: "Stories" }] },
   { key: "facebook",      label: "Facebook",      formats: [{ key: "feed", label: "Feed" }, { key: "stories", label: "Stories" }, { key: "banner", label: "Banner" }] },
-  { key: "tiktok",        label: "TikTok",        formats: [{ key: "vertical", label: "Vertical" }] },
+  { key: "tiktok",        label: "TikTok",        formats: [{ key: "feed", label: "Feed" }, { key: "stories", label: "Stories" }] },
   { key: "mercado_livre", label: "Mercado Livre", formats: [{ key: "produto", label: "Produto" }, { key: "banner", label: "Banner" }] },
   { key: "shopee",        label: "Shopee",        formats: [{ key: "produto", label: "Produto" }, { key: "banner", label: "Banner" }] },
-  { key: "hotmart",       label: "Hotmart",       formats: [{ key: "thumbnail", label: "Thumbnail" }, { key: "banner", label: "Banner" }] },
-  { key: "kiwify",        label: "Kiwify",        formats: [{ key: "thumbnail", label: "Thumbnail" }, { key: "banner", label: "Banner" }] },
+  { key: "hotmart",       label: "Hotmart",       formats: [{ key: "capa", label: "Capa" }, { key: "banner", label: "Banner" }] },
+  { key: "kiwify",        label: "Kiwify",        formats: [{ key: "capa", label: "Capa" }, { key: "banner", label: "Banner" }] },
   { key: "perfil",        label: "Perfil",        formats: [{ key: "perfil", label: "Perfil" }] },
 ];
 
@@ -93,6 +93,11 @@ export function CreativeGenerator() {
   const [prompt, setPrompt] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [restoredResult, setRestoredResult] = useState<CreativeIdeasResult | null>(null);
+
+  // Estado do vídeo — estrutura preparada para BLOCO 2 (sem funcionalidade ainda)
+  const [videoType, setVideoType] = useState<"executivo" | "casual">("executivo");
+  const [videoAvatar, setVideoAvatar] = useState<"masculino" | "feminino">("masculino");
+  const [videoPrompt, setVideoPrompt] = useState("");
 
   const { status, result, error, generate, reset } = useAiStream<CreativeIdeasResult>();
   const { toast } = useToast();
@@ -450,26 +455,87 @@ export function CreativeGenerator() {
           </motion.div>
         )}
 
-        {/* Placeholder Vídeo — estrutura preparada para BLOCO 2 */}
+        {/* Vídeo — Estrutura preparada para BLOCO 2 (sem geração ainda) */}
         {creativeType === "video" && (
           <motion.div
-            key="video-placeholder"
+            key="video-form"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25 }}
           >
             <Card className="bg-[#111111] border-white/5">
-              <CardContent className="p-14 flex flex-col items-center justify-center text-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
-                  <Lock className="w-5 h-5 text-zinc-600" />
+              <CardContent className="p-6 space-y-6">
+
+                {/* Tipo de Vídeo */}
+                <div className="space-y-3">
+                  <Label className="text-sm text-muted-foreground">Tipo de Vídeo</Label>
+                  <div className="flex gap-3">
+                    {(["executivo", "casual"] as const).map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => setVideoType(t)}
+                        className={`flex-1 flex items-center justify-center py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                          videoType === t
+                            ? "bg-primary/15 text-primary border-primary/30"
+                            : "bg-[#0a0a0a] text-zinc-500 border-white/[0.08] hover:border-white/20 hover:text-zinc-300"
+                        }`}
+                      >
+                        {t === "executivo" ? "Executivo" : "Casual"}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-white mb-1">Geração de vídeo em breve</p>
-                  <p className="text-xs text-zinc-600 max-w-xs mx-auto leading-relaxed">
-                    A geração de vídeos estará disponível na próxima atualização do módulo Criativo.
-                  </p>
+
+                {/* Duração */}
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">Duração</Label>
+                  <div className="flex items-center px-3.5 py-2.5 rounded-lg bg-[#0a0a0a] border border-white/[0.08]">
+                    <span className="text-sm text-zinc-400">20 segundos</span>
+                  </div>
                 </div>
+
+                {/* Avatar */}
+                <div className="space-y-3">
+                  <Label className="text-sm text-muted-foreground">Avatar</Label>
+                  <div className="flex gap-3">
+                    {(["masculino", "feminino"] as const).map((a) => (
+                      <button
+                        key={a}
+                        onClick={() => setVideoAvatar(a)}
+                        className={`flex-1 flex items-center justify-center py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                          videoAvatar === a
+                            ? "bg-primary/15 text-primary border-primary/30"
+                            : "bg-[#0a0a0a] text-zinc-500 border-white/[0.08] hover:border-white/20 hover:text-zinc-300"
+                        }`}
+                      >
+                        {a === "masculino" ? "Masculino" : "Feminino"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Prompt */}
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">Prompt</Label>
+                  <Input
+                    placeholder="Descreva o contexto do vídeo..."
+                    className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50"
+                    value={videoPrompt}
+                    onChange={(e) => setVideoPrompt(e.target.value)}
+                  />
+                </div>
+
+                {/* Aviso + botão desabilitado */}
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                  <Lock className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
+                  <p className="text-xs text-zinc-600">Funcionalidade em preparação.</p>
+                </div>
+
+                <Button disabled className="w-full opacity-40 cursor-not-allowed">
+                  <Video className="w-4 h-4 mr-2" />
+                  Em breve
+                </Button>
               </CardContent>
             </Card>
           </motion.div>

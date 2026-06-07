@@ -29,22 +29,22 @@ type ImageSize = "1024x1024" | "1536x1024" | "1024x1536" | "auto";
 const FORMAT_SIZES: Record<string, Record<string, ImageSize>> = {
   instagram:     { feed: "1024x1024", stories: "1024x1536" },
   facebook:      { feed: "1024x1024", stories: "1024x1536", banner: "1536x1024" },
-  tiktok:        { vertical: "1024x1536" },
+  tiktok:        { feed: "1024x1024", stories: "1024x1536" },
   mercado_livre: { produto: "1024x1024", banner: "1536x1024" },
   shopee:        { produto: "1024x1024", banner: "1536x1024" },
-  hotmart:       { thumbnail: "1024x1024", banner: "1536x1024" },
-  kiwify:        { thumbnail: "1024x1024", banner: "1536x1024" },
+  hotmart:       { capa: "1024x1024", banner: "1536x1024" },
+  kiwify:        { capa: "1024x1024", banner: "1536x1024" },
   perfil:        { perfil: "1024x1024" },
 };
 
 const FORMAT_LABELS: Record<string, Record<string, string>> = {
   instagram:     { feed: "Instagram Feed", stories: "Instagram Stories" },
   facebook:      { feed: "Facebook Feed", stories: "Facebook Stories", banner: "Facebook Banner" },
-  tiktok:        { vertical: "TikTok Vertical" },
+  tiktok:        { feed: "TikTok Feed", stories: "TikTok Stories" },
   mercado_livre: { produto: "Mercado Livre Produto", banner: "Mercado Livre Banner" },
   shopee:        { produto: "Shopee Produto", banner: "Shopee Banner" },
-  hotmart:       { thumbnail: "Hotmart Thumbnail", banner: "Hotmart Banner" },
-  kiwify:        { thumbnail: "Kiwify Thumbnail", banner: "Kiwify Banner" },
+  hotmart:       { capa: "Hotmart Capa", banner: "Hotmart Banner" },
+  kiwify:        { capa: "Kiwify Capa", banner: "Kiwify Banner" },
   perfil:        { perfil: "Foto de Perfil" },
 };
 
