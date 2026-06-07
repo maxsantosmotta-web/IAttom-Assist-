@@ -269,6 +269,7 @@ export const UseCreditsBody = zod.object({
     "content",
     "creativeImage1",
     "creativeImage2",
+    "creativeImage3",
     "video_script",
   ]),
 });
@@ -339,12 +340,24 @@ export const AiCreateContentBody = zod.object({
 /**
  * @summary Generate creative ad concepts via AI (SSE stream)
  */
+export const aiCreativeIdeasBodySelectedFormatsMax = 3;
+
 export const AiCreativeIdeasBody = zod.object({
   prompt: zod.string(),
-  quantity: zod.union([zod.literal(1), zod.literal(2)]).optional(),
-  format: zod
-    .enum(["feed", "story", "banner", "profile", "marketplace"])
-    .optional(),
+  platform: zod.enum([
+    "instagram",
+    "facebook",
+    "tiktok",
+    "mercado_livre",
+    "shopee",
+    "hotmart",
+    "kiwify",
+    "perfil",
+  ]),
+  selectedFormats: zod
+    .array(zod.string())
+    .min(1)
+    .max(aiCreativeIdeasBodySelectedFormatsMax),
 });
 
 /**

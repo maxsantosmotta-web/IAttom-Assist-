@@ -14,6 +14,7 @@ interface CreditsGateProps {
   feature: FeatureKey;
   onSuccess: (charge: () => void) => void;
   disabled?: boolean;
+  hideCostBadge?: boolean;
   children: (props: { trigger: () => void; isLoading: boolean }) => React.ReactNode;
 }
 
@@ -22,7 +23,7 @@ interface InsufficientState {
   required: number;
 }
 
-export function CreditsGate({ feature, onSuccess, disabled, children }: CreditsGateProps) {
+export function CreditsGate({ feature, onSuccess, disabled, hideCostBadge, children }: CreditsGateProps) {
   const [insufficient, setInsufficient] = useState<InsufficientState | null>(null);
   const [showPlans, setShowPlans] = useState(false);
   const qc = useQueryClient();
@@ -74,11 +75,13 @@ export function CreditsGate({ feature, onSuccess, disabled, children }: CreditsG
   return (
     <>
       <div className="flex items-center gap-2">
-        <div className="flex-1 min-w-0">{children({ trigger, isLoading: mutation.isPending })}</div>
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 shrink-0">
-          <Zap className="w-3 h-3 text-primary fill-primary" />
-          <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">{cost} cr</span>
-        </div>
+        <div className={hideCostBadge ? "w-full" : "flex-1 min-w-0"}>{children({ trigger, isLoading: mutation.isPending })}</div>
+        {!hideCostBadge && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 shrink-0">
+            <Zap className="w-3 h-3 text-primary fill-primary" />
+            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">{cost} cr</span>
+          </div>
+        )}
       </div>
 
       <Dialog open={!!insufficient} onOpenChange={(open) => !open && setInsufficient(null)}>

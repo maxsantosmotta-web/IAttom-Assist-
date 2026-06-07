@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Loader2, RefreshCw, AlertCircle, Image, Save } from "lucide-react";
+import { Sparkles, Loader2, RefreshCw, AlertCircle, Image, Save, Download, Video, Lock } from "lucide-react";
 import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
 import { saveProjectAssets } from "@/lib/assetStorage";
 import { useSavedItems } from "@/hooks/useSavedItems";
@@ -14,24 +14,44 @@ import { useAiStream } from "@/hooks/useAiStream";
 import type { CreativeIdeasResult, CreativeConcept } from "@/types/ai";
 import type { FeatureKey } from "@/lib/credits";
 
-type FormatKey = "feed" | "story" | "banner" | "profile" | "marketplace";
+type CreativeType = "image" | "video";
+type PlatformKey = "instagram" | "facebook" | "tiktok" | "mercado_livre" | "shopee" | "hotmart" | "kiwify" | "perfil";
 
-const FORMAT_OPTIONS: { value: FormatKey; label: string; ratio: string }[] = [
-  { value: "feed",        label: "Feed",        ratio: "1:1"  },
-  { value: "story",       label: "Story",        ratio: "9:16" },
-  { value: "banner",      label: "Banner",       ratio: "16:9" },
-  { value: "profile",     label: "Perfil",       ratio: "1:1"  },
-  { value: "marketplace", label: "Marketplace",  ratio: "1:1"  },
+const MAX_FORMATS = 3;
+
+const PLATFORMS: {
+  key: PlatformKey;
+  label: string;
+  formats: { key: string; label: string }[];
+}[] = [
+  { key: "instagram",     label: "Instagram",    formats: [{ key: "feed", label: "Feed" }, { key: "stories", label: "Stories" }] },
+  { key: "facebook",      label: "Facebook",      formats: [{ key: "feed", label: "Feed" }, { key: "stories", label: "Stories" }, { key: "banner", label: "Banner" }] },
+  { key: "tiktok",        label: "TikTok",        formats: [{ key: "vertical", label: "Vertical" }] },
+  { key: "mercado_livre", label: "Mercado Livre", formats: [{ key: "produto", label: "Produto" }, { key: "banner", label: "Banner" }] },
+  { key: "shopee",        label: "Shopee",        formats: [{ key: "produto", label: "Produto" }, { key: "banner", label: "Banner" }] },
+  { key: "hotmart",       label: "Hotmart",       formats: [{ key: "thumbnail", label: "Thumbnail" }, { key: "banner", label: "Banner" }] },
+  { key: "kiwify",        label: "Kiwify",        formats: [{ key: "thumbnail", label: "Thumbnail" }, { key: "banner", label: "Banner" }] },
+  { key: "perfil",        label: "Perfil",        formats: [{ key: "perfil", label: "Perfil" }] },
 ];
 
 function formatToAspectClass(format: string): string {
-  if (format === "story") return "aspect-[9/16]";
+  if (format === "stories" || format === "vertical") return "aspect-[9/16]";
   if (format === "banner") return "aspect-[16/9]";
   return "aspect-square";
 }
 
+function downloadImage(base64: string, filename: string) {
+  const a = document.createElement("a");
+  a.href = `data:image/png;base64,${base64}`;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
 function ConceptCard({ concept, index }: { concept: CreativeConcept; index: number }) {
   const aspectClass = formatToAspectClass(concept.format ?? "feed");
+  const filename = `${concept.label.replace(/[\s/]+/g, "-").toLowerCase()}.png`;
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.08 }}>
@@ -49,8 +69,17 @@ function ConceptCard({ concept, index }: { concept: CreativeConcept; index: numb
             <Image className="w-8 h-8 text-white/20" />
           </div>
         )}
-        <CardContent className="p-3">
-          <p className="text-xs font-semibold text-primary uppercase tracking-widest">{concept.label}</p>
+        <CardContent className="p-3 flex items-center justify-between gap-2">
+          <p className="text-xs font-semibold text-primary uppercase tracking-widest truncate">{concept.label}</p>
+          {concept.imageBase64 && (
+            <button
+              onClick={() => downloadImage(concept.imageBase64!, filename)}
+              className="text-muted-foreground hover:text-white transition-colors shrink-0"
+              title="Baixar imagem"
+            >
+              <Download className="w-3.5 h-3.5" />
+            </button>
+          )}
         </CardContent>
       </Card>
     </motion.div>
@@ -58,9 +87,10 @@ function ConceptCard({ concept, index }: { concept: CreativeConcept; index: numb
 }
 
 export function CreativeGenerator() {
+  const [creativeType, setCreativeType] = useState<CreativeType>("image");
+  const [platform, setPlatform] = useState<PlatformKey | "">("");
+  const [selectedFormats, setSelectedFormats] = useState<string[]>([]);
   const [prompt, setPrompt] = useState("");
-  const [quantity, setQuantity] = useState<1 | 2>(1);
-  const [format, setFormat] = useState<FormatKey | "">("");
   const [isSaving, setIsSaving] = useState(false);
   const [restoredResult, setRestoredResult] = useState<CreativeIdeasResult | null>(null);
 
@@ -89,6 +119,9 @@ export function CreativeGenerator() {
     }
   }, [status]);
 
+  // Limpar formatos ao trocar plataforma
+  useEffect(() => { setSelectedFormats([]); }, [platform]);
+
   // Prefill a partir do módulo Campanha
   useEffect(() => {
     const saved = sessionStorage.getItem("iattom_creative_prefill");
@@ -108,16 +141,23 @@ export function CreativeGenerator() {
       if (!raw) return;
       sessionStorage.removeItem("iattom_restore_creative_v1");
       const saved = JSON.parse(raw) as {
-        briefing?: { prompt?: string; format?: string; quantity?: number };
+        briefing?: {
+          prompt?: string;
+          platform?: string;
+          selectedFormats?: string[];
+          format?: string;
+          quantity?: number;
+        };
         result?: unknown;
       };
       if (saved.briefing?.prompt) setPrompt(saved.briefing.prompt);
-      const savedFormat = saved.briefing?.format;
-      if (savedFormat && FORMAT_OPTIONS.some((f) => f.value === savedFormat)) {
-        setFormat(savedFormat as FormatKey);
+      const savedPlatform = saved.briefing?.platform;
+      if (savedPlatform && PLATFORMS.some((p) => p.key === savedPlatform)) {
+        setPlatform(savedPlatform as PlatformKey);
       }
-      if (saved.briefing?.quantity === 1) setQuantity(1);
-      else if (saved.briefing?.quantity === 2) setQuantity(2);
+      if (Array.isArray(saved.briefing?.selectedFormats)) {
+        setSelectedFormats((saved.briefing.selectedFormats as string[]).slice(0, MAX_FORMATS));
+      }
       if (saved.result) setRestoredResult(saved.result as CreativeIdeasResult);
     } catch { /* ignore */ }
   }, []);
@@ -128,14 +168,27 @@ export function CreativeGenerator() {
   const isRestoredMode = !!restoredResult && status === "idle";
   const activeResult = result ?? restoredResult;
 
-  const featureKey: FeatureKey = quantity === 1 ? "creativeImage1" : "creativeImage2";
+  const featureKey: FeatureKey =
+    selectedFormats.length <= 1 ? "creativeImage1" :
+    selectedFormats.length === 2 ? "creativeImage2" :
+    "creativeImage3";
+
+  const toggleFormat = (fmt: string) => {
+    setSelectedFormats((prev) => {
+      if (prev.includes(fmt)) return prev.filter((f) => f !== fmt);
+      if (prev.length >= MAX_FORMATS) return prev;
+      return [...prev, fmt];
+    });
+  };
+
+  const canGenerate = !!prompt.trim() && !!platform && selectedFormats.length > 0;
 
   const runGenerate = (charge: () => void) => {
     chargedFeatureRef.current = featureKey;
     generate("/api/ai/creative-ideas", {
       prompt,
-      quantity,
-      format: format || undefined,
+      platform,
+      selectedFormats,
     }).then((res) => {
       if (res !== null) charge();
     });
@@ -145,13 +198,11 @@ export function CreativeGenerator() {
     if (!activeResult || isSaving) return;
     setIsSaving(true);
 
-    const formatOpt = FORMAT_OPTIONS.find((f) => f.value === format);
-    const formatLabel = formatOpt?.label ?? "Imagem";
-
+    const platformLabel = PLATFORMS.find((p) => p.key === platform)?.label ?? String(platform);
     const content = [
       `Tipo: Imagem`,
-      `Quantidade: ${quantity} ${quantity === 1 ? "imagem" : "imagens"}`,
-      `Formato: ${formatLabel}`,
+      `Plataforma: ${platformLabel}`,
+      `Formatos: ${selectedFormats.join(", ")}`,
       `Prompt: ${prompt.trim()}`,
     ].join(" | ");
 
@@ -162,14 +213,14 @@ export function CreativeGenerator() {
 
     const data = JSON.stringify({
       type: "image",
-      quantity,
-      format,
+      platform,
+      selectedFormats,
       prompt: prompt.trim(),
       result: resultWithoutImages,
     });
 
     const projectId = crypto.randomUUID();
-    const title = `${formatLabel} — ${prompt.trim().slice(0, 60) || "Criativo"}`;
+    const title = `${platformLabel} — ${prompt.trim().slice(0, 60) || "Criativo"}`;
     const hasImages = (activeResult.concepts?.some((c) => !!c.imageBase64)) ?? false;
 
     try {
@@ -192,16 +243,12 @@ export function CreativeGenerator() {
 
     try {
       await saveItem({ id: projectId, title, type: "creative", content, data, hasImages });
-
       if (imageAssets.length > 0) {
         try {
           await saveItemAssets(projectId, imageAssets);
           toast({ description: "Criativo salvo com imagens sincronizadas." });
         } catch {
-          toast({
-            description: "Criativo salvo, mas as imagens não foram sincronizadas. Tente salvar novamente.",
-            variant: "destructive",
-          });
+          toast({ description: "Criativo salvo, mas as imagens não foram sincronizadas.", variant: "destructive" });
         }
       } else {
         toast({ description: "Criativo salvo." });
@@ -213,13 +260,12 @@ export function CreativeGenerator() {
     }
   };
 
-  const loadingAspect =
-    format === "story" ? "aspect-[9/16]" :
-    format === "banner" ? "aspect-[16/9]" :
-    "aspect-square";
+  const currentPlatformFormats = platform ? (PLATFORMS.find((p) => p.key === platform)?.formats ?? []) : [];
+  const loadingCount = Math.max(selectedFormats.length, 1);
+  const resultCount = activeResult?.concepts?.length ?? 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Cabeçalho */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -244,92 +290,193 @@ export function CreativeGenerator() {
         </Button>
       </motion.div>
 
-      {/* Formulário */}
+      {/* Tipo de criativo */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
+        transition={{ duration: 0.4, delay: 0.05 }}
       >
         <Card className="bg-[#111111] border-white/5">
-          <CardContent className="p-6 space-y-5">
-
-            {/* Quantidade */}
-            <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">Quantidade de imagens</Label>
-              <div className="flex gap-2">
-                {([1, 2] as const).map((q) => (
-                  <button
-                    key={q}
-                    onClick={() => setQuantity(q)}
-                    className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                      quantity === q
-                        ? "bg-primary/15 text-primary border-primary/30"
-                        : "bg-[#0a0a0a] text-zinc-500 border-white/[0.08] hover:border-white/20 hover:text-zinc-300"
-                    }`}
-                  >
-                    {q === 1 ? "1 imagem" : "2 imagens"}
-                  </button>
-                ))}
-              </div>
+          <CardContent className="p-5">
+            <Label className="text-sm text-muted-foreground block mb-3">Tipo de criativo</Label>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setCreativeType("image")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                  creativeType === "image"
+                    ? "bg-primary/15 text-primary border-primary/30"
+                    : "bg-[#0a0a0a] text-zinc-500 border-white/[0.08] hover:border-white/20 hover:text-zinc-300"
+                }`}
+              >
+                <Image className="w-4 h-4" />
+                Imagem
+              </button>
+              <button
+                onClick={() => setCreativeType("video")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                  creativeType === "video"
+                    ? "bg-primary/15 text-primary border-primary/30"
+                    : "bg-[#0a0a0a] text-zinc-500 border-white/[0.08] hover:border-white/20 hover:text-zinc-300"
+                }`}
+              >
+                <Video className="w-4 h-4" />
+                Vídeo
+              </button>
             </div>
-
-            {/* Formato */}
-            <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">Formato</Label>
-              <div className="grid grid-cols-5 gap-2">
-                {FORMAT_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setFormat(opt.value)}
-                    className={`py-2.5 px-1 rounded-lg border text-xs font-medium transition-colors flex flex-col items-center gap-0.5 ${
-                      format === opt.value
-                        ? "bg-primary/15 text-primary border-primary/30"
-                        : "bg-[#0a0a0a] text-zinc-500 border-white/[0.08] hover:border-white/20 hover:text-zinc-300"
-                    }`}
-                  >
-                    <span>{opt.label}</span>
-                    <span className={`text-[9px] ${format === opt.value ? "text-primary/60" : "text-zinc-700"}`}>{opt.ratio}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Prompt */}
-            <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">O que você quer gerar?</Label>
-              <Input
-                placeholder="Ex: Moto premium em rua neon noturna"
-                className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-              />
-            </div>
-
-            {/* Botão de geração */}
-            <CreditsGate
-              feature={featureKey}
-              onSuccess={runGenerate}
-              disabled={!prompt.trim() || !format || isGenerating}
-            >
-              {({ trigger, isLoading }) => (
-                <Button
-                  onClick={trigger}
-                  disabled={isLoading || isGenerating || !prompt.trim() || !format}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
-                >
-                  {isLoading || isGenerating ? (
-                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Gerando...</>
-                  ) : (
-                    <><Sparkles className="w-4 h-4 mr-2" /> Gerar {quantity === 1 ? "Imagem" : "Imagens"}</>
-                  )}
-                </Button>
-              )}
-            </CreditsGate>
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* Estados de resultado */}
+      {/* Formulário condicional */}
+      <AnimatePresence mode="wait">
+        {creativeType === "image" && (
+          <motion.div
+            key="image-form"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+          >
+            <Card className="bg-[#111111] border-white/5">
+              <CardContent className="p-6 space-y-6">
+
+                {/* Plataforma */}
+                <div className="space-y-3">
+                  <Label className="text-sm text-muted-foreground">Plataforma</Label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {PLATFORMS.map((p) => (
+                      <button
+                        key={p.key}
+                        onClick={() => setPlatform(p.key)}
+                        className={`py-2.5 px-2 rounded-lg border text-xs font-medium transition-colors text-center ${
+                          platform === p.key
+                            ? "bg-primary/15 text-primary border-primary/30"
+                            : "bg-[#0a0a0a] text-zinc-500 border-white/[0.08] hover:border-white/20 hover:text-zinc-300"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Formatos (aparece ao selecionar plataforma) */}
+                <AnimatePresence>
+                  {platform && (
+                    <motion.div
+                      key={platform}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm text-muted-foreground">Formatos</Label>
+                        <span className="text-xs text-zinc-600">
+                          {selectedFormats.length} de {MAX_FORMATS} selecionado{selectedFormats.length !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {currentPlatformFormats.map((f) => {
+                          const isSelected = selectedFormats.includes(f.key);
+                          const isDisabled = !isSelected && selectedFormats.length >= MAX_FORMATS;
+                          return (
+                            <button
+                              key={f.key}
+                              onClick={() => toggleFormat(f.key)}
+                              disabled={isDisabled}
+                              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                                isSelected
+                                  ? "bg-primary/15 text-primary border-primary/30"
+                                  : isDisabled
+                                  ? "bg-[#0a0a0a] text-zinc-700 border-white/[0.04] cursor-not-allowed"
+                                  : "bg-[#0a0a0a] text-zinc-400 border-white/[0.08] hover:border-white/20 hover:text-zinc-300 cursor-pointer"
+                              }`}
+                            >
+                              <span
+                                className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
+                                  isSelected ? "bg-primary border-primary" : "border-white/20"
+                                }`}
+                              >
+                                {isSelected && <span className="w-1.5 h-1.5 rounded-sm bg-black" />}
+                              </span>
+                              {f.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Prompt */}
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">O que você quer gerar?</Label>
+                  <Input
+                    placeholder="Ex: Moto premium em rua neon noturna"
+                    className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                  />
+                </div>
+
+                {/* Botão de geração */}
+                <CreditsGate
+                  feature={featureKey}
+                  onSuccess={runGenerate}
+                  disabled={!canGenerate || isGenerating}
+                  hideCostBadge
+                >
+                  {({ trigger, isLoading }) => (
+                    <Button
+                      onClick={trigger}
+                      disabled={isLoading || isGenerating || !canGenerate}
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
+                    >
+                      {isLoading || isGenerating ? (
+                        <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Gerando...</>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Gerar {selectedFormats.length <= 1 ? "Imagem" : `${selectedFormats.length} Imagens`}
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </CreditsGate>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Placeholder Vídeo — estrutura preparada para BLOCO 2 */}
+        {creativeType === "video" && (
+          <motion.div
+            key="video-placeholder"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+          >
+            <Card className="bg-[#111111] border-white/5">
+              <CardContent className="p-14 flex flex-col items-center justify-center text-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
+                  <Lock className="w-5 h-5 text-zinc-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white mb-1">Geração de vídeo em breve</p>
+                  <p className="text-xs text-zinc-600 max-w-xs mx-auto leading-relaxed">
+                    A geração de vídeos estará disponível na próxima atualização do módulo Criativo.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Resultados */}
       <AnimatePresence mode="wait">
         {isGenerating && (
           <motion.div key="generating" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -339,16 +486,25 @@ export function CreativeGenerator() {
                   <span key={i} className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                 ))}
               </div>
-              <span className="text-sm">Gerando {quantity === 1 ? "imagem" : "imagens"}...</span>
+              <span className="text-sm">
+                Gerando {loadingCount === 1 ? "imagem" : `${loadingCount} imagens`}...
+              </span>
             </div>
-            <div className={`grid gap-4 ${quantity === 1 ? "grid-cols-1 max-w-sm mx-auto" : "grid-cols-2"}`}>
-              {Array.from({ length: quantity }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`rounded-lg bg-white/5 border border-white/5 animate-pulse ${loadingAspect}`}
-                  style={{ animationDelay: `${i * 0.1}s` }}
-                />
-              ))}
+            <div className={`grid gap-4 ${
+              loadingCount === 1 ? "grid-cols-1 max-w-sm mx-auto" :
+              loadingCount === 2 ? "grid-cols-2" :
+              "grid-cols-3"
+            }`}>
+              {Array.from({ length: loadingCount }).map((_, i) => {
+                const fmt = selectedFormats[i] ?? "feed";
+                return (
+                  <div
+                    key={i}
+                    className={`rounded-lg bg-white/5 border border-white/5 animate-pulse ${formatToAspectClass(fmt)}`}
+                    style={{ animationDelay: `${i * 0.1}s` }}
+                  />
+                );
+              })}
             </div>
           </motion.div>
         )}
@@ -367,7 +523,7 @@ export function CreativeGenerator() {
                   variant="outline"
                   onClick={() => {
                     reset();
-                    generate("/api/ai/creative-ideas", { prompt, quantity, format: format || undefined });
+                    generate("/api/ai/creative-ideas", { prompt, platform, selectedFormats });
                   }}
                   className="border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0"
                 >
@@ -414,9 +570,9 @@ export function CreativeGenerator() {
             </div>
 
             <div className={`grid gap-4 ${
-              (activeResult.concepts?.length ?? 0) === 1
-                ? "grid-cols-1 max-w-sm mx-auto"
-                : "md:grid-cols-2"
+              resultCount <= 1 ? "grid-cols-1 max-w-sm mx-auto" :
+              resultCount === 2 ? "md:grid-cols-2" :
+              "md:grid-cols-3"
             }`}>
               {activeResult.concepts?.map((concept: CreativeConcept, i: number) => (
                 <ConceptCard key={concept.id ?? i} concept={concept} index={i} />

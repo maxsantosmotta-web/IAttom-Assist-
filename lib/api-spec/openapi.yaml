@@ -837,7 +837,7 @@ components:
       properties:
         feature:
           type: string
-          enum: [product_discovery, product_validation, campaign, content, creativeImage1, creativeImage2, video_script]
+          enum: [product_discovery, product_validation, campaign, content, creativeImage1, creativeImage2, creativeImage3, video_script]
       required:
         - feature
 
@@ -1240,14 +1240,19 @@ components:
       properties:
         prompt:
           type: string
-        quantity:
-          type: integer
-          enum: [1, 2]
-        format:
+        platform:
           type: string
-          enum: [feed, story, banner, profile, marketplace]
+          enum: [instagram, facebook, tiktok, mercado_livre, shopee, hotmart, kiwify, perfil]
+        selectedFormats:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 3
       required:
         - prompt
+        - platform
+        - selectedFormats
 
     AiVideoScriptBody:
       type: object

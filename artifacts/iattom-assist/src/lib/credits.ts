@@ -3,9 +3,10 @@ export const FEATURE_COSTS = {
   product_validation: 5,
   campaign: 10,
   content: 8,
-  // Criativo — custo separado por quantidade (ajuste aqui se necessário)
+  // Criativo — custo por imagem gerada (ajuste aqui se necessário)
   creativeImage1: 10,  // 1 imagem
   creativeImage2: 15,  // 2 imagens
+  creativeImage3: 20,  // 3 imagens
   video_script: 10,
 } as const;
 

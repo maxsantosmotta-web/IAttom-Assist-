@@ -7,8 +7,8 @@ import { logger } from "../logger.js";
 
 interface CreativeIdeasInput {
   prompt: string;
-  quantity?: number;
-  format?: string;
+  platform: string;
+  selectedFormats: string[];
 }
 
 export interface CreativeConcept {
@@ -26,56 +26,67 @@ export interface CreativeIdeasResult {
 
 type ImageSize = "1024x1024" | "1536x1024" | "1024x1536" | "auto";
 
-const FORMAT_SIZES: Record<string, ImageSize> = {
-  feed:        "1024x1024",
-  story:       "1024x1536",
-  banner:      "1536x1024",
-  profile:     "1024x1024",
-  marketplace: "1024x1024",
+const FORMAT_SIZES: Record<string, Record<string, ImageSize>> = {
+  instagram:     { feed: "1024x1024", stories: "1024x1536" },
+  facebook:      { feed: "1024x1024", stories: "1024x1536", banner: "1536x1024" },
+  tiktok:        { vertical: "1024x1536" },
+  mercado_livre: { produto: "1024x1024", banner: "1536x1024" },
+  shopee:        { produto: "1024x1024", banner: "1536x1024" },
+  hotmart:       { thumbnail: "1024x1024", banner: "1536x1024" },
+  kiwify:        { thumbnail: "1024x1024", banner: "1536x1024" },
+  perfil:        { perfil: "1024x1024" },
 };
 
-const FORMAT_LABELS: Record<string, string> = {
-  feed:        "Feed",
-  story:       "Story / Reels",
-  banner:      "Banner",
-  profile:     "Perfil",
-  marketplace: "Marketplace",
+const FORMAT_LABELS: Record<string, Record<string, string>> = {
+  instagram:     { feed: "Instagram Feed", stories: "Instagram Stories" },
+  facebook:      { feed: "Facebook Feed", stories: "Facebook Stories", banner: "Facebook Banner" },
+  tiktok:        { vertical: "TikTok Vertical" },
+  mercado_livre: { produto: "Mercado Livre Produto", banner: "Mercado Livre Banner" },
+  shopee:        { produto: "Shopee Produto", banner: "Shopee Banner" },
+  hotmart:       { thumbnail: "Hotmart Thumbnail", banner: "Hotmart Banner" },
+  kiwify:        { thumbnail: "Kiwify Thumbnail", banner: "Kiwify Banner" },
+  perfil:        { perfil: "Foto de Perfil" },
 };
 
-const FORMAT_DIMENSIONS: Record<string, string> = {
-  feed:        "1:1 quadrado",
-  story:       "9:16 vertical",
-  banner:      "16:9 horizontal",
-  profile:     "1:1 quadrado",
-  marketplace: "1:1 quadrado",
+const PLATFORM_LABELS: Record<string, string> = {
+  instagram:     "Instagram",
+  facebook:      "Facebook",
+  tiktok:        "TikTok",
+  mercado_livre: "Mercado Livre",
+  shopee:        "Shopee",
+  hotmart:       "Hotmart",
+  kiwify:        "Kiwify",
+  perfil:        "Perfil",
 };
 
-function getImageSize(format?: string): ImageSize {
-  if (!format) return "1024x1024";
-  return FORMAT_SIZES[format] ?? "1024x1024";
+function getImageSize(platform: string, format: string): ImageSize {
+  return FORMAT_SIZES[platform]?.[format] ?? "1024x1024";
 }
 
-function getFormatLabel(format?: string, index?: number, total?: number): string {
-  const base = format ? (FORMAT_LABELS[format] ?? "Imagem") : "Imagem";
-  if (total && total > 1 && index !== undefined) {
-    return `${base} ${index + 1}`;
-  }
-  return base;
+function getFormatLabel(platform: string, format: string): string {
+  return FORMAT_LABELS[platform]?.[format] ?? format;
+}
+
+function getCompositionHint(platform: string, format: string): string {
+  const size = getImageSize(platform, format);
+  if (size === "1024x1536") return "vertical 9:16 composition — tall portrait framing, prominent central subject, ample space above and below";
+  if (size === "1536x1024") return "horizontal 16:9 composition — wide landscape framing, product positioned center or left, generous negative space";
+  return "square 1:1 composition — centered product, balanced framing, equal visual weight on all sides";
 }
 
 function enrichImagePrompt(
   basePrompt: string,
   productName: string,
   visualAnchor: string,
-  format?: string,
+  platform: string,
+  format: string,
 ): string {
   const anchorPrefix = visualAnchor
     ? `CAMPAIGN VISUAL ANCHOR — apply consistently: ${visualAnchor}. `
     : "";
-  const productAnchor = `${productName} — exact product as specified by user, preserve real product appearance, proportions and category`;
-  const dim = format ? FORMAT_DIMENSIONS[format] : undefined;
-  const formatSuffix = dim ? ` Ad format: ${dim}.` : "";
-  return `${anchorPrefix}${productAnchor}. ${basePrompt}${formatSuffix}`;
+  const productAnchor = `${productName} — exact product as specified, preserve real appearance, proportions and category`;
+  const compositionSuffix = ` ${getCompositionHint(platform, format)}.`;
+  return `${anchorPrefix}${productAnchor}. ${basePrompt}${compositionSuffix}`;
 }
 
 interface LLMConceptRaw {
@@ -110,56 +121,68 @@ export async function streamCreativeIdeas(
   sendSSE(res, { type: "start" });
 
   const productName = params.prompt.trim();
-  const numConcepts = params.quantity === 1 ? 1 : 2;
-  const format = params.format ?? "feed";
-  const formatLabel = FORMAT_LABELS[format] ?? "Feed";
-  const formatDim = FORMAT_DIMENSIONS[format] ?? "1:1 quadrado";
+  const platform = params.platform;
+  const selectedFormats = params.selectedFormats.slice(0, 3);
+  const numConcepts = selectedFormats.length;
+  const platformLabel = PLATFORM_LABELS[platform] ?? platform;
 
-  if (process.env.NODE_ENV !== "production") {
-    logger.info({ productName, numConcepts, format }, "[creativeIdeas] generating");
+  if (numConcepts === 0) {
+    sendSSEError(res, "Nenhum formato selecionado.");
+    return;
   }
 
-  const compositionRule =
-    format === "story"
-      ? "Composição vertical 9:16 — produto em destaque central, espaço superior e inferior limpos."
-      : format === "banner"
-      ? "Composição horizontal 16:9 — produto à esquerda ou centralizado, espaço amplo para layout de anúncio."
-      : "Composição quadrada 1:1 — produto centralizado, fundo clean ou lifestyle contextual.";
+  if (process.env.NODE_ENV !== "production") {
+    logger.info({ productName, platform, selectedFormats }, "[creativeIdeas] generating");
+  }
 
-  const variationRule =
-    numConcepts > 1
-      ? `\nREGRA DE VARIAÇÃO: As ${numConcepts} imagens devem ser composições DISTINTAS do mesmo produto — variações de ângulo, cenário ou contexto de uso. Mesma paleta visual e estilo.`
-      : "";
+  const formatList = selectedFormats
+    .map((fmt, i) => `- Conceito ${i + 1}: ${getFormatLabel(platform, fmt)} (${getCompositionHint(platform, fmt)})`)
+    .join("\n");
+
+  const cohesionRule = numConcepts > 1
+    ? `\nREGRA DE COESÃO VISUAL: As ${numConcepts} imagens devem pertencer à MESMA campanha visual. O visualAnchor deve garantir consistência de paleta + estilo + iluminação. Variações permitidas: ângulo, cenário, composição de layout.`
+    : "";
 
   const systemPrompt = `Você é um diretor de criação visual de nível mundial para publicidade digital.
 
-FORMATO: ${formatLabel} (${formatDim})
-QUANTIDADE: ${numConcepts} ${numConcepts === 1 ? "imagem" : "imagens"}
+PRODUTO: "${productName}"
+PLATAFORMA: ${platformLabel}
+QUANTIDADE: ${numConcepts} imagem${numConcepts === 1 ? "" : "ns"}
 
-REGRA ABSOLUTA DE FIDELIDADE AO PRODUTO: O produto informado é a referência central e obrigatória. NÃO substitua por versão genérica ou produto parecido. Preserve o nome exato, aparência, proporções e categoria.
+FORMATOS SOLICITADOS:
+${formatList}
+
+REGRA ABSOLUTA DE FIDELIDADE AO PRODUTO: O produto informado é a referência central e obrigatória. NÃO substitua por versão genérica ou produto parecido. Preserve o nome exato, aparência, proporções e categoria do produto.
 
 REGRA DE IDIOMA: imagePrompt SEMPRE em inglês.
 
-REGRA DE COMPOSIÇÃO: ${compositionRule}${variationRule}
+REGRA DE COMPOSIÇÃO: Cada conceito deve ter a composição exata especificada para seu formato. Adapte enquadramento, proporção e layout ao formato de cada conceito.
 
-REGRA DE QUALIDADE OBRIGATÓRIA: photorealistic, commercial photography quality, cinematic lighting, soft shadows and highlights, clear visual hierarchy, modern clean composition, professional depth of field, premium advertising aesthetic, high-end magazine quality, no text overlays, no logos, no watermarks, ready-to-publish ad quality, aspirational mood, natural anatomy if people appear.
+REGRA DE QUALIDADE: photorealistic, commercial photography quality, cinematic lighting, soft shadows and highlights, clear visual hierarchy, modern clean composition, professional depth of field, premium advertising aesthetic, high-end magazine quality, no text overlays, no logos, no watermarks, ready-to-publish ad quality, aspirational mood, natural anatomy if people appear.${cohesionRule}
 
 Retorne APENAS JSON puro sem markdown:
 {
   "concepts": [
     {
       "id": number (1-${numConcepts}),
-      "imagePrompt": string (prompt detalhado em inglês — mínimo 60 palavras. Inclua: nome exato do produto, características físicas, iluminação, ângulo, cenário, mood, estilo fotográfico, composição)
+      "imagePrompt": string (prompt detalhado em inglês para o formato específico — mínimo 60 palavras. Inclua: nome exato do produto, composição específica do formato, iluminação, ângulo, cenário, mood, estilo fotográfico premium)
     }
   ],
   "visualAnchor": string (âncora visual interna — produto exato + paleta dominante 2-3 cores hex + estilo visual + iluminação, em inglês)
 }`;
 
+  const formatDetails = selectedFormats
+    .map((fmt, i) => `Conceito ${i + 1}: ${getFormatLabel(platform, fmt)} — ${getCompositionHint(platform, fmt)}`)
+    .join("\n");
+
   const userPrompt = `PRODUTO: "${productName}"
 
-Gere ${numConcepts} criativo${numConcepts === 1 ? "" : "s"} visual${numConcepts === 1 ? "" : "is"} premium para este produto no formato ${formatLabel} (${formatDim}).
+Gere ${numConcepts} criativo${numConcepts === 1 ? "" : "s"} visual${numConcepts === 1 ? "" : "is"} premium para ${platformLabel}.
 
-INSTRUÇÃO: O imagePrompt deve iniciar com o nome exato "${productName}". Descreva características físicas prováveis do produto. Garanta composição ideal para ${formatDim}.`;
+Formatos e composições obrigatórias:
+${formatDetails}
+
+INSTRUÇÃO: O imagePrompt de cada conceito deve iniciar com "${productName}". Adapte a composição ao enquadramento específico de cada formato.`;
 
   try {
     let llmOutput: LLMOutputRaw | null = null;
@@ -187,31 +210,33 @@ INSTRUÇÃO: O imagePrompt deve iniciar com o nome exato "${productName}". Descr
       if (attempt === 0) await new Promise((r) => setTimeout(r, 900));
     }
 
-    if (!llmOutput?.concepts?.length) {
+    if (!llmOutput || !llmOutput.concepts || !llmOutput.concepts.length) {
       sendSSEError(res, `${lastError}. Seus créditos serão devolvidos automaticamente. Tente novamente em instantes.`);
       return;
     }
 
+    const llmConcepts = llmOutput.concepts;
     const visualAnchor = llmOutput.visualAnchor?.trim() ?? "";
 
-    const enrichedConcepts: CreativeConcept[] = llmOutput.concepts
-      .slice(0, numConcepts)
-      .map((c, i) => ({
-        id: c.id ?? i + 1,
-        label: getFormatLabel(format, i, numConcepts),
-        format,
-        imagePrompt: enrichImagePrompt(c.imagePrompt ?? productName, productName, visualAnchor, format),
-      }));
+    const enrichedConcepts: CreativeConcept[] = selectedFormats.map((fmt, i) => {
+      const llmConcept = llmConcepts[i] ?? llmConcepts[0]!;
+      return {
+        id: i + 1,
+        label: getFormatLabel(platform, fmt),
+        format: fmt,
+        imagePrompt: enrichImagePrompt(llmConcept.imagePrompt ?? productName, productName, visualAnchor, platform, fmt),
+      };
+    });
 
     if (process.env.NODE_ENV !== "production") {
       enrichedConcepts.forEach((c, i) => {
-        logger.info({ index: i, imagePrompt: c.imagePrompt.slice(0, 300) }, "[creativeIdeas] enriched imagePrompt");
+        logger.info({ index: i, format: c.format, imagePrompt: c.imagePrompt.slice(0, 200) }, "[creativeIdeas] imagePrompt");
       });
     }
 
     const imageResults = await Promise.allSettled(
       enrichedConcepts.map((concept) =>
-        generateImageBuffer(concept.imagePrompt, getImageSize(concept.format), signal),
+        generateImageBuffer(concept.imagePrompt, getImageSize(platform, concept.format), signal),
       ),
     );
 
@@ -225,10 +250,7 @@ INSTRUÇÃO: O imagePrompt deve iniciar com o nome exato "${productName}". Descr
       const imgResult = imageResults[i];
       return {
         ...concept,
-        imageBase64:
-          imgResult.status === "fulfilled"
-            ? imgResult.value.toString("base64")
-            : undefined,
+        imageBase64: imgResult.status === "fulfilled" ? imgResult.value.toString("base64") : undefined,
       };
     });
 
@@ -240,7 +262,7 @@ INSTRUÇÃO: O imagePrompt deve iniciar com o nome exato "${productName}". Descr
     sendSSE(res, { type: "result", data: finalResult });
     await logAiUsage({
       clerkUserId,
-      action: `Criativo gerado: ${productName.slice(0, 50)} (${numConcepts}x ${formatLabel})`,
+      action: `Criativo gerado: ${productName.slice(0, 50)} (${numConcepts}x ${platformLabel})`,
       module: "creative",
     });
   } catch (err) {
