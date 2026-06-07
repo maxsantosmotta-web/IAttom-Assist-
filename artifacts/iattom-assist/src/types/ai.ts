@@ -42,13 +42,7 @@ export interface CampaignResult {
   audience: string;
   channels: string[];
   budget: string;
-  copy: {
-    facebook: string;
-    instagram: string;
-    google: string;
-    email: string;
-    tiktok: string;
-  };
+  copy: Record<string, string>;
   keyMessages: string[];
   launchTimeline: string;
   uniqueAngle: string;
@@ -69,23 +63,15 @@ export interface CreativeConcept {
   id: number;
   label: string;
   format: string;
-  concept: string;
-  visualDirection: string;
   copyHook: string;
-  bodyText: string;
   cta: string;
-  emotionalTrigger: string;
-  bestPlatform: string;
   imagePrompt: string;
   imageBase64?: string;
 }
 
 export interface CreativeIdeasResult {
   concepts: CreativeConcept[];
-  overarchingTheme: string;
-  colorPalette: string;
-  typographyDirection: string;
-  brandVoiceNotes: string;
+  visualAnchor?: string;
 }
 
 export interface ScriptScene {

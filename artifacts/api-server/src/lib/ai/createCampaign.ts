@@ -21,13 +21,7 @@ export interface CampaignResult {
   audience: string;
   channels: string[];
   budget: string;
-  copy: {
-    facebook: string;
-    instagram: string;
-    google: string;
-    email: string;
-    tiktok: string;
-  };
+  copy: Record<string, string>;
   keyMessages: string[];
   launchTimeline: string;
   uniqueAngle: string;
@@ -53,6 +47,80 @@ function detectCampaignMode(mode?: string): "organic" | "paid" {
   const normalized = mode.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   if (normalized.includes("organico") || normalized.includes("organic")) return "organic";
   return "paid";
+}
+
+function detectGoalPlatform(goal?: string): string {
+  if (!goal) return "generic";
+  const lower = goal.toLowerCase();
+  if (lower.includes("instagram")) return "instagram";
+  if (lower.includes("tiktok")) return "tiktok";
+  if (lower.includes("facebook")) return "facebook";
+  if (lower.includes("shopee")) return "shopee";
+  if (lower.includes("mercado livre")) return "mercado_livre";
+  if (lower.includes("hotmart")) return "hotmart";
+  if (lower.includes("kiwify")) return "kiwify";
+  if (lower.includes("whatsapp")) return "whatsapp";
+  return "generic";
+}
+
+function buildCopySchema(platform: string, isOrganic: boolean): string {
+  switch (platform) {
+    case "instagram":
+      return `"copy": {
+    "legenda": string (máx. 450 chars — hook visual, narrativa autêntica${isOrganic ? ", 3-5 hashtags" : ""}, CTA para salvar ou comentar),
+    "cta": string (máx. 50 chars — ação clara para legenda e Stories),
+    "hashtags": string (5-7 hashtags relevantes separados por espaço, sem # na resposta)
+  }`;
+    case "facebook":
+      return `"copy": {
+    "facebook": string (máx. 600 chars — ${isOrganic ? "postagem orgânica: gancho, storytelling ou prova social, pergunta de engajamento" : "problema real → argumento de valor → prova social → CTA imediato. Tom: direto, adulto"}),
+    "cta": string (máx. 50 chars)
+  }`;
+    case "tiktok":
+      return `"copy": {
+    "hook": string (máx. 80 chars — frase que para o scroll nos primeiros 2 segundos),
+    "legenda": string (máx. 350 chars — ${isOrganic ? "narrativa autêntica, hashtags TikTok, CTA orgânico" : "desenvolvimento da narrativa após o hook, CTA"}),
+    "cta": string (máx. 50 chars — ação oral ou em tela)
+  }`;
+    case "mercado_livre":
+      return `"copy": {
+    "titulo": string (máx. 60 chars — palavras-chave de busca no início, nome do produto e diferencial principal),
+    "beneficios": string (3-4 benefícios principais em linhas separadas — ex: "Entrega rápida\\nGarantia 12 meses"),
+    "descricao": string (máx. 400 chars — descrição completa: o que é, para que serve, especificações principais),
+    "cta": string (máx. 50 chars — ex: Compre agora, Adicione ao carrinho, Aproveite a oferta)
+  }`;
+    case "shopee":
+      return `"copy": {
+    "titulo": string (máx. 120 chars — título de listagem com palavras-chave relevantes para busca interna),
+    "beneficios": string (3-4 benefícios principais do produto em linhas separadas),
+    "oferta": string (máx. 200 chars — estratégia de oferta: cupom, frete grátis, Oferta Relâmpago, avaliações, urgência)
+  }`;
+    case "hotmart":
+      return `"copy": {
+    "headline": string (máx. 80 chars — headline da página de vendas, promessa de transformação direta),
+    "subheadline": string (máx. 120 chars — para quem é, o que entrega, resultado esperado),
+    "cta": string (máx. 50 chars — ex: Quero acesso agora, Garantir minha vaga, Comprar com desconto),
+    "objecoes": string (máx. 250 chars — principal objeção do público e como neutralizar com garantia, bônus ou prova social)
+  }`;
+    case "kiwify":
+      return `"copy": {
+    "headline": string (máx. 80 chars — oferta direta e benefício principal),
+    "cta": string (máx. 50 chars — ex: Acesse por apenas R$X, Comprar agora, Garantir acesso),
+    "oferta": string (máx. 150 chars — valor entregue, entrega imediata e garantia em uma frase densa),
+    "urgencia": string (máx. 100 chars — elemento de urgência ou escassez real e acionável)
+  }`;
+    case "whatsapp":
+      return `"copy": {
+    "abordagem": string (máx. 200 chars — primeira mensagem consultiva, pessoal e sem spam, quebra de gelo natural),
+    "mensagem": string (máx. 300 chars — mensagem de acompanhamento com valor entregue, prova social e contextualização do produto),
+    "cta": string (máx. 80 chars — convite para continuar a conversa, natural e não invasivo)
+  }`;
+    default:
+      return `"copy": {
+    "principal": string (máx. 500 chars — copy principal da campanha adaptado ao objetivo),
+    "cta": string (máx. 50 chars)
+  }`;
+  }
 }
 
 const ORGANIC_CHANNELS = [
@@ -108,6 +176,10 @@ function sanitizeOrganicText(text: string): string {
 }
 
 function hardLockOrganicResult(result: CampaignResult): CampaignResult {
+  const copySanitized: Record<string, string> = {};
+  for (const [k, v] of Object.entries(result.copy)) {
+    copySanitized[k] = sanitizeOrganicText(v);
+  }
   return {
     ...result,
     budget: ORGANIC_BUDGET,
@@ -116,13 +188,7 @@ function hardLockOrganicResult(result: CampaignResult): CampaignResult {
     subheadline: sanitizeOrganicText(result.subheadline),
     cta: sanitizeOrganicText(result.cta),
     audience: sanitizeOrganicText(result.audience),
-    copy: {
-      facebook: sanitizeOrganicText(result.copy.facebook),
-      instagram: sanitizeOrganicText(result.copy.instagram),
-      google: sanitizeOrganicText(result.copy.google),
-      email: sanitizeOrganicText(result.copy.email),
-      tiktok: sanitizeOrganicText(result.copy.tiktok),
-    },
+    copy: copySanitized,
     keyMessages: result.keyMessages.map(sanitizeOrganicText),
     launchTimeline: sanitizeOrganicText(result.launchTimeline),
     uniqueAngle: sanitizeOrganicText(result.uniqueAngle),
@@ -136,14 +202,9 @@ MODO EXECUTIVO — REGRA CENTRAL:
 Você é uma ferramenta de IA premium para profissionais. Responda como consultor sênior que cobra R$500/hora: direto, denso, acionável. Zero introdução, zero conclusão, zero enrolação. Cada palavra deve justificar sua existência.
 
 ANTI-REPETIÇÃO:
-Nunca repita a mesma palavra-chave ou argumento entre campos diferentes. Cada campo deve ter um ângulo único. Proibido usar as mesmas expressões em copy.facebook, copy.instagram e copy.tiktok. Varie vocabulário, estrutura e gancho.
+Nunca repita a mesma palavra-chave ou argumento entre campos diferentes. Cada campo deve ter um ângulo único.
 
 LIMITES ABSOLUTOS DE CARACTERES (incluindo espaços):
-- copy.facebook: máximo 600 caracteres
-- copy.instagram: máximo 450 caracteres
-- copy.tiktok: máximo 350 caracteres
-- copy.email: máximo 400 caracteres
-- copy.google: máximo 200 caracteres (formato real: Título 30 chars | Descrição 90 chars)
 - headline: máximo 80 caracteres
 - subheadline: máximo 120 caracteres
 - cta: máximo 50 caracteres
@@ -153,121 +214,75 @@ LIMITES ABSOLUTOS DE CARACTERES (incluindo espaços):
 
 CRONOGRAMA — FORMATO OBRIGATÓRIO:
 Máximo 4 etapas. Formato fixo: "Semana N → ação concreta". Uma linha por etapa. Sem sub-itens, sem explicações longas.
-Exemplo: "Semana 1 → Estrutura e posicionamento\nSemana 2 → Primeiros conteúdos e testes\nSemana 3 → Otimização e consistência\nSemana 4 → Escala e ajustes"
 
 SELEÇÃO INTELIGENTE DE CANAIS:
-Analise o produto e objetivo. Selecione APENAS 3-4 canais onde o público realmente está. Não adicione canais por completude — adicione apenas se fizerem sentido real para o negócio. Exemplo: consultoria Instagram → priorize Instagram, WhatsApp, Reels. Não inclua Google, Email ou Pinterest se não houver justificativa clara.
+Selecione APENAS 3-4 canais onde o público realmente está para este produto e objetivo específico. Não adicione canais por completude.
 
 ESTILO DE ESCRITA:
-- Bullets em vez de parágrafos quando há mais de 2 itens
 - Frases curtas (máximo 15 palavras)
-- Verbos no imperativo: "Poste", "Responda", "Teste", "Grave"
-- Sem jargão corporativo, sem "estratégia robusta", sem "maximizar resultados"
-- Copy deve soar como humano escrevendo para humano, não como relatório
+- Verbos no imperativo quando aplicável
+- Sem jargão corporativo
 
 Saída: objeto JSON válido. Sem markdown, sem blocos de código, apenas JSON puro.`;
 
-const ORGANIC_SYSTEM_PROMPT = `Você é um estrategista de marketing orgânico premium para o mercado brasileiro. Especialista em crescimento sem tráfego pago.
+function buildSystemPrompt(platform: string, isOrganic: boolean): string {
+  const copySchema = buildCopySchema(platform, isOrganic);
 
-${SHARED_RULES}
+  const modeIntro = isOrganic
+    ? `Você é um estrategista de marketing orgânico premium para o mercado brasileiro. Especialista em crescimento sem tráfego pago.
 
 REGRA ABSOLUTA — MODO ORGÂNICO:
-PROIBIDO mencionar: Facebook Ads, Meta Ads, Google Ads, TikTok Ads, ROAS, CPC, CPM, remarketing, retargeting, pixel, lookalike pago, orçamento de anúncios, impulsionamento, campanha paga, tráfego pago, mídia paga, landing page paga.
+PROIBIDO mencionar: Facebook Ads, Meta Ads, Google Ads, TikTok Ads, ROAS, CPC, CPM, remarketing, retargeting, pixel, lookalike pago, orçamento de anúncios, impulsionamento, campanha paga, tráfego pago, mídia paga.
 
 O campo "budget" DEVE ser: "Sem investimento em mídia paga — estratégia 100% orgânica"
-O campo "channels" DEVE conter APENAS 3-4 canais orgânicos prioritários para o produto informado.
-
-Retorne exatamente esta estrutura JSON:
-{
-  "headline": string (máx. 80 chars — título direto, benefício claro, sem urgência artificial),
-  "subheadline": string (máx. 120 chars — reforço do posicionamento orgânico, uma frase),
-  "cta": string (máx. 50 chars — ação orgânica: seguir, comentar, salvar, mandar DM),
-  "audience": string (máx. 150 chars — público-alvo em 1-2 frases, específico e direto),
-  "channels": string[] (3-4 canais orgânicos prioritários para este produto — escolha com critério, não por completude),
-  "budget": string (retornar SEMPRE: "Sem investimento em mídia paga — estratégia 100% orgânica"),
-  "copy": {
-    "facebook": string (máx. 600 chars — postagem orgânica: gancho, storytelling ou prova social, pergunta de engajamento. SEM anúncio ou impulsionamento),
-    "instagram": string (máx. 450 chars — legenda para Reels/feed: hook visual, narrativa autêntica, 3-5 hashtags, CTA para salvar ou comentar),
-    "google": string (máx. 200 chars — conteúdo para SEO: "Título SEO | Descrição com palavra-chave natural e proposta de valor". SEM Google Ads),
-    "email": string (máx. 400 chars — "Assunto: [assunto] | [pré-texto]. [Abertura humana]. [Argumento central]. [CTA único]"),
-    "tiktok": string (máx. 350 chars — roteiro: "Hook [2s]: [frase]. Desenvolvimento: [narrativa]. CTA: [ação]". Tom cru e autêntico)
-  },
-  "keyMessages": string[] (exatamente 3 itens — cada um máx. 100 chars, ângulos diferentes entre si),
-  "launchTimeline": string (exatamente 4 linhas, formato: "Semana N → ação concreta". Sem sub-itens. Sem explicações. Apenas execução orgânica),
-  "uniqueAngle": string (máx. 200 chars — o que diferencia esta estratégia das demais. Uma frase forte),
-  "objectionHandling": string (máx. 250 chars — como neutralizar a principal objeção com conteúdo orgânico, sem ads)
-}`;
-
-const PAID_SYSTEM_PROMPT = `Você é um estrategista de marketing de resposta direta premium para o mercado brasileiro. Cada resposta é um plano executável, não um relatório.
-
-${SHARED_RULES}
+O campo "channels" DEVE conter APENAS 3-4 canais orgânicos prioritários para o produto informado.`
+    : `Você é um estrategista de marketing de resposta direta premium para o mercado brasileiro. Cada resposta é um plano executável, não um relatório.
 
 MODO DE CAMPANHA — adapte TUDO ao modo informado. Padrão: Conversão.
 
-- Iniciante: R$300–800/mês, 2 canais máx (Instagram + WhatsApp), tom acolhedor, foco em primeiras vendas, cronograma 30 dias.
-- Baixo orçamento: R$500–1.500/mês, 1-2 canais, sem remarketing complexo, canal com melhor custo por resultado.
-- Conversão: R$1.500–5.000/mês, urgência e prova social, funil direto tráfego → venda, canais de alta intenção.
-- Viral: UGC + creators, retenção primeiros 3s, TikTok/Reels/YouTube Shorts, gatilho de curiosidade.
-- Agressivo: R$5.000–15.000/mês, urgência real, remarketing forte, múltiplos canais, testes A/B, 15-30 dias.
-- Premium: posicionamento de valor, sem promoções de preço, canais selecionados, exclusividade.
-- Escala: produto validado, lookalike + remarketing pesado, acima R$10.000/mês, expansão em fases.
+- Iniciante: R$300–800/mês, 2 canais máx, tom acolhedor, foco em primeiras vendas.
+- Baixo orçamento: R$500–1.500/mês, 1-2 canais, canal com melhor custo por resultado.
+- Conversão: R$1.500–5.000/mês, urgência e prova social, funil direto tráfego → venda.
+- Viral: UGC + creators, retenção primeiros 3s, TikTok/Reels/YouTube Shorts.
+- Agressivo: R$5.000–15.000/mês, urgência real, remarketing forte, múltiplos canais.
+- Premium: posicionamento de valor, sem promoções de preço, exclusividade.
+- Escala: produto validado, lookalike + remarketing pesado, acima R$10.000/mês.`;
 
-SELEÇÃO DE CANAIS — OBRIGATÓRIO:
-Escolha apenas 3-4 canais que fazem sentido real para o produto e objetivo. Não complete por completude. Uma consultoria de Instagram não precisa de Google Ads. Um e-commerce Shopee não precisa de TikTok se o público não está lá.
+  return `${modeIntro}
+
+${SHARED_RULES}
 
 Retorne exatamente esta estrutura JSON:
 {
-  "headline": string (máx. 80 chars — benefício central, impacto imediato),
-  "subheadline": string (máx. 120 chars — argumento de apoio, uma frase),
-  "cta": string (máx. 50 chars — ação clara e direta),
-  "audience": string (máx. 150 chars — quem é, onde está, qual dor tem. 1-2 frases),
-  "channels": string[] (3-4 canais reais para este produto/objetivo — com critério, não por completude),
-  "budget": string (máx. 80 chars — valor mensal realista. Iniciantes/afiliados: R$300–3.000/mês. Intermediário: R$3.000–10.000/mês. Agressivo: acima R$10.000 só se justificado. Sem estimativas enterprise sem razão),
-  "copy": {
-    "facebook": string (máx. 600 chars — problema real → argumento de valor → prova social → CTA imediato. Tom: direto, adulto),
-    "instagram": string (máx. 450 chars — hook visual → identidade/pertencimento → Reels/Stories → CTA de engajamento. Tom: aspiracional, autêntico),
-    "google": string (máx. 200 chars — "Título (máx 30 chars): [título] | Descrição (máx 90 chars): [benefício + CTA]". Alta intenção de compra),
-    "email": string (máx. 400 chars — "Assunto: [assunto] | [pré-texto]. [Abertura humana]. [Argumento]. [CTA único]". Tom: pessoal, próximo),
-    "tiktok": string (máx. 350 chars — "Hook [2s]: [frase que para scroll]. Desenvolvimento: [narrativa/desafio]. CTA: [ação]". Tom: cru, genuíno)
-  },
-  "keyMessages": string[] (exatamente 3 itens — cada um máx. 100 chars, cada um com ângulo diferente dos outros dois),
-  "launchTimeline": string (exatamente 4 linhas, formato "Semana N → ação concreta". Sem sub-itens. Sem explicações. Direto à execução),
-  "uniqueAngle": string (máx. 200 chars — diferencial real desta campanha. Uma frase forte e específica),
+  "headline": string (máx. 80 chars — ${isOrganic ? "título direto, benefício claro" : "benefício central, impacto imediato"}),
+  "subheadline": string (máx. 120 chars — reforço do posicionamento, uma frase),
+  "cta": string (máx. 50 chars — ${isOrganic ? "ação orgânica: seguir, comentar, salvar, mandar DM" : "ação clara e direta"}),
+  "audience": string (máx. 150 chars — público-alvo em 1-2 frases, específico e direto),
+  "channels": string[] (3-4 canais ${isOrganic ? "orgânicos" : "reais"} prioritários para este produto),
+  "budget": string (${isOrganic ? 'retornar SEMPRE: "Sem investimento em mídia paga — estratégia 100% orgânica"' : "máx. 80 chars — valor mensal realista para o modo informado"}),
+  ${copySchema},
+  "keyMessages": string[] (exatamente 3 itens — cada um máx. 100 chars, ângulos diferentes entre si),
+  "launchTimeline": string (exatamente 4 linhas, formato: "Semana N → ação concreta". Sem sub-itens),
+  "uniqueAngle": string (máx. 200 chars — diferencial real desta campanha, uma frase forte),
   "objectionHandling": string (máx. 250 chars — principal objeção do público + como neutralizar. Direto e acionável)
+}`;
 }
-
-PLATAFORMAS ESPECÍFICAS — quando mencionadas no objetivo:
-- Shopee: cupom, frete grátis, avaliações, SEO de listagem, oferta relâmpago.
-- Hotmart: autoridade, lançamento, carrinho aberto, webinar, bônus, garantia.
-- Kiwify: low ticket, upsell, afiliado, conversão direta.
-- WhatsApp: consultivo, follow-up, prova social, urgência real.
-- Instagram: Reels como motor, Stories para bastidores e urgência.
-- TikTok: hooks de 2s, desafios, UGC, creators.`;
 
 function safeParseJson(raw: string): { success: true; data: unknown } | { success: false; error: string } {
   if (!raw?.trim()) return { success: false, error: "A IA retornou uma resposta vazia." };
-
-  // Strategy 1: direct parse (clean JSON response)
   try { return { success: true, data: JSON.parse(raw.trim()) }; } catch { /* continue */ }
-
-  // Strategy 2: strip markdown code fences then parse
   const cleaned = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
   try { return { success: true, data: JSON.parse(cleaned) }; } catch { /* continue */ }
-
-  // Strategy 3: extract outermost { } from cleaned text
   const cs = cleaned.indexOf("{");
   const ce = cleaned.lastIndexOf("}");
   if (cs !== -1 && ce !== -1 && ce > cs) {
     try { return { success: true, data: JSON.parse(cleaned.slice(cs, ce + 1)) }; } catch { /* continue */ }
   }
-
-  // Strategy 4: extract outermost { } from raw text
   const rs = raw.indexOf("{");
   const re = raw.lastIndexOf("}");
   if (rs !== -1 && re !== -1 && re > rs) {
     try { return { success: true, data: JSON.parse(raw.slice(rs, re + 1)) }; } catch { /* continue */ }
   }
-
   return { success: false, error: "Erro ao interpretar a resposta da IA. Tente novamente." };
 }
 
@@ -276,9 +291,9 @@ function validateCampaignResult(r: CampaignResult): string | null {
   if (!r.audience?.trim()) return "Campo 'público' não foi gerado.";
   if (!Array.isArray(r.channels) || r.channels.length === 0) return "Campo 'canais' não foi gerado.";
   if (!r.budget?.trim()) return "Campo 'orçamento' não foi gerado.";
-  if (!r.copy || typeof r.copy !== "object") return "Campo 'copies' não foi gerado.";
+  if (!r.copy || typeof r.copy !== "object") return "Campo 'copy' não foi gerado.";
   const copyValues = Object.values(r.copy as Record<string, string>);
-  if (copyValues.every((v) => !v?.trim())) return "Os copies de plataforma não foram gerados.";
+  if (copyValues.every((v) => !v?.trim())) return "Os textos de plataforma não foram gerados.";
   if (!Array.isArray(r.keyMessages) || r.keyMessages.length === 0) return "Campo 'mensagens-chave' não foi gerado.";
   if (!r.launchTimeline?.trim()) return "Campo 'cronograma' não foi gerado.";
   return null;
@@ -307,27 +322,29 @@ export async function streamCreateCampaign(
   sendSSE(res, { type: "start" });
 
   const campaignMode = detectCampaignMode(params.mode);
-  const systemPrompt = campaignMode === "organic" ? ORGANIC_SYSTEM_PROMPT : PAID_SYSTEM_PROMPT;
+  const platform = detectGoalPlatform(params.goal);
+  const isOrganic = campaignMode === "organic";
+  const systemPrompt = buildSystemPrompt(platform, isOrganic);
 
-  const userPrompt = campaignMode === "organic"
+  const userPrompt = isOrganic
     ? `Crie uma estratégia de marketing orgânico completa para:
 Produto/Marca: "${params.product}"
-${params.productType ? `Tipo de produto: ${params.productType} — adapte toda a linguagem, canais, copy e abordagem para este tipo de produto. Digital: autoridade, conteúdo educativo, entrega imediata, bônus digitais. Físico: apelo sensorial, entrega, qualidade tangível, experiência de uso. Serviço: confiança, processo, resultado concreto, prova social.` : ""}
+${params.productType ? `Tipo de produto: ${params.productType} — adapte linguagem, canais, copy e abordagem para este tipo. Digital: autoridade, conteúdo educativo, entrega imediata. Físico: apelo sensorial, qualidade tangível, experiência de uso. Serviço: confiança, processo, resultado concreto, prova social.` : ""}
 ${params.audience ? `Público-alvo: ${params.audience}` : ""}
 ${params.goal ? `Objetivo: ${params.goal}` : "Gerar vendas via canais orgânicos"}
 ${params.platforms?.length ? `Plataformas preferidas: ${params.platforms.join(", ")}` : ""}
 
-IMPORTANTE: Esta é uma estratégia 100% orgânica. Não inclua nenhum tipo de mídia paga, ads ou orçamento de anúncios. Crie copy específico para cada plataforma usando apenas abordagens orgânicas, integralmente em português brasileiro.`
+Esta é uma estratégia 100% orgânica. Não inclua nenhum tipo de mídia paga, ads ou orçamento de anúncios. Responda integralmente em português brasileiro.`
     : `Crie uma campanha de marketing completa para:
 Produto/Marca: "${params.product}"
-${params.productType ? `Tipo de produto: ${params.productType} — adapte toda a linguagem, canais, copy e abordagem para este tipo de produto. Digital: urgência de acesso, transformação, resultados, funil direto. Físico: apelo visual, qualidade tangível, entrega, experiência de uso. Serviço: credibilidade, processo, resultado concreto, cases de sucesso.` : ""}
+${params.productType ? `Tipo de produto: ${params.productType} — adapte linguagem, canais, copy e abordagem para este tipo. Digital: urgência de acesso, transformação, resultados, funil direto. Físico: apelo visual, qualidade tangível, entrega, experiência de uso. Serviço: credibilidade, processo, resultado concreto, cases de sucesso.` : ""}
 ${params.audience ? `Público-alvo: ${params.audience}` : ""}
 ${params.goal ? `Objetivo da campanha: ${params.goal}` : "Gerar vendas"}
 ${params.mode ? `Modo da campanha: ${params.mode}` : "Modo da campanha: Conversão"}
 ${params.platforms?.length ? `Plataformas preferidas: ${params.platforms.join(", ")}` : ""}
 ${params.budget ? `Orçamento: ${params.budget}` : ""}
 
-Adapte toda a estrutura da campanha ao modo e tipo de produto informados. Crie copy específico para cada plataforma, integralmente em português brasileiro.`;
+Adapte toda a estrutura da campanha ao modo e tipo de produto informados. Responda integralmente em português brasileiro.`;
 
   const MAX_ATTEMPTS = 2;
   const FALLBACK_MSG = "Não consegui gerar a campanha completa desta vez. Tente novamente.";
@@ -336,7 +353,7 @@ Adapte toda a estrutura da campanha ao modo e tipo de produto informados. Crie c
     try {
       const response = await openai.chat.completions.create({
         model: "gpt-5-mini",
-        max_completion_tokens: 8192,
+        max_completion_tokens: 4096,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -358,7 +375,7 @@ Adapte toda a estrutura da campanha ao modo e tipo de produto informados. Crie c
         continue;
       }
 
-      const result = campaignMode === "organic" ? hardLockOrganicResult(raw) : raw;
+      const result = isOrganic ? hardLockOrganicResult(raw) : raw;
       sendSSE(res, { type: "result", data: result });
       await logAiUsage({ clerkUserId, action: `Campanha criada: ${params.product}`, module: "campaign" });
       sendSSEDone(res);

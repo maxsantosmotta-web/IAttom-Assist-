@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Megaphone, Target, Globe, Loader2, Copy, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Zap, Save, ExternalLink } from "lucide-react";
 import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
-import { saveProjectAssets } from "@/lib/assetStorage";
 import { getEffectiveProductType, detectIncompatibility, INCOMPATIBILITY_MESSAGES, detectProductTypeMismatch, PRODUCT_TYPE_MISMATCH_MESSAGE } from "@/lib/productPlatformCompatibility";
 import { useSavedItems } from "@/hooks/useSavedItems";
 import { Button } from "@/components/ui/button";
@@ -12,13 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { CreditsGate } from "@/components/CreditsGate";
 import { useAiStream } from "@/hooks/useAiStream";
-import { CampaignCreativePanel } from "@/pages/dashboard/CampaignCreativePanel";
-import type { CampaignResult, CreativeIdeasResult } from "@/types/ai";
-
-const platformIcons: Record<string, string> = {
-  facebook: "fb", instagram: "ig", google: "g", email: "em", tiktok: "tk",
-};
-
+import type { CampaignResult } from "@/types/ai";
 
 function isCampaignComplete(r: CampaignResult | null): r is CampaignResult {
   if (!r) return false;
@@ -75,7 +68,7 @@ interface RefineBarProps {
   disabled: boolean;
 }
 
-function RefineBar({ blockId, value, onChange, onRefine, isRefining, disabled }: RefineBarProps) {
+function RefineBar({ blockId: _blockId, value, onChange, onRefine, isRefining, disabled }: RefineBarProps) {
   return (
     <div className="mt-2 flex gap-2 items-center">
       <input
@@ -128,33 +121,35 @@ function CopyBlock({ label, content }: { label: string; content: string }) {
   );
 }
 
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-
 function buildGoalContext(goal: string): string {
   if (!goal) return goal;
   const lower = goal.toLowerCase();
 
   if (lower.includes("mercado livre")) {
     return `Vender no Mercado Livre — campanha para anúncio de produto em marketplace físico.
-Gere: título de anúncio como headline (máx. 60 chars, palavras-chave relevantes no início), descrição detalhada do produto como copy.facebook, benefícios e especificações como keyMessages, argumento competitivo de venda no uniqueAngle.
+Gere: título de anúncio como headline (máx. 60 chars, palavras-chave relevantes no início), descrição detalhada do produto como copy, benefícios e especificações como keyMessages, argumento competitivo de venda no uniqueAngle.
 CTA focado em compra no marketplace (ex: "Compre agora", "Adicione ao carrinho", "Aproveite a oferta").
 Canais recomendados: Mercado Livre, Mercado Ads. Orçamento: valor mensal realista para Produto Patrocinado (Mercado Ads).
-PROIBIDO: CTA de seguir no Instagram/TikTok, orçamento de Meta Ads ou Google Ads como canal principal, segmentação de público para campanha Facebook.`;
+PROIBIDO: CTA de seguir no Instagram/TikTok, orçamento de Meta Ads ou Google Ads como canal principal.`;
   }
 
   if (lower.includes("hotmart")) {
     return `Vender na Hotmart — campanha para produto digital em plataforma de infoprodutos.
-Gere: headline de página de vendas, promessa clara no subheadline, keyMessages com transformação prometida / bônus / garantia, copy para aquecer lista e atrair tráfego frio para a página.
+Gere: headline de página de vendas, promessa clara no subheadline, keyMessages com transformação prometida / bônus / garantia, copy para aquecer lista e atrair tráfego para a página.
 CTA de checkout direto (ex: "Quero acesso agora", "Garantir minha vaga", "Comprar com desconto").
 Estrutura de lançamento: captação → aquecimento → abertura de carrinho.`;
   }
 
   if (lower.includes("kiwify")) {
     return `Vender na Kiwify — campanha para produto digital com foco em conversão direta e programa de afiliados.
-Gere: headline de oferta direta, subheadline com entrega de valor imediata, copy para e-mail e Instagram com urgência e prova social, keyMessages com preço acessível / entrega imediata / garantia.
+Gere: headline de oferta direta, subheadline com entrega de valor imediata, copy com urgência e prova social, keyMessages com preço acessível / entrega imediata / garantia.
 CTA de compra low ticket (ex: "Acesse por apenas R$...", "Comprar agora", "Garantir acesso").`;
+  }
+
+  if (lower.includes("whatsapp")) {
+    return `Vender via WhatsApp — campanha para abordagem direta e consultiva via mensagem.
+Gere: mensagem de abordagem inicial (sem spam, quebra de gelo natural), mensagem consultiva de acompanhamento com valor e prova social, CTA conversacional para continuar o contato.
+Foco em relacionamento, confiança e conversão via conversa direta. Tom pessoal, não corporativo.`;
   }
 
   return goal;
@@ -198,7 +193,6 @@ function getPlatformGuide(goal: string, data: CampaignResult): PlatformGuide | n
         "Selecione o produto e acesse Configurações > Página de Vendas",
         `Atualize o título principal com: "${headline}"`,
         `Configure o botão de compra com: "${cta}"`,
-        "Copie o copy de e-mail abaixo — principal canal de conversão na Kiwify",
         "Ative o programa de afiliados em Afiliados > Configurações",
         "Monitore as vendas em Dashboard > Transações",
       ],
@@ -213,7 +207,6 @@ function getPlatformGuide(goal: string, data: CampaignResult): PlatformGuide | n
         "Acesse seller.shopee.com.br e faça login no Seller Centre",
         "Vá em Meus Produtos e selecione o produto",
         `Atualize o título com palavras-chave baseadas em: "${headline}"`,
-        "Adicione o copy de Instagram desta campanha na descrição do produto",
         "Configure cupons de desconto em Marketing > Vouchers",
         "Ative Oferta Relâmpago para aumentar a visibilidade",
         "Acompanhe a performance em Análise de Dados > Produtos",
@@ -229,7 +222,7 @@ function getPlatformGuide(goal: string, data: CampaignResult): PlatformGuide | n
         "Acesse Mercado Livre e faça login como vendedor",
         "Vá em Meus Anúncios e selecione o produto",
         `Atualize o título do anúncio com: "${headline}"`,
-        "Adicione o copy de Facebook desta campanha na descrição",
+        "Adicione a descrição desta campanha no campo de descrição do produto",
         "Configure Produto Patrocinado em Publicidade",
         "Monitore visitas e conversões em Central do Vendedor",
       ],
@@ -258,9 +251,39 @@ function getPlatformGuide(goal: string, data: CampaignResult): PlatformGuide | n
       steps: [
         "Abra o TikTok e grave um vídeo usando o hook nos primeiros 2 segundos",
         "Adicione legendas na tela com o texto principal da campanha",
-        `No caption use: "${(copy.tiktok ?? headline).slice(0, 100)}"`,
+        `No caption use: "${(copy.legenda ?? copy.hook ?? headline).slice(0, 100)}"`,
         `Finalize em voz com o CTA: "${cta}"`,
         "Poste entre 18h e 21h para maior alcance orgânico",
+      ],
+      note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+    };
+  }
+  if (g.includes("facebook")) {
+    return {
+      name: "Facebook",
+      url: "https://www.facebook.com",
+      steps: [
+        "Acesse o Facebook e vá em Criar Publicação",
+        "Cole o copy de Facebook desta campanha na publicação",
+        `Use a manchete "${headline}" no início do texto`,
+        `Finalize com o CTA: "${cta}"`,
+        "Publique na sua página ou grupo de maior alcance",
+        "Acompanhe engajamento em Insights da Página",
+      ],
+      note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+    };
+  }
+  if (g.includes("whatsapp")) {
+    return {
+      name: "WhatsApp",
+      url: "https://web.whatsapp.com",
+      steps: [
+        "Abra o WhatsApp Business ou WhatsApp Web",
+        "Use a abordagem inicial desta campanha como primeira mensagem",
+        "Envie para seus contatos mais quentes primeiro",
+        "Aguarde resposta antes de enviar a mensagem de acompanhamento",
+        `Use o CTA "${cta}" para avançar na conversa`,
+        "Salve os contatos que responderam em uma lista específica para follow-up",
       ],
       note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
     };
@@ -276,12 +299,11 @@ export function CreateCampaign() {
   const [productType, setProductType] = useState("");
   const { status, result, error, generate, reset } = useAiStream<CampaignResult>();
   const { toast } = useToast();
-  const { saveItem, saveItemAssets } = useSavedItems();
+  const { saveItem } = useSavedItems();
   const { isFetching: fetchingCredits, refetch: refetchCredits } = useGetCreditsBalance({
     query: { queryKey: getGetCreditsBalanceQueryKey(), staleTime: 0 },
   });
 
-  // Refund credits automatically on technical generation failure
   const refundCalledRef = useRef(false);
   useEffect(() => {
     if (status === "error" && !refundCalledRef.current) {
@@ -300,7 +322,6 @@ export function CreateCampaign() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [campaignData, setCampaignData] = useState<CampaignResult | null>(null);
-  const [creativeResult, setCreativeResult] = useState<CreativeIdeasResult | null>(null);
 
   const detectedPlatform = useMemo(() => {
     const gl = goal.toLowerCase();
@@ -314,6 +335,7 @@ export function CreateCampaign() {
     if (gl.includes("whatsapp")) return "whatsapp";
     return undefined;
   }, [goal]);
+
   const [refineInputs, setRefineInputs] = useState<Record<string, string>>({});
   const [refiningBlock, setRefiningBlock] = useState<string | null>(null);
   const [isRestored, setIsRestored] = useState(false);
@@ -321,7 +343,6 @@ export function CreateCampaign() {
   const isGenerating = status === "generating";
   const isDone = status === "done";
   const isError = status === "error";
-
 
   useEffect(() => {
     try {
@@ -342,7 +363,6 @@ export function CreateCampaign() {
       const saved = JSON.parse(raw) as {
         briefing?: { product?: string; goal?: string; mode?: string; audience?: string; productType?: string; niche?: string };
         result?: CampaignResult;
-        creatives?: CreativeIdeasResult;
       };
       if (saved.briefing?.product) setProduct(saved.briefing.product);
       if (saved.briefing?.goal) setGoal(saved.briefing.goal);
@@ -353,14 +373,12 @@ export function CreateCampaign() {
         setCampaignData(saved.result);
         setIsRestored(true);
       }
-      if (saved.creatives) setCreativeResult(saved.creatives);
     } catch {}
   }, []);
 
   const handleReset = () => {
     reset();
     setCampaignData(null);
-    setCreativeResult(null);
     setRefineInputs({});
     setRefiningBlock(null);
     setIsRestored(false);
@@ -423,11 +441,6 @@ export function CreateCampaign() {
     }
   };
 
-  const copyAll = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({ description: "Copiado para a área de transferência" });
-  };
-
   const buildCampaignMeta = () => {
     if (!campaignData) return null;
     const title = product.trim()
@@ -447,53 +460,35 @@ export function CreateCampaign() {
       campaignData.keyMessages.forEach((m, i) => lines.push(`  ${i + 1}. ${m}`));
     }
     if (campaignData.copy && typeof campaignData.copy === "object") {
-      lines.push(`\nCOPY POR PLATAFORMA:`);
+      lines.push(`\nCOPY:`);
       Object.entries(campaignData.copy as Record<string, string>).forEach(([p, c]) => {
         lines.push(`\n[${p.toUpperCase()}]\n${c}`);
       });
     }
     if (campaignData.launchTimeline) lines.push(`\nCRONOGRAMA:\n${campaignData.launchTimeline}`);
     const content = lines.join("\n");
-    const sanitizedCreatives = creativeResult
-      ? { ...creativeResult, concepts: (creativeResult.concepts ?? []).map(({ imageBase64: _b64, ...rest }) => rest) }
-      : null;
     const structuredData = JSON.stringify({
       briefing: { product: product.trim(), goal, mode, audience, productType },
       result: campaignData,
-      creatives: sanitizedCreatives,
     });
-    const imageAssets = (creativeResult?.concepts ?? [])
-      .map((c, i) => c.imageBase64
-        ? { conceptIndex: i, base64: c.imageBase64, label: c.label ?? `Criativo ${i + 1}`, format: c.format ?? "PNG" }
-        : null)
-      .filter((a): a is NonNullable<typeof a> => a !== null);
-    return { title, platform, content, structuredData, imageAssets };
+    return { title, platform, content, structuredData };
   };
 
   const handleSave = async () => {
     if (!campaignData || isSaving) return;
     const meta = buildCampaignMeta();
     if (!meta) return;
-    const { title, platform, content, structuredData, imageAssets } = meta;
+    const { title, platform, content, structuredData } = meta;
     const projectId = crypto.randomUUID();
     try {
       const raw = localStorage.getItem("iattom_saved_items_v1");
       const existing = raw ? (JSON.parse(raw) as object[]) : [];
-      existing.unshift({ id: projectId, title, type: "campaign", platform, content, data: structuredData, hasImages: imageAssets.length > 0, createdAt: new Date().toISOString() });
+      existing.unshift({ id: projectId, title, type: "campaign", platform, content, data: structuredData, hasImages: false, createdAt: new Date().toISOString() });
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
     } catch {}
-    if (imageAssets.length > 0) void saveProjectAssets(projectId, imageAssets);
     setIsSaving(true);
     try {
-      await saveItem({ id: projectId, title, type: "campaign", platform, content, data: structuredData, hasImages: imageAssets.length > 0 });
-      if (imageAssets.length > 0) {
-        try {
-          await saveItemAssets(projectId, imageAssets);
-        } catch {
-          toast({ description: "Projeto salvo, mas as imagens não foram sincronizadas. Tente salvar novamente.", variant: "destructive" });
-          return;
-        }
-      }
+      await saveItem({ id: projectId, title, type: "campaign", platform, content, data: structuredData, hasImages: false });
       toast({ description: "Projeto salvo." });
     } catch {
       toast({ description: "Erro ao salvar projeto. Tente novamente.", variant: "destructive" });
@@ -501,7 +496,6 @@ export function CreateCampaign() {
       setIsSaving(false);
     }
   };
-
 
   const showResult = (isDone || isRestored) && isCampaignComplete(campaignData);
 
@@ -511,7 +505,7 @@ export function CreateCampaign() {
         <div>
           <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Construtor de Campanha</p>
           <h2 className="text-2xl font-bold text-white mb-1">Criar Campanha</h2>
-          <p className="text-muted-foreground text-sm">Gere uma estratégia completa de campanha com copy criado para cada plataforma.</p>
+          <p className="text-muted-foreground text-sm">Gere uma estratégia completa de campanha com copy criado para a plataforma escolhida.</p>
         </div>
         <Button size="sm" variant="outline" onClick={() => void refetchCredits()} disabled={fetchingCredits} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
           <RefreshCw className={`w-3.5 h-3.5 ${fetchingCredits ? "animate-spin" : ""}`} />
@@ -565,6 +559,7 @@ export function CreateCampaign() {
                   <option value="Vender no Instagram">Vender no Instagram</option>
                   <option value="Vender no TikTok">Vender no TikTok</option>
                   <option value="Vender no Facebook">Vender no Facebook</option>
+                  <option value="Vender via WhatsApp">Vender via WhatsApp</option>
                 </select>
               </div>
             </div>
@@ -676,9 +671,10 @@ export function CreateCampaign() {
                   <div className="ml-auto flex items-center gap-2">
                     <button
                       onClick={handleSave}
-                      className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"
+                      disabled={isSaving}
+                      className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5 disabled:opacity-50"
                     >
-                      <Save className="w-3 h-3" /> Salvar
+                      <Save className="w-3 h-3" /> {isSaving ? "Salvando..." : "Salvar"}
                     </button>
                     <button onClick={handleReset} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5">
                       <RefreshCw className="w-3 h-3" /> Nova campanha
@@ -721,7 +717,7 @@ export function CreateCampaign() {
                   <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-3">
                     <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1.5 flex items-center gap-1"><Globe className="w-3 h-3" /> Canais</p>
                     <div className="flex flex-wrap gap-1">
-                      {campaignData.channels?.filter((c) => !/whatsapp/i.test(c)).map((c) => (<span key={c} className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">{c}</span>))}
+                      {campaignData.channels?.map((c) => (<span key={c} className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">{c}</span>))}
                     </div>
                   </div>
                   <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-3">
@@ -758,15 +754,15 @@ export function CreateCampaign() {
                 )}
 
                 {/* Copy por Plataforma */}
-                {campaignData.copy && (
+                {campaignData.copy && Object.keys(campaignData.copy).length > 0 && (
                   <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3 font-medium">Copy por Plataforma</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3 font-medium">Copy da Campanha</p>
                     <div className="grid md:grid-cols-2 gap-3">
-                      {Object.entries(campaignData.copy).filter(([platform]) => !/whatsapp/i.test(platform)).map(([platform, copy]) => {
-                        const blockId = `copy.${platform}`;
+                      {Object.entries(campaignData.copy as Record<string, string>).map(([key, copyText]) => {
+                        const blockId = `copy.${key}`;
                         return (
-                          <div key={platform} className="bg-[#0a0a0a] border border-white/5 rounded-lg p-4">
-                            <CopyBlock label={platform} content={copy} />
+                          <div key={key} className="bg-[#0a0a0a] border border-white/5 rounded-lg p-4">
+                            <CopyBlock label={key} content={copyText} />
                             <RefineBar
                               blockId={blockId}
                               value={refineInputs[blockId] ?? ""}
@@ -809,7 +805,7 @@ export function CreateCampaign() {
                 {campaignData.launchTimeline && (
                   <div className="border-t border-white/5 pt-4">
                     <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1.5 font-medium">Cronograma de Lançamento</p>
-                    <p className="text-sm text-muted-foreground whitespace-pre-line">{campaignData.launchTimeline.split("\n").filter((l) => !/whatsapp/i.test(l)).join("\n")}</p>
+                    <p className="text-sm text-muted-foreground whitespace-pre-line">{campaignData.launchTimeline}</p>
                     <RefineBar
                       blockId="launchTimeline"
                       value={refineInputs["launchTimeline"] ?? ""}
@@ -854,18 +850,6 @@ export function CreateCampaign() {
                   );
                 })()}
 
-                {/* Criativo da Campanha — inline, mesmo pacote */}
-                <CampaignCreativePanel
-                  product={product}
-                  goal={goal}
-                  audience={audience || campaignData.audience}
-                  headline={campaignData.headline}
-                  uniqueAngle={campaignData.uniqueAngle}
-                  instagramCopy={(campaignData.copy as Record<string, string>)?.instagram}
-                  channels={campaignData.channels}
-                  platform={detectedPlatform}
-                  onResult={(r) => setCreativeResult(r)}
-                />
               </CardContent>
             </Card>
           </motion.div>

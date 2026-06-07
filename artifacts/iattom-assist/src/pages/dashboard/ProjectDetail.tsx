@@ -122,22 +122,18 @@ function CampaignContent({ result, creatives }: { result: CampaignResult; creati
       <TextBlock label="Orçamento" value={result.budget} />
       <TextBlock label="Ângulo Único" value={result.uniqueAngle} />
       {result.keyMessages?.length ? <TextBlock label="Mensagens-chave" value={result.keyMessages.map((m, i) => `${i + 1}. ${m}`).join("\n")} /> : null}
-      {copy?.facebook  ? <TextBlock label="Copy Facebook"  value={copy.facebook}  /> : null}
-      {copy?.instagram ? <TextBlock label="Copy Instagram" value={copy.instagram} /> : null}
-      {copy?.google    ? <TextBlock label="Copy Google"    value={copy.google}    /> : null}
-      {copy?.email     ? <TextBlock label="Copy Email"     value={copy.email}     /> : null}
-      {copy?.tiktok    ? <TextBlock label="Copy TikTok"    value={copy.tiktok}    /> : null}
+      {copy && typeof copy === "object" && Object.entries(copy as Record<string, string>).map(([key, val]) =>
+        val ? <TextBlock key={key} label={`Copy — ${key}`} value={val} /> : null
+      )}
       <TextBlock label="Cronograma de Lançamento" value={result.launchTimeline} />
       <TextBlock label="Tratamento de Objeções" value={result.objectionHandling} />
       {creatives?.concepts?.length ? (
         <div className="mt-6 space-y-3">
           <SectionTitle>Criativos da Campanha</SectionTitle>
-          {creatives.overarchingTheme ? <TextBlock label="Tema Central" value={creatives.overarchingTheme} /> : null}
           {creatives.concepts.map((c, i) => (
             <div key={c.id ?? i} className="rounded-xl border border-white/[0.06] bg-[#0d0d0d] p-4 space-y-3">
               <p className="text-xs font-semibold text-zinc-400">Criativo {i + 1} — {c.label}</p>
-              <TextBlock label="Hook" value={c.copyHook} />
-              <TextBlock label="Copy" value={c.bodyText} />
+              <TextBlock label="Headline" value={c.copyHook} />
               <TextBlock label="CTA" value={c.cta} />
             </div>
           ))}
@@ -164,16 +160,11 @@ function ContentContent({ result }: { result: ContentResult }) {
 function CreativeContent({ result }: { result: CreativeIdeasResult }) {
   return (
     <div className="space-y-3">
-      <TextBlock label="Tema Central" value={result.overarchingTheme} />
-      <TextBlock label="Tom da Marca" value={result.brandVoiceNotes} />
       {result.concepts?.map((c, i) => (
         <div key={c.id ?? i} className="rounded-xl border border-white/[0.06] bg-[#0d0d0d] p-4 space-y-3">
           <p className="text-xs font-semibold text-zinc-400">Criativo {i + 1} — {c.label}</p>
-          <TextBlock label="Hook" value={c.copyHook} />
-          <TextBlock label="Copy" value={c.bodyText} />
+          <TextBlock label="Headline" value={c.copyHook} />
           <TextBlock label="CTA" value={c.cta} />
-          <TextBlock label="Gatilho Emocional" value={c.emotionalTrigger} />
-          <TextBlock label="Melhor Plataforma" value={c.bestPlatform} />
         </div>
       ))}
     </div>
