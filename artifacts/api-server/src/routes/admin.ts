@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { clerkClient } from "@clerk/express";
 import { eq, ilike, count, desc, and, gte, or, isNull, ne, sql } from "drizzle-orm";
 import { db, users, projectsTable, historyTable, creditsTransactions, waitlistTable, feedbackTable } from "@workspace/db";
 import { requireAdmin } from "../middlewares/requireAdmin";
@@ -129,6 +130,34 @@ router.post("/admin/users/:id/credits", requireAdmin, async (req, res): Promise<
   ]);
 
   res.json(AdminAdjustCreditsResponse.parse({ ...result.user, projectCount: pc.count, actionCount: ac.count }));
+});
+
+router.post("/admin/users/:id/ban", requireAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id as string, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid user ID" }); return; }
+  const [targetUser] = await db.select({ clerkId: users.clerkId }).from(users).where(eq(users.id, id));
+  if (!targetUser) { res.status(404).json({ error: "Usuário não encontrado" }); return; }
+  try {
+    await clerkClient.users.banUser(targetUser.clerkId);
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Failed to ban user");
+    res.status(500).json({ error: "Falha ao bloquear usuário" });
+  }
+});
+
+router.post("/admin/users/:id/unban", requireAdmin, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id as string, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid user ID" }); return; }
+  const [targetUser] = await db.select({ clerkId: users.clerkId }).from(users).where(eq(users.id, id));
+  if (!targetUser) { res.status(404).json({ error: "Usuário não encontrado" }); return; }
+  try {
+    await clerkClient.users.unbanUser(targetUser.clerkId);
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Failed to unban user");
+    res.status(500).json({ error: "Falha ao desbloquear usuário" });
+  }
 });
 
 router.get("/admin/activity", requireAdmin, async (req, res): Promise<void> => {

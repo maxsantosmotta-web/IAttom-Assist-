@@ -18,7 +18,7 @@ interface WebhookEvent {
   receivedAt: string | null;
 }
 
-type PlatformFilter = "all" | "kiwify" | "hotmart" | "shopee" | "facebook" | "instagram" | "mercadolivre";
+type PlatformFilter = "all" | "kiwify" | "hotmart" | "shopee" | "facebook" | "instagram" | "mercadolivre" | "tiktok";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -48,6 +48,7 @@ const PLATFORM_BADGE: Record<string, string> = {
   facebook:     "text-blue-400 bg-blue-500/15 border-blue-500/30",
   instagram:    "text-pink-400 bg-pink-500/15 border-pink-500/30",
   mercadolivre: "text-yellow-400 bg-yellow-500/15 border-yellow-500/30",
+  tiktok:       "text-cyan-400 bg-cyan-500/15 border-cyan-500/30",
 };
 
 const PLATFORM_DOT: Record<string, string> = {
@@ -57,6 +58,7 @@ const PLATFORM_DOT: Record<string, string> = {
   facebook:     "bg-blue-500/10 border-blue-500/15",
   instagram:    "bg-pink-500/10 border-pink-500/15",
   mercadolivre: "bg-yellow-500/10 border-yellow-500/15",
+  tiktok:       "bg-cyan-500/10 border-cyan-500/15",
 };
 
 const PLATFORM_ICON_COLOR: Record<string, string> = {
@@ -66,6 +68,7 @@ const PLATFORM_ICON_COLOR: Record<string, string> = {
   facebook:     "text-blue-400/60",
   instagram:    "text-pink-400/60",
   mercadolivre: "text-yellow-400/60",
+  tiktok:       "text-cyan-400/60",
 };
 
 // ─── Raw event types ──────────────────────────────────────────────────────────
@@ -75,6 +78,7 @@ interface HotmartRaw      { id: number; eventType: string | null; buyerEmail: st
 interface ShopeeRaw       { id: number; eventType: string | null; shopId: string | null; receivedAt: string | null }
 interface MetaRaw         { id: number; platform: string | null; eventType: string | null; objectId: string | null; receivedAt: string | null }
 interface MercadoLivreRaw { id: number; topic: string | null; resource: string | null; userId: string | null; receivedAt: string | null }
+interface TikTokRaw       { id: number; eventType: string | null; userId: string | null; receivedAt: string | null }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -86,6 +90,7 @@ const FILTER_OPTIONS: { key: PlatformFilter; label: string }[] = [
   { key: "facebook",     label: "Facebook"      },
   { key: "instagram",    label: "Instagram"     },
   { key: "mercadolivre", label: "Mercado Livre" },
+  { key: "tiktok",       label: "TikTok"        },
 ];
 
 export function AdminWebhooks() {
@@ -98,12 +103,13 @@ export function AdminWebhooks() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [kRes, hRes, sRes, mRes, mlRes] = await Promise.allSettled([
+      const [kRes, hRes, sRes, mRes, mlRes, ttRes] = await Promise.allSettled([
         apiFetch<KiwifyRaw[]>("/api/kiwify/events"),
         apiFetch<HotmartRaw[]>("/api/hotmart/events"),
         apiFetch<ShopeeRaw[]>("/api/shopee/events"),
         apiFetch<MetaRaw[]>("/api/meta/events"),
         apiFetch<MercadoLivreRaw[]>("/api/ml/events"),
+        apiFetch<TikTokRaw[]>("/api/tiktok/events"),
       ]);
 
       const merged: WebhookEvent[] = [];
@@ -168,6 +174,19 @@ export function AdminWebhooks() {
             eventType: e.topic,
             label: e.resource ?? `Evento #${e.id}`,
             detail: e.userId ? `User ${e.userId}` : null,
+            receivedAt: e.receivedAt,
+          });
+        }
+      }
+
+      if (ttRes.status === "fulfilled") {
+        for (const e of ttRes.value) {
+          merged.push({
+            id: `tt-${e.id}`,
+            platform: "tiktok",
+            eventType: e.eventType,
+            label: e.userId ? `User ${e.userId}` : `Evento #${e.id}`,
+            detail: null,
             receivedAt: e.receivedAt,
           });
         }

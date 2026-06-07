@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Loader2, Users, Edit2, Zap, Plus, Minus, RefreshCw, Eye, Activity, CreditCard, FolderOpen, Download } from "lucide-react";
+import { Search, Loader2, Users, Edit2, Zap, Plus, Minus, RefreshCw, Eye, Activity, CreditCard, FolderOpen, Download, UserX, UserCheck, ShieldOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -119,6 +119,9 @@ export function AdminUsers() {
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [editState, setEditState] = useState<EditState>({ role: "user", plan: "free", credits: 0 });
   const [creditAdjust, setCreditAdjust] = useState<CreditAdjust | null>(null);
+  const [bannedIds, setBannedIds] = useState<Set<number>>(new Set());
+  const [banTarget, setBanTarget] = useState<{ id: number; email: string; isBanning: boolean } | null>(null);
+  const [banLoading, setBanLoading] = useState(false);
 
   const { getToken } = useAuth();
   const updateUser = useUpdateAdminUser();
@@ -187,6 +190,36 @@ export function AdminUsers() {
         },
       },
     );
+  };
+
+  const handleBanAction = async () => {
+    if (!banTarget) return;
+    setBanLoading(true);
+    try {
+      const token = await getToken();
+      const endpoint = banTarget.isBanning ? "ban" : "unban";
+      const res = await fetch(`${BASE}/api/admin/users/${banTarget.id}/${endpoint}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error();
+      setBannedIds((prev) => {
+        const next = new Set(prev);
+        if (banTarget.isBanning) next.add(banTarget.id);
+        else next.delete(banTarget.id);
+        return next;
+      });
+      toast({
+        description: banTarget.isBanning
+          ? `Usuário ${banTarget.email} bloqueado.`
+          : `Usuário ${banTarget.email} desbloqueado.`,
+      });
+      setBanTarget(null);
+    } catch {
+      toast({ title: "Falha na operação", variant: "destructive" });
+    } finally {
+      setBanLoading(false);
+    }
   };
 
   const handleCreditAdjust = () => {
@@ -346,7 +379,14 @@ export function AdminUsers() {
                         <td className="px-4 py-3 text-right text-muted-foreground text-sm">{user.projectCount}</td>
                         <td className="px-4 py-3 text-right text-muted-foreground text-sm">{user.actionCount}</td>
                         <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                          {new Date(user.createdAt).toLocaleDateString("pt-BR")}
+                          <div className="flex items-center gap-1.5">
+                            {new Date(user.createdAt).toLocaleDateString("pt-BR")}
+                            {bannedIds.has(user.id) && (
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 text-red-400 bg-red-500/10 border-red-500/20">
+                                Bloqueado
+                              </Badge>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
@@ -371,6 +411,23 @@ export function AdminUsers() {
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
+                            {bannedIds.has(user.id) ? (
+                              <button
+                                onClick={() => setBanTarget({ id: user.id, email: user.email, isBanning: false })}
+                                title="Desbloquear usuário"
+                                className="text-emerald-500 hover:text-emerald-400 transition-colors p-1"
+                              >
+                                <UserCheck className="w-3.5 h-3.5" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => setBanTarget({ id: user.id, email: user.email, isBanning: true })}
+                                title="Bloquear usuário"
+                                className="text-muted-foreground hover:text-red-400 transition-colors p-1"
+                              >
+                                <UserX className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -520,6 +577,46 @@ export function AdminUsers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* ── DIALOG: Confirmar Ban/Unban ───────────────────────────── */}
+      <Dialog open={!!banTarget} onOpenChange={(open) => { if (!open) setBanTarget(null); }}>
+        <DialogContent className="bg-[#111111] border-white/10 text-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              {banTarget?.isBanning
+                ? <><UserX className="w-4 h-4 text-red-400" /> Bloquear Usuário</>
+                : <><UserCheck className="w-4 h-4 text-emerald-400" /> Desbloquear Usuário</>}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-3">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/8 mb-3">
+              <ShieldOff className={`w-4 h-4 shrink-0 ${banTarget?.isBanning ? "text-red-400" : "text-emerald-400"}`} />
+              <p className="text-sm text-zinc-300 break-all">{banTarget?.email}</p>
+            </div>
+            <p className="text-xs text-zinc-500">
+              {banTarget?.isBanning
+                ? "O usuário perderá acesso imediatamente. O bloqueio pode ser revertido a qualquer momento."
+                : "O usuário recuperará acesso imediatamente."}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setBanTarget(null)} className="text-muted-foreground">
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => void handleBanAction()}
+              disabled={banLoading}
+              className={banTarget?.isBanning
+                ? "bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 font-semibold"
+                : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30 font-semibold"}
+            >
+              {banLoading
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : banTarget?.isBanning ? "Bloquear" : "Desbloquear"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* ── DIALOG: Perfil Expandido ──────────────────────────────── */}
       <Dialog open={!!profileUser} onOpenChange={(open) => { if (!open) { setProfileUser(null); setProfileData(null); } }}>
         <DialogContent className="bg-[#0d0d0d] border-white/10 text-white max-w-2xl w-full max-h-[90vh] overflow-y-auto p-0">

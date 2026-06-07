@@ -6,6 +6,7 @@ import {
   Command, BarChart2, BookMarked, Gift, Trash2,
   ShoppingCart, ShoppingBag, Music2,
   Flame, Layers, Instagram, Facebook, HelpCircle,
+  BookOpen, Target,
 } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -38,6 +39,7 @@ const navItems = [
   { href: "/dashboard/create-content", label: "Criar Conteúdo", icon: FileText },
   { href: "/dashboard/creative-generator", label: "Gerador Criativo", icon: Sparkles },
   { href: "/dashboard/video-scripts", label: "Scripts de Vídeo", icon: Video },
+  { href: "/dashboard/create-ad", label: "Criar Anúncio", icon: Target },
   { href: "/dashboard/mercado-livre", label: "Mercado Livre", icon: ShoppingCart },
   { href: "/dashboard/shopee", label: "Shopee", icon: ShoppingBag },
   { href: "/dashboard/tiktok", label: "TikTok", icon: Music2 },
@@ -45,6 +47,7 @@ const navItems = [
   { href: "/dashboard/kiwify", label: "Kiwify", icon: Layers },
   { href: "/dashboard/facebook", label: "Facebook", icon: Facebook },
   { href: "/dashboard/instagram", label: "Instagram", icon: Instagram },
+  { href: "/dashboard/library", label: "Biblioteca", icon: BookOpen },
   { href: "/dashboard/projects", label: "Projetos Salvos", icon: FolderOpen },
   { href: "/dashboard/history", label: "Atividades", icon: Clock },
   { href: "/dashboard/analytics", label: "Análises", icon: BarChart2 },
