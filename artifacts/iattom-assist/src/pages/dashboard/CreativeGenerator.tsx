@@ -97,6 +97,7 @@ export function CreativeGenerator() {
   // Estado do vídeo — estrutura preparada para BLOCO 2 (sem funcionalidade ainda)
   const [videoType, setVideoType] = useState<"executivo" | "casual">("executivo");
   const [videoAvatar, setVideoAvatar] = useState<"masculino" | "feminino">("masculino");
+  const [videoAmbiente, setVideoAmbiente] = useState<string>("loja");
   const [videoPrompt, setVideoPrompt] = useState("");
 
   const { status, result, error, generate, reset } = useAiStream<CreativeIdeasResult>();
@@ -495,9 +496,9 @@ export function CreativeGenerator() {
                   </div>
                 </div>
 
-                {/* Avatar */}
+                {/* Personagem */}
                 <div className="space-y-3">
-                  <Label className="text-sm text-muted-foreground">Avatar</Label>
+                  <Label className="text-sm text-muted-foreground">Personagem</Label>
                   <div className="flex gap-3">
                     {(["masculino", "feminino"] as const).map((a) => (
                       <button
@@ -514,6 +515,28 @@ export function CreativeGenerator() {
                     ))}
                   </div>
                 </div>
+
+                {/* Ambiente — apenas para Casual */}
+                {videoType === "casual" && (
+                  <div className="space-y-3">
+                    <Label className="text-sm text-muted-foreground">Ambiente</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(["Loja", "Shopping", "Restaurante", "Rua", "Casa", "Livre"] as const).map((amb) => (
+                        <button
+                          key={amb}
+                          onClick={() => setVideoAmbiente(amb.toLowerCase())}
+                          className={`py-2.5 px-2 rounded-lg border text-xs font-medium transition-colors text-center ${
+                            videoAmbiente === amb.toLowerCase()
+                              ? "bg-primary/15 text-primary border-primary/30"
+                              : "bg-[#0a0a0a] text-zinc-500 border-white/[0.08] hover:border-white/20 hover:text-zinc-300"
+                          }`}
+                        >
+                          {amb}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Prompt */}
                 <div className="space-y-2">

@@ -40,77 +40,77 @@ export interface RefinedContext {
 const SPECIALISTS: Record<SpecialistKey, SpecialistContext> = {
   marketplace: {
     key: "marketplace",
-    name: "Marketplace Specialist",
+    name: "Especialista Marketplace",
     visualDirectives: [
-      "clean white or very light neutral background — catalog standard",
-      "product clearly centered and dominant in frame — fills 70-80% of composition",
-      "sharp, precise product edges with high contrast against background",
-      "professional studio lighting: flat, soft-box or diffused — no harsh shadows",
-      "catalog-quality product photography — no distracting props or textures",
-      "conversion-focused composition — every element reinforces purchase intent",
-      "photorealistic product representation — preserve exact shape and colors",
+      "fundo branco ou neutro muito claro — padrão de catálogo profissional",
+      "produto centralizado e dominante no enquadramento — ocupa 70 a 80% da composição",
+      "bordas nítidas do produto com alto contraste em relação ao fundo",
+      "iluminação de estúdio profissional: difusa, suave, sem sombras duras",
+      "fotografia de produto em nível de catálogo — sem adereços ou texturas que desviem a atenção",
+      "composição focada em conversão — todos os elementos reforçam a intenção de compra",
+      "representação fotorrealista do produto — preservar forma exata, cores e proporções",
     ],
-    compositionGuidance: "Marketplace catalog composition — product is the sole hero, clean and immediately identifiable at thumbnail scale",
-    conversionFocus: "drive purchase decision through unambiguous product clarity, professional quality and visual trust",
+    compositionGuidance: "Composição de catálogo marketplace — produto é o único protagonista, limpo e imediatamente identificável em miniatura",
+    conversionFocus: "gerar decisão de compra por meio de clareza absoluta do produto, qualidade profissional e confiança visual",
   },
 
   social: {
     key: "social",
-    name: "Social Specialist",
+    name: "Especialista Social",
     visualDirectives: [
-      "scroll-stopping visual impact — bold, magnetic, instantly arresting",
-      "strong contrast or vivid color palette to interrupt scrolling behavior",
-      "aspirational lifestyle context — product placed within an exciting, desirable environment",
-      "cinematic or editorial quality — dramatic lighting, atmospheric depth",
-      "dynamic composition with visual tension or movement to create energy",
-      "premium brand aesthetic — the product elevates the viewer's perceived status",
-      "natural eye-movement path through the frame — guides attention intentionally",
+      "impacto visual imediato — ousado, magnético, prendendo a atenção em menos de 1 segundo",
+      "contraste forte ou paleta de cores vibrante para interromper o scroll",
+      "contexto lifestyle aspiracional — produto inserido em ambiente desejável e atrativo",
+      "qualidade cinematográfica ou editorial — iluminação dramática, profundidade atmosférica",
+      "composição dinâmica com tensão ou movimento visual para transmitir energia",
+      "estética de marca premium — o produto eleva o status percebido de quem o usa",
+      "trilha visual natural pelo enquadramento — guia a atenção de forma intencional",
     ],
-    compositionGuidance: "Social-first composition — visually magnetic within 0.5 seconds, brand premium, aspirational and shareable",
-    conversionFocus: "generate engagement, saves and brand recall through immediate visual impact and aspirational lifestyle association",
+    compositionGuidance: "Composição voltada para redes sociais — visualmente magnética nos primeiros 0,5 segundos, marca premium, aspiracional e compartilhável",
+    conversionFocus: "gerar engajamento, salvamentos e lembrança de marca por meio de impacto visual imediato e associação lifestyle aspiracional",
   },
 
   infoproduto: {
     key: "infoproduto",
-    name: "Infoproduto Specialist",
+    name: "Especialista Infoproduto",
     visualDirectives: [
-      "authoritative, expert-level visual treatment — conveys mastery and credibility",
-      "premium digital product presentation — sleek, polished, high-end",
-      "dark gradient backgrounds or deep tones that signal sophistication and expertise",
-      "strong sense of value, quality and professional authority",
-      "clean visual hierarchy — clear primary focal point with intentional negative space",
-      "corporate or premium studio environment aesthetic",
-      "trust signals through flawless professional execution",
+      "tratamento visual de autoridade máxima — transmite domínio, expertise e credibilidade",
+      "apresentação premium de produto digital — polido, sofisticado, de alto nível",
+      "fundos em gradiente escuro ou tons profundos que sinalizam sofisticação e especialização",
+      "forte sensação de valor, qualidade e autoridade profissional",
+      "hierarquia visual limpa — ponto focal primário claro com espaço negativo intencional",
+      "estética de ambiente corporativo ou estúdio premium",
+      "sinais de confiança por meio de execução profissional impecável",
     ],
-    compositionGuidance: "Authority composition — positions the product as a premium, credible, high-value digital asset that demands respect",
-    conversionFocus: "establish unwavering authority and deep trust to maximize conversion of digital products",
+    compositionGuidance: "Composição de autoridade — posiciona o produto como ativo digital premium, confiável e de alto valor que exige respeito",
+    conversionFocus: "estabelecer autoridade inabalável e confiança profunda para maximizar a conversão de produtos digitais",
   },
 
   perfil: {
     key: "perfil",
-    name: "Perfil Specialist",
+    name: "Especialista Perfil",
     visualDirectives: [
-      "clean centered subject — face, logo or brand symbol fully visible",
-      "strong contrast against any background — legible at small sizes",
-      "professional or on-brand lighting with no distracting elements",
-      "minimal, uncluttered background — full attention on the subject",
-      "crisp edges and sharp focal point — optimized for circular crop display",
+      "sujeito centralizado e limpo — rosto, logotipo ou símbolo de marca totalmente visível",
+      "contraste forte em relação a qualquer fundo — legível em tamanhos pequenos",
+      "iluminação profissional ou alinhada com a marca — sem elementos que desviem a atenção",
+      "fundo mínimo e sem poluição visual — atenção total no sujeito",
+      "bordas nítidas e foco preciso — otimizado para exibição em recorte circular",
     ],
-    compositionGuidance: "Profile-optimized composition — instantly recognizable at thumbnail scale, centered, clean and impactful",
-    conversionFocus: "establish identity, recognition and brand presence at any display size",
+    compositionGuidance: "Composição otimizada para perfil — instantaneamente reconhecível em qualquer escala, centralizado, limpo e impactante",
+    conversionFocus: "estabelecer identidade, reconhecimento e presença de marca em qualquer tamanho de exibição",
   },
 
   generic: {
     key: "generic",
-    name: "Creative Specialist",
+    name: "Especialista Criativo",
     visualDirectives: [
-      "premium commercial photography quality",
-      "professional lighting with natural depth",
-      "clear visual hierarchy — product is the unmistakable hero",
-      "clean, purposeful composition aligned with platform expectations",
+      "qualidade de fotografia comercial premium",
+      "iluminação profissional com profundidade natural",
+      "hierarquia visual clara — produto é o protagonista inequívoco",
+      "composição limpa e intencional alinhada com as expectativas da plataforma",
     ],
-    compositionGuidance: "Premium commercial composition — polished, professional and platform-appropriate",
-    conversionFocus: "create a compelling, professional image that drives desired user action",
+    compositionGuidance: "Composição comercial premium — polida, profissional e adequada à plataforma",
+    conversionFocus: "criar imagem atraente e profissional que impulsiona a ação desejada do usuário",
   },
 };
 
@@ -169,7 +169,7 @@ function interpretProduct(prompt: string, platform: string): ProductInterpretati
     }
   }
 
-  // Infoprodutos em plataformas de infoproduto override categorização genérica
+  // Infoprodutos em plataformas de infoproduto fazem override da categorização genérica
   if (["hotmart", "kiwify"].includes(platform) && category === "Produto") {
     category = "Infoproduto";
     productType = "produto digital";
