@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { rateLimit } from "express-rate-limit";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
 import {
   AiFindProductsBody,
@@ -19,6 +20,18 @@ import { analyzeReference } from "../lib/ai/analyzeReference.js";
 
 const router: IRouter = Router();
 
+const aiRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req, res) => {
+    res.status(429).json({ error: "Muitas requisições. Aguarde um momento antes de tentar novamente." });
+  },
+});
+
+router.use(aiRateLimiter);
+
 router.post("/ai/find-products", requireAuth, async (req, res): Promise<void> => {
   const { clerkUserId } = req as AuthenticatedRequest;
   const parsed = AiFindProductsBody.safeParse(req.body);
@@ -26,7 +39,9 @@ router.post("/ai/find-products", requireAuth, async (req, res): Promise<void> =>
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  await streamFindProducts(parsed.data, res, clerkUserId);
+  const ac = new AbortController();
+  req.on("close", () => ac.abort());
+  await streamFindProducts(parsed.data, res, clerkUserId, ac.signal);
 });
 
 router.post("/ai/validate-product", requireAuth, async (req, res): Promise<void> => {
@@ -36,7 +51,9 @@ router.post("/ai/validate-product", requireAuth, async (req, res): Promise<void>
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  await streamValidateProduct(parsed.data, res, clerkUserId);
+  const ac = new AbortController();
+  req.on("close", () => ac.abort());
+  await streamValidateProduct(parsed.data, res, clerkUserId, ac.signal);
 });
 
 router.post("/ai/create-campaign", requireAuth, async (req, res): Promise<void> => {
@@ -46,7 +63,9 @@ router.post("/ai/create-campaign", requireAuth, async (req, res): Promise<void> 
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  await streamCreateCampaign(parsed.data, res, clerkUserId);
+  const ac = new AbortController();
+  req.on("close", () => ac.abort());
+  await streamCreateCampaign(parsed.data, res, clerkUserId, ac.signal);
 });
 
 router.post("/ai/refine-campaign-block", requireAuth, async (req, res): Promise<void> => {
@@ -72,7 +91,9 @@ router.post("/ai/create-content", requireAuth, async (req, res): Promise<void> =
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  await streamCreateContent(parsed.data, res, clerkUserId);
+  const ac = new AbortController();
+  req.on("close", () => ac.abort());
+  await streamCreateContent(parsed.data, res, clerkUserId, ac.signal);
 });
 
 router.post("/ai/creative-ideas", requireAuth, async (req, res): Promise<void> => {
@@ -82,7 +103,9 @@ router.post("/ai/creative-ideas", requireAuth, async (req, res): Promise<void> =
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  await streamCreativeIdeas(parsed.data, res, clerkUserId);
+  const ac = new AbortController();
+  req.on("close", () => ac.abort());
+  await streamCreativeIdeas(parsed.data, res, clerkUserId, ac.signal);
 });
 
 router.post("/ai/video-script", requireAuth, async (req, res): Promise<void> => {
@@ -92,7 +115,9 @@ router.post("/ai/video-script", requireAuth, async (req, res): Promise<void> => 
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  await streamVideoScript(parsed.data, res, clerkUserId);
+  const ac = new AbortController();
+  req.on("close", () => ac.abort());
+  await streamVideoScript(parsed.data, res, clerkUserId, ac.signal);
 });
 
 router.post("/ai/analyze-reference", requireAuth, async (req, res): Promise<void> => {

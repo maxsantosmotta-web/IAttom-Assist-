@@ -36,6 +36,7 @@ export async function streamVideoScript(
   params: VideoScriptInput,
   res: Response,
   clerkUserId: string,
+  signal?: AbortSignal,
 ): Promise<void> {
   setupSSE(res);
   sendSSE(res, { type: "start" });
@@ -98,7 +99,7 @@ Crie um roteiro completo e pronto para produção, com 4-6 cenas que maximizem a
       ],
       response_format: { type: "json_object" },
       stream: true,
-    });
+    }, { signal });
 
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content;

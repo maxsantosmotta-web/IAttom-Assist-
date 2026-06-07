@@ -87,6 +87,7 @@ export async function streamCreativeIdeas(
   params: CreativeIdeasInput,
   res: Response,
   clerkUserId: string,
+  signal?: AbortSignal,
 ): Promise<void> {
   setupSSE(res);
   sendSSE(res, { type: "start" });
@@ -192,7 +193,7 @@ Crie ${numConcepts} conceitos criativos visualmente impactantes, alinhados ao pr
           ],
           response_format: { type: "json_object" },
           stream: false,
-        });
+        }, { signal });
         const raw = response.choices[0]?.message?.content ?? "";
         const parsed = safeParseCreativeJson(raw);
         if (parsed.success) {
@@ -263,9 +264,9 @@ Crie ${numConcepts} conceitos criativos visualmente impactantes, alinhados ao pr
             "STRICT PROHIBITIONS: no human body parts, no hands, no arms, no legs, no faces, no partial persons; no objects unrelated to the product; no extra items not present in the reference; no deformations; no distortions; no blurry elements; no text; no logos; no watermarks.",
             "OUTPUT: photorealistic, commercial photography quality, magazine-ready.",
           ].join(" ");
-          return editImageFromBuffer(referenceBuffer, editPrompt, mapFormatToSize(concept.format));
+          return editImageFromBuffer(referenceBuffer, editPrompt, mapFormatToSize(concept.format), signal);
         }
-        return generateImageBuffer(concept.imagePrompt, mapFormatToSize(concept.format));
+        return generateImageBuffer(concept.imagePrompt, mapFormatToSize(concept.format), signal);
       }),
     );
 

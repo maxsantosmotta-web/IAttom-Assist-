@@ -24,6 +24,7 @@ export async function streamCreateContent(
   params: CreateContentInput,
   res: Response,
   clerkUserId: string,
+  signal?: AbortSignal,
 ): Promise<void> {
   setupSSE(res);
   sendSSE(res, { type: "start" });
@@ -75,7 +76,7 @@ Cada peça deve parecer premium, específica para a marca e pronta para publica�
       ],
       response_format: { type: "json_object" },
       stream: true,
-    });
+    }, { signal });
 
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content;

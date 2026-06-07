@@ -42,9 +42,17 @@ const PLATFORM_OPTIONS = [
   { value: "kiwify",        label: "Vender na Kiwify",        formats: ["1:1 thumb", "1:1 variação"] },
 ] as const;
 
+function formatToAspectClass(format: string): string {
+  const f = format.toLowerCase();
+  if (f.includes("9:16") || f.includes("story") || f.includes("vertical") || f.includes("reels") || f.includes("status")) return "aspect-[9/16]";
+  if (f.includes("16:9") || f.includes("banner") || f.includes("landscape")) return "aspect-[16/9]";
+  return "aspect-square";
+}
+
 function ConceptCard({ concept, index }: { concept: CreativeConcept; index: number }) {
   const { toast } = useToast();
   const FormatIcon = formatIcons[concept.format] ?? formatIcons.default;
+  const aspectClass = formatToAspectClass(concept.format);
 
   const copyAll = () => {
     const text = `HOOK: ${concept.copyHook}\n\nCOPY: ${concept.bodyText}\n\nCTA: ${concept.cta}`;
@@ -56,15 +64,15 @@ function ConceptCard({ concept, index }: { concept: CreativeConcept; index: numb
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.08 }}>
       <Card className="bg-[#111111] border-white/5 hover:border-primary/20 transition-colors overflow-hidden">
         {concept.imageBase64 ? (
-          <div className="relative bg-black overflow-hidden">
+          <div className={`relative bg-black overflow-hidden w-full ${aspectClass}`}>
             <img
               src={`data:image/png;base64,${concept.imageBase64}`}
               alt={concept.label}
-              className="w-full h-auto max-h-64 object-contain"
+              className="absolute inset-0 w-full h-full object-cover"
             />
           </div>
         ) : (
-          <div className={`h-24 bg-gradient-to-br ${gradients[index % gradients.length]} flex items-center justify-center`}>
+          <div className={`w-full ${aspectClass} bg-gradient-to-br ${gradients[index % gradients.length]} flex items-center justify-center`}>
             <FormatIcon className="w-8 h-8 text-white/20" />
           </div>
         )}

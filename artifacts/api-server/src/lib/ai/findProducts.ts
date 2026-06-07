@@ -34,6 +34,7 @@ export async function streamFindProducts(
   params: FindProductsInput,
   res: Response,
   clerkUserId: string,
+  signal?: AbortSignal,
 ): Promise<void> {
   setupSSE(res);
   sendSSE(res, { type: "start" });
@@ -90,7 +91,7 @@ Retorne um JSON com 5-6 recomendações específicas e acionáveis, com dados re
       ],
       response_format: { type: "json_object" },
       stream: true,
-    });
+    }, { signal });
 
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content;

@@ -288,6 +288,7 @@ export async function streamCreateCampaign(
   params: CreateCampaignInput,
   res: Response,
   clerkUserId: string,
+  signal?: AbortSignal,
 ): Promise<void> {
   setupSSE(res);
 
@@ -342,7 +343,7 @@ Adapte toda a estrutura da campanha ao modo e tipo de produto informados. Crie c
         ],
         response_format: { type: "json_object" },
         stream: false,
-      });
+      }, { signal });
 
       const rawText = response.choices[0]?.message?.content ?? "";
 

@@ -30,6 +30,7 @@ export async function streamValidateProduct(
   params: ValidateProductInput,
   res: Response,
   clerkUserId: string,
+  signal?: AbortSignal,
 ): Promise<void> {
   setupSSE(res);
   sendSSE(res, { type: "start" });
@@ -83,7 +84,7 @@ Forneça uma análise de validação de mercado rigorosa e honesta, integralment
       ],
       response_format: { type: "json_object" },
       stream: true,
-    });
+    }, { signal });
 
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content;
