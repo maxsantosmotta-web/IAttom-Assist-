@@ -179,8 +179,8 @@ export function AdminKiwify() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-              <Users className="w-4 h-4 text-zinc-500" />
-              Usuários Conectados
+              <Activity className="w-4 h-4 text-zinc-500" />
+              Monitoramento da Plataforma
               {!loadingEvents && events.length > 0 && (
                 <span className="text-[11px] font-normal text-zinc-500">
                   ({events.length} {events.length === 1 ? "evento" : "eventos"})

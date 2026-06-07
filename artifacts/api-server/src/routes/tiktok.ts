@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
-import { db, tiktokConfig, userTiktokConnections } from "@workspace/db";
+import { db, tiktokConfig, userTiktokConnections, tiktokEvents } from "@workspace/db";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
 import { requireAdmin } from "../middlewares/requireAdmin.js";
 import {
@@ -186,6 +186,24 @@ router.get("/tiktok/oauth/callback", async (req, res): Promise<void> => {
       `${frontendBase}/dashboard/tiktok?tiktok_error=${encodeURIComponent(msg)}`,
     );
   }
+});
+
+// ─── ADMIN: TikTok webhook events ────────────────────────────────────────────
+router.get("/tiktok/events", requireAdmin, async (req, res): Promise<void> => {
+  const rows = await db
+    .select()
+    .from(tiktokEvents)
+    .orderBy(desc(tiktokEvents.receivedAt))
+    .limit(200);
+
+  res.json(
+    rows.map((e) => ({
+      id: e.id,
+      eventType: e.eventType,
+      userId: e.userId,
+      receivedAt: e.receivedAt?.toISOString() ?? null,
+    })),
+  );
 });
 
 // ─── ADMIN: All active TikTok user connections ────────────────────────────────

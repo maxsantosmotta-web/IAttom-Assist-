@@ -22,6 +22,7 @@ export * from "./mlOrders";
 export * from "./mlEvents";
 export * from "./hotmartConfig";
 export * from "./tiktokConfig";
+export * from "./tiktokEvents";
 export * from "./hotmartProducts";
 export * from "./hotmartEvents";
 export * from "./kiwifyConfig";

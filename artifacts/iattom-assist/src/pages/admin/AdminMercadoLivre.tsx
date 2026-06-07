@@ -188,8 +188,8 @@ export function AdminMercadoLivre() {
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
             <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-              <User className="w-4 h-4 text-primary/70" />
-              Usuários Conectados
+              <Activity className="w-4 h-4 text-zinc-500" />
+              Monitoramento da Plataforma
               {!loadingUserConns && userConnections.length > 0 && (
                 <span className="text-[11px] font-normal text-zinc-500">
                   ({userConnections.length} {userConnections.length === 1 ? "ativo" : "ativos"})

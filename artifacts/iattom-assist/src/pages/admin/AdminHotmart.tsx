@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import {
   Flame, RefreshCw, Loader2, Clock,
   Settings, ExternalLink, LogOut, X,
-  Users, UserCheck, Timer,
+  Users, UserCheck, Timer, Activity,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -210,8 +210,8 @@ export function AdminHotmart() {
       <Card className="bg-white/3 border-white/8">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-            <Users className="w-4 h-4 text-zinc-500" />
-            Usuários Conectados
+            <Activity className="w-4 h-4 text-zinc-500" />
+            Monitoramento da Plataforma
             {totalActive > 0 && (
               <span className="text-[11px] font-normal text-zinc-500">({totalActive})</span>
             )}

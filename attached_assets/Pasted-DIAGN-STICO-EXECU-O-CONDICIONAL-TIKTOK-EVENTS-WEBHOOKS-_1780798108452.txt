@@ -1,0 +1,101 @@
+DIAGNÓSTICO + EXECUÇÃO CONDICIONAL — TIKTOK EVENTS / WEBHOOKS
+
+ETAPA 1 — DIAGNÓSTICO OBRIGATÓRIO
+
+NÃO IMPLEMENTAR NADA NA ETAPA 1.
+
+Verificar exatamente o que falta para o TikTok entrar no Histórico de Webhooks.
+
+Analisar:
+
+- artifacts/api-server/src/routes/tiktok.ts
+- lib/db/src/schema/tiktokConfig.ts
+- padrões existentes:
+  - mlEvents
+  - shopeeEvents
+  - hotmartEvents
+  - kiwifyEvents
+  - metaEvents
+- AdminWebhooks.tsx
+
+Responder primeiro:
+
+1. Existe tabela de eventos TikTok?
+2. Existe endpoint admin de eventos TikTok?
+3. Existe endpoint user de eventos TikTok?
+4. Existe webhook TikTok recebendo eventos?
+5. A API/escopo atual do TikTok permite receber eventos?
+6. Exige migration?
+7. Exige aprovação externa?
+8. Quais arquivos precisariam ser alterados?
+9. Risco real da implementação.
+10. Recomendação: implementar agora ou deixar para etapa futura.
+
+PARAR APÓS O DIAGNÓSTICO.
+
+AGUARDAR MINHA AUTORIZAÇÃO EXPLÍCITA.
+
+A execução só poderá continuar se eu responder exatamente:
+
+AUTORIZADO
+
+━━━━━━━━━━━━━━━━━━━━━━━
+ETAPA 2 — EXECUÇÃO CONDICIONAL
+━━━━━━━━━━━━━━━━━━━━━━━
+
+Executar somente se eu responder AUTORIZADO.
+
+Se a Etapa 1 concluir que é seguro implementar agora:
+
+Implementar o mínimo necessário para TikTok entrar no Histórico de Webhooks.
+
+Prioridade:
+
+1. Reaproveitar padrão das outras plataformas.
+2. Criar apenas o necessário.
+3. Não alterar OAuth existente.
+4. Não alterar login.
+5. Não alterar Clerk.
+6. Não alterar Stripe.
+7. Não alterar billing.
+8. Não alterar Mercado Livre.
+9. Não alterar AdminLayout.tsx nem App.tsx, salvo se já existir página Webhooks criada e for apenas ajuste dentro dela.
+
+Se exigir migration:
+
+Informar antes de executar migration.
+
+Se exigir aprovação externa da TikTok:
+
+Não implementar.
+
+Apenas registrar como pendência futura.
+
+PROIBIDO:
+
+- mexer em login
+- mexer em Clerk
+- mexer em Stripe
+- mexer em billing
+- mexer em OAuth existente
+- mexer em Mercado Livre
+- recriar AdminWebhooks
+- alterar rotas existentes que já funcionam
+- executar migration sem confirmação separada
+
+ENTREGA FINAL:
+
+Após diagnóstico:
+
+- conclusão objetiva
+- se pode ou não implementar agora
+- arquivos necessários
+- riscos
+
+Após execução, se autorizada:
+
+- arquivos alterados
+- rotas criadas
+- schema/tabela criada, se autorizado
+- resultado do typecheck
+- confirmação se TikTok entrou no AdminWebhooks
