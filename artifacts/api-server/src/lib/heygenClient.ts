@@ -1,17 +1,16 @@
 /**
- * HeyGen API Client — BLOCO 2A
+ * HeyGen API Client — BLOCO 2B
  * Engine: Avatar V (máxima qualidade)
+ * Endpoint: v3 (único com suporte a Avatar V)
  *
- * Modo seguro: se HEYGEN_API_KEY não estiver configurada,
- * HEYGEN_CONFIGURED = false → pipeline opera em mock sem erros.
+ * Modo seguro: HEYGEN_CONFIGURED = false → pipeline opera em mock sem erros.
  *
- * Avatar IDs e Voice IDs: configurar via env após setup HeyGen (BLOCO 2B).
- * Variáveis necessárias em BLOCO 2B:
- *   HEYGEN_API_KEY
- *   HEYGEN_AVATAR_MALE_ID
- *   HEYGEN_AVATAR_FEMALE_ID
- *   HEYGEN_VOICE_MALE_ID
- *   HEYGEN_VOICE_FEMALE_ID
+ * Variáveis necessárias para ativar modo real:
+ *   HEYGEN_API_KEY           — API key do dashboard HeyGen
+ *   HEYGEN_AVATAR_MALE_ID    — avatar_id masculino (GET /v3/avatars)
+ *   HEYGEN_AVATAR_FEMALE_ID  — avatar_id feminino  (GET /v3/avatars)
+ *   HEYGEN_VOICE_MALE_ID     — voice_id PT-BR masculino (GET /v3/voices)
+ *   HEYGEN_VOICE_FEMALE_ID   — voice_id PT-BR feminino  (GET /v3/voices)
  */
 
 const HEYGEN_BASE_URL = "https://api.heygen.com";
@@ -23,13 +22,13 @@ export const HEYGEN_CONFIGURED =
   !!process.env.HEYGEN_VOICE_MALE_ID &&
   !!process.env.HEYGEN_VOICE_FEMALE_ID;
 
-// IDs dos avatares oficiais — preencher após setup HeyGen (BLOCO 2B)
+// IDs dos avatares oficiais
 export const AVATAR_IDS: Record<"masculino" | "feminino", string> = {
   masculino: process.env.HEYGEN_AVATAR_MALE_ID ?? "",
   feminino:  process.env.HEYGEN_AVATAR_FEMALE_ID ?? "",
 };
 
-// IDs das vozes PT-BR — preencher após setup HeyGen (BLOCO 2B)
+// IDs das vozes PT-BR
 export const VOICE_IDS: Record<"masculino" | "feminino", string> = {
   masculino: process.env.HEYGEN_VOICE_MALE_ID ?? "",
   feminino:  process.env.HEYGEN_VOICE_FEMALE_ID ?? "",
@@ -43,7 +42,6 @@ export interface HeyGenVideoPayload {
   script: string;
   /** Hex color (ex: "#1c2333") ou URL pública de imagem sem query params */
   background: string;
-  dimension?: { width: number; height: number };
 }
 
 export interface HeyGenVideoStatus {
@@ -53,6 +51,13 @@ export interface HeyGenVideoStatus {
 }
 
 // ─── Geração de vídeo (v3 — Avatar V) ───────────────────────────────────────
+//
+// Estrutura confirmada para v3:
+//   - background: { value: "#hex" } para cor, { url: "..." } para imagem
+//   - aspect_ratio: "16:9" (substitui dimension)
+//   - Sem campo "type" dentro de background
+//   - Sem caption: false (omitir)
+//   - engine: { type: "avatar_v" } para Avatar V
 
 export async function generateVideo(payload: HeyGenVideoPayload): Promise<{ videoId: string }> {
   const apiKey = process.env.HEYGEN_API_KEY!;
@@ -62,15 +67,13 @@ export async function generateVideo(payload: HeyGenVideoPayload): Promise<{ vide
   const body: Record<string, unknown> = {
     type: "avatar",
     avatar_id: payload.avatarId,
-    engine: { type: "avatar_v" },   // Avatar V — máxima qualidade disponível
+    engine: { type: "avatar_v" },
     script: payload.script,
     voice_id: payload.voiceId,
-    output_format: "mp4",
-    dimension: payload.dimension ?? { width: 1280, height: 720 },
-    caption: false,
+    aspect_ratio: "16:9",
     background: isColor
-      ? { type: "color", value: payload.background }
-      : { type: "image", url: payload.background },
+      ? { value: payload.background }
+      : { url: payload.background },
   };
 
   const res = await fetch(`${HEYGEN_BASE_URL}/v3/videos`, {
@@ -87,24 +90,33 @@ export async function generateVideo(payload: HeyGenVideoPayload): Promise<{ vide
     throw new Error(`HeyGen API ${res.status}: ${JSON.stringify(errBody)}`);
   }
 
+  // v3 pode retornar video_id em data.video_id ou data.data.video_id
   const data = await res.json() as {
-    data?: { video_id?: string };
+    data?: { video_id?: string; id?: string };
     video_id?: string;
   };
 
-  const videoId = data.data?.video_id ?? data.video_id ?? "";
+  const videoId =
+    data.data?.video_id ??
+    data.data?.id ??
+    data.video_id ??
+    "";
+
   if (!videoId) throw new Error("HeyGen não retornou um video_id válido.");
 
   return { videoId };
 }
 
-// ─── Status do vídeo ─────────────────────────────────────────────────────────
+// ─── Status do vídeo (v3) ────────────────────────────────────────────────────
+//
+// v3 usa GET /v3/videos/{video_id}
+// Resposta: { data: { id, status, video_url, duration } }
 
 export async function getVideoStatus(videoId: string): Promise<HeyGenVideoStatus> {
   const apiKey = process.env.HEYGEN_API_KEY!;
 
   const res = await fetch(
-    `${HEYGEN_BASE_URL}/v1/video_status.get?video_id=${encodeURIComponent(videoId)}`,
+    `${HEYGEN_BASE_URL}/v3/videos/${encodeURIComponent(videoId)}`,
     { headers: { "X-Api-Key": apiKey } },
   );
 
@@ -113,7 +125,11 @@ export async function getVideoStatus(videoId: string): Promise<HeyGenVideoStatus
   }
 
   const data = await res.json() as {
-    data?: { status?: string; video_url?: string; error?: string };
+    data?: {
+      status?: string;
+      video_url?: string;
+      error?: string;
+    };
   };
 
   const d = data.data ?? {};
