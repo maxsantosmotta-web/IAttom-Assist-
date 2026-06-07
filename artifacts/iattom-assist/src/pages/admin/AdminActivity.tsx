@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 import {
-  Activity, RefreshCw, TrendingUp, Zap, CalendarDays, BarChart2,
+  Activity, RefreshCw, TrendingUp, Zap, CalendarDays, BarChart2, Download,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,6 +12,8 @@ import {
 import { useListAdminActivity, getListAdminActivityQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { translateModule } from "@/lib/eventTranslations";
+import { useAuth } from "@clerk/react";
+import { useToast } from "@/hooks/use-toast";
 
 /* ─── constants ─────────────────────────────────────────────────── */
 const MODULE_COLORS: Record<string, string> = {
@@ -76,8 +78,26 @@ const CustomTooltip = ({
   );
 };
 
+const BASE = (import.meta.env.BASE_URL as string).replace(/\/$/, "");
+
 /* ─── AdminActivity ─────────────────────────────────────────────── */
 export function AdminActivity() {
+  const { getToken } = useAuth();
+  const { toast } = useToast();
+
+  async function downloadCsv(path: string, filename: string) {
+    try {
+      const token = await getToken();
+      const res = await fetch(`${BASE}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (!res.ok) { toast({ title: "Erro ao exportar", variant: "destructive" }); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    } catch { toast({ title: "Erro ao exportar", variant: "destructive" }); }
+  }
+
   const { data: activity, isLoading, isFetching, refetch } = useListAdminActivity(
     { limit: 100 },
     { query: { queryKey: getListAdminActivityQueryKey({ limit: 100 }), staleTime: 0 } },
@@ -158,14 +178,24 @@ export function AdminActivity() {
             <h2 className="text-2xl font-bold text-white mb-1">Atividade da Plataforma</h2>
             <p className="text-muted-foreground text-sm">Monitoramento visual das ações, execuções e movimentações da plataforma.</p>
           </div>
-          <Button
-            size="sm" variant="outline"
-            onClick={() => void refetch()} disabled={isFetching}
-            className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 sm:shrink-0 sm:mt-1"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-2 sm:shrink-0 sm:mt-1">
+            <Button
+              size="sm" variant="outline"
+              onClick={() => void downloadCsv("/api/admin/export/activity", `atividade_${new Date().toISOString().slice(0,10)}.csv`)}
+              className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Exportar CSV
+            </Button>
+            <Button
+              size="sm" variant="outline"
+              onClick={() => void refetch()} disabled={isFetching}
+              className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} />
+              Atualizar
+            </Button>
+          </div>
         </div>
       </motion.div>
 

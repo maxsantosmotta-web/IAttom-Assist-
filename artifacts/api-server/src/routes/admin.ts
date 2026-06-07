@@ -598,4 +598,74 @@ router.get("/admin/subscriptions", requireAdmin, async (req, res): Promise<void>
   res.json({ subscriptions: enriched, total: enriched.length });
 });
 
+// ─── CSV Export: Usuários ──────────────────────────────────────────────────
+router.get("/admin/export/users", requireAdmin, async (_req, res): Promise<void> => {
+  const rows = await db
+    .select({
+      name: users.name,
+      email: users.email,
+      plan: users.plan,
+      role: users.role,
+      credits: users.credits,
+      createdAt: users.createdAt,
+    })
+    .from(users)
+    .orderBy(desc(users.createdAt))
+    .limit(5000);
+
+  const esc = (v: unknown): string => {
+    const s = v == null ? "" : String(v);
+    return `"${s.replace(/"/g, '""')}"`;
+  };
+
+  const header = "Nome,Email,Plano,Função,Créditos,Cadastro\n";
+  const body = rows
+    .map((r) =>
+      [r.name, r.email, r.plan, r.role, r.credits, r.createdAt?.toISOString() ?? ""]
+        .map(esc).join(",")
+    )
+    .join("\n");
+
+  const filename = `usuarios_${new Date().toISOString().slice(0, 10)}.csv`;
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.send("\uFEFF" + header + body);
+});
+
+// ─── CSV Export: Atividade ─────────────────────────────────────────────────
+router.get("/admin/export/activity", requireAdmin, async (_req, res): Promise<void> => {
+  const rows = await db
+    .select({
+      action: historyTable.action,
+      module: historyTable.module,
+      projectName: historyTable.projectName,
+      userName: users.name,
+      userEmail: users.email,
+      createdAt: historyTable.createdAt,
+    })
+    .from(historyTable)
+    .leftJoin(users, eq(historyTable.clerkUserId, users.clerkId))
+    .where(isNull(historyTable.deletedAt))
+    .orderBy(desc(historyTable.createdAt))
+    .limit(5000);
+
+  const esc = (v: unknown): string => {
+    const s = v == null ? "" : String(v);
+    return `"${s.replace(/"/g, '""')}"`;
+  };
+
+  const header = "Usuário,Email,Ação,Módulo,Projeto,Data\n";
+  const body = rows
+    .map((r) =>
+      [r.userName, r.userEmail, r.action, r.module, r.projectName, r.createdAt?.toISOString() ?? ""]
+        .map(esc).join(",")
+    )
+    .join("\n");
+
+  const filename = `atividade_${new Date().toISOString().slice(0, 10)}.csv`;
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.send("\uFEFF" + header + body);
+});
+
 export default router;

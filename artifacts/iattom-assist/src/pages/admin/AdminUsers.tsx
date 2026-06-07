@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Loader2, Users, Edit2, Zap, Plus, Minus, RefreshCw, Eye, Activity, CreditCard, FolderOpen } from "lucide-react";
+import { Search, Loader2, Users, Edit2, Zap, Plus, Minus, RefreshCw, Eye, Activity, CreditCard, FolderOpen, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -119,8 +119,22 @@ export function AdminUsers() {
   const [editState, setEditState] = useState<EditState>({ role: "user", plan: "free", credits: 0 });
   const [creditAdjust, setCreditAdjust] = useState<CreditAdjust | null>(null);
 
+  const { getToken } = useAuth();
   const updateUser = useUpdateAdminUser();
   const adjustCredits = useAdminAdjustCredits();
+
+  async function downloadCsv(path: string, filename: string) {
+    try {
+      const token = await getToken();
+      const res = await fetch(`${BASE}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (!res.ok) { toast({ title: "Erro ao exportar", variant: "destructive" }); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    } catch { toast({ title: "Erro ao exportar", variant: "destructive" }); }
+  }
 
   const params = {
     ...(search ? { search } : {}),
@@ -133,7 +147,6 @@ export function AdminUsers() {
     query: { queryKey: getListAdminUsersQueryKey(params) },
   });
 
-  const { getToken } = useAuth();
   const [profileUser, setProfileUser] = useState<AdminUser | null>(null);
   const [profileData, setProfileData] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -208,10 +221,19 @@ export function AdminUsers() {
             <h2 className="text-2xl font-bold text-white mb-1">Usuários</h2>
             <p className="text-muted-foreground text-sm">Gerencie todos os usuários cadastrados, planos, funções e créditos.</p>
           </div>
-          <Button size="sm" variant="outline" onClick={() => void refetch()} disabled={isFetching} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
-            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-2 shrink-0 mt-1">
+            <Button size="sm" variant="outline"
+              onClick={() => void downloadCsv("/api/admin/export/users", `usuarios_${new Date().toISOString().slice(0,10)}.csv`)}
+              className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Exportar CSV
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => void refetch()} disabled={isFetching} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5">
+              <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} />
+              Atualizar
+            </Button>
+          </div>
         </div>
       </motion.div>
 
