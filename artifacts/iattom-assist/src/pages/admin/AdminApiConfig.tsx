@@ -467,9 +467,9 @@ export function AdminApiConfig() {
                   <CardContent className="space-y-4">
                     <CallbackBox url={shopeeForm.redirectUrl || `${origin}${BASE}/api/shopee/oauth/callback`} label="Callback URL — cadastre em Shopee Open Platform" />
                     <div className="grid sm:grid-cols-2 gap-4">
-                      <PlainInput label="Partner ID" name="partnerId" value={shopeeForm.partnerId}
+                      <PlainInput label="ID do Parceiro" name="partnerId" value={shopeeForm.partnerId}
                         onChange={v => setShopeeForm(f => ({ ...f, partnerId: v }))} placeholder="Ex: 20012345" />
-                      <SecretInput label="Partner Key" name="partnerKey" value={shopeeForm.partnerKey}
+                      <SecretInput label="Chave do Parceiro" name="partnerKey" value={shopeeForm.partnerKey}
                         onChange={v => setShopeeForm(f => ({ ...f, partnerKey: v }))} placeholder="Chave secreta do parceiro" />
                     </div>
                     <PlainInput label="Redirect URI / Callback URL" name="redirectUrl" value={shopeeForm.redirectUrl}
@@ -530,7 +530,7 @@ export function AdminApiConfig() {
                     <div className="grid sm:grid-cols-2 gap-4">
                       <PlainInput label="Redirect URI / Callback URL" name="redirectUri" value={mlForm.redirectUri}
                         onChange={v => setMlForm(f => ({ ...f, redirectUri: v }))} />
-                      <PlainInput label="Site ID" name="siteId" value={mlForm.siteId}
+                      <PlainInput label="ID do Site" name="siteId" value={mlForm.siteId}
                         onChange={v => setMlForm(f => ({ ...f, siteId: v }))} placeholder="MLB" hint="MLB para Brasil" />
                     </div>
                     <FormActions
@@ -563,7 +563,7 @@ export function AdminApiConfig() {
                         onChange={v => setHotmartForm(f => ({ ...f, clientSecret: v }))} />
                     </div>
                     <div className="grid sm:grid-cols-2 gap-4">
-                      <SecretInput label="Basic Token" name="basicToken" value={hotmartForm.basicToken}
+                      <SecretInput label="Token Base64 (Basic Auth)" name="basicToken" value={hotmartForm.basicToken}
                         onChange={v => setHotmartForm(f => ({ ...f, basicToken: v }))}
                         hint="Base64 de client_id:client_secret" />
                       <SecretInput label="Webhook Secret (Hottok)" name="webhookToken" value={hotmartForm.webhookToken}
@@ -601,7 +601,7 @@ export function AdminApiConfig() {
                         onChange={v => setKiwifyForm(f => ({ ...f, clientSecret: v }))} />
                     </div>
                     <div className="grid sm:grid-cols-2 gap-4">
-                      <PlainInput label="Account ID" name="accountId" value={kiwifyForm.accountId}
+                      <PlainInput label="ID da Conta" name="accountId" value={kiwifyForm.accountId}
                         onChange={v => setKiwifyForm(f => ({ ...f, accountId: v }))} placeholder="Cole o account_id da Kiwify" />
                       <SecretInput label="Webhook Secret" name="webhookSecret" value={kiwifyForm.webhookSecret}
                         onChange={v => setKiwifyForm(f => ({ ...f, webhookSecret: v }))}
@@ -683,7 +683,7 @@ export function AdminApiConfig() {
                       <SecretInput label="Verify Token (webhook)" name="verifyToken" value={metaForm.verifyToken}
                         onChange={v => setMetaForm(f => ({ ...f, verifyToken: v }))}
                         hint="Token criado por você para validação do webhook" />
-                      <SecretInput label="User Access Token" name="userAccessToken" value={metaForm.userAccessToken}
+                      <SecretInput label="Token de Acesso do Usuário" name="userAccessToken" value={metaForm.userAccessToken}
                         onChange={v => setMetaForm(f => ({ ...f, userAccessToken: v }))}
                         hint="Token de longa duração da Page Facebook conectada" />
                     </div>

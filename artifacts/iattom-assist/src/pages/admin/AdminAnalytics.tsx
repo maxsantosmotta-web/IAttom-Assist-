@@ -47,6 +47,16 @@ const FEATURE_NAME_MAP: Record<string, string> = {
   "Content": "Conteúdo",
   "Creative": "Criativos",
   "Video Script": "Roteiro de Vídeo",
+  campaign: "Campanha",
+  campaign_creation: "Criar Campanha",
+  content: "Conteúdo",
+  content_creation: "Criar Conteúdo",
+  creative: "Criativo",
+  creative_generator: "Gerar Criativo",
+  video_script: "Script de Vídeo",
+  product_discovery: "Descoberta de Produto",
+  product_validation: "Validação de Produto",
+  marketing: "Marketing",
 };
 
 const PLAN_DISPLAY_NAMES: Record<string, string> = {
@@ -112,7 +122,7 @@ const FEATURE_PT: Record<string, string> = {
 };
 
 const PLAN_PT_SHORT: Record<string, string> = {
-  free: "Gratuito", pro: "Pro", business: "Empresarial", agency: "Agência",
+  free: "Gratuito", pro: "Pro", business: "Completo", agency: "Agência",
 };
 
 interface GrowthStats {
@@ -275,7 +285,7 @@ export function AdminAnalytics() {
                       u.plan === "pro" ? "bg-primary/10 text-primary border-primary/20" :
                       u.plan === "business" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
                       "bg-purple-500/10 text-purple-400 border-purple-500/20"
-                    }`}>{u.plan}</Badge>
+                    }`}>{PLAN_PT_SHORT[u.plan] ?? u.plan}</Badge>
                     <div className="w-24 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
                       <div className="h-full rounded-full bg-red-400 transition-all" style={{ width: `${u.pct}%` }} />
                     </div>
