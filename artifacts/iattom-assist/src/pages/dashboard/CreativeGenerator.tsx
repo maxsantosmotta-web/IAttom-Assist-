@@ -57,10 +57,10 @@ const VIDEO_AMBIENTES: { key: string; label: string }[] = [
   { key: "estudio",      label: "Estúdio / Podcast" },
 ];
 
-const VIDEO_FORMATOS: { key: VideoFormato; label: string; sub: string }[] = [
-  { key: "9:16", label: "Reels / Stories", sub: "9:16 vertical" },
-  { key: "1:1",  label: "Feed",            sub: "1:1 quadrado" },
-  { key: "16:9", label: "YouTube / Apresentação", sub: "16:9 horizontal" },
+const VIDEO_FORMATOS: { key: VideoFormato; label: string }[] = [
+  { key: "9:16", label: "Reels / Stories" },
+  { key: "1:1",  label: "Feed" },
+  { key: "16:9", label: "YouTube / Apresentação" },
 ];
 
 const VIDEO_DURACOES: { key: VideoDuration; label: string }[] = [
@@ -93,7 +93,7 @@ function ambienteLabel(amb: string): string {
 }
 
 function formatoLabel(fmt: string): string {
-  return VIDEO_FORMATOS.find((f) => f.key === fmt)?.sub ?? fmt;
+  return VIDEO_FORMATOS.find((f) => f.key === fmt)?.label ?? fmt;
 }
 
 function VideoResultCard({
@@ -847,14 +847,13 @@ export function CreativeGenerator() {
                       <button
                         key={f.key}
                         onClick={() => setVideoFormato(f.key)}
-                        className={`flex flex-col items-center justify-center py-3 px-2 rounded-lg border text-xs font-medium transition-colors text-center gap-1 ${
+                        className={`flex items-center justify-center py-2.5 px-2 rounded-lg border text-xs font-medium transition-colors text-center ${
                           videoFormato === f.key
                             ? "bg-primary/15 text-primary border-primary/30"
                             : "bg-[#0a0a0a] text-zinc-500 border-white/[0.08] hover:border-white/20 hover:text-zinc-300"
                         }`}
                       >
-                        <span className="font-semibold">{f.label}</span>
-                        <span className={`text-[10px] ${videoFormato === f.key ? "text-primary/70" : "text-zinc-600"}`}>{f.sub}</span>
+                        {f.label}
                       </button>
                     ))}
                   </div>

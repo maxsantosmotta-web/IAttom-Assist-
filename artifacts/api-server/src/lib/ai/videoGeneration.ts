@@ -153,12 +153,15 @@ PARÂMETROS DO VÍDEO:
 - Idioma: português do Brasil natural e fluente
 - Estrutura: gancho impactante (primeiros 20%) → benefício principal do produto (60%) → chamada para ação clara (20% final)
 
-REGRAS DE NATURALIDADE:
-- Usar pausas naturais com vírgulas e pontos — evitar frases muito longas sem pausa
-- Variar o ritmo: frases curtas e impactantes intercaladas com frases mais elaboradas
-- Evitar repetição de palavras no mesmo parágrafo
-- Linguagem acessível, sem jargão técnico excessivo
-- Fala deve soar como uma pessoa real, não um texto lido
+REGRAS DE NATURALIDADE (críticas para TTS soar humano):
+- Frases curtas dominam: máximo de 12 a 15 palavras por frase
+- Pausas naturais obrigatórias: use vírgulas, pontos e travessões (—) para respiração
+- Ritmo variado: alterne frases de 5 a 8 palavras com frases de 10 a 14 palavras
+- Conectores de fala real: "Olha,", "E sabe o que é melhor?", "Por quê?", "Simples:", "Veja bem," — introduzem variação natural
+- Sem jargão técnico ou corporativo — linguagem de conversa do dia a dia
+- Sem frases passivas — sempre ativo e direto: "Você resolve" não "É possível resolver"
+- Sem enumerações com "primeiro, segundo, terceiro" — o TTS robotiza listas
+- A chamada para ação final deve ser curta e impactante: máximo 10 palavras
 
 REGRAS DE FORMATO:
 - Retornar APENAS o texto que o personagem irá falar
