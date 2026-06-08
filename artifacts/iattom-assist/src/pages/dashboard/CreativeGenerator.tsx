@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Loader2, RefreshCw, AlertCircle, Image, Save, Download, Video } from "lucide-react";
+import { Sparkles, Loader2, RefreshCw, AlertCircle, Image, Save, Download, Video, ChevronRight } from "lucide-react";
 import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
 import { saveProjectAssets } from "@/lib/assetStorage";
-import { useSavedItems } from "@/hooks/useSavedItems";
+import { useSavedItems, type SavedItemRecord } from "@/hooks/useSavedItems";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { CreditsGate } from "@/components/CreditsGate";
 import { useAiStream } from "@/hooks/useAiStream";
@@ -252,6 +253,11 @@ export function CreativeGenerator() {
   const [prompt, setPrompt] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [restoredResult, setRestoredResult] = useState<CreativeIdeasResult | null>(null);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [saveDialogStep, setSaveDialogStep] = useState<"choose" | "pick-project" | "confirm-replace">("choose");
+  const [existingProjects, setExistingProjects] = useState<SavedItemRecord[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   // Video state
   const [videoEstilo, setVideoEstilo] = useState<VideoEstilo>("executivo");
@@ -272,7 +278,7 @@ export function CreativeGenerator() {
   } = useAiStream<VideoGenerationResult>();
   const [videoIsSaving, setVideoIsSaving] = useState(false);
   const { toast } = useToast();
-  const { saveItem, saveItemAssets } = useSavedItems();
+  const { saveItem, saveItemAssets, getItems } = useSavedItems();
   const { isFetching: fetchingCredits, refetch: refetchCredits } = useGetCreditsBalance({
     query: { queryKey: getGetCreditsBalanceQueryKey(), staleTime: 0 },
   });
@@ -433,10 +439,19 @@ export function CreativeGenerator() {
     });
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
+    if (!activeResult || isSaving) return;
+    if (!Array.isArray(activeResult.concepts)) return;
+    setSaveDialogOpen(true);
+    setSaveDialogStep("choose");
+    setSelectedProjectId(null);
+  };
+
+  const doSaveNew = async () => {
     if (!activeResult || isSaving) return;
     const concepts = activeResult.concepts;
     if (!Array.isArray(concepts)) return;
+    setSaveDialogOpen(false);
     setIsSaving(true);
 
     const platformLabel = PLATFORMS.find((p) => p.key === platform)?.label ?? String(platform);
@@ -496,6 +511,59 @@ export function CreativeGenerator() {
       toast({ description: "Erro ao salvar. Tente novamente.", variant: "destructive" });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const loadExistingProjects = async () => {
+    setLoadingProjects(true);
+    try {
+      const items = await getItems();
+      setExistingProjects(items.filter((i) => !i.deletedAt));
+    } catch {
+      toast({ description: "Erro ao carregar projetos.", variant: "destructive" });
+    } finally {
+      setLoadingProjects(false);
+    }
+  };
+
+  const doSaveToExisting = async (projectId: string) => {
+    if (!activeResult || isSaving) return;
+    const concepts = activeResult.concepts;
+    if (!Array.isArray(concepts)) return;
+    const imageAssets = concepts
+      .map((c, i) => c.imageBase64
+        ? { conceptIndex: i, base64: c.imageBase64, label: c.label ?? `Imagem ${i + 1}`, format: c.format ?? "PNG" }
+        : null)
+      .filter((a): a is NonNullable<typeof a> => a !== null);
+    if (imageAssets.length === 0) {
+      toast({ description: "Nenhuma imagem disponível para salvar." });
+      setSaveDialogOpen(false);
+      return;
+    }
+    setSaveDialogOpen(false);
+    setIsSaving(true);
+    try {
+      await saveItemAssets(projectId, imageAssets);
+      void saveProjectAssets(projectId, imageAssets);
+      toast({ description: "Imagem adicionada ao projeto." });
+    } catch {
+      toast({ description: "Erro ao salvar no projeto. Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handlePickExisting = async () => {
+    setSaveDialogStep("pick-project");
+    await loadExistingProjects();
+  };
+
+  const handleSelectProject = (proj: SavedItemRecord) => {
+    setSelectedProjectId(proj.id);
+    if (proj.hasImages) {
+      setSaveDialogStep("confirm-replace");
+    } else {
+      void doSaveToExisting(proj.id);
     }
   };
 
@@ -579,6 +647,7 @@ export function CreativeGenerator() {
   };
 
   return (
+    <>
     <div className="space-y-6">
       {/* Cabeçalho */}
       <motion.div
@@ -1086,5 +1155,131 @@ export function CreativeGenerator() {
         </AnimatePresence>
       )}
     </div>
+
+    {/* ── Dialog: Onde salvar o criativo ── */}
+    <Dialog open={saveDialogOpen} onOpenChange={(open) => { if (!isSaving) setSaveDialogOpen(open); }}>
+      <DialogContent className="bg-[#111111] border-white/10 max-w-sm">
+
+        {/* Passo 1 — Escolher destino */}
+        {saveDialogStep === "choose" && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-base text-white">Onde deseja salvar este criativo?</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col gap-2 mt-1">
+              <button
+                onClick={() => void doSaveNew()}
+                disabled={isSaving}
+                className="w-full flex items-center justify-between gap-3 p-4 rounded-xl border border-white/[0.08] bg-[#0a0a0a] hover:border-primary/30 hover:bg-primary/5 transition-colors text-left disabled:opacity-50"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-white">Salvar como novo projeto</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">Cria um novo projeto com este criativo</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-zinc-600 shrink-0" />
+              </button>
+              <button
+                onClick={() => void handlePickExisting()}
+                disabled={isSaving}
+                className="w-full flex items-center justify-between gap-3 p-4 rounded-xl border border-white/[0.08] bg-[#0a0a0a] hover:border-primary/30 hover:bg-primary/5 transition-colors text-left disabled:opacity-50"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-white">Salvar em projeto existente</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">Adiciona a imagem a uma campanha já criada</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-zinc-600 shrink-0" />
+              </button>
+            </div>
+            <DialogFooter className="mt-2">
+              <Button variant="ghost" size="sm" onClick={() => setSaveDialogOpen(false)} className="text-zinc-500 hover:text-white text-xs">
+                Cancelar
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {/* Passo 2 — Selecionar projeto existente */}
+        {saveDialogStep === "pick-project" && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-base text-white">Selecionar projeto</DialogTitle>
+            </DialogHeader>
+            {loadingProjects ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="w-5 h-5 animate-spin text-primary/60" />
+              </div>
+            ) : existingProjects.length === 0 ? (
+              <div className="py-8 text-center">
+                <p className="text-sm text-zinc-500">Nenhum projeto salvo encontrado.</p>
+                <p className="text-xs text-zinc-600 mt-1">Gere e salve uma campanha primeiro.</p>
+              </div>
+            ) : (
+              <div className="max-h-64 overflow-y-auto space-y-1.5 mt-2 pr-0.5">
+                {existingProjects.map((proj) => (
+                  <button
+                    key={proj.id}
+                    onClick={() => handleSelectProject(proj)}
+                    className="w-full flex items-center justify-between gap-3 p-3 rounded-lg border border-white/[0.07] bg-[#0a0a0a] hover:border-primary/30 hover:bg-primary/5 transition-colors text-left"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm text-white truncate">{proj.title}</p>
+                      <p className="text-[11px] text-zinc-600 mt-0.5">
+                        {({ campaign: "Campanha", content: "Conteúdo", creative: "Criativo", video_script: "Script", product_discovery: "Produtos", product_validation: "Validação" }[proj.type] ?? "Projeto")}
+                        {proj.hasImages ? " · Já tem imagem" : ""}
+                      </p>
+                    </div>
+                    {proj.hasImages && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
+                        Substituir
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+            <DialogFooter className="mt-3">
+              <Button variant="ghost" size="sm" onClick={() => setSaveDialogStep("choose")} className="text-zinc-500 hover:text-white text-xs">
+                Voltar
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {/* Passo 3 — Confirmar substituição */}
+        {saveDialogStep === "confirm-replace" && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-base text-white">Substituir imagem existente?</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-zinc-400 mt-1 leading-relaxed">
+              Este projeto já possui uma imagem salva. Deseja substituir pela nova imagem gerada?
+            </p>
+            <DialogFooter className="mt-5 flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSaveDialogStep("pick-project")}
+                className="text-zinc-500 hover:text-white text-xs"
+              >
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => { if (selectedProjectId) void doSaveToExisting(selectedProjectId); }}
+                disabled={isSaving}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs"
+              >
+                {isSaving
+                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> Salvando...</>
+                  : "Substituir imagem"
+                }
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
