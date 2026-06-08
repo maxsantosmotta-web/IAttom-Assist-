@@ -168,12 +168,12 @@ function buildPlatformFieldsSpec(platform: string): string {
     {
       "key": "nome_produto",
       "label": "Nome do Produto",
-      "value": string — nome claro, vendável e memorável do produto digital. Deve comunicar o resultado ou transformação. Ex: "Método Vendas Automáticas 2.0" ou "Inglês Fluente em 90 Dias"
+      "value": string — nome claro, vendável e memorável. Se produto digital/curso: comunique o resultado ou transformação (Ex: "Método Vendas Automáticas 2.0", "Inglês Fluente em 90 Dias"). Se produto físico: use o nome comercial real com diferencial direto (Ex: "Furadeira 550W ProBuild — Precisão em Qualquer Superfície"). Se serviço/mentoria: comunique a entrega principal do serviço.
     },
     {
       "key": "headline",
       "label": "Headline da Página de Vendas",
-      "value": string — OBRIGATÓRIO. Máx 80 chars. Promessa de transformação clara, específica e crível. Foco no resultado que o aluno vai alcançar. Evite promessas impossíveis.
+      "value": string — OBRIGATÓRIO. Máx 80 chars. Se produto digital/curso: promessa de transformação clara, foco no resultado que o aluno vai alcançar. Se produto físico: headline de venda direta com o principal benefício do produto — nunca use "aluno", "método" ou "transformação". Se serviço/mentoria: promessa de entrega e resultado concreto do serviço.
     },
     {
       "key": "subheadline",
@@ -223,12 +223,12 @@ function buildPlatformFieldsSpec(platform: string): string {
     {
       "key": "nome_produto",
       "label": "Nome do Produto",
-      "value": string — nome direto e vendável do produto digital. Comunica o resultado ou entrega principal. Evite nomes genéricos.
+      "value": string — nome direto e vendável. Se produto digital/curso: comunique o resultado ou entrega principal. Se produto físico: use o nome comercial real com diferencial direto. Se serviço: comunique a entrega principal. Evite nomes genéricos.
     },
     {
       "key": "headline",
       "label": "Headline da Página de Vendas",
-      "value": string — OBRIGATÓRIO. Máx 80 chars. Oferta direta e benefício principal. Sem fluff. Ex: "Aprenda a fechar clientes pelo WhatsApp em 7 dias — ou não paga nada"
+      "value": string — OBRIGATÓRIO. Máx 80 chars. Oferta direta e benefício principal. Sem fluff. Se produto digital/curso: Ex: "Aprenda a fechar clientes pelo WhatsApp em 7 dias". Se produto físico: headline de venda direta com benefício prático — nunca use "aluno" ou linguagem de curso. Se serviço: promessa concreta da entrega.
     },
     {
       "key": "subheadline",
@@ -554,18 +554,19 @@ GRUPO A — DADOS FACTUAIS (nunca inventar)
   Inclui: peso, potência, voltagem, capacidade, dimensões, material, tipo de tecido,
   tipo de sola, componentes internos, classificação energética, certificações,
   garantia contratual real, cores disponíveis, tamanhos disponíveis, numerações,
-  conteúdo da embalagem, prazo de entrega, compatibilidade técnica,
-  módulos reais existentes, quantidade real de aulas, duração real do curso,
-  bônus reais contratados, certificado real.
+  conteúdo exato da embalagem, prazo de entrega, compatibilidade técnica,
+  módulos reais informados pelo usuário, quantidade real de aulas, duração real do curso,
+  certificado real.
   → Se ausente: "Não informado" — nunca estimar, nunca completar.
 
 GRUPO B — CONTEÚDO ESTRATÉGICO (a IA deve sugerir)
   São campos de inteligência de marketing que a IA deve preencher com criatividade e estratégia.
   Inclui: headline, subheadline, promessa, posicionamento, avatar, dores, benefícios,
   CTA, diferenciais, copy, legenda, gancho, roteiro, estrutura sugerida de produto,
-  módulos sugeridos, bônus sugeridos, esteira sugerida, oferta sugerida, palavras-chave,
-  sugestão de criativo, perguntas frequentes baseadas no tipo de produto.
-  → Gerar sempre com qualidade estratégica máxima.
+  módulos sugeridos, bônus sugeridos (quando não informados pelo usuário), garantia recomendada
+  (quando o prazo real não foi informado), esteira sugerida, oferta sugerida, palavras-chave,
+  sugestão de criativo, conteúdo do produto (descrição comercial), perguntas frequentes.
+  → Gerar sempre com qualidade estratégica máxima — NUNCA retornar "Não informado".
   → Quando o campo for uma estrutura não confirmada pelo usuário,
      prefixar com: "Estrutura Recomendada:"
 
