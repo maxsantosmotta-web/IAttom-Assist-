@@ -17,8 +17,8 @@ import { logAiUsage } from "./logger.js";
 import { logger } from "../logger.js";
 import {
   HEYGEN_CONFIGURED,
-  AVATAR_IDS,
   VOICE_IDS,
+  getOfficialAvatarId,
   generateVideo,
   pollUntilDone,
 } from "../heygenClient.js";
@@ -404,17 +404,26 @@ export async function streamVideoGeneration(
     // ── Modo real via HeyGen ─────────────────────────────────────────────────
     sendSSE(res, { type: "progress", message: "Preparando personagem..." });
 
-    const avatarId = AVATAR_IDS[params.videoAvatar];
+    // Seleção blindada: estilo × gênero → avatar_id da biblioteca oficial
+    // executivo+masculino → Armando_Suit_Front_public
+    // consultor+masculino → Colin_Business_Front_public
+    // criador+masculino   → August_Cool_Style_public
+    // executivo+feminino  → Annie_expressive_public   (9:16 nativo)
+    // consultor+feminino  → Imelda_Business_Front_public
+    // criador+feminino    → Judith_expressive_2024120201 (9:16 nativo)
+    const avatarId = getOfficialAvatarId(params.videoEstilo, params.videoAvatar);
     const voiceId = VOICE_IDS[params.videoAvatar];
 
-    if (!avatarId || !voiceId) {
-      sendSSEError(res, "Configuração de avatar incompleta. Entre em contato com o suporte.");
+    if (!voiceId) {
+      sendSSEError(res, "Configuração de voz incompleta. Entre em contato com o suporte.");
       return;
     }
 
     logger.info(
       {
         avatarId,
+        videoEstilo: params.videoEstilo,
+        videoAvatar: params.videoAvatar,
         voiceId,
         aspectRatio,
         ambiente: params.videoAmbiente,
