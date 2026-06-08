@@ -102,7 +102,7 @@ function buildPlatformFieldsSpec(platform: string): string {
     {
       "key": "caracteristicas_tecnicas",
       "label": "Características Técnicas",
-      "value": string — especificações objetivas do produto, uma por linha (\\n). Inclua material, dimensões, capacidade, peso, compatibilidade, garantia. Ex: "Material: Aço inox 304\\nCapacidade: 1 litro\\nPeso: 320g"
+      "value": string — especificações do produto, uma por linha (\\n). REGRA CRÍTICA: inclua APENAS os dados que o usuário forneceu explicitamente. Para qualquer dado não informado (peso, voltagem, material, dimensões, garantia, capacidade etc.), escreva "Não informado" naquela linha. NUNCA invente especificações. Ex para "Geladeira Duplex 375L": "Capacidade: 375L\\nTipo: Duplex\\nVoltagem: Não informado\\nPeso: Não informado\\nDimensões: Não informado\\nClassificação energética: Não informado"
     },
     {
       "key": "beneficios_principais",
@@ -147,7 +147,7 @@ function buildPlatformFieldsSpec(platform: string): string {
     {
       "key": "descricao_produto",
       "label": "Descrição do Produto",
-      "value": string — descrição completa para a página do produto na Shopee. Inclua: o que é, materiais, especificações, conteúdo da embalagem, modo de uso e cuidados. Tom: claro e descritivo. Mín 200 chars.
+      "value": string — descrição completa para a página do produto na Shopee. REGRA CRÍTICA: inclua SOMENTE informações fornecidas pelo usuário + benefícios genéricos de uso. NUNCA invente materiais, especificações técnicas, componentes, dimensões, conteúdo da embalagem ou dados não mencionados pelo usuário. Tom: claro e descritivo. Mín 200 chars.
     },
     {
       "key": "beneficios_principais",
@@ -166,8 +166,8 @@ function buildPlatformFieldsSpec(platform: string): string {
     },
     {
       "key": "variacoes",
-      "label": "Sugestão de Variações",
-      "value": string — variações de cor, tamanho, modelo ou kit que aumentariam as vendas deste produto. Se não aplicável, escrever: "Produto sem variações recomendadas para este modelo."
+      "label": "Variações",
+      "value": string — REGRA CRÍTICA: liste APENAS variações que o usuário mencionou explicitamente (cores, tamanhos, numerações, kits). NUNCA invente variações. Se o usuário informou alguma variação, liste-a. Se não informou nada: escrever exatamente "Variações: Não informado pelo usuário — preencher com os dados reais do produto"
     },
     {
       "key": "perguntas_frequentes",
@@ -212,17 +212,17 @@ function buildPlatformFieldsSpec(platform: string): string {
     {
       "key": "conteudo_produto",
       "label": "Conteúdo do Produto",
-      "value": string — o que está incluído no produto: módulos, aulas, materiais, suporte, acesso. Organize em tópicos separados por \\n. Ex: "Módulo 1: Fundamentos (6 aulas)\\nMódulo 2: Estratégia avançada (8 aulas)\\nBônus: Planilha de controle"
+      "value": string — REGRA CRÍTICA: liste SOMENTE módulos, aulas, materiais e bônus que o usuário informou explicitamente. NUNCA invente módulos, quantidade de aulas, duração, certificados ou materiais não mencionados. Se o usuário não informou o conteúdo: escrever "Conteúdo: Não informado pelo usuário — inserir os módulos e materiais reais do produto"
     },
     {
       "key": "bonus",
       "label": "Bônus",
-      "value": string — bônus exclusivos incluídos na compra. Para cada bônus: nome, o que entrega e valor percebido. Ex: "Bônus 1: Mentoria em grupo ao vivo — 1 sessão de 2h — valor R$297\\nBônus 2: Comunidade privada vitalícia"
+      "value": string — REGRA CRÍTICA: liste SOMENTE bônus que o usuário mencionou. NUNCA invente bônus, comunidades, mentorias, planilhas ou grupos VIP não informados. Se o usuário não informou bônus: escrever "Bônus: Não informado pelo usuário — inserir os bônus reais da oferta"
     },
     {
       "key": "garantia",
       "label": "Garantia",
-      "value": string — prazo de garantia em dias (mín. 7 dias conforme lei do consumidor), condições e como solicitar o reembolso. Ex: "Garantia incondicional de 7 dias — acesse, teste o conteúdo e, se não gostar, solicite o reembolso sem precisar se justificar."
+      "value": string — REGRA CRÍTICA: use SOMENTE o prazo e condições de garantia que o usuário informou. Se não informou: escrever "Garantia: Não informado pelo usuário — inserir o prazo real conforme a política do produto (mín. 7 dias por lei)"
     },
     {
       "key": "cta",
@@ -267,17 +267,17 @@ function buildPlatformFieldsSpec(platform: string): string {
     {
       "key": "conteudo_produto",
       "label": "Conteúdo do Produto",
-      "value": string — o que o comprador recebe: módulos, aulas, materiais extras, acesso. Organizado por \\n.
+      "value": string — REGRA CRÍTICA: liste SOMENTE módulos, aulas e materiais que o usuário informou. NUNCA invente conteúdo não mencionado. Se não informado: "Conteúdo: Não informado pelo usuário — inserir módulos e materiais reais do produto"
     },
     {
       "key": "bonus",
       "label": "Bônus",
-      "value": string — bônus incluídos. Nome, entrega e valor percebido de cada um, separados por \\n.
+      "value": string — REGRA CRÍTICA: liste SOMENTE bônus que o usuário mencionou. NUNCA invente bônus. Se não informado: "Bônus: Não informado pelo usuário — inserir os bônus reais da oferta"
     },
     {
       "key": "garantia",
       "label": "Garantia",
-      "value": string — prazo, condições e como pedir reembolso. Mín. 7 dias. Tom: sem burocracia.
+      "value": string — REGRA CRÍTICA: use SOMENTE o prazo informado pelo usuário. Se não informado: "Garantia: Não informado pelo usuário — inserir prazo real (mín. 7 dias por lei)"
     },
     {
       "key": "cta",
@@ -556,6 +556,50 @@ Você apenas preenche os campos já definidos no schema com conteúdo de alta qu
 
 NUNCA adicione campos extras fora do schema. NUNCA deixe campos em branco. NUNCA invente campos.
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CAMADA DE INTEGRIDADE DE DADOS — REGRA GLOBAL INVIOLÁVEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Antes de preencher qualquer campo, classifique as informações em 4 grupos:
+
+GRUPO 1 — DADOS FORNECIDOS PELO USUÁRIO (pode usar livremente)
+  Tudo que o usuário escreveu explicitamente.
+  Exemplo: "Geladeira Duplex 375L" → pode usar: geladeira, duplex, 375L.
+
+GRUPO 2 — DADOS INFERÍVEIS COM SEGURANÇA (pode sugerir com cautela)
+  Categorias genéricas, segmento, público provável — desde que não vire especificação técnica falsa.
+  Exemplo: "Geladeira" → categoria "Eletrodomésticos > Refrigeradores" é inferível.
+
+GRUPO 3 — DADOS TÉCNICOS NÃO INFORMADOS (NUNCA inventar)
+  Se não veio do usuário, não existe.
+  Escrever: "Não informado" ou omitir o item — NUNCA estimar, NUNCA assumir, NUNCA completar.
+
+GRUPO 4 — COPY, BENEFÍCIO E POSICIONAMENTO (pode criar)
+  Títulos persuasivos, descrições comerciais, benefícios genéricos de uso, CTAs.
+  Desde que NÃO inclua nenhuma especificação técnica não fornecida pelo usuário.
+
+LISTA DE DADOS QUE JAMAIS PODEM SER INVENTADOS (sem exceção):
+  Físicos: peso, dimensões, voltagem, capacidade, potência, material, tipo de tecido,
+           tipo de sola, componentes internos, classificação energética, certificações.
+  Variações: cores, tamanhos, numerações, kits, modelos disponíveis.
+  Embalagem: conteúdo, itens inclusos, quantidade.
+  Oferta digital: módulos, quantidade de aulas, duração, bônus, garantia,
+                  grupo VIP, suporte, comunidade, certificado.
+  Logística: prazo de entrega, instalação, frete, política de devolução.
+  Técnico: compatibilidade, FAQ técnico, especificações de componentes.
+
+REGRA "SEM FONTE = NÃO GERAR":
+  Dado não informado pelo usuário → escrever "Não informado" ou omitir.
+  Nunca estimar. Nunca assumir. Nunca completar para "ficar bonito".
+
+O QUE PODE SER GERADO SEM RESTRIÇÃO:
+  Título comercial e persuasivo baseado no nome do produto.
+  Descrição de benefícios de uso (sem inventar especificações).
+  Posicionamento, ângulo de venda, CTA.
+  Palavras-chave baseadas no nome/categoria do produto.
+  Legenda, gancho, roteiro e copy de redes sociais.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 ESTILO DE ESCRITA:
 - Direto, denso, acionável — como consultor sênior
 - Frases curtas (máximo 15 palavras quando possível)
@@ -819,17 +863,31 @@ export async function streamCreateCampaign(
     tiktok: "TikTok",
   };
 
+  // Classifica o que o usuário forneceu vs. o que não forneceu
+  // para reforçar a camada de integridade de dados no user prompt
+  const productWords = params.product.trim();
+  const providedData = [
+    `Nome/descrição do produto: "${productWords}" — USE SOMENTE estes dados como base de especificação`,
+    params.productType ? `Tipo de produto: ${params.productType}` : null,
+    params.audience ? `Público-alvo informado: ${params.audience}` : null,
+    params.goal ? `Objetivo: ${params.goal}` : null,
+    params.mode ? `Modo: ${params.mode}` : null,
+  ].filter(Boolean).join("\n");
+
   const userPrompt = `Gere a entrega completa para a plataforma especificada.
 
-Produto/Marca: "${params.product}"
-Plataforma: ${platformLabel[platform] ?? "Não especificada"}
-${params.productType ? `Tipo de produto: ${params.productType}` : ""}
-${params.audience ? `Público-alvo: ${params.audience}` : ""}
-${params.goal ? `Objetivo: ${params.goal}` : ""}
-${params.mode ? `Modo: ${params.mode}` : ""}
+DADOS FORNECIDOS PELO USUÁRIO (use SOMENTE estes como base factual):
+${providedData}
+
+PLATAFORMA: ${platformLabel[platform] ?? "Não especificada"}
+
+CLASSIFICAÇÃO OBRIGATÓRIA ANTES DE GERAR:
+- Dados técnicos que o usuário forneceu: extraia SOMENTE do texto acima
+- Dados técnicos que o usuário NÃO forneceu: marcar como "Não informado" — NUNCA inventar
+- Copy, benefícios de uso e posicionamento: pode criar livremente, desde que não invente especificações
 
 REGRA ABSOLUTA: Preencha SOMENTE os campos do schema desta plataforma. Não adicione nenhum campo extra.
-Preencha todos os campos com conteúdo de alta qualidade, específico para este produto nesta plataforma.
+Para campos que exigem dados técnicos não fornecidos pelo usuário: escreva "Não informado" — nunca complete com suposições.
 Responda integralmente em português brasileiro.`;
 
   const MAX_ATTEMPTS = 2;
