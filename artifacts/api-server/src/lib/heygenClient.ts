@@ -1,16 +1,18 @@
 /**
  * HeyGen API Client — BLOCO 2B
- * Engine: Avatar IV (padrão — compatível com avatares stock Brandon e Caroline)
+ * Engine: Avatar IV (padrão — compatível com avatares stock)
  * Endpoint: v3 (único com suporte a avatares modernos)
  *
  * Modo seguro: HEYGEN_CONFIGURED = false → pipeline opera em mock sem erros.
  *
  * Variáveis necessárias para ativar modo real:
  *   HEYGEN_API_KEY           — API key do dashboard HeyGen
- *   HEYGEN_AVATAR_MALE_ID    — avatar_id masculino (GET /v3/avatars/looks)
- *   HEYGEN_AVATAR_FEMALE_ID  — avatar_id feminino  (GET /v3/avatars/looks)
  *   HEYGEN_VOICE_MALE_ID     — voice_id PT-BR masculino (GET /v3/voices)
  *   HEYGEN_VOICE_FEMALE_ID   — voice_id PT-BR feminino  (GET /v3/voices)
+ *
+ * Avatar IDs fixos (confirmados via GET /v3/avatars/looks para esta conta):
+ *   Marcus (masculino): b45f91a7e4264416b4f4ec9b48f2a16e
+ *   Maya   (feminino):  74dd6e182f0d415ab740c1097d49304b
  */
 
 import { logger } from "./logger.js";
@@ -19,14 +21,14 @@ const HEYGEN_BASE_URL = "https://api.heygen.com";
 
 export const HEYGEN_CONFIGURED =
   !!process.env.HEYGEN_API_KEY &&
-  !!process.env.HEYGEN_AVATAR_MALE_ID &&
-  !!process.env.HEYGEN_AVATAR_FEMALE_ID &&
   !!process.env.HEYGEN_VOICE_MALE_ID &&
   !!process.env.HEYGEN_VOICE_FEMALE_ID;
 
+// IDs fixos — confirmados via GET /v3/avatars/looks para esta conta HeyGen.
+// Temporário até HEYGEN_AVATAR_MALE_ID / HEYGEN_AVATAR_FEMALE_ID serem resolvidos.
 export const AVATAR_IDS: Record<"masculino" | "feminino", string> = {
-  masculino: process.env.HEYGEN_AVATAR_MALE_ID ?? "",
-  feminino:  process.env.HEYGEN_AVATAR_FEMALE_ID ?? "",
+  masculino: "b45f91a7e4264416b4f4ec9b48f2a16e", // Marcus — Man, landscape, avatar_iv
+  feminino:  "74dd6e182f0d415ab740c1097d49304b", // Maya — Woman, landscape, avatar_iv
 };
 
 export const VOICE_IDS: Record<"masculino" | "feminino", string> = {
