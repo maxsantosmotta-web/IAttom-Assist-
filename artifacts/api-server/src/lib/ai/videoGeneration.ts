@@ -405,14 +405,10 @@ export async function streamVideoGeneration(
     // ── Modo real via HeyGen ─────────────────────────────────────────────────
     sendSSE(res, { type: "progress", message: "Preparando personagem..." });
 
-    // Seleção por estilo × gênero → catálogo oficial IAttom
-    // executivo+masculino → Armando_Suit_Front_public
-    // consultor+masculino → Colin_Business_Front_public
-    // criador+masculino   → August_Cool_Style_public
-    // executivo+feminino  → Annie_expressive_public   (9:16 nativo)
-    // consultor+feminino  → Imelda_Business_Front_public
-    // criador+feminino    → Judith_expressive_2024120201 (9:16 nativo)
-    const avatarId = getOfficialAvatarId(params.videoEstilo, params.videoAvatar);
+    // Seleção: Marcus/Candace (confirmados na conta) → fallback catálogo oficial por estilo×gênero
+    // masculino → Marcus_expressive_2024120201
+    // feminino  → candace_expressive_20240910
+    const avatarId = AVATAR_IDS[params.videoAvatar] || getOfficialAvatarId(params.videoEstilo, params.videoAvatar);
     const voiceId = VOICE_IDS[params.videoAvatar];
 
     if (!voiceId) {
