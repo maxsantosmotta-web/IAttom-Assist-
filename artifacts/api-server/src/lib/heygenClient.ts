@@ -1,20 +1,21 @@
 /**
- * HeyGen API Client — BLOCO 2B
- * Engine: Avatar IV (padrão — compatível com avatares stock)
+ * HeyGen API Client — IAttom Assist
+ *
+ * Engine: Avatar IV (padrão — compatível com avatares stock públicos)
  * Endpoint: v3 (único com suporte a avatares modernos)
  *
  * Modo seguro: HEYGEN_CONFIGURED = false → pipeline opera em mock sem erros.
  *
- * Variáveis necessárias para ativar modo real:
+ * Variáveis para ativar modo real:
  *   HEYGEN_API_KEY           — API key do dashboard HeyGen
  *   HEYGEN_VOICE_MALE_ID     — voice_id PT-BR masculino (GET /v3/voices)
  *   HEYGEN_VOICE_FEMALE_ID   — voice_id PT-BR feminino  (GET /v3/voices)
  *
- * Avatar IDs (looks):
- *   Usa HEYGEN_AVATAR_MALE_ID / HEYGEN_AVATAR_FEMALE_ID quando disponíveis.
- *   Fallback interno para looks landscape de Marcus/Maya se não configurados.
- *   Para 9:16 REAL sem letterbox: configurar looks portrait no dashboard HeyGen
- *   e definir HEYGEN_AVATAR_MALE_ID / HEYGEN_AVATAR_FEMALE_ID com esses IDs.
+ * Avatar IDs:
+ *   Usa HEYGEN_AVATAR_MALE_ID / HEYGEN_AVATAR_FEMALE_ID quando configurados.
+ *   Fallback: biblioteca oficial IAttom (ver OFFICIAL_AVATAR_CATALOG abaixo).
+ *   9:16 nativo: Annie e Judith possuem variantes _expressive_ portrait-native.
+ *   Os demais avatares em 9:16 usam padding lateral preenchido pelo fundo.
  */
 
 import { logger } from "./logger.js";
@@ -26,18 +27,122 @@ export const HEYGEN_CONFIGURED =
   !!process.env.HEYGEN_VOICE_MALE_ID &&
   !!process.env.HEYGEN_VOICE_FEMALE_ID;
 
-// IDs de look para o avatar.
-// Prioridade: env vars configuradas pelo admin → fallbacks landscape.
-// IMPORTANTE: para 9:16 sem letterbox, os env vars devem apontar para looks
-// portrait (ou landscape com auto-crop ativado no dashboard HeyGen).
-const FALLBACK_AVATAR_IDS: Record<"masculino" | "feminino", string> = {
-  masculino: "b45f91a7e4264416b4f4ec9b48f2a16e", // Marcus — landscape, avatar_iv
-  feminino:  "74dd6e182f0d415ab740c1097d49304b", // Maya   — landscape, avatar_iv
-};
+// ─── Biblioteca Oficial de Avatares IAttom ────────────────────────────────────
+//
+// Todos os avatar_ids abaixo foram confirmados via API HeyGen v2/avatars.
+// São avatares stock públicos (premium: false), compatíveis com engine Avatar IV.
+//
+// Estrutura:
+//   estilo     — executivo | consultor | criador
+//   genero     — masculino | feminino
+//   avatar_id  — ID real confirmado na API HeyGen
+//   nome       — nome do personagem
+//   categoria  — rótulo da biblioteca IAttom
+//   nativo916  — true quando a variante foi filmada em portrait (sem letterbox em 9:16)
+//
+// NOTA sobre 9:16:
+//   avatares com nativo916 = false ainda funcionam em 9:16 via API — o HeyGen
+//   centraliza o avatar e preenche laterais com a cor/imagem de fundo configurada.
+//   Para 9:16 totalmente nativo sem padding, use Annie ou Judith.
+
+export interface OfficialAvatar {
+  estilo: "executivo" | "consultor" | "criador";
+  genero: "masculino" | "feminino";
+  avatarId: string;
+  nome: string;
+  categoria: string;
+  nativo916: boolean;
+}
+
+export const OFFICIAL_AVATAR_CATALOG: OfficialAvatar[] = [
+  {
+    estilo:    "executivo",
+    genero:    "masculino",
+    avatarId:  "Armando_Suit_Front_public",
+    nome:      "Armando",
+    categoria: "Executivo Masculino",
+    nativo916: false,
+  },
+  {
+    estilo:    "consultor",
+    genero:    "masculino",
+    avatarId:  "Colin_Business_Front_public",
+    nome:      "Colin",
+    categoria: "Consultor Masculino",
+    nativo916: false,
+  },
+  {
+    estilo:    "criador",
+    genero:    "masculino",
+    avatarId:  "August_Cool_Style_public",
+    nome:      "August",
+    categoria: "Criador Masculino",
+    nativo916: false,
+  },
+  {
+    estilo:    "executivo",
+    genero:    "feminino",
+    avatarId:  "Annie_expressive_public",
+    nome:      "Annie",
+    categoria: "Executiva Feminina",
+    nativo916: true,
+  },
+  {
+    estilo:    "consultor",
+    genero:    "feminino",
+    avatarId:  "Imelda_Business_Front_public",
+    nome:      "Imelda",
+    categoria: "Consultora Feminina",
+    nativo916: false,
+  },
+  {
+    estilo:    "criador",
+    genero:    "feminino",
+    avatarId:  "Judith_expressive_2024120201",
+    nome:      "Judith",
+    categoria: "Criadora Feminina",
+    nativo916: true,
+  },
+];
+
+// ─── Seleção por estilo + gênero ─────────────────────────────────────────────
+//
+// Retorna o avatar_id oficial para a combinação estilo × gênero.
+// Preparado para futura seleção manual no módulo de vídeo.
+// Fallback: avatar padrão do gênero quando a combinação não for encontrada.
+
+export function getOfficialAvatarId(
+  estilo: "executivo" | "consultor" | "criador",
+  genero: "masculino" | "feminino",
+): string {
+  const found = OFFICIAL_AVATAR_CATALOG.find(
+    (a) => a.estilo === estilo && a.genero === genero,
+  );
+  if (found) return found.avatarId;
+
+  // Fallback por gênero caso a combinação não exista no catálogo
+  const fallback = OFFICIAL_AVATAR_CATALOG.find((a) => a.genero === genero);
+  return fallback?.avatarId ?? OFFICIAL_AVATAR_CATALOG[0].avatarId;
+}
+
+// ─── Mapeamento atual: gênero → avatar_id ────────────────────────────────────
+//
+// Compatível com videoGeneration.ts que usa AVATAR_IDS[params.videoAvatar].
+//
+// Prioridade:
+//   1. Env var explícita (HEYGEN_AVATAR_MALE_ID / HEYGEN_AVATAR_FEMALE_ID)
+//   2. Avatar executivo da biblioteca oficial (padrão)
+//
+// Padrões oficiais por gênero:
+//   masculino → Armando (Executivo Masculino) — Armando_Suit_Front_public
+//   feminino  → Annie   (Executiva Feminina)  — Annie_expressive_public (9:16 nativo)
+
+const DEFAULT_AVATAR_MALE   = "Armando_Suit_Front_public";   // Armando — Executivo Masculino
+const DEFAULT_AVATAR_FEMALE = "Annie_expressive_public";      // Annie   — Executiva Feminina (9:16 nativo)
 
 export const AVATAR_IDS: Record<"masculino" | "feminino", string> = {
-  masculino: process.env.HEYGEN_AVATAR_MALE_ID   || FALLBACK_AVATAR_IDS.masculino,
-  feminino:  process.env.HEYGEN_AVATAR_FEMALE_ID || FALLBACK_AVATAR_IDS.feminino,
+  masculino: process.env.HEYGEN_AVATAR_MALE_ID   || DEFAULT_AVATAR_MALE,
+  feminino:  process.env.HEYGEN_AVATAR_FEMALE_ID || DEFAULT_AVATAR_FEMALE,
 };
 
 export const VOICE_IDS: Record<"masculino" | "feminino", string> = {
@@ -84,12 +189,11 @@ function extractHeygenError(body: Record<string, unknown>): string {
 //   - aspect_ratio: "16:9" | "9:16" | "1:1"
 //   - resolution: "1080p"
 //   - engine omitido → usa Avatar IV por padrão (compatível com avatares stock)
-//   - Avatar V exige Digital Twin — não usar com avatares de biblioteca
+//   - Avatar V exige Digital Twin — não usar com avatares da biblioteca pública
 //
-// NOTA sobre 9:16: O letterbox (barras pretas laterais) ocorre quando o look
-// do avatar é landscape e o aspect_ratio é 9:16. A solução definitiva é usar
-// looks portrait (configurados em HEYGEN_AVATAR_MALE_ID/FEMALE_ID).
-// Enquanto não configurados, o HeyGen centraliza o avatar e preenche o fundo.
+// NOTA sobre 9:16:
+//   Annie_expressive_public e Judith_expressive_2024120201 são portrait-native.
+//   Os demais avatares em 9:16 centralizam o personagem com padding de fundo.
 
 export async function generateVideo(payload: HeyGenVideoPayload): Promise<{ videoId: string }> {
   const apiKey = process.env.HEYGEN_API_KEY!;
@@ -123,7 +227,7 @@ export async function generateVideo(payload: HeyGenVideoPayload): Promise<{ vide
       usingEnvAvatarMale,
       usingEnvAvatarFemale,
     },
-    "[heygenClient] payload completo enviado para HeyGen v3/videos",
+    "[heygenClient] payload enviado para HeyGen v3/videos",
   );
 
   const res = await fetch(`${HEYGEN_BASE_URL}/v3/videos`, {
@@ -161,7 +265,7 @@ export async function generateVideo(payload: HeyGenVideoPayload): Promise<{ vide
     throw new Error("HeyGen não retornou um video_id válido.");
   }
 
-  logger.info({ videoId, aspectRatio }, "[heygenClient] vídeo criado com sucesso");
+  logger.info({ videoId, aspectRatio, avatarId: payload.avatarId }, "[heygenClient] vídeo criado com sucesso");
   return { videoId };
 }
 
@@ -196,7 +300,7 @@ export async function getVideoStatus(videoId: string): Promise<HeyGenVideoStatus
 
   const d = data.data ?? {};
 
-  // Log dimensões reais quando disponíveis (útil para diagnóstico de letterbox)
+  // Log dimensões reais quando disponíveis (útil para diagnóstico de 9:16)
   if (d.status === "completed" && (d.width ?? d.height)) {
     logger.info(
       { videoId, width: d.width, height: d.height, videoUrl: d.video_url?.slice(0, 80) },
@@ -211,7 +315,7 @@ export async function getVideoStatus(videoId: string): Promise<HeyGenVideoStatus
   };
 }
 
-// ─── Polling até conclusão ───────────────────────────────────────────────────
+// ─── Polling até conclusão ────────────────────────────────────────────────────
 
 export async function pollUntilDone(
   videoId: string,
