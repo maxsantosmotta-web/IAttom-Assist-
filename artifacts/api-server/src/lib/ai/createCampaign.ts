@@ -212,17 +212,17 @@ function buildPlatformFieldsSpec(platform: string): string {
     {
       "key": "conteudo_produto",
       "label": "Conteúdo do Produto",
-      "value": string — REGRA CRÍTICA: liste SOMENTE módulos, aulas, materiais e bônus que o usuário informou explicitamente. NUNCA invente módulos, quantidade de aulas, duração, certificados ou materiais não mencionados. Se o usuário não informou o conteúdo: escrever "Conteúdo: Não informado pelo usuário — inserir os módulos e materiais reais do produto"
+      "value": string — GRUPO B: se o usuário informou os módulos reais, liste-os diretamente. Se não informou, gere uma estrutura de curso inteligente e estratégica baseada no tema, prefixada com "Sugestão da IA — validar antes da publicação:\\n". Ex sem dados reais: "Sugestão da IA — validar antes da publicação:\\n- Módulo 1: Fundamentos\\n- Módulo 2: Prática\\n- Módulo 3: Resultados"
     },
     {
       "key": "bonus",
       "label": "Bônus",
-      "value": string — REGRA CRÍTICA: liste SOMENTE bônus que o usuário mencionou. NUNCA invente bônus, comunidades, mentorias, planilhas ou grupos VIP não informados. Se o usuário não informou bônus: escrever "Bônus: Não informado pelo usuário — inserir os bônus reais da oferta"
+      "value": string — GRUPO B: se o usuário informou os bônus reais, liste-os diretamente. Se não informou, sugira 2 a 3 bônus estratégicos e relevantes para o tema, prefixados com "Sugestão da IA — validar antes da publicação:\\n". Ex: "Sugestão da IA — validar antes da publicação:\\n- Bônus 1: Planilha de acompanhamento\\n- Bônus 2: Comunidade de suporte"
     },
     {
       "key": "garantia",
       "label": "Garantia",
-      "value": string — REGRA CRÍTICA: use SOMENTE o prazo e condições de garantia que o usuário informou. Se não informou: escrever "Garantia: Não informado pelo usuário — inserir o prazo real conforme a política do produto (mín. 7 dias por lei)"
+      "value": string — GRUPO A para prazo real; GRUPO B para sugestão operacional. Se o usuário informou o prazo real: use diretamente. Se não informou: escrever "Garantia real não informada pelo usuário.\\nSugestão operacional: utilizar a garantia mínima exigida pela plataforma (7 dias — conforme CDC)."
     },
     {
       "key": "cta",
@@ -267,17 +267,17 @@ function buildPlatformFieldsSpec(platform: string): string {
     {
       "key": "conteudo_produto",
       "label": "Conteúdo do Produto",
-      "value": string — REGRA CRÍTICA: liste SOMENTE módulos, aulas e materiais que o usuário informou. NUNCA invente conteúdo não mencionado. Se não informado: "Conteúdo: Não informado pelo usuário — inserir módulos e materiais reais do produto"
+      "value": string — GRUPO B: se o usuário informou os módulos reais, liste-os diretamente. Se não informou, gere estrutura de curso enxuta e direta baseada no tema, prefixada com "Sugestão da IA — validar antes da publicação:\\n". Ex: "Sugestão da IA — validar antes da publicação:\\n- Módulo 1: Base\\n- Módulo 2: Aplicação\\n- Módulo 3: Escala"
     },
     {
       "key": "bonus",
       "label": "Bônus",
-      "value": string — REGRA CRÍTICA: liste SOMENTE bônus que o usuário mencionou. NUNCA invente bônus. Se não informado: "Bônus: Não informado pelo usuário — inserir os bônus reais da oferta"
+      "value": string — GRUPO B: se o usuário informou os bônus reais, liste-os diretamente. Se não informou, sugira 1 a 2 bônus relevantes e diretos, prefixados com "Sugestão da IA — validar antes da publicação:\\n".
     },
     {
       "key": "garantia",
       "label": "Garantia",
-      "value": string — REGRA CRÍTICA: use SOMENTE o prazo informado pelo usuário. Se não informado: "Garantia: Não informado pelo usuário — inserir prazo real (mín. 7 dias por lei)"
+      "value": string — GRUPO A para prazo real; GRUPO B para sugestão operacional. Se o usuário informou o prazo real: use diretamente. Se não informou: escrever "Garantia real não informada pelo usuário.\\nSugestão operacional: utilizar a garantia mínima exigida pela plataforma (7 dias — conforme CDC)."
     },
     {
       "key": "cta",
@@ -557,47 +557,37 @@ Você apenas preenche os campos já definidos no schema com conteúdo de alta qu
 NUNCA adicione campos extras fora do schema. NUNCA deixe campos em branco. NUNCA invente campos.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CAMADA DE INTEGRIDADE DE DADOS — REGRA GLOBAL INVIOLÁVEL
+CAMADA DE INTEGRIDADE DE DADOS — REGRA GLOBAL
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Antes de preencher qualquer campo, classifique as informações em 4 grupos:
+Todo campo pertence a um destes dois grupos:
 
-GRUPO 1 — DADOS FORNECIDOS PELO USUÁRIO (pode usar livremente)
-  Tudo que o usuário escreveu explicitamente.
-  Exemplo: "Geladeira Duplex 375L" → pode usar: geladeira, duplex, 375L.
+GRUPO A — DADOS FACTUAIS (nunca inventar)
+  São dados concretos e verificáveis do produto.
+  Usar SOMENTE se o usuário informou. Se não informou: escrever "Não informado".
+  Inclui: peso, potência, voltagem, capacidade, dimensões, material, tipo de tecido,
+  tipo de sola, componentes internos, classificação energética, certificações,
+  garantia contratual real, cores disponíveis, tamanhos disponíveis, numerações,
+  conteúdo da embalagem, prazo de entrega, compatibilidade técnica,
+  módulos reais existentes, quantidade real de aulas, duração real do curso,
+  bônus reais contratados, certificado real.
+  → Se ausente: "Não informado" — nunca estimar, nunca completar.
 
-GRUPO 2 — DADOS INFERÍVEIS COM SEGURANÇA (pode sugerir com cautela)
-  Categorias genéricas, segmento, público provável — desde que não vire especificação técnica falsa.
-  Exemplo: "Geladeira" → categoria "Eletrodomésticos > Refrigeradores" é inferível.
+GRUPO B — CONTEÚDO ESTRATÉGICO (a IA deve sugerir)
+  São campos de inteligência de marketing que a IA deve preencher com criatividade e estratégia.
+  Inclui: headline, subheadline, promessa, posicionamento, avatar, dores, benefícios,
+  CTA, diferenciais, copy, legenda, gancho, roteiro, estrutura sugerida de produto,
+  módulos sugeridos, bônus sugeridos, esteira sugerida, oferta sugerida, palavras-chave,
+  sugestão de criativo, perguntas frequentes baseadas no tipo de produto.
+  → Gerar sempre com qualidade estratégica máxima.
+  → Quando o campo for uma sugestão estrutural (não dado confirmado pelo usuário),
+     prefixar com: "Sugestão da IA — validar antes da publicação:"
 
-GRUPO 3 — DADOS TÉCNICOS NÃO INFORMADOS (NUNCA inventar)
-  Se não veio do usuário, não existe.
-  Escrever: "Não informado" ou omitir o item — NUNCA estimar, NUNCA assumir, NUNCA completar.
-
-GRUPO 4 — COPY, BENEFÍCIO E POSICIONAMENTO (pode criar)
-  Títulos persuasivos, descrições comerciais, benefícios genéricos de uso, CTAs.
-  Desde que NÃO inclua nenhuma especificação técnica não fornecida pelo usuário.
-
-LISTA DE DADOS QUE JAMAIS PODEM SER INVENTADOS (sem exceção):
-  Físicos: peso, dimensões, voltagem, capacidade, potência, material, tipo de tecido,
-           tipo de sola, componentes internos, classificação energética, certificações.
-  Variações: cores, tamanhos, numerações, kits, modelos disponíveis.
-  Embalagem: conteúdo, itens inclusos, quantidade.
-  Oferta digital: módulos, quantidade de aulas, duração, bônus, garantia,
-                  grupo VIP, suporte, comunidade, certificado.
-  Logística: prazo de entrega, instalação, frete, política de devolução.
-  Técnico: compatibilidade, FAQ técnico, especificações de componentes.
-
-REGRA "SEM FONTE = NÃO GERAR":
-  Dado não informado pelo usuário → escrever "Não informado" ou omitir.
-  Nunca estimar. Nunca assumir. Nunca completar para "ficar bonito".
-
-O QUE PODE SER GERADO SEM RESTRIÇÃO:
-  Título comercial e persuasivo baseado no nome do produto.
-  Descrição de benefícios de uso (sem inventar especificações).
-  Posicionamento, ângulo de venda, CTA.
-  Palavras-chave baseadas no nome/categoria do produto.
-  Legenda, gancho, roteiro e copy de redes sociais.
+REGRA DE PREFIXAÇÃO PARA SUGESTÕES ESTRUTURAIS:
+  Correto:   "Sugestão da IA — validar antes da publicação:\n- Módulo 1: Fundamentos\n- Módulo 2: ..."
+  Incorreto: "Módulo 1: Fundamentos\nMódulo 2: ..." (sem indicar que é sugestão)
+  Esta regra se aplica SOMENTE a campos onde o usuário não forneceu o dado real.
+  Se o usuário forneceu o dado, use diretamente sem prefixo.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ESTILO DE ESCRITA:
