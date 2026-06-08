@@ -461,12 +461,13 @@ export interface AiVideoScriptBody {
   style?: string;
 }
 
-export type AiGenerateVideoBodyVideoType =
-  (typeof AiGenerateVideoBodyVideoType)[keyof typeof AiGenerateVideoBodyVideoType];
+export type AiGenerateVideoBodyVideoEstilo =
+  (typeof AiGenerateVideoBodyVideoEstilo)[keyof typeof AiGenerateVideoBodyVideoEstilo];
 
-export const AiGenerateVideoBodyVideoType = {
+export const AiGenerateVideoBodyVideoEstilo = {
   executivo: "executivo",
-  casual: "casual",
+  consultor: "consultor",
+  criador: "criador",
 } as const;
 
 export type AiGenerateVideoBodyVideoAvatar =
@@ -477,10 +478,30 @@ export const AiGenerateVideoBodyVideoAvatar = {
   feminino: "feminino",
 } as const;
 
+export type AiGenerateVideoBodyVideoFormato =
+  (typeof AiGenerateVideoBodyVideoFormato)[keyof typeof AiGenerateVideoBodyVideoFormato];
+
+export const AiGenerateVideoBodyVideoFormato = {
+  "9:16": "9:16",
+  "1:1": "1:1",
+  "16:9": "16:9",
+} as const;
+
+export type AiGenerateVideoBodyVideoDuration =
+  (typeof AiGenerateVideoBodyVideoDuration)[keyof typeof AiGenerateVideoBodyVideoDuration];
+
+export const AiGenerateVideoBodyVideoDuration = {
+  NUMBER_20: 20,
+  NUMBER_40: 40,
+  NUMBER_60: 60,
+} as const;
+
 export interface AiGenerateVideoBody {
-  videoType: AiGenerateVideoBodyVideoType;
+  videoEstilo: AiGenerateVideoBodyVideoEstilo;
   videoAvatar: AiGenerateVideoBodyVideoAvatar;
   videoAmbiente: string;
+  videoFormato: AiGenerateVideoBodyVideoFormato;
+  videoDuration: AiGenerateVideoBodyVideoDuration;
   videoPrompt: string;
 }
 

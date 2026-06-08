@@ -16,6 +16,9 @@ import type { FeatureKey } from "@/lib/credits";
 
 type CreativeType = "image" | "video";
 type PlatformKey = "instagram" | "facebook" | "tiktok" | "mercado_livre" | "shopee" | "hotmart" | "kiwify" | "perfil";
+type VideoEstilo = "executivo" | "consultor" | "criador";
+type VideoFormato = "9:16" | "1:1" | "16:9";
+type VideoDuration = 20 | 40 | 60;
 
 const MAX_FORMATS = 3;
 
@@ -34,6 +37,38 @@ const PLATFORMS: {
   { key: "perfil",        label: "Perfil",        formats: [{ key: "perfil", label: "Perfil" }] },
 ];
 
+const VIDEO_ESTILOS: { key: VideoEstilo; label: string; desc: string }[] = [
+  { key: "executivo", label: "Executivo",  desc: "Tom corporativo, roupa social, autoridade" },
+  { key: "consultor", label: "Consultor",  desc: "Tom explicativo, especialista, orientador" },
+  { key: "criador",   label: "Criador",    desc: "Tom dinâmico, influenciador, apresentador" },
+];
+
+const VIDEO_AMBIENTES: { key: string; label: string }[] = [
+  { key: "corporativo",  label: "Corporativo" },
+  { key: "casa",         label: "Casa" },
+  { key: "loja",         label: "Loja" },
+  { key: "shopping",     label: "Shopping" },
+  { key: "restaurante",  label: "Restaurante" },
+  { key: "rua",          label: "Rua" },
+  { key: "praia",        label: "Praia" },
+  { key: "parque",       label: "Parque" },
+  { key: "veiculo",      label: "Veículo" },
+  { key: "consultorio",  label: "Consultório" },
+  { key: "estudio",      label: "Estúdio / Podcast" },
+];
+
+const VIDEO_FORMATOS: { key: VideoFormato; label: string; sub: string }[] = [
+  { key: "9:16", label: "Reels / Stories", sub: "9:16 vertical" },
+  { key: "1:1",  label: "Feed",            sub: "1:1 quadrado" },
+  { key: "16:9", label: "YouTube / Apresentação", sub: "16:9 horizontal" },
+];
+
+const VIDEO_DURACOES: { key: VideoDuration; label: string }[] = [
+  { key: 20, label: "20 segundos" },
+  { key: 40, label: "40 segundos" },
+  { key: 60, label: "60 segundos" },
+];
+
 function formatToAspectClass(format: string): string {
   if (format === "stories" || format === "vertical") return "aspect-[9/16]";
   if (format === "banner") return "aspect-[16/9]";
@@ -49,6 +84,18 @@ function downloadImage(base64: string, filename: string) {
   document.body.removeChild(a);
 }
 
+function estiloLabel(estilo: string): string {
+  return VIDEO_ESTILOS.find((e) => e.key === estilo)?.label ?? estilo;
+}
+
+function ambienteLabel(amb: string): string {
+  return VIDEO_AMBIENTES.find((a) => a.key === amb)?.label ?? amb.charAt(0).toUpperCase() + amb.slice(1);
+}
+
+function formatoLabel(fmt: string): string {
+  return VIDEO_FORMATOS.find((f) => f.key === fmt)?.sub ?? fmt;
+}
+
 function VideoResultCard({
   result,
   onSave,
@@ -60,12 +107,6 @@ function VideoResultCard({
   isSaving: boolean;
   onReset: () => void;
 }) {
-  const ambienteLabel =
-    result.videoType === "executivo"
-      ? "Executivo"
-      : result.videoAmbiente.charAt(0).toUpperCase() + result.videoAmbiente.slice(1);
-  const personagemLabel = result.videoAvatar === "masculino" ? "Masculino" : "Feminino";
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -105,13 +146,20 @@ function VideoResultCard({
               Modo demonstração — configure HeyGen para gerar vídeos reais
             </p>
           </div>
-        ) : (
+        ) : result.videoUrl ? (
           <video
             src={result.videoUrl}
             controls
             playsInline
             className="w-full aspect-video bg-black"
           />
+        ) : (
+          <div className="aspect-video bg-[#0a0a0a] flex flex-col items-center justify-center gap-3 border-b border-white/5">
+            <Video className="w-6 h-6 text-zinc-600" />
+            <p className="text-xs text-zinc-600 text-center max-w-xs px-4">
+              URL do vídeo não disponível
+            </p>
+          </div>
         )}
 
         <CardContent className="p-4 space-y-2">
@@ -119,10 +167,16 @@ function VideoResultCard({
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-400">
-                  {ambienteLabel}
+                  {estiloLabel(result.videoEstilo)}
                 </span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-400">
-                  {personagemLabel}
+                  {ambienteLabel(result.videoAmbiente)}
+                </span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-400">
+                  {result.videoAvatar === "masculino" ? "Masculino" : "Feminino"}
+                </span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-400">
+                  {formatoLabel(result.videoFormato ?? "16:9")}
                 </span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-400">
                   {result.durationSeconds}s
@@ -143,7 +197,7 @@ function VideoResultCard({
               </a>
             )}
           </div>
-          {!result.isMock && (
+          {!result.isMock && result.videoUrl && (
             <p className="text-xs text-amber-500/70">
               Faça o download agora — o link expira em alguns dias.
             </p>
@@ -199,11 +253,14 @@ export function CreativeGenerator() {
   const [isSaving, setIsSaving] = useState(false);
   const [restoredResult, setRestoredResult] = useState<CreativeIdeasResult | null>(null);
 
-  // Estado do vídeo — estrutura preparada para BLOCO 2 (sem funcionalidade ainda)
-  const [videoType, setVideoType] = useState<"executivo" | "casual">("executivo");
+  // Video state
+  const [videoEstilo, setVideoEstilo] = useState<VideoEstilo>("executivo");
   const [videoAvatar, setVideoAvatar] = useState<"masculino" | "feminino">("masculino");
-  const [videoAmbiente, setVideoAmbiente] = useState<string>("loja");
+  const [videoAmbiente, setVideoAmbiente] = useState<string>("corporativo");
+  const [videoFormato, setVideoFormato] = useState<VideoFormato>("16:9");
+  const [videoDuration, setVideoDuration] = useState<VideoDuration>(20);
   const [videoPrompt, setVideoPrompt] = useState("");
+  const [restoredVideoResult, setRestoredVideoResult] = useState<VideoGenerationResult | null>(null);
 
   const { status, result, error, generate, reset } = useAiStream<CreativeIdeasResult>();
   const {
@@ -240,7 +297,6 @@ export function CreativeGenerator() {
     }
   }, [status]);
 
-  // Refund automático — vídeo
   useEffect(() => {
     if (videoStatus === "error" && !videoRefundCalledRef.current) {
       videoRefundCalledRef.current = true;
@@ -256,7 +312,6 @@ export function CreativeGenerator() {
     }
   }, [videoStatus]);
 
-  // Limpar formatos ao trocar plataforma
   useEffect(() => { setSelectedFormats([]); }, [platform]);
 
   // Prefill a partir do módulo Campanha
@@ -278,15 +333,60 @@ export function CreativeGenerator() {
       if (!raw) return;
       sessionStorage.removeItem("iattom_restore_creative_v1");
       const saved = JSON.parse(raw) as {
+        type?: string;
         briefing?: {
           prompt?: string;
           platform?: string;
           selectedFormats?: string[];
-          format?: string;
-          quantity?: number;
         };
         result?: unknown;
+        // video fields
+        videoEstilo?: string;
+        videoAvatar?: string;
+        videoAmbiente?: string;
+        videoFormato?: string;
+        videoDuration?: number;
+        prompt?: string;
+        videoUrl?: string;
+        durationSeconds?: number;
+        generatedAt?: string;
+        isMock?: boolean;
       };
+
+      if (saved.type === "video") {
+        // Restaurar vídeo salvo
+        setCreativeType("video");
+        if (saved.videoEstilo && ["executivo", "consultor", "criador"].includes(saved.videoEstilo)) {
+          setVideoEstilo(saved.videoEstilo as VideoEstilo);
+        }
+        if (saved.videoAvatar && ["masculino", "feminino"].includes(saved.videoAvatar)) {
+          setVideoAvatar(saved.videoAvatar as "masculino" | "feminino");
+        }
+        if (saved.videoAmbiente) setVideoAmbiente(saved.videoAmbiente);
+        if (saved.videoFormato && ["9:16", "1:1", "16:9"].includes(saved.videoFormato)) {
+          setVideoFormato(saved.videoFormato as VideoFormato);
+        }
+        if (saved.videoDuration && [20, 40, 60].includes(saved.videoDuration as number)) {
+          setVideoDuration(saved.videoDuration as VideoDuration);
+        }
+        if (saved.prompt) setVideoPrompt(saved.prompt);
+        if (saved.videoUrl !== undefined) {
+          setRestoredVideoResult({
+            videoUrl: saved.videoUrl ?? "",
+            durationSeconds: saved.durationSeconds ?? 20,
+            videoEstilo: (saved.videoEstilo as VideoEstilo) ?? "executivo",
+            videoAvatar: (saved.videoAvatar as "masculino" | "feminino") ?? "masculino",
+            videoAmbiente: saved.videoAmbiente ?? "",
+            videoFormato: (saved.videoFormato as VideoFormato) ?? "16:9",
+            prompt: saved.prompt ?? "",
+            generatedAt: saved.generatedAt ?? "",
+            isMock: saved.isMock ?? false,
+          });
+        }
+        return;
+      }
+
+      // Restaurar imagem criativa
       if (saved.briefing?.prompt) setPrompt(saved.briefing.prompt);
       const savedPlatform = saved.briefing?.platform;
       if (savedPlatform && PLATFORMS.some((p) => p.key === savedPlatform)) {
@@ -295,7 +395,9 @@ export function CreativeGenerator() {
       if (Array.isArray(saved.briefing?.selectedFormats)) {
         setSelectedFormats((saved.briefing.selectedFormats as string[]).slice(0, MAX_FORMATS));
       }
-      if (saved.result) setRestoredResult(saved.result as CreativeIdeasResult);
+      if (saved.result && typeof saved.result === "object" && "concepts" in (saved.result as object)) {
+        setRestoredResult(saved.result as CreativeIdeasResult);
+      }
     } catch { /* ignore */ }
   }, []);
 
@@ -333,6 +435,8 @@ export function CreativeGenerator() {
 
   const handleSave = async () => {
     if (!activeResult || isSaving) return;
+    const concepts = activeResult.concepts;
+    if (!Array.isArray(concepts)) return;
     setIsSaving(true);
 
     const platformLabel = PLATFORMS.find((p) => p.key === platform)?.label ?? String(platform);
@@ -345,20 +449,18 @@ export function CreativeGenerator() {
 
     const resultWithoutImages: CreativeIdeasResult = {
       ...activeResult,
-      concepts: activeResult.concepts?.map(({ imageBase64: _removed, ...rest }) => rest) ?? [],
+      concepts: concepts.map(({ imageBase64: _removed, ...rest }) => rest),
     };
 
     const data = JSON.stringify({
       type: "image",
-      platform,
-      selectedFormats,
-      prompt: prompt.trim(),
+      briefing: { platform, selectedFormats, prompt: prompt.trim() },
       result: resultWithoutImages,
     });
 
     const projectId = crypto.randomUUID();
     const title = `${platformLabel} — ${prompt.trim().slice(0, 60) || "Criativo"}`;
-    const hasImages = (activeResult.concepts?.some((c) => !!c.imageBase64)) ?? false;
+    const hasImages = concepts.some((c) => !!c.imageBase64);
 
     try {
       const raw = localStorage.getItem("iattom_saved_items_v1");
@@ -370,7 +472,7 @@ export function CreativeGenerator() {
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
     } catch { /* ignore */ }
 
-    const imageAssets = (activeResult.concepts ?? [])
+    const imageAssets = concepts
       .map((c, i) => c.imageBase64
         ? { conceptIndex: i, base64: c.imageBase64, label: c.label ?? `Imagem ${i + 1}`, format: c.format ?? "PNG" }
         : null)
@@ -399,7 +501,7 @@ export function CreativeGenerator() {
 
   const currentPlatformFormats = platform ? (PLATFORMS.find((p) => p.key === platform)?.formats ?? []) : [];
   const loadingCount = Math.max(selectedFormats.length, 1);
-  const resultCount = activeResult?.concepts?.length ?? 0;
+  const resultCount = Array.isArray(activeResult?.concepts) ? activeResult.concepts.length : 0;
 
   // ── Vídeo ────────────────────────────────────────────────────────────────
   const canGenerateVideo = !!videoPrompt.trim();
@@ -407,12 +509,18 @@ export function CreativeGenerator() {
   const isVideoDone = videoStatus === "done";
   const isVideoError = videoStatus === "error";
 
+  const activeVideoResult = videoResult ?? restoredVideoResult;
+  const isVideoRestoredMode = !!restoredVideoResult && videoStatus === "idle";
+
   const runVideoGenerate = (charge: () => void) => {
+    setRestoredVideoResult(null);
     videoChargedFeatureRef.current = "creativeVideo20";
     videoGenerate("/api/ai/generate-video", {
-      videoType,
+      videoEstilo,
       videoAvatar,
-      videoAmbiente: videoType === "executivo" ? "executivo" : videoAmbiente,
+      videoAmbiente,
+      videoFormato,
+      videoDuration,
       videoPrompt: videoPrompt.trim(),
     }).then((res) => {
       if (res !== null) charge();
@@ -420,33 +528,35 @@ export function CreativeGenerator() {
   };
 
   const handleSaveVideo = async () => {
-    if (!videoResult || videoIsSaving) return;
+    if (!activeVideoResult || videoIsSaving) return;
     setVideoIsSaving(true);
 
-    const tipoLabel = videoResult.videoType === "executivo" ? "Executivo" : "Casual";
-    const ambLabel = videoResult.videoAmbiente.charAt(0).toUpperCase() + videoResult.videoAmbiente.slice(1);
     const content = [
       `Tipo: Vídeo`,
-      `Estilo: ${tipoLabel}`,
-      `Personagem: ${videoResult.videoAvatar === "masculino" ? "Masculino" : "Feminino"}`,
-      `Ambiente: ${ambLabel}`,
-      `Prompt: ${videoResult.prompt}`,
+      `Estilo: ${estiloLabel(activeVideoResult.videoEstilo)}`,
+      `Personagem: ${activeVideoResult.videoAvatar === "masculino" ? "Masculino" : "Feminino"}`,
+      `Ambiente: ${ambienteLabel(activeVideoResult.videoAmbiente)}`,
+      `Formato: ${formatoLabel(activeVideoResult.videoFormato ?? "16:9")}`,
+      `Duração: ${activeVideoResult.durationSeconds}s`,
+      `Prompt: ${activeVideoResult.prompt}`,
     ].join(" | ");
 
     const data = JSON.stringify({
       type: "video",
-      videoType: videoResult.videoType,
-      videoAvatar: videoResult.videoAvatar,
-      videoAmbiente: videoResult.videoAmbiente,
-      prompt: videoResult.prompt,
-      videoUrl: videoResult.videoUrl,
-      durationSeconds: videoResult.durationSeconds,
-      generatedAt: videoResult.generatedAt,
-      isMock: videoResult.isMock,
+      videoEstilo: activeVideoResult.videoEstilo,
+      videoAvatar: activeVideoResult.videoAvatar,
+      videoAmbiente: activeVideoResult.videoAmbiente,
+      videoFormato: activeVideoResult.videoFormato ?? "16:9",
+      videoDuration: activeVideoResult.durationSeconds,
+      prompt: activeVideoResult.prompt,
+      videoUrl: activeVideoResult.videoUrl,
+      durationSeconds: activeVideoResult.durationSeconds,
+      generatedAt: activeVideoResult.generatedAt,
+      isMock: activeVideoResult.isMock,
     });
 
     const projectId = crypto.randomUUID();
-    const title = `Vídeo ${tipoLabel} — ${videoResult.prompt.slice(0, 55) || "Criativo"}`;
+    const title = `Vídeo ${estiloLabel(activeVideoResult.videoEstilo)} — ${activeVideoResult.prompt.slice(0, 50) || "Criativo"}`;
 
     try {
       const raw = localStorage.getItem("iattom_saved_items_v1");
@@ -564,7 +674,7 @@ export function CreativeGenerator() {
                   </div>
                 </div>
 
-                {/* Formatos (aparece ao selecionar plataforma) */}
+                {/* Formatos */}
                 <AnimatePresence>
                   {platform && (
                     <motion.div
@@ -654,7 +764,7 @@ export function CreativeGenerator() {
           </motion.div>
         )}
 
-        {/* Vídeo — Estrutura preparada para BLOCO 2 (sem geração ainda) */}
+        {/* Vídeo */}
         {creativeType === "video" && (
           <motion.div
             key="video-form"
@@ -666,35 +776,30 @@ export function CreativeGenerator() {
             <Card className="bg-[#111111] border-white/5">
               <CardContent className="p-6 space-y-6">
 
-                {/* Tipo de Vídeo */}
+                {/* Estilo do personagem */}
                 <div className="space-y-3">
-                  <Label className="text-sm text-muted-foreground">Tipo de Vídeo</Label>
-                  <div className="flex gap-3">
-                    {(["executivo", "casual"] as const).map((t) => (
+                  <Label className="text-sm text-muted-foreground">Estilo do Personagem</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {VIDEO_ESTILOS.map((e) => (
                       <button
-                        key={t}
-                        onClick={() => setVideoType(t)}
-                        className={`flex-1 flex items-center justify-center py-2.5 rounded-lg border text-sm font-medium transition-colors ${
-                          videoType === t
+                        key={e.key}
+                        onClick={() => setVideoEstilo(e.key)}
+                        className={`flex flex-col items-center justify-center py-3 px-2 rounded-lg border text-xs font-medium transition-colors text-center gap-1 ${
+                          videoEstilo === e.key
                             ? "bg-primary/15 text-primary border-primary/30"
                             : "bg-[#0a0a0a] text-zinc-500 border-white/[0.08] hover:border-white/20 hover:text-zinc-300"
                         }`}
                       >
-                        {t === "executivo" ? "Executivo" : "Casual"}
+                        <span className="font-semibold">{e.label}</span>
+                        <span className={`text-[10px] leading-tight ${videoEstilo === e.key ? "text-primary/70" : "text-zinc-600"}`}>
+                          {e.desc}
+                        </span>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Duração */}
-                <div className="space-y-2">
-                  <Label className="text-sm text-muted-foreground">Duração</Label>
-                  <div className="flex items-center px-3.5 py-2.5 rounded-lg bg-[#0a0a0a] border border-white/[0.08]">
-                    <span className="text-sm text-zinc-400">20 segundos</span>
-                  </div>
-                </div>
-
-                {/* Personagem */}
+                {/* Personagem (M/F) */}
                 <div className="space-y-3">
                   <Label className="text-sm text-muted-foreground">Personagem</Label>
                   <div className="flex gap-3">
@@ -714,27 +819,66 @@ export function CreativeGenerator() {
                   </div>
                 </div>
 
-                {/* Ambiente — apenas para Casual */}
-                {videoType === "casual" && (
-                  <div className="space-y-3">
-                    <Label className="text-sm text-muted-foreground">Ambiente</Label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(["Loja", "Shopping", "Restaurante", "Rua", "Casa", "Livre"] as const).map((amb) => (
-                        <button
-                          key={amb}
-                          onClick={() => setVideoAmbiente(amb.toLowerCase())}
-                          className={`py-2.5 px-2 rounded-lg border text-xs font-medium transition-colors text-center ${
-                            videoAmbiente === amb.toLowerCase()
-                              ? "bg-primary/15 text-primary border-primary/30"
-                              : "bg-[#0a0a0a] text-zinc-500 border-white/[0.08] hover:border-white/20 hover:text-zinc-300"
-                          }`}
-                        >
-                          {amb}
-                        </button>
-                      ))}
-                    </div>
+                {/* Ambiente */}
+                <div className="space-y-3">
+                  <Label className="text-sm text-muted-foreground">Ambiente</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {VIDEO_AMBIENTES.map((amb) => (
+                      <button
+                        key={amb.key}
+                        onClick={() => setVideoAmbiente(amb.key)}
+                        className={`py-2.5 px-2 rounded-lg border text-xs font-medium transition-colors text-center ${
+                          videoAmbiente === amb.key
+                            ? "bg-primary/15 text-primary border-primary/30"
+                            : "bg-[#0a0a0a] text-zinc-500 border-white/[0.08] hover:border-white/20 hover:text-zinc-300"
+                        }`}
+                      >
+                        {amb.label}
+                      </button>
+                    ))}
                   </div>
-                )}
+                </div>
+
+                {/* Formato do vídeo */}
+                <div className="space-y-3">
+                  <Label className="text-sm text-muted-foreground">Formato</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {VIDEO_FORMATOS.map((f) => (
+                      <button
+                        key={f.key}
+                        onClick={() => setVideoFormato(f.key)}
+                        className={`flex flex-col items-center justify-center py-3 px-2 rounded-lg border text-xs font-medium transition-colors text-center gap-1 ${
+                          videoFormato === f.key
+                            ? "bg-primary/15 text-primary border-primary/30"
+                            : "bg-[#0a0a0a] text-zinc-500 border-white/[0.08] hover:border-white/20 hover:text-zinc-300"
+                        }`}
+                      >
+                        <span className="font-semibold">{f.label}</span>
+                        <span className={`text-[10px] ${videoFormato === f.key ? "text-primary/70" : "text-zinc-600"}`}>{f.sub}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Duração */}
+                <div className="space-y-3">
+                  <Label className="text-sm text-muted-foreground">Duração</Label>
+                  <div className="flex gap-3">
+                    {VIDEO_DURACOES.map((d) => (
+                      <button
+                        key={d.key}
+                        onClick={() => setVideoDuration(d.key)}
+                        className={`flex-1 flex items-center justify-center py-2.5 rounded-lg border text-sm font-medium transition-colors ${
+                          videoDuration === d.key
+                            ? "bg-primary/15 text-primary border-primary/30"
+                            : "bg-[#0a0a0a] text-zinc-500 border-white/[0.08] hover:border-white/20 hover:text-zinc-300"
+                        }`}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
                 {/* Prompt */}
                 <div className="space-y-2">
@@ -774,7 +918,7 @@ export function CreativeGenerator() {
         )}
       </AnimatePresence>
 
-      {/* Resultados */}
+      {/* Resultados — Imagem */}
       <AnimatePresence mode="wait">
         {isGenerating && (
           <motion.div key="generating" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -832,7 +976,7 @@ export function CreativeGenerator() {
           </motion.div>
         )}
 
-        {(isDone || isRestoredMode) && activeResult && (
+        {(isDone || isRestoredMode) && activeResult && Array.isArray(activeResult.concepts) && (
           <motion.div
             key="result"
             initial={{ opacity: 0, y: 12 }}
@@ -872,7 +1016,7 @@ export function CreativeGenerator() {
               resultCount === 2 ? "md:grid-cols-2" :
               "md:grid-cols-3"
             }`}>
-              {activeResult.concepts?.map((concept: CreativeConcept, i: number) => (
+              {activeResult.concepts.map((concept: CreativeConcept, i: number) => (
                 <ConceptCard key={concept.id ?? i} concept={concept} index={i} />
               ))}
             </div>
@@ -919,14 +1063,26 @@ export function CreativeGenerator() {
             </motion.div>
           )}
 
-          {isVideoDone && videoResult && (
-            <VideoResultCard
-              key="video-result"
-              result={videoResult}
-              onSave={() => void handleSaveVideo()}
-              isSaving={videoIsSaving}
-              onReset={videoReset}
-            />
+          {(isVideoDone || isVideoRestoredMode) && activeVideoResult && (
+            <>
+              {isVideoRestoredMode && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/15"
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                  <p className="text-xs text-primary">Vídeo restaurado de Projetos Salvos</p>
+                </motion.div>
+              )}
+              <VideoResultCard
+                key="video-result"
+                result={activeVideoResult}
+                onSave={() => void handleSaveVideo()}
+                isSaving={videoIsSaving}
+                onReset={() => { videoReset(); setRestoredVideoResult(null); }}
+              />
+            </>
           )}
         </AnimatePresence>
       )}

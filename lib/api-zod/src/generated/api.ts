@@ -376,9 +376,11 @@ export const AiVideoScriptBody = zod.object({
  * @summary Generate a talking avatar video via HeyGen (SSE stream)
  */
 export const AiGenerateVideoBody = zod.object({
-  videoType: zod.enum(["executivo", "casual"]),
+  videoEstilo: zod.enum(["executivo", "consultor", "criador"]),
   videoAvatar: zod.enum(["masculino", "feminino"]),
   videoAmbiente: zod.string(),
+  videoFormato: zod.enum(["9:16", "1:1", "16:9"]),
+  videoDuration: zod.union([zod.literal(20), zod.literal(40), zod.literal(60)]),
   videoPrompt: zod.string(),
 });
 

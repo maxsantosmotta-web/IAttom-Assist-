@@ -83,9 +83,10 @@ export interface ScriptScene {
 export interface VideoGenerationResult {
   videoUrl: string;
   durationSeconds: number;
-  videoType: "executivo" | "casual";
+  videoEstilo: "executivo" | "consultor" | "criador";
   videoAvatar: "masculino" | "feminino";
   videoAmbiente: string;
+  videoFormato: "9:16" | "1:1" | "16:9";
   prompt: string;
   generatedAt: string;
   isMock: boolean;

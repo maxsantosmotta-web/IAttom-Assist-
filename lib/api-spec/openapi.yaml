@@ -1290,18 +1290,26 @@ components:
     AiGenerateVideoBody:
       type: object
       properties:
-        videoType:
+        videoEstilo:
           type: string
-          enum: [executivo, casual]
+          enum: [executivo, consultor, criador]
         videoAvatar:
           type: string
           enum: [masculino, feminino]
         videoAmbiente:
           type: string
+        videoFormato:
+          type: string
+          enum: ["9:16", "1:1", "16:9"]
+        videoDuration:
+          type: integer
+          enum: [20, 40, 60]
         videoPrompt:
           type: string
       required:
-        - videoType
+        - videoEstilo
         - videoAvatar
         - videoAmbiente
+        - videoFormato
+        - videoDuration
         - videoPrompt

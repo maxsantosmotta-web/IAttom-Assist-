@@ -44,6 +44,8 @@ export interface HeyGenVideoPayload {
   script: string;
   /** Hex color (ex: "#1c2333") ou URL pública de imagem sem query params */
   background: string;
+  /** Aspect ratio do vídeo: "16:9" | "1:1" | "9:16" */
+  aspectRatio?: string;
 }
 
 export interface HeyGenVideoStatus {
@@ -85,7 +87,7 @@ export async function generateVideo(payload: HeyGenVideoPayload): Promise<{ vide
     avatar_id: payload.avatarId,
     script: payload.script,
     voice_id: payload.voiceId,
-    aspect_ratio: "16:9",
+    aspect_ratio: payload.aspectRatio ?? "16:9",
     resolution: "1080p",
     background: isColor
       ? { type: "color", value: payload.background }
