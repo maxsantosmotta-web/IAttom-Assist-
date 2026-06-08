@@ -176,70 +176,51 @@ function extractHeygenError(body: Record<string, unknown>): string {
 
 // ─── Geração de vídeo (POST /v3/videos) ──────────────────────────────────────
 //
-// Formato obrigatório do endpoint /v3/videos:
+// O endpoint /v3/videos usa discriminator "type" no nível RAIZ do payload.
+// Valores aceitos pela API: "avatar" | "image" | "cinematic_avatar"
+//
+// Formato flat correto (confirmado via diagnóstico ao vivo):
 //
 //   {
-//     "video_inputs": [{
-//       "character": { "type": "avatar", "avatar_id": "...", "avatar_style": "normal" },
-//       "voice":     { "type": "text", "input_text": "...", "voice_id": "..." },
-//       "background": { "type": "color", "value": "#hex" }
+//     "type":         "avatar",
+//     "avatar_id":    "...",
+//     "script":       "...",
+//     "voice_id":     "...",
+//     "aspect_ratio": "16:9" | "9:16" | "1:1",
+//     "resolution":   "1080p",
+//     "background":   { "type": "color", "value": "#hex" }
 //                   | { "type": "image", "url": "..." }
-//     }],
-//     "dimension": { "width": N, "height": N }
 //   }
 //
-// Mapeamento aspect_ratio → dimension:
-//   "16:9"  → 1920 × 1080  (YouTube / Apresentação)
-//   "1:1"   → 1080 × 1080  (Feed)
-//   "9:16"  → 1080 × 1920  (Reels / Stories)
-
-function aspectRatioToDimension(aspectRatio: string): { width: number; height: number } {
-  switch (aspectRatio) {
-    case "9:16": return { width: 1080, height: 1920 };
-    case "1:1":  return { width: 1080, height: 1080 };
-    default:     return { width: 1920, height: 1080 };  // "16:9" padrão
-  }
-}
+// O formato nested com "video_inputs" + "dimension" causa erro 400:
+//   "Unable to extract tag using discriminator 'type'"
 
 export async function generateVideo(payload: HeyGenVideoPayload): Promise<{ videoId: string }> {
   const apiKey = process.env.HEYGEN_API_KEY!;
 
   const isColor     = payload.background.startsWith("#");
   const aspectRatio = payload.aspectRatio ?? "16:9";
-  const dimension   = aspectRatioToDimension(aspectRatio);
 
-  const background = isColor
-    ? { type: "color", value: payload.background }
-    : { type: "image", url: payload.background };
-
-  const body = {
-    video_inputs: [
-      {
-        character: {
-          type: "avatar",
-          avatar_id: payload.avatarId,
-          avatar_style: "normal",
-        },
-        voice: {
-          type: "text",
-          input_text: payload.script,
-          voice_id: payload.voiceId,
-        },
-        background,
-      },
-    ],
-    dimension,
+  const body: Record<string, unknown> = {
+    type:         "avatar",
+    avatar_id:    payload.avatarId,
+    script:       payload.script,
+    voice_id:     payload.voiceId,
+    aspect_ratio: aspectRatio,
+    resolution:   "1080p",
+    background:   isColor
+      ? { type: "color", value: payload.background }
+      : { type: "image", url: payload.background },
   };
 
   logger.info(
     {
-      avatarId: payload.avatarId,
-      voiceId: payload.voiceId,
-      scriptLength: payload.script.length,
-      scriptPreview: payload.script.slice(0, 60),
+      avatarId:        payload.avatarId,
+      voiceId:         payload.voiceId,
+      scriptLength:    payload.script.length,
+      scriptPreview:   payload.script.slice(0, 60),
       aspectRatio,
-      dimension,
-      backgroundType: isColor ? "color" : "image",
+      backgroundType:  isColor ? "color" : "image",
       backgroundValue: payload.background.slice(0, 80),
     },
     "[heygenClient] payload enviado para HeyGen v3/videos",
