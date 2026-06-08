@@ -15,10 +15,12 @@ import { moveToTrash } from "@/lib/trashStorage";
 import type {
   CampaignResult, ContentResult, CreativeIdeasResult,
   VideoScriptResult, FindProductsResult, ValidationResult,
+  VideoGenerationResult,
 } from "@/types/ai";
 
 /* ─── Parsed data shape ─────────────────────────────────────── */
 interface ParsedData {
+  type?: string;
   briefing: Record<string, unknown>;
   result: unknown;
   creatives?: CreativeIdeasResult | null;
@@ -156,13 +158,93 @@ function ContentContent({ result }: { result: ContentResult }) {
 }
 
 function CreativeContent({ result }: { result: CreativeIdeasResult }) {
+  const concepts = Array.isArray(result?.concepts) ? result.concepts : [];
+  if (concepts.length === 0) {
+    return (
+      <div className="rounded-xl bg-[#0a0a0a] border border-white/[0.06] p-4">
+        <p className="text-sm text-zinc-500">Nenhuma imagem encontrada neste projeto.</p>
+      </div>
+    );
+  }
   return (
     <div className="space-y-3">
-      {result.concepts?.map((c, i) => (
+      {concepts.map((c, i) => (
         <div key={c.id ?? i} className="rounded-xl border border-white/[0.06] bg-[#0d0d0d] p-4">
           <p className="text-xs font-semibold text-zinc-400">Criativo {i + 1} — {c.label}</p>
         </div>
       ))}
+    </div>
+  );
+}
+
+function VideoProjectCard({
+  video,
+  onOpenInGenerator,
+}: {
+  video: VideoGenerationResult;
+  onOpenInGenerator: () => void;
+}) {
+  const estiloLabels: Record<string, string> = { executivo: "Executivo", consultor: "Consultor", criador: "Criador" };
+  const avatarLabels: Record<string, string> = { masculino: "Masculino", feminino: "Feminino" };
+  const formatoLabels: Record<string, string> = { "9:16": "Reels / Stories", "1:1": "Feed", "16:9": "YouTube / Apresentação" };
+  const ambienteLabel = (amb: string) => amb.charAt(0).toUpperCase() + amb.slice(1);
+
+  return (
+    <div className="space-y-4">
+      {video.isMock ? (
+        <div className="aspect-video rounded-xl bg-[#0a0a0a] border border-white/[0.06] flex flex-col items-center justify-center gap-3">
+          <Video className="w-8 h-8 text-zinc-600" />
+          <p className="text-xs text-zinc-500 text-center max-w-xs px-4">
+            Vídeo gerado em modo demonstração — URL não disponível
+          </p>
+        </div>
+      ) : video.videoUrl ? (
+        <video
+          src={video.videoUrl}
+          controls
+          playsInline
+          className="w-full aspect-video rounded-xl bg-black"
+        />
+      ) : (
+        <div className="aspect-video rounded-xl bg-[#0a0a0a] border border-white/[0.06] flex flex-col items-center justify-center gap-3">
+          <Video className="w-8 h-8 text-zinc-600" />
+          <p className="text-xs text-zinc-500 text-center max-w-xs px-4">
+            URL do vídeo não disponível — o link pode ter expirado
+          </p>
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        {[
+          estiloLabels[video.videoEstilo] ?? video.videoEstilo,
+          avatarLabels[video.videoAvatar] ?? video.videoAvatar,
+          ambienteLabel(video.videoAmbiente),
+          formatoLabels[video.videoFormato] ?? video.videoFormato,
+          `${video.durationSeconds}s`,
+        ].map((tag) => (
+          <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-400">
+            {tag}
+          </span>
+        ))}
+      </div>
+
+      {video.prompt && (
+        <TextBlock label="Prompt original" value={video.prompt} />
+      )}
+
+      <button
+        onClick={onOpenInGenerator}
+        className="flex items-center gap-2 text-xs text-primary hover:text-primary/80 transition-colors border border-primary/20 hover:border-primary/40 bg-primary/5 hover:bg-primary/10 px-3 py-2 rounded-lg"
+      >
+        <Sparkles className="w-3.5 h-3.5" />
+        Abrir no Gerador Criativo
+      </button>
+
+      {!video.isMock && video.videoUrl && (
+        <p className="text-xs text-amber-500/60">
+          Links de vídeo HeyGen expiram em alguns dias — baixe antes que expire.
+        </p>
+      )}
     </div>
   );
 }
@@ -481,6 +563,23 @@ export function ProjectDetail() {
     });
   }, [item, toast]);
 
+  const handleOpenInGenerator = useCallback(() => {
+    if (!item || item === "not_found") return;
+    const saved = item as SavedItem;
+    if (!saved.data) return;
+    try {
+      const parsed = JSON.parse(saved.data) as Record<string, unknown>;
+      const isVideo = parsed.type === "video";
+      console.info("[ProjectDetail] restaurando projeto no Gerador Criativo", {
+        id: saved.id,
+        type: parsed.type,
+        temVideoUrl: isVideo ? !!parsed.videoUrl : undefined,
+      });
+    } catch { /* ignore */ }
+    sessionStorage.setItem("iattom_restore_creative_v1", saved.data);
+    navigate("/dashboard/creative-generator");
+  }, [item, navigate]);
+
 
   if (item === null) {
     return (
@@ -529,7 +628,18 @@ export function ProjectDetail() {
     switch (item.type) {
       case "campaign":        return <CampaignContent result={r as CampaignResult} creatives={p.creatives} />;
       case "content":         return <ContentContent result={r as ContentResult} />;
-      case "creative":        return <CreativeContent result={r as CreativeIdeasResult} />;
+      case "creative": {
+        if (p.type === "video") {
+          const videoData = p as unknown as VideoGenerationResult;
+          return (
+            <VideoProjectCard
+              video={videoData}
+              onOpenInGenerator={handleOpenInGenerator}
+            />
+          );
+        }
+        return <CreativeContent result={r as CreativeIdeasResult} />;
+      }
       case "video_script":    return <VideoScriptContent result={r as VideoScriptResult} />;
       case "product_discovery": return <FindProductsContent result={r as FindProductsResult} />;
       case "product_validation": return <ValidationContent result={r as ValidationResult} />;

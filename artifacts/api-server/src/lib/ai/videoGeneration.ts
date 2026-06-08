@@ -15,7 +15,6 @@ import { openai } from "@workspace/integrations-openai-ai-server";
 import { setupSSE, sendSSE, sendSSEError, sendSSEDone } from "./stream.js";
 import { logAiUsage } from "./logger.js";
 import { logger } from "../logger.js";
-import { buildRefinedContext } from "./interpretationEngine.js";
 import {
   HEYGEN_CONFIGURED,
   AVATAR_IDS,
@@ -48,7 +47,6 @@ export interface VideoGenerationResult {
 }
 
 // ─── Backgrounds por ambiente ────────────────────────────────────────────────
-// Hex color sólida por ambiente. Futura evolução: URLs de imagem reais.
 
 const SCENE_BACKGROUNDS: Record<string, string> = {
   corporativo:  "#1c2333",
@@ -75,7 +73,6 @@ function resolveBackground(ambiente: string): string {
 }
 
 // ─── Palavras por segundo (estimativa TTS PT-BR) ──────────────────────────────
-// ~2.5 palavras/segundo em TTS natural PT-BR
 
 function wordsForDuration(seconds: number): { min: number; max: number } {
   const base = Math.round(seconds * 2.5);
@@ -87,38 +84,73 @@ function wordsForDuration(seconds: number): { min: number; max: number } {
 function estiloDescriptor(
   estilo: "executivo" | "consultor" | "criador",
   avatar: "masculino" | "feminino",
-): { personagem: string; tom: string; postura: string } {
-  const gen = avatar === "masculino" ? "masculino" : "feminino";
-
+): { tom: string; postura: string } {
   switch (estilo) {
     case "executivo":
       return {
-        personagem: gen === "masculino"
-          ? "executivo com roupa social, postura de autoridade corporativa, ambiente profissional"
-          : "executiva com roupa social elegante, postura de liderança corporativa, ambiente profissional",
-        tom: "direto, assertivo e de autoridade — transmite confiança e credibilidade corporativa",
-        postura: "corporativa — fala como CEO ou diretor apresentando solução de alto valor",
+        tom: "direto e confiante, transmitindo credibilidade profissional",
+        postura: "fala como especialista que apresenta uma solução de valor, com autoridade e clareza",
       };
     case "consultor":
       return {
-        personagem: gen === "masculino"
-          ? "consultor especialista com aparência profissional e postura orientadora"
-          : "consultora especialista com aparência profissional e postura orientadora",
-        tom: "explicativo, didático e empático — transmite expertise e guia o espectador",
-        postura: "especialista — fala como quem resolve problemas e orienta com segurança",
+        tom: "explicativo e empático, guiando o espectador com clareza",
+        postura: "fala como quem orienta e resolve problemas, com expertise e cuidado",
       };
     case "criador":
       return {
-        personagem: gen === "masculino"
-          ? "criador de conteúdo dinâmico com presença de influenciador e apresentador"
-          : "criadora de conteúdo dinâmica com presença de influenciadora e apresentadora",
-        tom: "próximo, energético e autêntico — transmite entusiasmo e conexão com o público",
-        postura: "influenciador — fala de forma natural, direta e cativante como num reel viral",
+        tom: "próximo e autêntico, com entusiasmo natural e conexão com o público",
+        postura: "fala de forma direta e cativante, como numa conversa real com o espectador",
       };
   }
+  const _: never = estilo;
+  return _;
 }
 
-// ─── Roteiro interno via GPT ─────────────────────────────────────────────────
+// ─── Helper: uma tentativa de geração via OpenAI (streaming) ─────────────────
+// Captura delta.content, delta.refusal e finish_reason em cada chunk.
+
+interface ScriptAttemptResult {
+  script: string;
+  refusal: string | null;
+  finishReason: string | null;
+  chunkCount: number;
+}
+
+async function attemptScriptGeneration(
+  messages: { role: "system" | "user"; content: string }[],
+  signal?: AbortSignal,
+): Promise<ScriptAttemptResult> {
+  const stream = await openai.chat.completions.create(
+    {
+      model: "gpt-5-mini",
+      max_completion_tokens: 1500,
+      messages,
+      stream: true,
+    },
+    { signal },
+  );
+
+  let script = "";
+  let refusal: string | null = null;
+  let finishReason: string | null = null;
+  let chunkCount = 0;
+
+  for await (const chunk of stream) {
+    chunkCount++;
+    const delta = chunk.choices[0]?.delta as {
+      content?: string | null;
+      refusal?: string | null;
+    } | undefined;
+    const fr = chunk.choices[0]?.finish_reason;
+    if (fr) finishReason = fr;
+    if (delta?.content) script += delta.content;
+    if (delta?.refusal) refusal = (refusal ?? "") + delta.refusal;
+  }
+
+  return { script: script.trim(), refusal, finishReason, chunkCount };
+}
+
+// ─── Roteiro interno via GPT (com retry automático) ──────────────────────────
 
 async function buildVideoScript(
   params: VideoGenerationInput,
@@ -126,100 +158,111 @@ async function buildVideoScript(
 ): Promise<string> {
   const prompt = params.videoPrompt.trim();
   const { min: minWords, max: maxWords } = wordsForDuration(params.videoDuration);
-  const { personagem, tom, postura } = estiloDescriptor(params.videoEstilo, params.videoAvatar);
+  const { tom, postura } = estiloDescriptor(params.videoEstilo, params.videoAvatar);
 
-  const refinedCtx = buildRefinedContext(prompt, `video_${params.videoEstilo}`);
+  // ── Tentativa 1: prompt completo ─────────────────────────────────────────
+  const systemPrompt = `Você escreve roteiros de vídeos de marketing em português do Brasil.
+Sua única tarefa é escrever o texto que o personagem irá falar no vídeo.
 
-  const ambienteDesc = params.videoAmbiente === "corporativo"
-    ? "escritório corporativo moderno com mesa, notebook e ambiente premium"
-    : `ambiente de ${params.videoAmbiente} — o personagem está fisicamente neste local, a fala deve refletir este contexto`;
+TOM: ${tom}
+POSTURA: ${postura}
+AMBIENTE: ${params.videoAmbiente}
+DURAÇÃO: ${params.videoDuration} segundos (entre ${minWords} e ${maxWords} palavras)
+ESTRUTURA: abertura que prende atenção → apresentação do produto com benefícios reais → chamada para ação
 
-  const systemPrompt = `Você é especialista em roteiros de vídeos de marketing e vendas em português do Brasil.
+REGRAS DE ESCRITA:
+- Frases curtas: máximo de 12 palavras por frase
+- Pausas com vírgulas e pontos — ritmo natural de fala
+- Linguagem acessível, sem termos técnicos desnecessários
+- Voz ativa: "você resolve" não "é possível resolver"
+- Sem listas numeradas — fala contínua e natural
+- Sem menção a câmera, edição, produção ou duração
 
-REGRA ABSOLUTA — HIERARQUIA DE CONTEÚDO:
-O assunto central do vídeo DEVE ser exatamente o produto ou tema informado pelo usuário.
-Nenhuma instrução interna pode substituir o assunto principal.
-O prompt do usuário SEMPRE vence sobre qualquer instrução interna.
+RETORNAR: apenas o texto da fala, em português. Nada mais.`;
 
-CONTEXTO DO MOTOR DE INTERPRETAÇÃO (apoio estrutural):
-${refinedCtx.systemEnhancement}
+  const userPrompt = `Produto ou serviço: "${prompt}"
 
-PARÂMETROS DO VÍDEO:
-- Personagem: ${personagem}
-- Tom de voz: ${tom}
-- Postura narrativa: ${postura}
-- Cenário/Ambiente: ${ambienteDesc}
-- Duração: ${params.videoDuration} segundos de fala (${minWords} a ${maxWords} palavras)
-- Idioma: português do Brasil natural e fluente
-- Estrutura: gancho impactante (primeiros 20%) → benefício principal do produto (60%) → chamada para ação clara (20% final)
+Escreva o roteiro de ${params.videoDuration} segundos.
+Entre ${minWords} e ${maxWords} palavras.
+Apenas o texto da fala.`;
 
-REGRAS DE NATURALIDADE (críticas para TTS soar humano):
-- Frases curtas dominam: máximo de 12 a 15 palavras por frase
-- Pausas naturais obrigatórias: use vírgulas, pontos e travessões (—) para respiração
-- Ritmo variado: alterne frases de 5 a 8 palavras com frases de 10 a 14 palavras
-- Conectores de fala real: "Olha,", "E sabe o que é melhor?", "Por quê?", "Simples:", "Veja bem," — introduzem variação natural
-- Sem jargão técnico ou corporativo — linguagem de conversa do dia a dia
-- Sem frases passivas — sempre ativo e direto: "Você resolve" não "É possível resolver"
-- Sem enumerações com "primeiro, segundo, terceiro" — o TTS robotiza listas
-- A chamada para ação final deve ser curta e impactante: máximo 10 palavras
-
-REGRAS DE FORMATO:
-- Retornar APENAS o texto que o personagem irá falar
-- Sem títulos, introduções, explicações, tópicos ou marcadores
-- Sem menção a câmera, edição, duração ou produção
-- Fala contínua e natural`;
-
-  const userPrompt = `Crie o roteiro de ${params.videoDuration} segundos para o seguinte produto ou tema:
-
-"${prompt}"
-
-${refinedCtx.userEnhancement}
-
-REGRA FINAL: "${prompt}" é o protagonista absoluto. O ambiente é "${params.videoAmbiente}" e o estilo é "${params.videoEstilo}".
-O roteiro deve ter entre ${minWords} e ${maxWords} palavras.
-Retorne apenas o texto da fala em português do Brasil.`;
-
-  const stream = await openai.chat.completions.create(
-    {
-      model: "gpt-5-mini",
-      max_completion_tokens: 2000,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      stream: true,
-    },
-    { signal },
+  const attempt1 = await attemptScriptGeneration(
+    [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    signal,
   );
-
-  let script = "";
-  let chunkCount = 0;
-  for await (const chunk of stream) {
-    chunkCount++;
-    const content = chunk.choices[0]?.delta?.content;
-    if (content) script += content;
-  }
 
   logger.info(
-    { chunkCount, scriptLength: script.length, scriptPreview: script.slice(0, 80) },
-    "[videoGeneration:diag] script collected",
+    {
+      attempt: 1,
+      chunkCount: attempt1.chunkCount,
+      scriptLength: attempt1.script.length,
+      scriptPreview: attempt1.script.slice(0, 80),
+      refusal: attempt1.refusal,
+      finishReason: attempt1.finishReason,
+      estilo: params.videoEstilo,
+    },
+    "[videoGeneration:diag] tentativa 1 de roteiro",
   );
 
-  if (!script.trim()) throw new Error("Não foi possível gerar o roteiro interno.");
-
-  // Validação de duração: estima palavras e promove se ultrapassar
-  const wordCount = script.trim().split(/\s+/).length;
-  const estimatedSeconds = Math.round(wordCount / 2.5);
-
-  if (params.videoDuration === 20 && estimatedSeconds > 22) {
-    logger.info({ wordCount, estimatedSeconds }, "[videoGeneration] roteiro excede 20s — promovido para 40s");
-  } else if (params.videoDuration === 40 && estimatedSeconds > 44) {
-    logger.info({ wordCount, estimatedSeconds }, "[videoGeneration] roteiro excede 40s — promovido para 60s");
-  } else if (params.videoDuration === 60 && estimatedSeconds > 65) {
-    throw new Error("O conteúdo excede o limite máximo de 60 segundos.");
+  if (attempt1.script) {
+    return attempt1.script;
   }
 
-  return script.trim();
+  // Logar a causa do script vazio
+  if (attempt1.refusal) {
+    logger.warn(
+      { refusal: attempt1.refusal, finishReason: attempt1.finishReason },
+      "[videoGeneration] recusa detectada na tentativa 1 — iniciando retry simplificado",
+    );
+  } else {
+    logger.warn(
+      { chunkCount: attempt1.chunkCount, finishReason: attempt1.finishReason },
+      "[videoGeneration] roteiro vazio (sem recusa explícita) — iniciando retry simplificado",
+    );
+  }
+
+  // ── Tentativa 2: prompt simplificado (retry) ──────────────────────────────
+  const simpleSystem = `Você escreve roteiros de marketing em português do Brasil. Escreva apenas o texto falado. Nada mais.`;
+  const simpleUser = `Escreva um texto de ${params.videoDuration} segundos sobre: "${prompt}". Entre ${minWords} e ${maxWords} palavras. Apenas a fala, em português do Brasil.`;
+
+  const attempt2 = await attemptScriptGeneration(
+    [
+      { role: "system", content: simpleSystem },
+      { role: "user", content: simpleUser },
+    ],
+    signal,
+  );
+
+  logger.info(
+    {
+      attempt: 2,
+      chunkCount: attempt2.chunkCount,
+      scriptLength: attempt2.script.length,
+      scriptPreview: attempt2.script.slice(0, 80),
+      refusal: attempt2.refusal,
+      finishReason: attempt2.finishReason,
+    },
+    "[videoGeneration:diag] tentativa 2 de roteiro (retry)",
+  );
+
+  if (attempt2.script) {
+    logger.info({}, "[videoGeneration] roteiro obtido no retry simplificado");
+    return attempt2.script;
+  }
+
+  // Ambas as tentativas falharam
+  if (attempt2.refusal) {
+    logger.error(
+      { refusal1: attempt1.refusal, refusal2: attempt2.refusal },
+      "[videoGeneration] recusa em ambas as tentativas",
+    );
+    throw new Error("Não foi possível gerar o roteiro. Tente simplificar o prompt.");
+  }
+
+  throw new Error("Não foi possível gerar o roteiro. Tente simplificar o prompt.");
 }
 
 // ─── Duração efetiva (com promoção) ─────────────────────────────────────────
@@ -270,23 +313,28 @@ export async function streamVideoGeneration(
     return;
   }
 
-  if (process.env.NODE_ENV !== "production") {
-    logger.info(
-      {
-        videoEstilo: params.videoEstilo,
-        videoAvatar: params.videoAvatar,
-        videoAmbiente: params.videoAmbiente,
-        videoFormato: params.videoFormato,
-        videoDuration: params.videoDuration,
-        heygenConfigured: HEYGEN_CONFIGURED,
-      },
-      "[videoGeneration] iniciando pipeline",
-    );
-  }
+  logger.info(
+    {
+      videoEstilo: params.videoEstilo,
+      videoAvatar: params.videoAvatar,
+      videoAmbiente: params.videoAmbiente,
+      videoFormato: params.videoFormato,
+      videoDuration: params.videoDuration,
+      heygenConfigured: HEYGEN_CONFIGURED,
+    },
+    "[videoGeneration] iniciando pipeline",
+  );
 
   try {
     sendSSE(res, { type: "progress", message: "Preparando roteiro..." });
     const script = await buildVideoScript(params, signal);
+
+    // ── Garantia: HeyGen só é chamada com script válido ──────────────────────
+    if (!script || script.trim().length === 0) {
+      sendSSEError(res, "Não foi possível gerar o roteiro. Tente simplificar o prompt.");
+      return;
+    }
+
     const duration = effectiveDuration(script, params.videoDuration);
 
     // ── Modo mock ────────────────────────────────────────────────────────────
@@ -323,8 +371,8 @@ export async function streamVideoGeneration(
     }
 
     logger.info(
-      { avatarId, voiceId, aspectRatio, background, estilo: params.videoEstilo, ambiente: params.videoAmbiente },
-      "[videoGeneration] enviando para HeyGen",
+      { avatarId, voiceId, aspectRatio, background, estilo: params.videoEstilo, scriptLength: script.length },
+      "[videoGeneration] roteiro válido — enviando para HeyGen",
     );
 
     sendSSE(res, { type: "progress", message: "Preparando vídeo..." });
