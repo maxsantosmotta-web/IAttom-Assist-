@@ -198,17 +198,17 @@ function buildPlatformFieldsSpec(platform: string): string {
     {
       "key": "conteudo_produto",
       "label": "Conteúdo do Produto",
-      "value": string — GRUPO B: se o produto for um curso/treinamento digital e o usuário informou os módulos reais, liste-os. Se não informou os módulos de um curso, gere estrutura baseada no tema, prefixada com "Estrutura Recomendada:\\n". Se o produto for físico, descreva o que está incluído (ex: o que vem na caixa, como é entregue, o que o comprador recebe). Se for serviço ou mentoria, descreva o que é entregue (sessões, materiais, acompanhamento). Nunca gere módulos de curso para produto físico.
+      "value": string — [GRUPO B] SEMPRE GERAR — NUNCA escreva "Não informado". Adapte ao tipo do produto: (a) Curso/treinamento com módulos informados → liste os módulos. (b) Curso/treinamento sem módulos → gere estrutura de módulos coerente com o tema, prefixada com "Estrutura Recomendada:\\n" (ex: "- Módulo 1: Fundamentos\\n- Módulo 2: Aplicação Prática\\n- Módulo 3: Resultados"). (c) Produto físico → gere 3 a 5 linhas de texto comercial descrevendo: aplicação real, como se usa, benefício prático, experiência de uso e diferenciais inferidos do produto — NUNCA gere módulos de curso para produto físico. (d) Serviço/mentoria → descreva sessões, o que será entregue e como funciona o acompanhamento.
     },
     {
       "key": "bonus",
       "label": "Bônus Recomendados",
-      "value": string — GRUPO B: se o usuário informou os bônus reais, liste-os diretamente. Se não informou, sugira 2 a 3 bônus coerentes com a natureza real do produto (não invente bônus de curso para produto físico), prefixados com "Bônus Recomendados:\\n".
+      "value": string — [GRUPO B] SEMPRE GERAR — NUNCA escreva "Não informado" ou deixe vazio. Se o usuário informou bônus reais, liste-os. Se não informou, gere 2 a 3 bônus prefixados com "Bônus Recomendados:\\n", coerentes com o produto: produto físico → guia de uso rápido, checklist de manutenção ou cuidados, manual digital; produto digital/curso → planilha complementar, comunidade de suporte, aula bônus; serviço/mentoria → sessão extra, material de apoio, acesso a grupo exclusivo.
     },
     {
       "key": "garantia",
       "label": "Garantia",
-      "value": string — GRUPO A: se o usuário informou o prazo real, use diretamente. Se não informou: escrever "Garantia Recomendada: utilizar a garantia mínima exigida pela plataforma (7 dias — conforme CDC)."
+      "value": string — [GRUPO B] SEMPRE GERAR — NUNCA escreva "Não informado" ou deixe vazio. Se o usuário informou o prazo real, use-o diretamente. Se não informou, adapte ao tipo: produto físico → "Garantia Recomendada: 7 a 30 dias para devolução por defeito de fabricação — inclua política de troca clara para aumentar a conversão."; produto digital/curso → "Garantia Recomendada: 7 dias incondicional conforme CDC — principal redutor de objeção de compra na Hotmart."; serviço/mentoria → "Garantia Recomendada: compromisso de entrega das sessões no prazo acordado, com política de reagendamento sem custo."
     },
     {
       "key": "cta",
@@ -253,17 +253,17 @@ function buildPlatformFieldsSpec(platform: string): string {
     {
       "key": "conteudo_produto",
       "label": "Conteúdo do Produto",
-      "value": string — GRUPO B: se o produto for um curso/treinamento digital e o usuário informou os módulos reais, liste-os. Se não informou os módulos de um curso, gere estrutura enxuta e direta baseada no tema, prefixada com "Estrutura Recomendada:\\n". Se o produto for físico, descreva o que é entregue (o que vem na embalagem, como funciona, o que o comprador recebe). Se for serviço, descreva o que é entregue. Nunca gere módulos de curso para produto físico.
+      "value": string — [GRUPO B] SEMPRE GERAR — NUNCA escreva "Não informado". Adapte ao tipo: (a) Curso com módulos informados → liste-os. (b) Curso sem módulos → gere estrutura enxuta prefixada com "Estrutura Recomendada:\\n" (ex: "- Módulo 1: Base\\n- Módulo 2: Aplicação\\n- Módulo 3: Escala"). (c) Produto físico → gere 2 a 4 linhas comerciais descrevendo: como o produto é usado, benefício prático direto, experiência de uso e diferenciais inferidos — NUNCA gere módulos de curso. (d) Serviço → descreva o que será entregue de forma direta e objetiva.
     },
     {
       "key": "bonus",
       "label": "Bônus Recomendados",
-      "value": string — GRUPO B: se o usuário informou os bônus reais, liste-os diretamente. Se não informou, sugira 1 a 2 bônus coerentes com a natureza real do produto, prefixados com "Bônus Recomendados:\\n".
+      "value": string — [GRUPO B] SEMPRE GERAR — NUNCA escreva "Não informado" ou deixe vazio. Se o usuário informou bônus reais, liste-os. Se não informou, gere 1 a 2 bônus prefixados com "Bônus Recomendados:\\n": produto físico → guia de uso, checklist ou material complementar coerente; produto digital → planilha, aula extra ou grupo de suporte; serviço → sessão adicional ou material de apoio.
     },
     {
       "key": "garantia",
       "label": "Garantia",
-      "value": string — GRUPO A: se o usuário informou o prazo real, use diretamente. Se não informou: escrever "Garantia Recomendada: utilizar a garantia mínima exigida pela plataforma (7 dias — conforme CDC)."
+      "value": string — [GRUPO B] SEMPRE GERAR — NUNCA escreva "Não informado" ou deixe vazio. Se o usuário informou o prazo real, use-o. Se não informou, adapte: produto físico → "Garantia Recomendada: 7 a 30 dias para devolução por defeito — inclua política de troca para converter clientes indecisos."; produto digital/curso → "Garantia Recomendada: 7 dias incondicional conforme CDC — essencial na Kiwify para reduzir abandono no checkout."; serviço → "Garantia Recomendada: compromisso de entrega no prazo com reagendamento gratuito."
     },
     {
       "key": "cta",
@@ -845,16 +845,25 @@ ${providedData}
 
 PLATAFORMA: ${platformLabel[platform] ?? "Não especificada"}
 
-CLASSIFICAÇÃO OBRIGATÓRIA ANTES DE GERAR:
-- Dados técnicos que o usuário forneceu: extraia SOMENTE do texto acima
-- Dados técnicos que o usuário NÃO forneceu: marcar como "Não informado" — NUNCA inventar
-- Copy, benefícios de uso e posicionamento: pode criar livremente, desde que não invente especificações
+CLASSIFICAÇÃO DOS CAMPOS — DOIS GRUPOS COM REGRAS DISTINTAS:
+
+GRUPO A — DADOS FACTUAIS (nunca inventar):
+Peso, dimensões, voltagem, certificações, quantidade exata de itens, especificações técnicas numéricas, prazo contratual real de garantia, conteúdo exato de embalagem informado pelo vendedor.
+→ Aplique "Não informado" SOMENTE a campos explicitamente marcados como [GRUPO A] no schema.
+→ Nunca use "Não informado" em campos [GRUPO B].
+
+GRUPO B — CAMPOS ESTRATÉGICOS (sempre gerar, nunca vazio):
+Texto comercial, copy, benefícios, conteúdo do produto, bônus, garantia sugerida, posicionamento, diferenciais.
+→ OBRIGATÓRIO gerar conteúdo real em TODOS os campos [GRUPO B], independentemente do volume de dados fornecidos.
+→ Use: nome do produto, categoria inferida, tipo e plataforma como base.
+→ Produto físico em [GRUPO B]: gere texto sobre aplicação, utilização, benefícios práticos, experiência de uso — nunca converta em estrutura de curso.
+→ Bônus não informados: gere itens coerentes com o produto (guia de uso, checklist, manual, material complementar, garantia estendida sugerida).
+→ Garantia não informada: adapte ao tipo de produto e à política da plataforma — nunca deixe vazio.
 
 NATUREZA DO PRODUTO — REGRA INVIOLÁVEL:
-A plataforma não altera a natureza do produto. Produto físico continua produto físico. Curso continua curso. Mentoria continua mentoria. Comunidade continua comunidade. Assinatura continua assinatura. Adapte o copy e o posicionamento para a plataforma, mas NUNCA converta o produto em outro tipo. Se o produto for físico e a plataforma for Hotmart ou Kiwify, adapte os campos para descrever o produto físico — não gere estrutura de curso.
+A plataforma não altera a natureza do produto. Produto físico continua produto físico. Curso continua curso. Mentoria continua mentoria. Adapte copy e posicionamento, mas NUNCA converta o produto em outro tipo.
 
-REGRA ABSOLUTA: Preencha SOMENTE os campos do schema desta plataforma. Não adicione nenhum campo extra.
-Para campos que exigem dados técnicos não fornecidos pelo usuário: escreva "Não informado" — nunca complete com suposições.
+REGRA ABSOLUTA: Preencha SOMENTE os campos do schema desta plataforma. Não adicione campos extras.
 Responda integralmente em português brasileiro.`;
 
   const MAX_ATTEMPTS = 2;
