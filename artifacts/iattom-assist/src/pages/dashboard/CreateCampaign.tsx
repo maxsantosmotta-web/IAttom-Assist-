@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Megaphone, Loader2, Copy, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Zap, Save, ExternalLink, FileText } from "lucide-react";
+import {
+  Megaphone, Loader2, Copy, AlertCircle, RefreshCw,
+  ChevronDown, ChevronUp, Zap, Save, ExternalLink,
+  FileText, ShoppingCart, ShoppingBag, Flame, Sparkles,
+  Users, Camera, Play, CheckCircle2, ChevronLeft,
+} from "lucide-react";
 import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
 import { getEffectiveProductType, detectIncompatibility, INCOMPATIBILITY_MESSAGES, detectProductTypeMismatch, PRODUCT_TYPE_MISMATCH_MESSAGE } from "@/lib/productPlatformCompatibility";
 import { useSavedItems } from "@/hooks/useSavedItems";
@@ -12,6 +17,130 @@ import { useToast } from "@/hooks/use-toast";
 import { CreditsGate } from "@/components/CreditsGate";
 import { useAiStream } from "@/hooks/useAiStream";
 import type { CampaignResult, CampaignPlatformField, CampaignCreativeBriefing } from "@/types/ai";
+
+// ─── Plataformas oficiais ─────────────────────────────────────────────────────
+interface PlatformDef {
+  key: string;
+  goal: string;
+  name: string;
+  category: string;
+  description: string;
+  focus: string;
+  accent: string;
+  icon: React.ReactNode;
+  modes: Array<{ value: string; label: string; description: string }>;
+}
+
+const PLATFORMS: PlatformDef[] = [
+  {
+    key: "mercado_livre",
+    goal: "Vender no Mercado Livre",
+    name: "Mercado Livre",
+    category: "Marketplace",
+    description: "Venda de produtos físicos com SEO de busca interna.",
+    focus: "Foco em Produto",
+    accent: "#FFE600",
+    icon: <ShoppingCart className="w-5 h-5" />,
+    modes: [
+      { value: "Conversão", label: "Conversão", description: "Otimizado para venda imediata" },
+      { value: "Orgânico", label: "Orgânico", description: "Crescimento via busca natural" },
+    ],
+  },
+  {
+    key: "shopee",
+    goal: "Vender na Shopee",
+    name: "Shopee",
+    category: "Marketplace",
+    description: "Marketplace com foco em volume, preço e palavras-chave.",
+    focus: "Foco em Produto + Palavras-chave",
+    accent: "#EE4D2D",
+    icon: <ShoppingBag className="w-5 h-5" />,
+    modes: [
+      { value: "Conversão", label: "Conversão", description: "Otimizado para venda imediata" },
+      { value: "Orgânico", label: "Orgânico", description: "Crescimento via busca natural" },
+    ],
+  },
+  {
+    key: "hotmart",
+    goal: "Vender na Hotmart",
+    name: "Hotmart",
+    category: "Produto Digital",
+    description: "Página de vendas para cursos, ebooks e infoprodutos.",
+    focus: "Foco em Oferta",
+    accent: "#F04E23",
+    icon: <Flame className="w-5 h-5" />,
+    modes: [
+      { value: "Conversão", label: "Conversão", description: "Oferta direta, venda imediata" },
+      { value: "Premium", label: "Premium", description: "Alto valor percebido, ticket elevado" },
+      { value: "Escala", label: "Escala", description: "Produto validado em expansão" },
+    ],
+  },
+  {
+    key: "kiwify",
+    goal: "Vender na Kiwify",
+    name: "Kiwify",
+    category: "Produto Digital",
+    description: "Checkout simplificado para venda de produtos digitais.",
+    focus: "Foco em Oferta Simplificada",
+    accent: "#7C3AED",
+    icon: <Sparkles className="w-5 h-5" />,
+    modes: [
+      { value: "Conversão", label: "Conversão", description: "Oferta direta, venda imediata" },
+      { value: "Premium", label: "Premium", description: "Alto valor percebido, ticket elevado" },
+      { value: "Escala", label: "Escala", description: "Produto validado em expansão" },
+    ],
+  },
+  {
+    key: "facebook",
+    goal: "Vender no Facebook",
+    name: "Facebook",
+    category: "Rede Social",
+    description: "Anúncios e campanhas de conversão paga no feed.",
+    focus: "Foco em Anúncio",
+    accent: "#1877F2",
+    icon: <Users className="w-5 h-5" />,
+    modes: [
+      { value: "Conversão", label: "Conversão", description: "Anúncio direto para venda" },
+      { value: "Agressivo", label: "Agressivo", description: "Alta pressão, remarketing" },
+      { value: "Escala", label: "Escala", description: "Expansão de campanha validada" },
+      { value: "Premium", label: "Premium", description: "Posicionamento de alto valor" },
+    ],
+  },
+  {
+    key: "instagram",
+    goal: "Vender no Instagram",
+    name: "Instagram",
+    category: "Rede Social",
+    description: "Conteúdo orgânico e relacionamento com audiência.",
+    focus: "Foco em Postagem",
+    accent: "#E1306C",
+    icon: <Camera className="w-5 h-5" />,
+    modes: [
+      { value: "Orgânico", label: "Orgânico", description: "Crescimento natural sem tráfego pago" },
+      { value: "Viral", label: "Viral", description: "Compartilhamento, UGC, alcance" },
+      { value: "Premium", label: "Premium", description: "Posicionamento de alto valor" },
+    ],
+  },
+  {
+    key: "tiktok",
+    goal: "Vender no TikTok",
+    name: "TikTok",
+    category: "Vídeo Curto",
+    description: "Vídeos virais para alcance orgânico e conversão.",
+    focus: "Foco em Vídeo",
+    accent: "#69C9D0",
+    icon: <Play className="w-5 h-5" />,
+    modes: [
+      { value: "Viral", label: "Viral", description: "Conteúdo compartilhável, UGC" },
+      { value: "Conversão", label: "Conversão", description: "Venda direta via vídeo" },
+      { value: "UGC", label: "UGC", description: "User Generated Content autêntico" },
+    ],
+  },
+];
+
+function getPlatformByGoal(goal: string): PlatformDef | undefined {
+  return PLATFORMS.find((p) => p.goal === goal);
+}
 
 // ─── Briefing labels ──────────────────────────────────────────────────────────
 const BRIEFING_LABELS: Record<string, string> = {
@@ -28,12 +157,11 @@ const BRIEFING_LABELS: Record<string, string> = {
   restricoes: "Restrições",
 };
 
-// ─── Publicação assistida por plataforma ─────────────────────────────────────
+// ─── Publicação assistida — máx. 5 passos ────────────────────────────────────
 interface PlatformGuide {
   name: string;
   url: string;
   steps: string[];
-  note: string;
 }
 
 function getPlatformGuide(platform: string | undefined, fields: CampaignPlatformField[]): PlatformGuide | null {
@@ -46,17 +174,12 @@ function getPlatformGuide(platform: string | undefined, fields: CampaignPlatform
         name: "Mercado Livre",
         url: "https://www.mercadolivre.com.br",
         steps: [
-          "Acesse mercadolivre.com.br e faça login como vendedor",
-          "Vá em Meus Anúncios → Criar anúncio",
-          `Cole o Título do Anúncio gerado: "${get("titulo").slice(0, 60)}"`,
-          "Selecione a Categoria Sugerida no campo de categoria",
-          "Preencha as Características Técnicas nos atributos do produto",
+          "Acesse mercadolivre.com.br → Meus Anúncios → Criar anúncio",
+          `Cole o Título gerado (campo obrigatório): "${get("titulo").slice(0, 60)}"`,
+          "Selecione a Categoria Sugerida e preencha os atributos com as Características Técnicas",
           "Cole a Descrição Completa no campo de descrição do anúncio",
-          "Adicione as Perguntas Frequentes via Central do Vendedor → FAQ",
-          "Configure Produto Patrocinado em Publicidade para mais visibilidade",
-          "Monitore visitas e conversões em Central do Vendedor → Meus Anúncios",
+          "Revise preço, fotos e publique",
         ],
-        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
       };
 
     case "shopee":
@@ -64,17 +187,12 @@ function getPlatformGuide(platform: string | undefined, fields: CampaignPlatform
         name: "Shopee",
         url: "https://seller.shopee.com.br",
         steps: [
-          "Acesse seller.shopee.com.br e faça login no Seller Centre",
-          "Vá em Meus Produtos → Adicionar novo produto",
-          `Cole o Nome do Anúncio gerado: "${get("nome_anuncio").slice(0, 120)}"`,
+          "Acesse seller.shopee.com.br → Meus Produtos → Adicionar produto",
+          `Cole o Nome do Anúncio: "${get("nome_anuncio").slice(0, 80)}"`,
           "Selecione a Categoria Sugerida",
-          "Cole a Descrição do Produto no campo de descrição",
-          "Adicione as Palavras-chave de Busca nas tags do produto",
-          "Configure as variações sugeridas se aplicável",
-          "Ative Oferta Relâmpago e configure cupons em Marketing → Vouchers",
-          "Acompanhe performance em Análise de Dados → Produtos",
+          "Cole a Descrição do Produto e adicione as Palavras-chave nas tags",
+          "Configure variações, preço e publique",
         ],
-        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
       };
 
     case "hotmart":
@@ -82,19 +200,12 @@ function getPlatformGuide(platform: string | undefined, fields: CampaignPlatform
         name: "Hotmart",
         url: "https://app.hotmart.com",
         steps: [
-          "Acesse app.hotmart.com e faça login",
-          "Vá em Meus Produtos → selecione o produto → Página de Vendas",
-          `Defina o Nome do Produto: "${get("nome_produto")}"`,
+          "Acesse app.hotmart.com → Meus Produtos → Página de Vendas",
           `Cole a Headline: "${get("headline").slice(0, 80)}"`,
-          "Cole a Descrição Completa no corpo da página de vendas",
-          "Adicione os Benefícios em lista de checkmarks",
-          "Adicione o Conteúdo do Produto na seção 'O que está incluso'",
-          "Configure os Bônus na seção de bônus",
-          `Configure a Garantia: "${get("garantia").slice(0, 80)}"`,
-          `Configure o botão de compra com o CTA: "${get("cta")}"`,
-          "Ative o Programa de Afiliados em Afiliados → Configurações",
+          "Cole a Descrição Completa e os Benefícios no corpo da página",
+          "Configure Bônus, Garantia e o botão de compra com o CTA gerado",
+          "Revise e publique a página de vendas",
         ],
-        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
       };
 
     case "kiwify":
@@ -102,36 +213,25 @@ function getPlatformGuide(platform: string | undefined, fields: CampaignPlatform
         name: "Kiwify",
         url: "https://app.kiwify.com.br",
         steps: [
-          "Acesse app.kiwify.com.br e faça login",
-          "Selecione o produto → Configurações → Página de Vendas",
-          `Defina o Nome do Produto: "${get("nome_produto")}"`,
+          "Acesse app.kiwify.com.br → Produto → Página de Vendas",
           `Cole a Headline: "${get("headline").slice(0, 80)}"`,
-          "Cole a Descrição Completa no corpo da página",
-          "Configure os Benefícios em lista",
-          "Adicione os Bônus na seção correspondente",
-          `Configure a Garantia: "${get("garantia").slice(0, 80)}"`,
-          `Configure o botão de compra: "${get("cta")}"`,
-          "Ative o Programa de Afiliados",
+          "Cole a Descrição Completa e os Benefícios",
+          "Configure Bônus, Garantia e o botão de compra com o CTA gerado",
+          "Revise e publique",
         ],
-        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
       };
 
     case "facebook":
       return {
-        name: "Facebook",
+        name: "Facebook / Meta Ads",
         url: "https://www.facebook.com",
         steps: [
-          "Acesse sua página no Facebook → Criar publicação",
-          "Cole o Texto Principal no campo de publicação",
-          "Para anúncio: acesse Meta Ads Manager → Criar anúncio",
-          `Use a Headline "${get("headline")}" no campo de título do anúncio`,
-          `Configure a Descrição Curta "${get("descricao_curta")}" no campo descrição`,
-          `Selecione o botão de CTA: "${get("cta")}"`,
-          "Crie o criativo conforme a Sugestão de Criativo gerada",
-          "Configure público-alvo, orçamento e veiculação",
-          "Monitore resultados em Meta Ads Manager → Relatórios",
+          "Acesse Meta Ads Manager → Criar anúncio",
+          "Cole o Texto Principal no campo de copy do anúncio",
+          `Use a Headline "${get("headline")}" e a Descrição Curta "${get("descricao_curta")}"`,
+          `Configure o botão CTA: "${get("cta")}" e adicione o criativo sugerido`,
+          "Configure público, orçamento e publique",
         ],
-        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
       };
 
     case "instagram":
@@ -139,17 +239,12 @@ function getPlatformGuide(platform: string | undefined, fields: CampaignPlatform
         name: "Instagram",
         url: "https://www.instagram.com",
         steps: [
-          "Abra o Instagram → toque em + → Nova publicação ou Reel",
-          "Escolha o formato conforme a Sugestão de Criativo gerada",
-          `Use a Primeira Frase como abertura: "${get("primeira_frase").slice(0, 90)}"`,
-          "Cole a Legenda completa no campo de legenda",
-          "Adicione as Hashtags no final da legenda ou no primeiro comentário",
-          `Finalize com o CTA: "${get("cta")}"`,
-          "Para Stories: use o CTA como sticker de link ou caixa de pergunta",
-          "Publique entre 18h e 21h para maior alcance orgânico",
-          "Acompanhe os Insights após 24h",
+          "Abra o Instagram → + → Nova publicação ou Reel",
+          "Escolha o formato conforme a Sugestão de Criativo",
+          `Cole a Primeira Frase de Impacto como abertura: "${get("primeira_frase").slice(0, 90)}"`,
+          "Cole a Legenda completa com as Hashtags ao final",
+          "Publique e monitore os Insights após 24h",
         ],
-        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
       };
 
     case "tiktok":
@@ -157,17 +252,12 @@ function getPlatformGuide(platform: string | undefined, fields: CampaignPlatform
         name: "TikTok",
         url: "https://www.tiktok.com",
         steps: [
-          "Abra o TikTok → toque em + → gravar ou importar vídeo",
+          "Abra o TikTok → + → Gravar ou importar vídeo",
           `Comece com o Gancho nos primeiros 2 segundos: "${get("gancho").slice(0, 80)}"`,
-          "Siga o Roteiro gerado para o desenvolvimento do vídeo",
-          "Adicione legendas em tela com o texto-chave do roteiro",
-          "Cole a Legenda gerada no campo de legenda do vídeo",
-          "Adicione as Hashtags na legenda",
-          `Finalize com o CTA: "${get("cta")}"`,
-          "Configure o som conforme a Sugestão de Criativo",
+          "Siga o Roteiro gerado para o desenvolvimento e CTA final",
+          "Cole a Legenda gerada e adicione as Hashtags",
           "Publique e monitore retenção nos primeiros 30 minutos",
         ],
-        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
       };
 
     default:
@@ -181,7 +271,6 @@ function isCampaignComplete(r: CampaignResult | null): r is CampaignResult {
   if (r.platformFields && r.platformFields.length > 0) {
     return r.platformFields.some((f) => f.value?.trim());
   }
-  // legacy check
   return !!(r.headline?.trim() && r.audience?.trim());
 }
 
@@ -213,7 +302,80 @@ function applyRefinedContent(prev: CampaignResult | null, blockId: string, conte
   }
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── Platform card ────────────────────────────────────────────────────────────
+function PlatformCard({
+  platform, selected, onClick,
+}: {
+  platform: PlatformDef; selected: boolean; onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`relative w-full text-left rounded-xl border transition-all duration-200 p-4 group overflow-hidden ${
+        selected
+          ? "border-primary/60 bg-primary/[0.06] shadow-[0_0_0_1px_rgba(201,168,76,0.3)]"
+          : "border-white/[0.06] bg-[#0d0d0d] hover:border-white/[0.12] hover:bg-[#121212]"
+      }`}
+    >
+      {selected && (
+        <div className="absolute top-2.5 right-2.5">
+          <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+        </div>
+      )}
+      <div className="flex items-start gap-3">
+        <div
+          className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+          style={{ backgroundColor: `${platform.accent}18`, color: platform.accent }}
+        >
+          {platform.icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+            <p className={`text-sm font-semibold leading-tight ${selected ? "text-primary" : "text-white"}`}>
+              {platform.name}
+            </p>
+            <span
+              className="text-[10px] px-1.5 py-0.5 rounded font-medium"
+              style={{ backgroundColor: `${platform.accent}18`, color: platform.accent }}
+            >
+              {platform.category}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground/70 leading-snug">{platform.description}</p>
+          <p className="text-[10px] text-muted-foreground/40 mt-1 uppercase tracking-widest">{platform.focus}</p>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+// ─── Mode selector ────────────────────────────────────────────────────────────
+function ModeSelector({
+  modes, selected, onSelect,
+}: {
+  modes: PlatformDef["modes"]; selected: string; onSelect: (v: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {modes.map((m) => (
+        <button
+          key={m.value}
+          onClick={() => onSelect(m.value)}
+          title={m.description}
+          className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
+            selected === m.value
+              ? "border-primary/60 bg-primary/10 text-primary font-medium"
+              : "border-white/[0.06] bg-[#0d0d0d] text-muted-foreground/70 hover:border-white/[0.12] hover:text-white"
+          }`}
+        >
+          {m.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── Refine bar ───────────────────────────────────────────────────────────────
 function RefineBar({
   blockId: _blockId, value, onChange, onRefine, isRefining, disabled,
 }: {
@@ -242,6 +404,7 @@ function RefineBar({
   );
 }
 
+// ─── Platform field block ─────────────────────────────────────────────────────
 function PlatformFieldBlock({
   field, refineInput, onRefineChange, onRefine, isRefining, disabled,
 }: {
@@ -293,10 +456,10 @@ function PlatformFieldBlock({
   );
 }
 
+// ─── Briefing criativo colapsável ─────────────────────────────────────────────
 function CreativeBriefingBlock({ briefing }: { briefing: CampaignCreativeBriefing }) {
   const [expanded, setExpanded] = useState(false);
   const { toast } = useToast();
-
   const entries = Object.entries(briefing).filter(([, v]) => v?.trim());
 
   const copyAll = () => {
@@ -315,17 +478,12 @@ function CreativeBriefingBlock({ briefing }: { briefing: CampaignCreativeBriefin
           <FileText className="w-3.5 h-3.5 text-muted-foreground/60" />
           <p className="text-[11px] text-muted-foreground/60 uppercase tracking-widest font-medium">Briefing Criativo</p>
         </div>
-        {expanded
-          ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground/60" />
-          : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/60" />}
+        {expanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground/60" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/60" />}
       </button>
       {expanded && (
         <div className="border-t border-white/[0.05] px-4 pb-4 pt-3 space-y-3">
           <div className="flex justify-end">
-            <button
-              onClick={copyAll}
-              className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1"
-            >
+            <button onClick={copyAll} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
               <Copy className="w-3 h-3" /> Copiar tudo
             </button>
           </div>
@@ -347,6 +505,7 @@ function CreativeBriefingBlock({ briefing }: { briefing: CampaignCreativeBriefin
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export function CreateCampaign() {
+  const [step, setStep] = useState<"platform" | "form">("platform");
   const [product, setProduct] = useState("");
   const [audience, setAudience] = useState("");
   const [goal, setGoal] = useState("");
@@ -370,9 +529,7 @@ export function CreateCampaign() {
         credentials: "include",
       }).catch(() => {});
     }
-    if (status === "idle" || status === "generating") {
-      refundCalledRef.current = false;
-    }
+    if (status === "idle" || status === "generating") refundCalledRef.current = false;
   }, [status]);
 
   const [isSaving, setIsSaving] = useState(false);
@@ -385,6 +542,15 @@ export function CreateCampaign() {
   const isDone = status === "done";
   const isError = status === "error";
 
+  const currentPlatform = getPlatformByGoal(goal);
+
+  // Reset mode when platform changes
+  useEffect(() => {
+    if (currentPlatform && currentPlatform.modes.length > 0) {
+      setMode(currentPlatform.modes[0].value);
+    }
+  }, [goal]);
+
   // Prefill from other modules
   useEffect(() => {
     try {
@@ -393,7 +559,7 @@ export function CreateCampaign() {
       sessionStorage.removeItem("iattom_campaign_prefill");
       const prefill = JSON.parse(raw) as { product?: string; goal?: string };
       if (prefill.product) setProduct(prefill.product);
-      if (prefill.goal) setGoal(prefill.goal);
+      if (prefill.goal) { setGoal(prefill.goal); setStep("form"); }
     } catch {}
   }, []);
 
@@ -408,14 +574,11 @@ export function CreateCampaign() {
         result?: CampaignResult;
       };
       if (saved.briefing?.product) setProduct(saved.briefing.product);
-      if (saved.briefing?.goal) setGoal(saved.briefing.goal);
+      if (saved.briefing?.goal) { setGoal(saved.briefing.goal); setStep("form"); }
       if (saved.briefing?.mode) setMode(saved.briefing.mode);
       if (saved.briefing?.audience) setAudience(saved.briefing.audience);
       if (saved.briefing?.productType) setProductType(saved.briefing.productType);
-      if (saved.result) {
-        setCampaignData(saved.result);
-        setIsRestored(true);
-      }
+      if (saved.result) { setCampaignData(saved.result); setIsRestored(true); }
     } catch {}
   }, []);
 
@@ -425,6 +588,15 @@ export function CreateCampaign() {
     setRefineInputs({});
     setRefiningBlock(null);
     setIsRestored(false);
+    setStep("platform");
+    setGoal("");
+    setMode("");
+  };
+
+  const selectPlatform = (platform: PlatformDef) => {
+    setGoal(platform.goal);
+    setMode(platform.modes[0].value);
+    setStep("form");
   };
 
   const incompatibility = detectIncompatibility(getEffectiveProductType(product, productType || null), goal);
@@ -433,16 +605,10 @@ export function CreateCampaign() {
   const runGenerate = (charge: () => void) => {
     if (isGenerating || !goal) return;
     generate("/api/ai/create-campaign", {
-      product,
-      audience: audience || undefined,
-      goal: goal || undefined,
-      mode: mode || undefined,
-      productType: productType || undefined,
+      product, audience: audience || undefined, goal: goal || undefined,
+      mode: mode || undefined, productType: productType || undefined,
     }).then((res) => {
-      if (res !== null) {
-        charge();
-        setCampaignData(res);
-      }
+      if (res !== null) { charge(); setCampaignData(res); }
     });
   };
 
@@ -471,10 +637,7 @@ export function CreateCampaign() {
       setCampaignData((prev) => applyRefinedContent(prev, blockId, data.refinedContent));
       setRefineInputs((prev) => ({ ...prev, [blockId]: "" }));
     } catch (err) {
-      toast({
-        description: err instanceof Error ? err.message : "Erro ao refinar campo",
-        variant: "destructive",
-      });
+      toast({ description: err instanceof Error ? err.message : "Erro ao refinar campo", variant: "destructive" });
     } finally {
       setRefiningBlock(null);
     }
@@ -483,29 +646,21 @@ export function CreateCampaign() {
   const handleSave = async () => {
     if (!campaignData || isSaving) return;
     const title = product.trim()
-      ? `${product.trim()}${goal ? ` — ${goal}` : ""}`
+      ? `${product.trim()}${goal ? ` — ${currentPlatform?.name ?? goal}` : ""}`
       : (campaignData.platformFields?.[0]?.value?.slice(0, 60) ?? campaignData.headline ?? "Campanha");
     const platform = campaignData.platform;
-
     const lines: string[] = [];
     if (campaignData.platformFields && campaignData.platformFields.length > 0) {
-      lines.push(`ENTREGA — ${goal || product.trim()}`);
+      lines.push(`ENTREGA — ${currentPlatform?.name ?? goal}`);
       if (product.trim()) lines.push(`Produto: ${product.trim()}`);
       lines.push("");
-      campaignData.platformFields.forEach((f) => {
-        lines.push(`${f.label.toUpperCase()}:`);
-        lines.push(f.value);
-        lines.push("");
-      });
+      campaignData.platformFields.forEach((f) => { lines.push(`${f.label.toUpperCase()}:`); lines.push(f.value); lines.push(""); });
     } else {
       lines.push(`CAMPANHA: ${campaignData.headline}`);
       if (campaignData.audience) lines.push(`Público: ${campaignData.audience}`);
     }
     const content = lines.join("\n");
-    const structuredData = JSON.stringify({
-      briefing: { product: product.trim(), goal, mode, audience, productType },
-      result: campaignData,
-    });
+    const structuredData = JSON.stringify({ briefing: { product: product.trim(), goal, mode, audience, productType }, result: campaignData });
     const projectId = crypto.randomUUID();
     try {
       const raw = localStorage.getItem("iattom_saved_items_v1");
@@ -517,11 +672,8 @@ export function CreateCampaign() {
     try {
       await saveItem({ id: projectId, title, type: "campaign", platform, content, data: structuredData, hasImages: false });
       toast({ description: "Projeto salvo em Projetos Salvos." });
-    } catch {
-      toast({ description: "Erro ao salvar. Tente novamente.", variant: "destructive" });
-    } finally {
-      setIsSaving(false);
-    }
+    } catch { toast({ description: "Erro ao salvar. Tente novamente.", variant: "destructive" }); }
+    finally { setIsSaving(false); }
   };
 
   const showResult = (isDone || isRestored) && isCampaignComplete(campaignData);
@@ -534,7 +686,13 @@ export function CreateCampaign() {
         <div>
           <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Entrega por Plataforma</p>
           <h2 className="text-2xl font-bold text-white mb-1">Criar Campanha</h2>
-          <p className="text-muted-foreground text-sm">Escolha a plataforma. A IA gera exatamente os campos que você precisa — na ordem de copiar e colar.</p>
+          <p className="text-muted-foreground text-sm">
+            {step === "platform"
+              ? "Escolha a plataforma. A IA gera exatamente os campos que você precisa — na ordem de copiar e colar."
+              : currentPlatform
+              ? `${currentPlatform.name} — ${currentPlatform.focus}`
+              : "Configure e gere sua entrega."}
+          </p>
         </div>
         <Button size="sm" variant="outline" onClick={() => void refetchCredits()} disabled={fetchingCredits} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
           <RefreshCw className={`w-3.5 h-3.5 ${fetchingCredits ? "animate-spin" : ""}`} />
@@ -544,7 +702,7 @@ export function CreateCampaign() {
 
       {/* Restored banner */}
       {isRestored && campaignData && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-primary/5 border border-primary/20">
             <div className="flex items-center gap-2.5">
               <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
@@ -557,140 +715,149 @@ export function CreateCampaign() {
         </motion.div>
       )}
 
-      {/* Form */}
-      {!(isRestored && campaignData) && (
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
-          <Card className="bg-[#111111] border-white/5">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base font-semibold text-white">Dados da Entrega</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
+      <AnimatePresence mode="wait">
+
+        {/* ── STEP 1: Seleção de plataforma ── */}
+        {!isRestored && step === "platform" && (
+          <motion.div key="platform-select" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {PLATFORMS.map((platform) => (
+                <PlatformCard
+                  key={platform.key}
+                  platform={platform}
+                  selected={goal === platform.goal}
+                  onClick={() => selectPlatform(platform)}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── STEP 2: Formulário ── */}
+        {!isRestored && step === "form" && !showResult && !isGenerating && !isError && (
+          <motion.div key="form" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+            <Card className="bg-[#111111] border-white/5">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {currentPlatform && (
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                        style={{ backgroundColor: `${currentPlatform.accent}18`, color: currentPlatform.accent }}
+                      >
+                        {currentPlatform.icon}
+                      </div>
+                    )}
+                    <div>
+                      <CardTitle className="text-base font-semibold text-white">
+                        {currentPlatform?.name ?? "Plataforma"}
+                      </CardTitle>
+                      {currentPlatform && (
+                        <p className="text-[11px] text-muted-foreground/60 uppercase tracking-widest">{currentPlatform.focus}</p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setStep("platform")}
+                    className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" /> Trocar plataforma
+                  </button>
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                {/* Produto + Tipo */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm text-muted-foreground">Produto / Marca <span className="text-red-400">*</span></Label>
+                    <Input
+                      placeholder="ex: Garrafa HydroElite, Curso de Excel, Consultoria de Tráfego"
+                      className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50"
+                      value={product}
+                      onChange={(e) => setProduct(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm text-muted-foreground">Tipo de Produto</Label>
+                    <select
+                      value={productType}
+                      onChange={(e) => setProductType(e.target.value)}
+                      className="w-full h-9 rounded-md border border-white/10 bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    >
+                      <option value="">Selecionar tipo (opcional)</option>
+                      <option value="Digital">Digital — curso, ebook, software, assinatura</option>
+                      <option value="Físico">Físico — roupas, eletrônicos, suplementos</option>
+                      <option value="Serviço">Serviço — consultoria, mentoria, agência</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Modo — filtrado por plataforma */}
+                {currentPlatform && currentPlatform.modes.length > 1 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Modo da Entrega</Label>
+                    <ModeSelector
+                      modes={currentPlatform.modes}
+                      selected={mode}
+                      onSelect={setMode}
+                    />
+                    {mode && (
+                      <p className="text-xs text-muted-foreground/50">
+                        {currentPlatform.modes.find((m) => m.value === mode)?.description}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Público-alvo */}
                 <div className="space-y-1.5">
-                  <Label className="text-sm text-muted-foreground">Produto / Marca</Label>
+                  <Label className="text-sm text-muted-foreground">Público-alvo (opcional)</Label>
                   <Input
-                    placeholder="ex: Garrafa HydroElite, Curso de Excel, Consultoria de Tráfego"
+                    placeholder="ex: Mulheres 25-40 interessadas em bem-estar, atletas amadores"
                     className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50"
-                    value={product}
-                    onChange={(e) => setProduct(e.target.value)}
+                    value={audience}
+                    onChange={(e) => setAudience(e.target.value)}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm text-muted-foreground">
-                    Plataforma de Destino <span className="text-red-400">*</span>
-                  </Label>
-                  <select
-                    value={goal}
-                    onChange={(e) => setGoal(e.target.value)}
-                    className={`w-full h-9 rounded-md border bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0 transition-colors ${product.trim() && !goal ? "border-amber-500/40" : "border-white/10"}`}
-                  >
-                    <option value="" disabled>Selecionar plataforma</option>
-                    <optgroup label="Marketplaces">
-                      <option value="Vender no Mercado Livre">Mercado Livre</option>
-                      <option value="Vender na Shopee">Shopee</option>
-                    </optgroup>
-                    <optgroup label="Produtos Digitais">
-                      <option value="Vender na Hotmart">Hotmart</option>
-                      <option value="Vender na Kiwify">Kiwify</option>
-                    </optgroup>
-                    <optgroup label="Redes Sociais">
-                      <option value="Vender no Facebook">Facebook</option>
-                      <option value="Vender no Instagram">Instagram</option>
-                      <option value="Vender no TikTok">TikTok</option>
-                    </optgroup>
-                  </select>
-                </div>
-              </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-sm text-muted-foreground">Tipo de Produto</Label>
-                  <select
-                    value={productType}
-                    onChange={(e) => setProductType(e.target.value)}
-                    className="w-full h-9 rounded-md border border-white/10 bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0"
-                  >
-                    <option value="">Selecionar tipo (opcional)</option>
-                    <option value="Digital">Digital — curso, ebook, software, assinatura</option>
-                    <option value="Físico">Físico — roupas, eletrônicos, suplementos</option>
-                    <option value="Serviço">Serviço — consultoria, mentoria, agência</option>
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm text-muted-foreground">Modo da Campanha</Label>
-                  <select
-                    value={mode}
-                    onChange={(e) => setMode(e.target.value)}
-                    className="w-full h-9 rounded-md border border-white/10 bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0"
-                  >
-                    <option value="">Padrão (Conversão)</option>
-                    <option value="Orgânico">Orgânico — sem tráfego pago</option>
-                    <option value="Iniciante">Iniciante — primeiras vendas</option>
-                    <option value="Conversão">Conversão — venda imediata</option>
-                    <option value="Viral">Viral — UGC, compartilhamento</option>
-                    <option value="Agressivo">Agressivo — alta pressão, remarketing</option>
-                    <option value="Premium">Premium — posicionamento de alto valor</option>
-                    <option value="Escala">Escala — produto validado em expansão</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-sm text-muted-foreground">Público-alvo (opcional)</Label>
-                <Input
-                  placeholder="ex: Mulheres 25-40 interessadas em bem-estar, atletas amadores"
-                  className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50"
-                  value={audience}
-                  onChange={(e) => setAudience(e.target.value)}
-                />
-              </div>
-
-              {/* Alerts */}
-              {incompatibility && (
-                <div className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/[0.07] px-3.5 py-3">
-                  <span className="text-red-400 text-sm leading-none mt-0.5">!</span>
-                  <p className="text-xs text-red-300/90 leading-relaxed">{INCOMPATIBILITY_MESSAGES[incompatibility]}</p>
-                </div>
-              )}
-              {typeMismatch && (
-                <div className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/[0.07] px-3.5 py-3">
-                  <span className="text-red-400 text-sm leading-none mt-0.5">!</span>
-                  <p className="text-xs text-red-300/90 leading-relaxed">{PRODUCT_TYPE_MISMATCH_MESSAGE}</p>
-                </div>
-              )}
-              {product.trim() && !goal && (
-                <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/[0.06] px-3.5 py-3">
-                  <span className="text-amber-400 text-sm leading-none mt-0.5">!</span>
-                  <p className="text-xs text-amber-300/90 leading-relaxed">
-                    Selecione a plataforma de destino antes de gerar.
-                  </p>
-                </div>
-              )}
-
-              <CreditsGate
-                feature="campaign"
-                onSuccess={runGenerate}
-                disabled={!product.trim() || !goal || isGenerating || incompatibility !== null || typeMismatch}
-              >
-                {({ trigger, isLoading }) => (
-                  <Button
-                    onClick={trigger}
-                    disabled={isLoading || isGenerating || !product.trim() || !goal || incompatibility !== null || typeMismatch}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 w-full disabled:opacity-40"
-                  >
-                    {isLoading || isGenerating ? (
-                      <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Gerando entrega...</>
-                    ) : "Gerar Entrega"}
-                  </Button>
+                {/* Alerts */}
+                {incompatibility && (
+                  <div className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/[0.07] px-3.5 py-3">
+                    <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                    <p className="text-xs text-red-300/90 leading-relaxed">{INCOMPATIBILITY_MESSAGES[incompatibility]}</p>
+                  </div>
                 )}
-              </CreditsGate>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
+                {typeMismatch && (
+                  <div className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/[0.07] px-3.5 py-3">
+                    <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                    <p className="text-xs text-red-300/90 leading-relaxed">{PRODUCT_TYPE_MISMATCH_MESSAGE}</p>
+                  </div>
+                )}
 
-      {/* States */}
-      <AnimatePresence mode="wait">
+                <CreditsGate
+                  feature="campaign"
+                  onSuccess={runGenerate}
+                  disabled={!product.trim() || isGenerating || incompatibility !== null || typeMismatch}
+                >
+                  {({ trigger, isLoading }) => (
+                    <Button
+                      onClick={trigger}
+                      disabled={isLoading || isGenerating || !product.trim() || incompatibility !== null || typeMismatch}
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 w-full disabled:opacity-40"
+                    >
+                      {isLoading || isGenerating
+                        ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Gerando entrega...</>
+                        : `Gerar Entrega para ${currentPlatform?.name ?? "Plataforma"}`}
+                    </Button>
+                  )}
+                </CreditsGate>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* ── Generating ── */}
         {isGenerating && (
           <motion.div key="generating" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="flex items-center gap-3 text-muted-foreground mb-5">
@@ -699,7 +866,7 @@ export function CreateCampaign() {
                   <span key={i} className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                 ))}
               </div>
-              <span className="text-sm">Gerando campos para {goal?.replace("Vender n", "").replace("Vender no", "").replace("Vender na", "").trim() ?? "a plataforma"}...</span>
+              <span className="text-sm">Gerando campos para {currentPlatform?.name ?? "plataforma"}...</span>
             </div>
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -709,6 +876,7 @@ export function CreateCampaign() {
           </motion.div>
         )}
 
+        {/* ── Error ── */}
         {isError && (
           <motion.div key="error" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
             <Card className="bg-red-950/20 border-red-500/20">
@@ -718,7 +886,7 @@ export function CreateCampaign() {
                   <p className="text-sm font-semibold text-red-400">Falha na geração</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{error ?? "Não foi possível gerar a entrega. Tente novamente."}</p>
                 </div>
-                <Button size="sm" variant="outline" onClick={handleReset} className="border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0">
+                <Button size="sm" variant="outline" onClick={() => { reset(); }} className="border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0">
                   <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Tentar novamente
                 </Button>
               </CardContent>
@@ -726,28 +894,36 @@ export function CreateCampaign() {
           </motion.div>
         )}
 
+        {/* ── Result ── */}
         {showResult && campaignData && (
           <motion.div key="result" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="space-y-4">
             <Card className="bg-[#111111] border-primary/20">
               <CardHeader className="pb-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Megaphone className="w-4 h-4 text-primary shrink-0" />
-                  <CardTitle className="text-base text-white">
-                    {goal?.replace("Vender n", "").replace("Vender no ", "").replace("Vender na ", "").trim() ?? "Entrega"}
-                    {product.trim() ? ` — ${product.trim()}` : ""}
-                  </CardTitle>
-                  <div className="ml-auto flex items-center gap-3">
-                    <button
-                      onClick={handleSave}
-                      disabled={isSaving}
-                      className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                <div className="flex items-center gap-3 flex-wrap">
+                  {currentPlatform && (
+                    <div
+                      className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: `${currentPlatform.accent}18`, color: currentPlatform.accent }}
                     >
+                      {currentPlatform.icon}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-base text-white truncate">
+                      {currentPlatform?.name ?? "Entrega"}
+                      {product.trim() ? ` — ${product.trim()}` : ""}
+                    </CardTitle>
+                    {mode && (
+                      <p className="text-[11px] text-muted-foreground/50 uppercase tracking-widest">
+                        {currentPlatform?.focus ?? ""}{mode ? ` · ${mode}` : ""}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 ml-auto">
+                    <button onClick={handleSave} disabled={isSaving} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5 disabled:opacity-50">
                       <Save className="w-3 h-3" /> {isSaving ? "Salvando..." : "Salvar"}
                     </button>
-                    <button
-                      onClick={handleReset}
-                      className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"
-                    >
+                    <button onClick={handleReset} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5">
                       <RefreshCw className="w-3 h-3" /> Nova entrega
                     </button>
                   </div>
@@ -755,7 +931,7 @@ export function CreateCampaign() {
               </CardHeader>
 
               <CardContent className="space-y-4">
-                {/* ── NOVA ARQUITETURA: Campos por plataforma ── */}
+                {/* ── Campos por plataforma ── */}
                 {hasPlatformFields && campaignData.platformFields && (
                   <>
                     <div className="flex items-center gap-2 pb-1 border-b border-white/[0.05]">
@@ -781,14 +957,14 @@ export function CreateCampaign() {
                       })}
                     </div>
 
-                    {/* Briefing criativo — colapsável, discreto */}
+                    {/* Briefing criativo colapsável */}
                     {campaignData.creativeBriefing && (
                       <CreativeBriefingBlock briefing={campaignData.creativeBriefing} />
                     )}
                   </>
                 )}
 
-                {/* ── FALLBACK LEGADO — saves antigos sem platformFields ── */}
+                {/* ── Fallback legado ── */}
                 {!hasPlatformFields && (
                   <div className="space-y-3">
                     <div className="p-4 rounded-lg bg-primary/5 border border-primary/15">
@@ -803,23 +979,10 @@ export function CreateCampaign() {
                         <p className="text-sm text-white">{campaignData.audience}</p>
                       </div>
                     )}
-                    {campaignData.keyMessages?.length > 0 && (
-                      <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-3">
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">Mensagens-chave</p>
-                        <div className="space-y-1.5">
-                          {campaignData.keyMessages.map((msg, i) => (
-                            <div key={i} className="flex items-start gap-2">
-                              <span className="text-primary font-bold text-xs mt-0.5 shrink-0">{i + 1}</span>
-                              <p className="text-xs text-muted-foreground">{msg}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
 
-                {/* Publicação assistida */}
+                {/* ── Publicação Assistida — máx 5 passos ── */}
                 {hasPlatformFields && campaignData.platformFields && (() => {
                   const guide = getPlatformGuide(campaignData.platform, campaignData.platformFields);
                   if (!guide) return null;
@@ -836,7 +999,7 @@ export function CreateCampaign() {
                           <ExternalLink className="w-3 h-3" /> Abrir {guide.name}
                         </a>
                       </div>
-                      <div className="bg-[#0a0a0a] border border-primary/10 rounded-lg p-4">
+                      <div className="bg-[#0a0a0a] border border-primary/10 rounded-lg px-4 py-3">
                         <ol className="space-y-2">
                           {guide.steps.map((step, i) => (
                             <li key={i} className="flex items-start gap-2.5">
@@ -845,7 +1008,6 @@ export function CreateCampaign() {
                             </li>
                           ))}
                         </ol>
-                        <p className="text-xs text-muted-foreground/40 italic border-t border-white/5 pt-2 mt-3">{guide.note}</p>
                       </div>
                     </div>
                   );
@@ -855,6 +1017,7 @@ export function CreateCampaign() {
             </Card>
           </motion.div>
         )}
+
       </AnimatePresence>
     </div>
   );
