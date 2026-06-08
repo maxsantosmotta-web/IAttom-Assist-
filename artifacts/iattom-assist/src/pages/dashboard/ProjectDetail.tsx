@@ -20,14 +20,15 @@ import type {
 
 const BRIEFING_LABELS_PD: Record<string, string> = {
   produto: "Produto",
-  objetivo: "Objetivo",
   plataforma: "Plataforma",
-  publico: "Público-alvo",
+  tipo_produto: "Tipo de Produto",
+  objetivo: "Objetivo",
   promessa: "Promessa de Valor",
   dor: "Dor Principal",
   beneficio: "Benefício Principal",
   tom: "Tom de Voz",
   cta: "CTA Principal",
+  ideia_visual: "Ideia Visual",
   restricoes: "Restrições",
 };
 

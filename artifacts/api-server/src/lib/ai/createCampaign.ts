@@ -21,14 +21,15 @@ interface CampaignPlatformField {
 
 interface CampaignCreativeBriefing {
   produto: string;
-  objetivo: string;
   plataforma: string;
-  publico: string;
+  tipo_produto: string;
+  objetivo: string;
   promessa: string;
   dor: string;
   beneficio: string;
   tom: string;
   cta: string;
+  ideia_visual: string;
   restricoes: string;
 }
 
@@ -64,13 +65,6 @@ function isPhysicalProduct(name: string): boolean {
   return BACKEND_PHYSICAL_KEYWORDS.some((k) => lower.includes(k));
 }
 
-function detectCampaignMode(mode?: string): "organic" | "paid" {
-  if (!mode) return "paid";
-  const normalized = mode.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  if (normalized.includes("organico") || normalized.includes("organic")) return "organic";
-  return "paid";
-}
-
 function detectGoalPlatform(goal?: string): string {
   if (!goal) return "generic";
   const lower = goal.toLowerCase();
@@ -81,155 +75,439 @@ function detectGoalPlatform(goal?: string): string {
   if (lower.includes("mercado livre")) return "mercado_livre";
   if (lower.includes("hotmart")) return "hotmart";
   if (lower.includes("kiwify")) return "kiwify";
-  if (lower.includes("whatsapp")) return "whatsapp";
   return "generic";
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SCHEMAS POR PLATAFORMA — fixos e completos
+// A IA preenche SOMENTE os campos aqui definidos. Nenhum campo extra permitido.
+// ─────────────────────────────────────────────────────────────────────────────
+
 function buildPlatformFieldsSpec(platform: string): string {
   switch (platform) {
+
+    // ── MERCADO LIVRE ──────────────────────────────────────────────────────
     case "mercado_livre":
       return `"platformFields": [
-    {"key": "titulo", "label": "Título do Anúncio", "value": string (OBRIGATÓRIO: máx 60 chars — palavras-chave de busca no início, nome do produto e diferencial principal. Ex: "Kit Suplemento Whey + Creatina 2kg — Entrega Rápida")},
-    {"key": "categoria", "label": "Categoria Sugerida", "value": string (categoria exata do Mercado Livre para este produto. Ex: "Suplementos e Vitaminas > Proteínas")},
-    {"key": "caracteristicas", "label": "Características do Produto", "value": string (especificações técnicas relevantes, uma por linha usando \\n. Ex: "Material: Aço inox\\nCapacidade: 500ml\\nGarantia: 12 meses")},
-    {"key": "descricao", "label": "Descrição", "value": string (máx 400 chars — o que é, para que serve, principais especificações, diferencial de compra. Tom: informativo e direto)},
-    {"key": "estrategia_preco", "label": "Estratégia de Preço", "value": string (posicionamento competitivo: preço sugerido, parcelamento ideal, condição que aumenta conversão como Frete Grátis, promoção relâmpago)},
-    {"key": "cta", "label": "CTA", "value": string (máx 50 chars — ex: "Compre agora com Frete Grátis", "Aproveite a oferta hoje")}
+    {
+      "key": "titulo",
+      "label": "Título do Anúncio",
+      "value": string — OBRIGATÓRIO. Máx 60 chars. Palavras-chave de maior volume de busca no início, nome do produto, diferencial principal. Ex: "Garrafa Térmica Aço Inox 1L Frio 24h — Tampa Hermética"
+    },
+    {
+      "key": "categoria",
+      "label": "Categoria Sugerida",
+      "value": string — categoria exata do Mercado Livre para este produto, usando o formato "Categoria > Subcategoria". Ex: "Esportes e Fitness > Hidratação > Garrafas"
+    },
+    {
+      "key": "caracteristicas_tecnicas",
+      "label": "Características Técnicas",
+      "value": string — especificações objetivas do produto, uma por linha (\\n). Inclua material, dimensões, capacidade, peso, compatibilidade, garantia. Ex: "Material: Aço inox 304\\nCapacidade: 1 litro\\nPeso: 320g"
+    },
+    {
+      "key": "beneficios_principais",
+      "label": "Benefícios Principais",
+      "value": string — 4 a 6 benefícios reais e tangíveis do produto para o comprador, um por linha (\\n). Foco em resultado de uso, não em características técnicas repetidas.
+    },
+    {
+      "key": "diferenciais",
+      "label": "Diferenciais do Produto",
+      "value": string — o que diferencia este produto dos concorrentes diretos no Mercado Livre. Máx 200 chars. Objetivo: justificar a escolha deste anúncio frente a similares.
+    },
+    {
+      "key": "descricao_curta",
+      "label": "Descrição Curta",
+      "value": string — máx 150 chars. Resumo direto do produto: o que é, para que serve e principal benefício. Aparece no preview do anúncio.
+    },
+    {
+      "key": "descricao_completa",
+      "label": "Descrição Completa",
+      "value": string — descrição detalhada do produto. Inclua: o que é, para quem é, como usar, especificações, o que vem na embalagem, perguntas comuns já respondidas. Tom: informativo, direto, sem jargão publicitário. Mín 200 chars.
+    },
+    {
+      "key": "perguntas_frequentes",
+      "label": "Perguntas Frequentes",
+      "value": string — 3 a 5 pares P: / R: separados por \\n\\n. Baseie-se nas dúvidas mais comuns de compradores deste tipo de produto no Mercado Livre. Ex: "P: Cabe em porta-copos de carro?\\nR: Sim, diâmetro de 7cm, compatível com a maioria dos porta-copos."
+    }
   ]`;
+
+    // ── SHOPEE ─────────────────────────────────────────────────────────────
     case "shopee":
       return `"platformFields": [
-    {"key": "nome_produto", "label": "Nome do Produto", "value": string (OBRIGATÓRIO: máx 120 chars — palavras-chave relevantes para busca interna Shopee, modelo, especificação principal)},
-    {"key": "categoria", "label": "Categoria Sugerida", "value": string (categoria Shopee mais adequada para este produto)},
-    {"key": "descricao", "label": "Descrição do Produto", "value": string (máx 600 chars — detalhe de uso, diferenciais, o que vem na embalagem, especificações técnicas. Tom: claro e descritivo)},
-    {"key": "estrategia_oferta", "label": "Estratégia de Oferta", "value": string (máx 200 chars — cupom de desconto, frete grátis, Oferta Relâmpago, pontos de avaliação para subir no ranking, urgência real)},
-    {"key": "variacoes", "label": "Variações Sugeridas", "value": string (variações de cor, tamanho ou modelo se aplicável ao produto. Se produto único, escrever "Produto sem variações")}
+    {
+      "key": "nome_anuncio",
+      "label": "Nome do Anúncio",
+      "value": string — OBRIGATÓRIO. Máx 120 chars. Palavras-chave de busca interna Shopee no início, modelo do produto, especificação principal, variação se houver. Ex: "Garrafa Térmica Aço Inox 1L Frio 24h Anti-Vazamento Tampa Rosca"
+    },
+    {
+      "key": "categoria",
+      "label": "Categoria Sugerida",
+      "value": string — categoria Shopee mais adequada. Ex: "Casa e Vida > Cozinha > Garrafas e Copos"
+    },
+    {
+      "key": "descricao_produto",
+      "label": "Descrição do Produto",
+      "value": string — descrição completa para a página do produto na Shopee. Inclua: o que é, materiais, especificações, conteúdo da embalagem, modo de uso e cuidados. Tom: claro e descritivo. Mín 200 chars.
+    },
+    {
+      "key": "beneficios_principais",
+      "label": "Benefícios Principais",
+      "value": string — 4 a 6 benefícios reais para o comprador, um por linha (\\n). Ex: "Mantém bebidas geladas por 24 horas\\nTampa hermética — sem vazamentos na mochila"
+    },
+    {
+      "key": "diferenciais",
+      "label": "Diferenciais do Produto",
+      "value": string — máx 200 chars. O que diferencia este produto dos concorrentes na Shopee. Pode incluir: qualidade do material, avaliações, custo-benefício, entrega rápida.
+    },
+    {
+      "key": "palavras_chave",
+      "label": "Palavras-chave de Busca",
+      "value": string — 8 a 12 termos de busca relevantes para este produto na Shopee, separados por vírgula. Inclua variações de escrita e termos relacionados. Ex: "garrafa térmica, squeeze inox, garrafa de inox, garrafa sport, copo térmico"
+    },
+    {
+      "key": "variacoes",
+      "label": "Sugestão de Variações",
+      "value": string — variações de cor, tamanho, modelo ou kit que aumentariam as vendas deste produto. Se não aplicável, escrever: "Produto sem variações recomendadas para este modelo."
+    },
+    {
+      "key": "perguntas_frequentes",
+      "label": "Perguntas Frequentes",
+      "value": string — 3 a 5 pares P: / R: separados por \\n\\n. Baseie-se nas dúvidas mais comuns de compradores Shopee deste tipo de produto.
+    }
   ]`;
-    case "facebook":
-      return `"platformFields": [
-    {"key": "texto_principal", "label": "Texto Principal", "value": string (OBRIGATÓRIO: máx 600 chars — problema real → argumento de valor → prova social → CTA. Tom: direto, adulto, sem jargão corporativo)},
-    {"key": "headline", "label": "Headline do Anúncio", "value": string (OBRIGATÓRIO: máx 40 chars — benefício central, impacto imediato)},
-    {"key": "descricao_link", "label": "Descrição do Link", "value": string (máx 30 chars — reforço da oferta ou do CTA. Ex: "Acesso imediato garantido")},
-    {"key": "cta", "label": "Botão CTA", "value": string (máx 30 chars — ex: "Comprar agora", "Saiba mais", "Inscreva-se")}
-  ]`;
-    case "instagram":
-      return `"platformFields": [
-    {"key": "legenda", "label": "Legenda", "value": string (OBRIGATÓRIO: máx 450 chars — hook visual forte nas 2 primeiras linhas para parar o scroll, narrativa autêntica, CTA para salvar, comentar ou mandar DM)},
-    {"key": "cta", "label": "CTA", "value": string (OBRIGATÓRIO: máx 50 chars — ação clara para legenda e Stories. Ex: "Comente QUERO para receber o link")},
-    {"key": "hashtags", "label": "Hashtags", "value": string (5-7 hashtags relevantes separados por espaço, sem # na resposta. Ex: "empreendedorismo negociosonline vendasonline")}
-  ]`;
-    case "tiktok":
-      return `"platformFields": [
-    {"key": "hook", "label": "Hook (primeiros 2 segundos)", "value": string (OBRIGATÓRIO: máx 80 chars — frase que para o scroll imediatamente. Curiosidade, contraste ou dado surpreendente. Ex: "Você sabia que 90% das pessoas fazem isso errado?")},
-    {"key": "texto_principal", "label": "Legenda do Vídeo", "value": string (OBRIGATÓRIO: máx 350 chars — desenvolvimento da narrativa após o hook, CTA orgânico no final)},
-    {"key": "cta", "label": "CTA", "value": string (OBRIGATÓRIO: máx 50 chars — ação oral para o vídeo ou em tela. Ex: "Segue pra ver mais dicas como essa")},
-    {"key": "hashtags", "label": "Hashtags", "value": string (3-7 hashtags TikTok relevantes separados por espaço, sem # na resposta)}
-  ]`;
+
+    // ── HOTMART ────────────────────────────────────────────────────────────
     case "hotmart":
       return `"platformFields": [
-    {"key": "nome_produto", "label": "Nome do Produto", "value": string (nome claro e vendável do produto digital. Ex: "Método Vendas Automáticas 2.0")},
-    {"key": "headline", "label": "Headline da Página de Vendas", "value": string (OBRIGATÓRIO: máx 80 chars — promessa de transformação direta e clara para o público)},
-    {"key": "subheadline", "label": "Subheadline", "value": string (OBRIGATÓRIO: máx 120 chars — para quem é, o que entrega concretamente e resultado esperado)},
-    {"key": "descricao_oferta", "label": "Descrição da Oferta", "value": string (copy principal do produto: problema que resolve, como entrega, diferencial frente à concorrência)},
-    {"key": "beneficios", "label": "Benefícios", "value": string (4-6 benefícios concretos separados por \\n, foco em transformação e resultado tangível do aluno)},
-    {"key": "bonus", "label": "Bônus", "value": string (bônus incluídos na compra: nome do bônus, o que entrega e valor percebido de cada um)},
-    {"key": "garantia", "label": "Garantia", "value": string (prazo de garantia em dias, condição e como funciona o reembolso. Ex: "Garantia incondicional de 7 dias — peça o reembolso sem precisar se justificar")},
-    {"key": "cta", "label": "Botão CTA", "value": string (OBRIGATÓRIO: máx 50 chars — ex: "Quero acesso agora", "Garantir minha vaga", "Começar com desconto")}
+    {
+      "key": "nome_produto",
+      "label": "Nome do Produto",
+      "value": string — nome claro, vendável e memorável do produto digital. Deve comunicar o resultado ou transformação. Ex: "Método Vendas Automáticas 2.0" ou "Inglês Fluente em 90 Dias"
+    },
+    {
+      "key": "headline",
+      "label": "Headline da Página de Vendas",
+      "value": string — OBRIGATÓRIO. Máx 80 chars. Promessa de transformação clara, específica e crível. Foco no resultado que o aluno vai alcançar. Evite promessas impossíveis.
+    },
+    {
+      "key": "subheadline",
+      "label": "Subheadline",
+      "value": string — OBRIGATÓRIO. Máx 120 chars. Complementa a headline: para quem é, como entrega, resultado concreto esperado.
+    },
+    {
+      "key": "descricao_curta",
+      "label": "Descrição Curta da Oferta",
+      "value": string — máx 200 chars. Resumo da proposta de valor: o que é o produto, para quem é e por que comprar agora. Usar no topo da página de vendas.
+    },
+    {
+      "key": "descricao_completa",
+      "label": "Descrição Completa da Oferta",
+      "value": string — copy principal da página de vendas. Estrutura recomendada: problema → agitação → solução → diferencial → prova social → oferta. Tom: empático, direto e persuasivo. Mín 300 chars.
+    },
+    {
+      "key": "beneficios",
+      "label": "Benefícios",
+      "value": string — 4 a 6 benefícios concretos que o aluno vai obter, um por linha (\\n). Foco em transformação real e resultado tangível — não em o que o curso "tem", mas no que o aluno vai "conseguir".
+    },
+    {
+      "key": "conteudo_produto",
+      "label": "Conteúdo do Produto",
+      "value": string — o que está incluído no produto: módulos, aulas, materiais, suporte, acesso. Organize em tópicos separados por \\n. Ex: "Módulo 1: Fundamentos (6 aulas)\\nMódulo 2: Estratégia avançada (8 aulas)\\nBônus: Planilha de controle"
+    },
+    {
+      "key": "bonus",
+      "label": "Bônus",
+      "value": string — bônus exclusivos incluídos na compra. Para cada bônus: nome, o que entrega e valor percebido. Ex: "Bônus 1: Mentoria em grupo ao vivo — 1 sessão de 2h — valor R$297\\nBônus 2: Comunidade privada vitalícia"
+    },
+    {
+      "key": "garantia",
+      "label": "Garantia",
+      "value": string — prazo de garantia em dias (mín. 7 dias conforme lei do consumidor), condições e como solicitar o reembolso. Ex: "Garantia incondicional de 7 dias — acesse, teste o conteúdo e, se não gostar, solicite o reembolso sem precisar se justificar."
+    },
+    {
+      "key": "cta",
+      "label": "CTA de Compra",
+      "value": string — OBRIGATÓRIO. Máx 50 chars. Texto do botão de compra. Ex: "Quero acesso agora", "Garantir minha vaga", "Começar com desconto hoje"
+    }
   ]`;
+
+    // ── KIWIFY ─────────────────────────────────────────────────────────────
     case "kiwify":
       return `"platformFields": [
-    {"key": "nome_produto", "label": "Nome do Produto", "value": string (nome do produto digital, direto e vendável. Indica o resultado principal)},
-    {"key": "headline", "label": "Headline", "value": string (OBRIGATÓRIO: máx 80 chars — oferta direta e benefício principal. Nada de fluff)},
-    {"key": "subheadline", "label": "Subheadline", "value": string (OBRIGATÓRIO: máx 120 chars — valor entregue e para quem é, em uma frase densa)},
-    {"key": "descricao_oferta", "label": "Descrição da Oferta", "value": string (máx 250 chars — valor entregue, entrega imediata, garantia. Denso e sem rodeios)},
-    {"key": "urgencia", "label": "Urgência / Escassez", "value": string (OBRIGATÓRIO: máx 100 chars — elemento real e acionável de urgência ou escassez. Ex: "Desconto de 40% disponível só hoje")},
-    {"key": "cta", "label": "Botão CTA", "value": string (OBRIGATÓRIO: máx 50 chars — ex: "Acesse por apenas R$X", "Comprar agora", "Garantir acesso")}
+    {
+      "key": "nome_produto",
+      "label": "Nome do Produto",
+      "value": string — nome direto e vendável do produto digital. Comunica o resultado ou entrega principal. Evite nomes genéricos.
+    },
+    {
+      "key": "headline",
+      "label": "Headline da Página de Vendas",
+      "value": string — OBRIGATÓRIO. Máx 80 chars. Oferta direta e benefício principal. Sem fluff. Ex: "Aprenda a fechar clientes pelo WhatsApp em 7 dias — ou não paga nada"
+    },
+    {
+      "key": "subheadline",
+      "label": "Subheadline",
+      "value": string — OBRIGATÓRIO. Máx 120 chars. Valor entregue e para quem é, em uma frase densa e acionável.
+    },
+    {
+      "key": "descricao_curta",
+      "label": "Descrição Curta da Oferta",
+      "value": string — máx 200 chars. Entrega imediata, principal promessa e chamada para ação. Tom direto e sem rodeios.
+    },
+    {
+      "key": "descricao_completa",
+      "label": "Descrição Completa da Oferta",
+      "value": string — copy da página de vendas Kiwify. Estrutura: dor → solução → prova → oferta. Mais curta e direta que Hotmart — Kiwify converte com páginas enxutas. Mín 200 chars.
+    },
+    {
+      "key": "beneficios",
+      "label": "Benefícios",
+      "value": string — 4 a 6 benefícios concretos separados por \\n. Foco em resultado imediato e entrega tangível.
+    },
+    {
+      "key": "conteudo_produto",
+      "label": "Conteúdo do Produto",
+      "value": string — o que o comprador recebe: módulos, aulas, materiais extras, acesso. Organizado por \\n.
+    },
+    {
+      "key": "bonus",
+      "label": "Bônus",
+      "value": string — bônus incluídos. Nome, entrega e valor percebido de cada um, separados por \\n.
+    },
+    {
+      "key": "garantia",
+      "label": "Garantia",
+      "value": string — prazo, condições e como pedir reembolso. Mín. 7 dias. Tom: sem burocracia.
+    },
+    {
+      "key": "cta",
+      "label": "CTA de Compra",
+      "value": string — OBRIGATÓRIO. Máx 50 chars. Ex: "Acesse por apenas R$X", "Comprar agora", "Garantir acesso com desconto"
+    }
   ]`;
-    case "whatsapp":
+
+    // ── FACEBOOK ───────────────────────────────────────────────────────────
+    case "facebook":
       return `"platformFields": [
-    {"key": "abordagem_inicial", "label": "Abordagem Inicial", "value": string (OBRIGATÓRIO: máx 200 chars — primeira mensagem consultiva e pessoal, sem spam, quebra de gelo natural. Tom próximo, não corporativo)},
-    {"key": "mensagem_valor", "label": "Mensagem de Valor", "value": string (OBRIGATÓRIO: máx 300 chars — acompanhamento com valor entregue, prova social e contextualização do produto)},
-    {"key": "cta", "label": "CTA Conversacional", "value": string (máx 80 chars — convite para continuar a conversa. Natural e não invasivo)}
+    {
+      "key": "texto_principal",
+      "label": "Texto Principal",
+      "value": string — OBRIGATÓRIO. Máx 600 chars. Copy do post ou anúncio no feed do Facebook. Estrutura: gancho (problema ou dado surpreendente) → argumento de valor → prova social → CTA. Tom: adulto, direto, sem jargão corporativo.
+    },
+    {
+      "key": "headline",
+      "label": "Headline",
+      "value": string — OBRIGATÓRIO. Máx 40 chars. Linha de impacto que aparece em negrito abaixo da imagem no anúncio. Benefício central, imediato.
+    },
+    {
+      "key": "descricao_curta",
+      "label": "Descrição Curta",
+      "value": string — máx 30 chars. Reforço da oferta ou do CTA. Aparece abaixo da headline. Ex: "Acesso imediato garantido", "Entrega em até 3 dias"
+    },
+    {
+      "key": "cta",
+      "label": "Botão CTA",
+      "value": string — OBRIGATÓRIO. Máx 30 chars. Texto do botão de ação. Ex: "Comprar agora", "Saiba mais", "Inscreva-se", "Enviar mensagem"
+    },
+    {
+      "key": "sugestao_criativo",
+      "label": "Sugestão de Criativo",
+      "value": string — sugestão concreta para o visual (foto, vídeo ou carrossel): o que mostrar, ângulo visual, texto sobreposto (se houver), formato ideal para o objetivo. Max 200 chars.
+    }
   ]`;
+
+    // ── INSTAGRAM ──────────────────────────────────────────────────────────
+    case "instagram":
+      return `"platformFields": [
+    {
+      "key": "legenda",
+      "label": "Legenda",
+      "value": string — OBRIGATÓRIO. Máx 450 chars. Copy completo da publicação no feed ou Reels. Estrutura: 1ª frase para parar o scroll → desenvolvimento autêntico → CTA claro. Tom: próximo, real, sem excesso de emojis.
+    },
+    {
+      "key": "primeira_frase",
+      "label": "Primeira Frase de Impacto",
+      "value": string — OBRIGATÓRIO. Máx 90 chars (aparece antes do "ver mais"). Deve gerar curiosidade, contraste ou identificação imediata. Esta frase decide se o usuário vai ler o resto.
+    },
+    {
+      "key": "cta",
+      "label": "CTA",
+      "value": string — OBRIGATÓRIO. Máx 60 chars. Ação clara e específica. Ex: "Comente QUERO e te mando o link", "Salve esse post para não esquecer", "Me segue para mais dicas assim"
+    },
+    {
+      "key": "hashtags",
+      "label": "Hashtags",
+      "value": string — 5 a 7 hashtags relevantes separados por espaço, sem # na resposta. Misture hashtags de volume alto, médio e nicho. Ex: "empreendedorismo vendasonline marketingdigital negociosonline estrategiadevenda"
+    },
+    {
+      "key": "sugestao_criativo",
+      "label": "Sugestão de Criativo",
+      "value": string — sugestão concreta para o visual: tipo de conteúdo (Reels, carrossel, foto única), o que mostrar, formato, texto em tela (se houver). Max 200 chars.
+    }
+  ]`;
+
+    // ── TIKTOK ─────────────────────────────────────────────────────────────
+    case "tiktok":
+      return `"platformFields": [
+    {
+      "key": "gancho",
+      "label": "Gancho Inicial (primeiros 2 segundos)",
+      "value": string — OBRIGATÓRIO. Máx 80 chars. Frase ou pergunta que para o scroll imediatamente. Deve gerar curiosidade, contraste ou provocação. Ex: "Você tá perdendo dinheiro fazendo isso todo dia" ou "90% dos vendedores erram nesse detalhe"
+    },
+    {
+      "key": "roteiro",
+      "label": "Roteiro do Vídeo",
+      "value": string — OBRIGATÓRIO. Roteiro narrativo do vídeo em blocos: Gancho (2s) → Desenvolvimento (30-40s) → Resolução/CTA (5-10s). Inclua o que o criador deve dizer em cada momento. Máx 400 chars.
+    },
+    {
+      "key": "legenda",
+      "label": "Legenda do Vídeo",
+      "value": string — OBRIGATÓRIO. Máx 150 chars. Texto que aparece na legenda do TikTok. Deve complementar o vídeo, não repetir. Pode incluir o CTA escrito.
+    },
+    {
+      "key": "cta",
+      "label": "CTA",
+      "value": string — OBRIGATÓRIO. Máx 60 chars. Ação oral (o que o criador fala no final) e/ou em tela. Ex: "Segue pra ver mais dicas assim", "Comenta QUERO que te mando o link"
+    },
+    {
+      "key": "hashtags",
+      "label": "Hashtags",
+      "value": string — 3 a 7 hashtags TikTok relevantes separados por espaço, sem # na resposta. Priorize hashtags de nicho e tendência, não as genéricas.
+    },
+    {
+      "key": "sugestao_criativo",
+      "label": "Sugestão de Criativo / Vídeo",
+      "value": string — sugestão concreta para o formato e estilo do vídeo: câmera (selfie, estúdio, tela), ritmo de edição, música sugerida (tipo/estilo), texto em tela. Max 200 chars.
+    }
+  ]`;
+
+    // ── GENÉRICO (fallback) ────────────────────────────────────────────────
     default:
       return `"platformFields": [
-    {"key": "copy_principal", "label": "Copy Principal", "value": string (OBRIGATÓRIO: máx 500 chars — copy adaptado ao objetivo informado, direto e acionável)},
-    {"key": "cta", "label": "CTA", "value": string (OBRIGATÓRIO: máx 50 chars — ação clara e direta)}
+    {
+      "key": "copy_principal",
+      "label": "Copy Principal",
+      "value": string — OBRIGATÓRIO. Máx 500 chars. Copy direto e acionável para o objetivo informado.
+    },
+    {
+      "key": "cta",
+      "label": "CTA",
+      "value": string — OBRIGATÓRIO. Máx 50 chars. Ação clara e direta.
+    }
   ]`;
   }
 }
 
-function buildCopySchema(platform: string, isOrganic: boolean): string {
+// ─────────────────────────────────────────────────────────────────────────────
+// SCHEMA DO BRIEFING CRIATIVO — campo interno, discreto
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CREATIVE_BRIEFING_SCHEMA = `"creativeBriefing": {
+    "produto": string (nome completo do produto ou marca),
+    "plataforma": string (chave da plataforma: mercado_livre/shopee/hotmart/kiwify/facebook/instagram/tiktok),
+    "tipo_produto": string (Digital/Físico/Serviço — conforme informado pelo usuário ou inferido),
+    "objetivo": string (objetivo específico da campanha em 1 frase),
+    "promessa": string (promessa principal de valor — resultado concreto que o produto entrega),
+    "dor": string (dor ou problema principal que o produto resolve),
+    "beneficio": string (principal benefício tangível para o público),
+    "tom": string (tom de voz desta entrega: ex "informativo e direto", "empático e persuasivo", "autêntico e próximo"),
+    "cta": string (CTA principal desta entrega),
+    "ideia_visual": string (sugestão de conceito visual para comunicação: imagem, vídeo ou criativo),
+    "restricoes": string (restrições relevantes ou "Nenhuma")
+  }`;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROIBIÇÕES EXPLÍCITAS POR PLATAFORMA
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildPlatformProhibitions(platform: string): string {
   switch (platform) {
-    case "instagram":
-      return `"copy": {
-    "legenda": string (máx. 450 chars — hook visual, narrativa autêntica${isOrganic ? ", 3-5 hashtags" : ""}, CTA para salvar ou comentar),
-    "cta": string (máx. 50 chars — ação clara para legenda e Stories),
-    "hashtags": string (5-7 hashtags relevantes separados por espaço, sem # na resposta)
-  }`;
-    case "facebook":
-      return `"copy": {
-    "facebook": string (máx. 600 chars — ${isOrganic ? "postagem orgânica: gancho, storytelling ou prova social, pergunta de engajamento" : "problema real → argumento de valor → prova social → CTA imediato. Tom: direto, adulto"}),
-    "cta": string (máx. 50 chars)
-  }`;
-    case "tiktok":
-      return `"copy": {
-    "hook": string (máx. 80 chars — frase que para o scroll nos primeiros 2 segundos),
-    "legenda": string (máx. 350 chars — ${isOrganic ? "narrativa autêntica, hashtags TikTok, CTA orgânico" : "desenvolvimento da narrativa após o hook, CTA"}),
-    "cta": string (máx. 50 chars — ação oral ou em tela)
-  }`;
     case "mercado_livre":
-      return `"copy": {
-    "titulo": string (máx. 60 chars — palavras-chave de busca no início, nome do produto e diferencial principal),
-    "beneficios": string (3-4 benefícios principais em linhas separadas — ex: "Entrega rápida\\nGarantia 12 meses"),
-    "descricao": string (máx. 400 chars — descrição completa: o que é, para que serve, especificações principais),
-    "cta": string (máx. 50 chars — ex: Compre agora, Adicione ao carrinho, Aproveite a oferta)
-  }`;
+      return `CAMPOS PROIBIDOS NESTA PLATAFORMA — não gerar, não incluir, não mencionar:
+- Legenda de rede social
+- Hashtags
+- "Comente", "Salve", "Siga" (CTAs de redes sociais)
+- Headline de página de vendas (estilo Hotmart/Kiwify)
+- Bônus de produto digital
+- Garantia de devolução estilo infoproduto
+- Público-alvo publicitário (persona de ads)
+- Campos de copy de anúncio pago (Facebook Ads, Google Ads)
+- Estrutura de página de vendas`;
+
     case "shopee":
-      return `"copy": {
-    "titulo": string (máx. 120 chars — título de listagem com palavras-chave relevantes para busca interna),
-    "beneficios": string (3-4 benefícios principais do produto em linhas separadas),
-    "oferta": string (máx. 200 chars — estratégia de oferta: cupom, frete grátis, Oferta Relâmpago, avaliações, urgência)
-  }`;
+      return `CAMPOS PROIBIDOS NESTA PLATAFORMA — não gerar, não incluir, não mencionar:
+- Legenda de rede social
+- Hashtags de redes sociais
+- "Comente", "Salve", "Siga" (CTAs de redes sociais)
+- Headline de página de vendas (estilo Hotmart/Kiwify)
+- Bônus de produto digital
+- Garantia de devolução estilo infoproduto
+- Público-alvo publicitário (persona de ads)
+- Campos de copy de anúncio pago`;
+
     case "hotmart":
-      return `"copy": {
-    "headline": string (máx. 80 chars — headline da página de vendas, promessa de transformação direta),
-    "subheadline": string (máx. 120 chars — para quem é, o que entrega, resultado esperado),
-    "cta": string (máx. 50 chars — ex: Quero acesso agora, Garantir minha vaga, Comprar com desconto),
-    "objecoes": string (máx. 250 chars — principal objeção do público e como neutralizar com garantia, bônus ou prova social)
-  }`;
+      return `CAMPOS PROIBIDOS NESTA PLATAFORMA — não gerar, não incluir, não mencionar:
+- Hashtags
+- Legenda de rede social
+- "Comente", "Salve", "Siga"
+- Título de anúncio de marketplace (estilo ML/Shopee)
+- Categoria de produto (ML/Shopee)
+- Características técnicas físicas de produto (peso, dimensões, material)
+- Palavras-chave de busca de marketplace
+- FAQ estilo marketplace
+- Sugestão de variações de produto físico`;
+
     case "kiwify":
-      return `"copy": {
-    "headline": string (máx. 80 chars — oferta direta e benefício principal),
-    "cta": string (máx. 50 chars — ex: Acesse por apenas R$X, Comprar agora, Garantir acesso),
-    "oferta": string (máx. 150 chars — valor entregue, entrega imediata e garantia em uma frase densa),
-    "urgencia": string (máx. 100 chars — elemento de urgência ou escassez real e acionável)
-  }`;
-    case "whatsapp":
-      return `"copy": {
-    "abordagem": string (máx. 200 chars — primeira mensagem consultiva, pessoal e sem spam, quebra de gelo natural),
-    "mensagem": string (máx. 300 chars — mensagem de acompanhamento com valor entregue, prova social e contextualização do produto),
-    "cta": string (máx. 80 chars — convite para continuar a conversa, natural e não invasivo)
-  }`;
+      return `CAMPOS PROIBIDOS NESTA PLATAFORMA — não gerar, não incluir, não mencionar:
+- Hashtags
+- Legenda de rede social
+- "Comente", "Salve", "Siga"
+- Título de anúncio de marketplace
+- Categoria de produto (ML/Shopee)
+- Características técnicas de produto físico
+- Palavras-chave de busca de marketplace
+- FAQ estilo marketplace
+- Sugestão de variações de produto físico`;
+
+    case "facebook":
+      return `CAMPOS PROIBIDOS NESTA PLATAFORMA — não gerar, não incluir, não mencionar:
+- Título de anúncio de marketplace (formato ML/Shopee)
+- Categoria de produto para marketplace
+- Características técnicas longas (especificações de produto físico)
+- Bônus e garantia de infoproduto (exceto se o produto for explicitamente digital)
+- Estrutura completa de página de vendas (Hotmart/Kiwify)
+- Hashtags de Instagram ou TikTok
+- FAQ de marketplace`;
+
+    case "instagram":
+      return `CAMPOS PROIBIDOS NESTA PLATAFORMA — não gerar, não incluir, não mencionar:
+- Título de anúncio de marketplace
+- Categoria de produto para marketplace
+- Palavras-chave de busca de marketplace
+- Descrição completa estilo Mercado Livre ou Shopee
+- FAQ de marketplace
+- Estrutura de página de vendas (Hotmart/Kiwify)
+- Bônus e garantia de infoproduto (exceto se o produto for digital)
+- Características técnicas longas`;
+
+    case "tiktok":
+      return `CAMPOS PROIBIDOS NESTA PLATAFORMA — não gerar, não incluir, não mencionar:
+- Título de anúncio de marketplace
+- Descrição longa estilo Mercado Livre ou Shopee
+- Categoria de produto para marketplace
+- FAQ de marketplace
+- Estrutura completa de página de vendas
+- Bônus e garantia de infoproduto (exceto se o produto for explicitamente digital)
+- Campos de Hotmart/Kiwify (headline de VSL, conteúdo do produto, etc.)`;
+
     default:
-      return `"copy": {
-    "principal": string (máx. 500 chars — copy principal da campanha adaptado ao objetivo),
-    "cta": string (máx. 50 chars)
-  }`;
+      return "";
   }
 }
 
-const ORGANIC_CHANNELS = [
-  "Instagram Reels",
-  "Instagram Feed",
-  "Stories",
-  "TikTok orgânico",
-  "WhatsApp",
-  "YouTube Shorts",
-  "Pinterest",
-  "Comunidades",
-];
-
-const ORGANIC_BUDGET = "Sem investimento em mídia paga — estratégia 100% orgânica";
+// ─────────────────────────────────────────────────────────────────────────────
+// SANITIZAÇÃO ORGÂNICA — somente para Instagram/TikTok em modo orgânico
+// ─────────────────────────────────────────────────────────────────────────────
 
 const PAID_TERM_REPLACEMENTS: Array<[RegExp, string]> = [
   [/\bFacebook\s*Ads\b/gi, "postagem no Facebook"],
@@ -237,8 +515,6 @@ const PAID_TERM_REPLACEMENTS: Array<[RegExp, string]> = [
   [/\bInstagram\s*Ads\b/gi, "Reels orgânicos"],
   [/\bGoogle\s*(Search\s*)?Ads\b/gi, "SEO orgânico"],
   [/\bTikTok\s*Ads\b/gi, "TikTok orgânico"],
-  [/\bYouTube\s*Ads\b/gi, "YouTube Shorts orgânico"],
-  [/\bPinterest\s*Ads\b/gi, "Pinterest orgânico"],
   [/\bROAS\b/gi, "retorno orgânico"],
   [/\bCPC\b/gi, "engajamento"],
   [/\bCPM\b/gi, "alcance orgânico"],
@@ -247,19 +523,11 @@ const PAID_TERM_REPLACEMENTS: Array<[RegExp, string]> = [
   [/\bremarketing\b/gi, "reconexão com audiência"],
   [/\blookalike\b/gi, "público semelhante orgânico"],
   [/\bpixel\b/gi, "engajamento"],
-  [/\bpago\b/gi, "orgânico"],
   [/\bmídia\s*paga\b/gi, "conteúdo orgânico"],
   [/\btráfego\s*pago\b/gi, "tráfego orgânico"],
   [/\bcampanha\s*paga\b/gi, "estratégia orgânica"],
   [/\bimpulsionar\b/gi, "publicar organicamente"],
-  [/\bimpulsionamento\b/gi, "crescimento orgânico"],
-  [/\banúncio(s)?\b/gi, "conteúdo"],
-  [/\banunciar\b/gi, "publicar"],
   [/\bads\b/gi, "conteúdo orgânico"],
-  [/\bverba\s*de\s*mídia\b/gi, "dedicação de tempo"],
-  [/\borçamento\s*de\s*(anúncio|mídia|ads)(s)?\b/gi, "calendário de conteúdo"],
-  [/\blanding\s*page\s*pag(a|o)\b/gi, "página orgânica"],
-  [/\bescal(a|ar)\s*(com\s*anúncio(s)?|pag(a|o))\b/gi, "crescimento orgânico"],
 ];
 
 function sanitizeOrganicText(text: string): string {
@@ -270,120 +538,68 @@ function sanitizeOrganicText(text: string): string {
   return result;
 }
 
-function hardLockOrganicResult(result: CampaignResult): CampaignResult {
-  const copySanitized: Record<string, string> = {};
-  for (const [k, v] of Object.entries(result.copy)) {
-    copySanitized[k] = sanitizeOrganicText(v);
-  }
-  const platformFieldsSanitized = result.platformFields?.map((f) => ({
-    ...f,
-    value: sanitizeOrganicText(f.value),
-  }));
-  return {
-    ...result,
-    budget: ORGANIC_BUDGET,
-    channels: ORGANIC_CHANNELS,
-    headline: sanitizeOrganicText(result.headline),
-    subheadline: sanitizeOrganicText(result.subheadline),
-    cta: sanitizeOrganicText(result.cta),
-    audience: sanitizeOrganicText(result.audience),
-    copy: copySanitized,
-    keyMessages: result.keyMessages.map(sanitizeOrganicText),
-    launchTimeline: sanitizeOrganicText(result.launchTimeline),
-    uniqueAngle: sanitizeOrganicText(result.uniqueAngle),
-    objectionHandling: sanitizeOrganicText(result.objectionHandling),
-    platformFields: platformFieldsSanitized,
-  };
+function hardLockOrganicFields(fields: CampaignPlatformField[]): CampaignPlatformField[] {
+  return fields.map((f) => ({ ...f, value: sanitizeOrganicText(f.value) }));
 }
 
-const SHARED_RULES = `IDIOMA: Responda SEMPRE em português brasileiro. Nunca em inglês ou espanhol.
+// ─────────────────────────────────────────────────────────────────────────────
+// SYSTEM PROMPT PRINCIPAL
+// ─────────────────────────────────────────────────────────────────────────────
 
-MODO EXECUTIVO — REGRA CENTRAL:
-Você é uma ferramenta de IA premium para profissionais. Responda como consultor sênior que cobra R$500/hora: direto, denso, acionável. Zero introdução, zero conclusão, zero enrolação. Cada palavra deve justificar sua existência.
+const BASE_RULES = `IDIOMA: Responda SEMPRE em português brasileiro. Nunca em inglês ou espanhol.
 
-ANTI-REPETIÇÃO:
-Nunca repita a mesma palavra-chave ou argumento entre campos diferentes. Cada campo deve ter um ângulo único.
+ARQUITETURA DE ENTREGA — REGRA ABSOLUTA:
+Você é um especialista em marketing digital para o mercado brasileiro. Sua função é preencher um schema FIXO por plataforma.
 
-LIMITES ABSOLUTOS DE CARACTERES (incluindo espaços):
-- headline: máximo 80 caracteres
-- subheadline: máximo 120 caracteres
-- cta: máximo 50 caracteres
-- uniqueAngle: máximo 200 caracteres
-- objectionHandling: máximo 250 caracteres
-- cada keyMessage: máximo 100 caracteres
+A plataforma escolhida pelo usuário define TODOS os campos. Você não decide quais campos criar.
+Você apenas preenche os campos já definidos no schema com conteúdo de alta qualidade.
 
-CRONOGRAMA — FORMATO OBRIGATÓRIO:
-Máximo 4 etapas. Formato fixo: "Semana N → ação concreta". Uma linha por etapa. Sem sub-itens, sem explicações longas.
-
-SELEÇÃO INTELIGENTE DE CANAIS:
-Selecione APENAS 3-4 canais onde o público realmente está para este produto e objetivo específico. Não adicione canais por completude.
+NUNCA adicione campos extras fora do schema. NUNCA deixe campos em branco. NUNCA invente campos.
 
 ESTILO DE ESCRITA:
-- Frases curtas (máximo 15 palavras)
+- Direto, denso, acionável — como consultor sênior
+- Frases curtas (máximo 15 palavras quando possível)
 - Verbos no imperativo quando aplicável
-- Sem jargão corporativo
+- Sem introduções, conclusões ou jargão corporativo
+- Anti-repetição: ângulo único por campo, nunca repita argumentos entre campos
+
+ANTI-REPETIÇÃO:
+Nunca repita a mesma palavra-chave ou argumento entre campos diferentes.
+Cada campo deve abordar um ângulo distinto do produto.
 
 Saída: objeto JSON válido. Sem markdown, sem blocos de código, apenas JSON puro.`;
 
-const CREATIVE_BRIEFING_SCHEMA = `"creativeBriefing": {
-    "produto": string (nome completo do produto ou marca),
-    "objetivo": string (objetivo específico da campanha em 1 frase),
-    "plataforma": string (plataforma alvo: instagram/facebook/tiktok/mercado_livre/shopee/hotmart/kiwify/whatsapp),
-    "publico": string (público-alvo específico em 1-2 frases — idade, perfil, comportamento),
-    "promessa": string (promessa principal de valor — o que o produto entrega de concreto),
-    "dor": string (dor ou problema principal que o produto resolve),
-    "beneficio": string (principal benefício tangível para o público),
-    "tom": string (tom de voz desta campanha: ex "direto e confiante", "empático e explicativo", "próximo e entusiasmado"),
-    "cta": string (CTA principal desta campanha),
-    "restricoes": string (restrições relevantes: prazo, público restrito, garantia específica, ou "Nenhuma" se não houver)
-  }`;
-
 function buildSystemPrompt(platform: string, isOrganic: boolean): string {
-  const copySchema = buildCopySchema(platform, isOrganic);
   const platformFieldsSpec = buildPlatformFieldsSpec(platform);
+  const prohibitions = buildPlatformProhibitions(platform);
 
-  const modeIntro = isOrganic
-    ? `Você é um estrategista de marketing orgânico premium para o mercado brasileiro. Especialista em crescimento sem tráfego pago.
+  const modeNote = isOrganic
+    ? `MODO ORGÂNICO — REGRA ADICIONAL:
+Nenhum campo pode mencionar ou sugerir tráfego pago, ads, impulsionamento, orçamento de mídia, ROAS, CPC, CPM, lookalike, retargeting ou remarketing. Todo o conteúdo deve ser adequado para publicação orgânica.`
+    : "";
 
-REGRA ABSOLUTA — MODO ORGÂNICO:
-PROIBIDO mencionar: Facebook Ads, Meta Ads, Google Ads, TikTok Ads, ROAS, CPC, CPM, remarketing, retargeting, pixel, lookalike pago, orçamento de anúncios, impulsionamento, campanha paga, tráfego pago, mídia paga.
+  return `${BASE_RULES}
 
-O campo "budget" DEVE ser: "Sem investimento em mídia paga — estratégia 100% orgânica"
-O campo "channels" DEVE conter APENAS 3-4 canais orgânicos prioritários para o produto informado.`
-    : `Você é um estrategista de marketing de resposta direta premium para o mercado brasileiro. Cada resposta é um plano executável, não um relatório.
+${modeNote}
 
-MODO DE CAMPANHA — adapte TUDO ao modo informado. Padrão: Conversão.
+${prohibitions}
 
-- Iniciante: R$300–800/mês, 2 canais máx, tom acolhedor, foco em primeiras vendas.
-- Baixo orçamento: R$500–1.500/mês, 1-2 canais, canal com melhor custo por resultado.
-- Conversão: R$1.500–5.000/mês, urgência e prova social, funil direto tráfego → venda.
-- Viral: UGC + creators, retenção primeiros 3s, TikTok/Reels/YouTube Shorts.
-- Agressivo: R$5.000–15.000/mês, urgência real, remarketing forte, múltiplos canais.
-- Premium: posicionamento de valor, sem promoções de preço, exclusividade.
-- Escala: produto validado, lookalike + remarketing pesado, acima R$10.000/mês.`;
+SCHEMA OBRIGATÓRIO DA PLATAFORMA (preencha SOMENTE estes campos):
+${platformFieldsSpec}
 
-  return `${modeIntro}
-
-${SHARED_RULES}
-
-Retorne exatamente esta estrutura JSON:
+O JSON de saída deve conter EXATAMENTE esta estrutura:
 {
-  "platform": string (chave da plataforma: instagram/facebook/tiktok/mercado_livre/shopee/hotmart/kiwify/whatsapp/generic),
-  ${platformFieldsSpec},
-  ${CREATIVE_BRIEFING_SCHEMA},
-  "headline": string (máx. 80 chars — ${isOrganic ? "título direto, benefício claro" : "benefício central, impacto imediato"}),
-  "subheadline": string (máx. 120 chars — reforço do posicionamento, uma frase),
-  "cta": string (máx. 50 chars — ${isOrganic ? "ação orgânica: seguir, comentar, salvar, mandar DM" : "ação clara e direta"}),
-  "audience": string (máx. 150 chars — público-alvo em 1-2 frases, específico e direto),
-  "channels": string[] (3-4 canais ${isOrganic ? "orgânicos" : "reais"} prioritários para este produto),
-  "budget": string (${isOrganic ? 'retornar SEMPRE: "Sem investimento em mídia paga — estratégia 100% orgânica"' : "máx. 80 chars — valor mensal realista para o modo informado"}),
-  ${copySchema},
-  "keyMessages": string[] (exatamente 3 itens — cada um máx. 100 chars, ângulos diferentes entre si),
-  "launchTimeline": string (exatamente 4 linhas, formato: "Semana N → ação concreta". Sem sub-itens),
-  "uniqueAngle": string (máx. 200 chars — diferencial real desta campanha, uma frase forte),
-  "objectionHandling": string (máx. 250 chars — principal objeção do público + como neutralizar. Direto e acionável)
-}`;
+  "platform": string (chave da plataforma em snake_case: mercado_livre/shopee/hotmart/kiwify/facebook/instagram/tiktok),
+  ${platformFieldsSpec.replace(/\n/g, "\n  ")},
+  ${CREATIVE_BRIEFING_SCHEMA}
 }
+
+Não adicione nenhuma chave fora desta estrutura.`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PARSING E VALIDAÇÃO
+// ─────────────────────────────────────────────────────────────────────────────
 
 function safeParseJson(raw: string): { success: true; data: unknown } | { success: false; error: string } {
   if (!raw?.trim()) return { success: false, error: "A IA retornou uma resposta vazia." };
@@ -404,25 +620,168 @@ function safeParseJson(raw: string): { success: true; data: unknown } | { succes
 }
 
 function validateCampaignResult(r: CampaignResult): string | null {
-  if (!r.headline?.trim() && (!r.platformFields || r.platformFields.length === 0)) {
-    return "Campos da campanha não foram gerados.";
+  if (!r.platformFields || r.platformFields.length === 0) {
+    return "Campos da plataforma não foram gerados.";
   }
-  if (r.platformFields && r.platformFields.length > 0) {
-    const hasValues = r.platformFields.some((f) => f.value?.trim());
-    if (!hasValues) return "Os campos da plataforma não foram preenchidos.";
-  } else {
-    if (!r.headline?.trim()) return "Campo 'manchete' não foi gerado.";
-    if (!r.audience?.trim()) return "Campo 'público' não foi gerado.";
-    if (!Array.isArray(r.channels) || r.channels.length === 0) return "Campo 'canais' não foi gerado.";
-    if (!r.budget?.trim()) return "Campo 'orçamento' não foi gerado.";
-    if (!r.copy || typeof r.copy !== "object") return "Campo 'copy' não foi gerado.";
-    const copyValues = Object.values(r.copy as Record<string, string>);
-    if (copyValues.every((v) => !v?.trim())) return "Os textos de plataforma não foram gerados.";
-    if (!Array.isArray(r.keyMessages) || r.keyMessages.length === 0) return "Campo 'mensagens-chave' não foi gerado.";
-    if (!r.launchTimeline?.trim()) return "Campo 'cronograma' não foi gerado.";
-  }
+  const hasValues = r.platformFields.some((f) => f.value?.trim());
+  if (!hasValues) return "Os campos da plataforma não foram preenchidos.";
   return null;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PUBLICAÇÃO ASSISTIDA — passo a passo por plataforma
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface PlatformGuide {
+  name: string;
+  url: string;
+  steps: string[];
+  note: string;
+}
+
+function buildPublicationGuide(platform: string, fields: CampaignPlatformField[]): PlatformGuide | null {
+  const get = (key: string) => fields.find((f) => f.key === key)?.value ?? "";
+
+  switch (platform) {
+    case "mercado_livre":
+      return {
+        name: "Mercado Livre",
+        url: "https://www.mercadolivre.com.br",
+        steps: [
+          "Acesse mercadolivre.com.br e faça login como vendedor",
+          "Vá em Meus Anúncios → Criar anúncio",
+          `Cole o Título do Anúncio gerado: "${get("titulo").slice(0, 60)}"`,
+          "Selecione a Categoria Sugerida no campo de categoria",
+          "Preencha as Características Técnicas nos atributos do produto",
+          "Cole a Descrição Completa no campo de descrição",
+          "Adicione as Perguntas Frequentes manualmente via Central do Vendedor → FAQ",
+          "Configure Produto Patrocinado em Publicidade para aumentar visibilidade",
+          "Monitore visitas, cliques e conversões em Central do Vendedor → Meus Anúncios",
+        ],
+        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+      };
+
+    case "shopee":
+      return {
+        name: "Shopee",
+        url: "https://seller.shopee.com.br",
+        steps: [
+          "Acesse seller.shopee.com.br e faça login no Seller Centre",
+          "Vá em Meus Produtos → Adicionar novo produto",
+          `Cole o Nome do Anúncio gerado: "${get("nome_anuncio").slice(0, 120)}"`,
+          "Selecione a Categoria Sugerida",
+          "Cole a Descrição do Produto no campo de descrição",
+          "Adicione as Palavras-chave de Busca nas tags do produto",
+          "Configure as variações sugeridas se aplicável",
+          "Ative Oferta Relâmpago e configure cupons em Marketing → Vouchers",
+          "Acompanhe performance em Análise de Dados → Produtos",
+        ],
+        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+      };
+
+    case "hotmart":
+      return {
+        name: "Hotmart",
+        url: "https://app.hotmart.com",
+        steps: [
+          "Acesse app.hotmart.com e faça login na sua conta",
+          "Vá em Meus Produtos → selecione o produto → Página de Vendas",
+          `Defina o Nome do Produto: "${get("nome_produto")}"`,
+          `Cole a Headline na seção principal da página: "${get("headline")}"`,
+          "Cole a Descrição Completa no corpo da página de vendas",
+          "Adicione os Benefícios em formato de lista de checkmarks",
+          "Adicione o Conteúdo do Produto na seção 'O que está incluso'",
+          "Configure os Bônus na seção dedicada a bônus",
+          `Configure a Garantia: "${get("garantia").slice(0, 80)}"`,
+          `Defina o botão de compra com o CTA: "${get("cta")}"`,
+          "Configure o Programa de Afiliados em Afiliados → Configurações",
+          "Acompanhe conversões em Relatórios → Vendas",
+        ],
+        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+      };
+
+    case "kiwify":
+      return {
+        name: "Kiwify",
+        url: "https://app.kiwify.com.br",
+        steps: [
+          "Acesse app.kiwify.com.br e faça login",
+          "Selecione o produto → Configurações → Página de Vendas",
+          `Defina o Nome do Produto: "${get("nome_produto")}"`,
+          `Cole a Headline: "${get("headline")}"`,
+          "Cole a Descrição Completa no corpo da página",
+          "Configure os Benefícios em lista",
+          "Adicione os Bônus na seção correspondente",
+          `Configure a Garantia: "${get("garantia").slice(0, 80)}"`,
+          `Defina o botão de compra: "${get("cta")}"`,
+          "Ative o Programa de Afiliados em Afiliados → Configurações",
+          "Monitore transações em Dashboard → Transações",
+        ],
+        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+      };
+
+    case "facebook":
+      return {
+        name: "Facebook",
+        url: "https://www.facebook.com",
+        steps: [
+          "Acesse sua página no Facebook e clique em Criar publicação",
+          "Cole o Texto Principal no campo de publicação",
+          "Para anúncio: acesse Meta Ads Manager → Criar anúncio",
+          `Use a Headline "${get("headline")}" no campo de título do anúncio`,
+          `Configure a Descrição Curta "${get("descricao_curta")}" no campo de descrição`,
+          `Selecione o botão de CTA: "${get("cta")}"`,
+          "Crie o criativo conforme a Sugestão de Criativo gerada",
+          "Configure o público-alvo, orçamento e veiculação",
+          "Monitore resultados em Meta Ads Manager → Relatórios",
+        ],
+        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+      };
+
+    case "instagram":
+      return {
+        name: "Instagram",
+        url: "https://www.instagram.com",
+        steps: [
+          "Abra o Instagram → toque em + → Nova publicação ou Reel",
+          "Escolha o formato conforme a Sugestão de Criativo gerada",
+          `Use a Primeira Frase de Impacto: "${get("primeira_frase").slice(0, 90)}"`,
+          "Cole a Legenda completa no campo de legenda",
+          "Adicione as Hashtags no final da legenda ou no primeiro comentário",
+          `Finalize com o CTA: "${get("cta")}"`,
+          "Para Stories: use o CTA como sticker de link ou caixa de pergunta",
+          "Publique entre 18h e 21h para maior alcance orgânico",
+          "Acompanhe os Insights da publicação após 24h",
+        ],
+        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+      };
+
+    case "tiktok":
+      return {
+        name: "TikTok",
+        url: "https://www.tiktok.com",
+        steps: [
+          "Abra o TikTok → toque em + → gravar ou importar vídeo",
+          `Comece o vídeo com o Gancho nos primeiros 2 segundos: "${get("gancho").slice(0, 80)}"`,
+          "Siga o Roteiro gerado para o desenvolvimento do vídeo",
+          "Adicione legendas em tela com o texto-chave do roteiro",
+          `Cole a Legenda gerada no campo de legenda do vídeo`,
+          `Adicione as Hashtags na legenda`,
+          `Finalize o vídeo com o CTA: "${get("cta")}"`,
+          "Configure o som conforme a Sugestão de Criativo",
+          "Publique e monitore retenção nos primeiros 30 minutos",
+        ],
+        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+      };
+
+    default:
+      return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STREAM PRINCIPAL
+// ─────────────────────────────────────────────────────────────────────────────
 
 export async function streamCreateCampaign(
   params: CreateCampaignInput,
@@ -439,44 +798,41 @@ export async function streamCreateCampaign(
   ) {
     sendSSEError(
       res,
-      "Produto físico detectado. Hotmart/Kiwify são plataformas voltadas principalmente para produtos digitais. Altere a plataforma ou transforme a oferta em produto digital antes de gerar a campanha.",
+      "Produto físico detectado. Hotmart/Kiwify são plataformas voltadas principalmente para produtos digitais. Altere a plataforma ou selecione Mercado Livre / Shopee para produtos físicos.",
     );
     return;
   }
 
   sendSSE(res, { type: "start" });
 
-  const campaignMode = detectCampaignMode(params.mode);
   const platform = detectGoalPlatform(params.goal);
-  const isOrganic = campaignMode === "organic";
+  const isOrganic = (params.mode ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes("organico");
   const systemPrompt = buildSystemPrompt(platform, isOrganic);
 
-  const userPrompt = isOrganic
-    ? `Crie uma estratégia de marketing orgânico completa para:
-Produto/Marca: "${params.product}"
-${params.productType ? `Tipo de produto: ${params.productType} — adapte linguagem, canais, copy e abordagem para este tipo. Digital: autoridade, conteúdo educativo, entrega imediata. Físico: apelo sensorial, qualidade tangível, experiência de uso. Serviço: confiança, processo, resultado concreto, prova social.` : ""}
-${params.audience ? `Público-alvo: ${params.audience}` : ""}
-${params.goal ? `Objetivo: ${params.goal}` : "Gerar vendas via canais orgânicos"}
-${params.platforms?.length ? `Plataformas preferidas: ${params.platforms.join(", ")}` : ""}
+  const platformLabel: Record<string, string> = {
+    mercado_livre: "Mercado Livre",
+    shopee: "Shopee",
+    hotmart: "Hotmart",
+    kiwify: "Kiwify",
+    facebook: "Facebook",
+    instagram: "Instagram",
+    tiktok: "TikTok",
+  };
 
-Esta é uma estratégia 100% orgânica. Não inclua nenhum tipo de mídia paga, ads ou orçamento de anúncios.
-Gere os campos de "platformFields" na ordem exata em que o usuário os preencheria na plataforma escolhida.
-Responda integralmente em português brasileiro.`
-    : `Crie uma campanha de marketing completa para:
-Produto/Marca: "${params.product}"
-${params.productType ? `Tipo de produto: ${params.productType} — adapte linguagem, canais, copy e abordagem para este tipo. Digital: urgência de acesso, transformação, resultados, funil direto. Físico: apelo visual, qualidade tangível, entrega, experiência de uso. Serviço: credibilidade, processo, resultado concreto, cases de sucesso.` : ""}
-${params.audience ? `Público-alvo: ${params.audience}` : ""}
-${params.goal ? `Objetivo da campanha: ${params.goal}` : "Gerar vendas"}
-${params.mode ? `Modo da campanha: ${params.mode}` : "Modo da campanha: Conversão"}
-${params.platforms?.length ? `Plataformas preferidas: ${params.platforms.join(", ")}` : ""}
-${params.budget ? `Orçamento: ${params.budget}` : ""}
+  const userPrompt = `Gere a entrega completa para a plataforma especificada.
 
-Adapte toda a estrutura ao modo e tipo de produto informados.
-Gere os campos de "platformFields" na ordem exata em que o usuário os preencheria na plataforma escolhida.
+Produto/Marca: "${params.product}"
+Plataforma: ${platformLabel[platform] ?? "Não especificada"}
+${params.productType ? `Tipo de produto: ${params.productType}` : ""}
+${params.audience ? `Público-alvo: ${params.audience}` : ""}
+${params.goal ? `Objetivo: ${params.goal}` : ""}
+${params.mode ? `Modo: ${params.mode}` : ""}
+
+REGRA ABSOLUTA: Preencha SOMENTE os campos do schema desta plataforma. Não adicione nenhum campo extra.
+Preencha todos os campos com conteúdo de alta qualidade, específico para este produto nesta plataforma.
 Responda integralmente em português brasileiro.`;
 
   const MAX_ATTEMPTS = 2;
-  const FALLBACK_MSG = "Não consegui gerar a campanha completa desta vez. Tente novamente.";
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
@@ -492,30 +848,32 @@ Responda integralmente em português brasileiro.`;
       }, { signal });
 
       const rawText = response.choices[0]?.message?.content ?? "";
-
       const parsed = safeParseJson(rawText);
-      if (!parsed.success) {
-        continue;
-      }
+      if (!parsed.success) continue;
 
       const raw = parsed.data as CampaignResult;
       const validationError = validateCampaignResult(raw);
-      if (validationError) {
-        continue;
+      if (validationError) continue;
+
+      if (isOrganic && raw.platformFields) {
+        raw.platformFields = hardLockOrganicFields(raw.platformFields);
       }
 
-      const result = isOrganic ? hardLockOrganicResult(raw) : raw;
-      sendSSE(res, { type: "result", data: result });
-      await logAiUsage({ clerkUserId, action: `Campanha criada: ${params.product}`, module: "campaign" });
+      sendSSE(res, { type: "result", data: raw });
+      await logAiUsage({ clerkUserId, action: `Entrega criada: ${params.product} → ${platform}`, module: "campaign" });
       sendSSEDone(res);
       return;
     } catch {
-      // transient API/network error — retry on next attempt
+      // transient error — retry
     }
   }
 
-  sendSSEError(res, FALLBACK_MSG);
+  sendSSEError(res, "Não foi possível gerar a entrega desta vez. Tente novamente.");
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REFINAMENTO DE BLOCO
+// ─────────────────────────────────────────────────────────────────────────────
 
 export async function refineCampaignBlock(
   blockId: string,
@@ -524,14 +882,14 @@ export async function refineCampaignBlock(
   campaignContext: string,
   clerkUserId: string,
 ): Promise<{ refinedContent: string } | { error: string }> {
-  const systemPrompt = `Você é um especialista em marketing digital brasileiro. Refine APENAS o bloco especificado de uma campanha existente, seguindo exatamente a instrução do usuário. Responda APENAS com o conteúdo refinado — sem explicações, sem markdown, sem JSON, sem prefixo, sem sufixo. Respeite os limites de caracteres do bloco original.`;
+  const systemPrompt = `Você é um especialista em marketing digital brasileiro. Refine APENAS o campo especificado de uma entrega existente, seguindo a instrução do usuário. Responda APENAS com o conteúdo refinado — sem explicações, sem markdown, sem JSON, sem prefixo. Respeite os limites de caracteres do campo original.`;
 
-  const userPrompt = `Bloco a refinar: ${blockId}
+  const userPrompt = `Campo a refinar: ${blockId}
 Conteúdo atual: ${currentContent}
-Instrução do usuário: ${instruction}
-Contexto da campanha: ${campaignContext}
+Instrução: ${instruction}
+Contexto: ${campaignContext}
 
-Retorne APENAS o conteúdo refinado para este bloco. Sem explicações, sem texto extra, sem aspas envolvendo a resposta.`;
+Retorne APENAS o conteúdo refinado para este campo. Sem aspas envolvendo a resposta.`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -546,11 +904,9 @@ Retorne APENAS o conteúdo refinado para este bloco. Sem explicações, sem text
 
     const raw = response.choices[0]?.message?.content ?? "";
     if (!raw.trim()) return { error: "A IA não retornou conteúdo refinado." };
-
-    await logAiUsage({ clerkUserId, action: `Bloco de campanha refinado: ${blockId}`, module: "campaign" });
+    await logAiUsage({ clerkUserId, action: `Campo refinado: ${blockId}`, module: "campaign" });
     return { refinedContent: raw.trim() };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Erro no refinamento";
-    return { error: msg };
+    return { error: err instanceof Error ? err.message : "Erro no refinamento" };
   }
 }

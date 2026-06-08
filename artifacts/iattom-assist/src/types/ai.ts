@@ -42,14 +42,15 @@ export interface CampaignPlatformField {
 
 export interface CampaignCreativeBriefing {
   produto: string;
-  objetivo: string;
   plataforma: string;
-  publico: string;
+  tipo_produto: string;
+  objetivo: string;
   promessa: string;
   dor: string;
   beneficio: string;
   tom: string;
   cta: string;
+  ideia_visual: string;
   restricoes: string;
 }
 

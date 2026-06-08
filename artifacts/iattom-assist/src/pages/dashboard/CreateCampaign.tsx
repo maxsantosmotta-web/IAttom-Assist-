@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Megaphone, Target, Globe, Loader2, Copy, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Zap, Save, ExternalLink, FileText } from "lucide-react";
+import { Megaphone, Loader2, Copy, AlertCircle, RefreshCw, ChevronDown, ChevronUp, Zap, Save, ExternalLink, FileText } from "lucide-react";
 import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
 import { getEffectiveProductType, detectIncompatibility, INCOMPATIBILITY_MESSAGES, detectProductTypeMismatch, PRODUCT_TYPE_MISMATCH_MESSAGE } from "@/lib/productPlatformCompatibility";
 import { useSavedItems } from "@/hooks/useSavedItems";
@@ -13,33 +13,176 @@ import { CreditsGate } from "@/components/CreditsGate";
 import { useAiStream } from "@/hooks/useAiStream";
 import type { CampaignResult, CampaignPlatformField, CampaignCreativeBriefing } from "@/types/ai";
 
+// ─── Briefing labels ──────────────────────────────────────────────────────────
 const BRIEFING_LABELS: Record<string, string> = {
   produto: "Produto",
-  objetivo: "Objetivo",
   plataforma: "Plataforma",
-  publico: "Público-alvo",
+  tipo_produto: "Tipo de Produto",
+  objetivo: "Objetivo",
   promessa: "Promessa de Valor",
   dor: "Dor Principal",
   beneficio: "Benefício Principal",
   tom: "Tom de Voz",
   cta: "CTA Principal",
+  ideia_visual: "Ideia Visual",
   restricoes: "Restrições",
 };
 
+// ─── Publicação assistida por plataforma ─────────────────────────────────────
+interface PlatformGuide {
+  name: string;
+  url: string;
+  steps: string[];
+  note: string;
+}
+
+function getPlatformGuide(platform: string | undefined, fields: CampaignPlatformField[]): PlatformGuide | null {
+  const get = (key: string) => fields.find((f) => f.key === key)?.value ?? "";
+  const p = platform ?? "";
+
+  switch (p) {
+    case "mercado_livre":
+      return {
+        name: "Mercado Livre",
+        url: "https://www.mercadolivre.com.br",
+        steps: [
+          "Acesse mercadolivre.com.br e faça login como vendedor",
+          "Vá em Meus Anúncios → Criar anúncio",
+          `Cole o Título do Anúncio gerado: "${get("titulo").slice(0, 60)}"`,
+          "Selecione a Categoria Sugerida no campo de categoria",
+          "Preencha as Características Técnicas nos atributos do produto",
+          "Cole a Descrição Completa no campo de descrição do anúncio",
+          "Adicione as Perguntas Frequentes via Central do Vendedor → FAQ",
+          "Configure Produto Patrocinado em Publicidade para mais visibilidade",
+          "Monitore visitas e conversões em Central do Vendedor → Meus Anúncios",
+        ],
+        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+      };
+
+    case "shopee":
+      return {
+        name: "Shopee",
+        url: "https://seller.shopee.com.br",
+        steps: [
+          "Acesse seller.shopee.com.br e faça login no Seller Centre",
+          "Vá em Meus Produtos → Adicionar novo produto",
+          `Cole o Nome do Anúncio gerado: "${get("nome_anuncio").slice(0, 120)}"`,
+          "Selecione a Categoria Sugerida",
+          "Cole a Descrição do Produto no campo de descrição",
+          "Adicione as Palavras-chave de Busca nas tags do produto",
+          "Configure as variações sugeridas se aplicável",
+          "Ative Oferta Relâmpago e configure cupons em Marketing → Vouchers",
+          "Acompanhe performance em Análise de Dados → Produtos",
+        ],
+        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+      };
+
+    case "hotmart":
+      return {
+        name: "Hotmart",
+        url: "https://app.hotmart.com",
+        steps: [
+          "Acesse app.hotmart.com e faça login",
+          "Vá em Meus Produtos → selecione o produto → Página de Vendas",
+          `Defina o Nome do Produto: "${get("nome_produto")}"`,
+          `Cole a Headline: "${get("headline").slice(0, 80)}"`,
+          "Cole a Descrição Completa no corpo da página de vendas",
+          "Adicione os Benefícios em lista de checkmarks",
+          "Adicione o Conteúdo do Produto na seção 'O que está incluso'",
+          "Configure os Bônus na seção de bônus",
+          `Configure a Garantia: "${get("garantia").slice(0, 80)}"`,
+          `Configure o botão de compra com o CTA: "${get("cta")}"`,
+          "Ative o Programa de Afiliados em Afiliados → Configurações",
+        ],
+        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+      };
+
+    case "kiwify":
+      return {
+        name: "Kiwify",
+        url: "https://app.kiwify.com.br",
+        steps: [
+          "Acesse app.kiwify.com.br e faça login",
+          "Selecione o produto → Configurações → Página de Vendas",
+          `Defina o Nome do Produto: "${get("nome_produto")}"`,
+          `Cole a Headline: "${get("headline").slice(0, 80)}"`,
+          "Cole a Descrição Completa no corpo da página",
+          "Configure os Benefícios em lista",
+          "Adicione os Bônus na seção correspondente",
+          `Configure a Garantia: "${get("garantia").slice(0, 80)}"`,
+          `Configure o botão de compra: "${get("cta")}"`,
+          "Ative o Programa de Afiliados",
+        ],
+        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+      };
+
+    case "facebook":
+      return {
+        name: "Facebook",
+        url: "https://www.facebook.com",
+        steps: [
+          "Acesse sua página no Facebook → Criar publicação",
+          "Cole o Texto Principal no campo de publicação",
+          "Para anúncio: acesse Meta Ads Manager → Criar anúncio",
+          `Use a Headline "${get("headline")}" no campo de título do anúncio`,
+          `Configure a Descrição Curta "${get("descricao_curta")}" no campo descrição`,
+          `Selecione o botão de CTA: "${get("cta")}"`,
+          "Crie o criativo conforme a Sugestão de Criativo gerada",
+          "Configure público-alvo, orçamento e veiculação",
+          "Monitore resultados em Meta Ads Manager → Relatórios",
+        ],
+        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+      };
+
+    case "instagram":
+      return {
+        name: "Instagram",
+        url: "https://www.instagram.com",
+        steps: [
+          "Abra o Instagram → toque em + → Nova publicação ou Reel",
+          "Escolha o formato conforme a Sugestão de Criativo gerada",
+          `Use a Primeira Frase como abertura: "${get("primeira_frase").slice(0, 90)}"`,
+          "Cole a Legenda completa no campo de legenda",
+          "Adicione as Hashtags no final da legenda ou no primeiro comentário",
+          `Finalize com o CTA: "${get("cta")}"`,
+          "Para Stories: use o CTA como sticker de link ou caixa de pergunta",
+          "Publique entre 18h e 21h para maior alcance orgânico",
+          "Acompanhe os Insights após 24h",
+        ],
+        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+      };
+
+    case "tiktok":
+      return {
+        name: "TikTok",
+        url: "https://www.tiktok.com",
+        steps: [
+          "Abra o TikTok → toque em + → gravar ou importar vídeo",
+          `Comece com o Gancho nos primeiros 2 segundos: "${get("gancho").slice(0, 80)}"`,
+          "Siga o Roteiro gerado para o desenvolvimento do vídeo",
+          "Adicione legendas em tela com o texto-chave do roteiro",
+          "Cole a Legenda gerada no campo de legenda do vídeo",
+          "Adicione as Hashtags na legenda",
+          `Finalize com o CTA: "${get("cta")}"`,
+          "Configure o som conforme a Sugestão de Criativo",
+          "Publique e monitore retenção nos primeiros 30 minutos",
+        ],
+        note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
+      };
+
+    default:
+      return null;
+  }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function isCampaignComplete(r: CampaignResult | null): r is CampaignResult {
   if (!r) return false;
   if (r.platformFields && r.platformFields.length > 0) {
     return r.platformFields.some((f) => f.value?.trim());
   }
-  if (!r.headline?.trim()) return false;
-  if (!r.audience?.trim()) return false;
-  if (!Array.isArray(r.channels) || r.channels.length === 0) return false;
-  if (!r.budget?.trim()) return false;
-  if (!r.copy || typeof r.copy !== "object") return false;
-  const copyValues = Object.values(r.copy as Record<string, string>);
-  if (copyValues.every((v) => !v?.trim())) return false;
-  if (!Array.isArray(r.keyMessages) || r.keyMessages.length === 0) return false;
-  return true;
+  // legacy check
+  return !!(r.headline?.trim() && r.audience?.trim());
 }
 
 function getBlockContent(data: CampaignResult, blockId: string): string {
@@ -47,17 +190,9 @@ function getBlockContent(data: CampaignResult, blockId: string): string {
     const key = blockId.replace("platformField.", "");
     return data.platformFields?.find((f) => f.key === key)?.value ?? "";
   }
-  if (blockId.startsWith("copy.")) {
-    const platform = blockId.replace("copy.", "");
-    return (data.copy as Record<string, string>)[platform] ?? "";
-  }
   switch (blockId) {
     case "headline": return data.headline;
     case "audience": return data.audience;
-    case "budget": return data.budget;
-    case "uniqueAngle": return data.uniqueAngle ?? "";
-    case "launchTimeline": return data.launchTimeline;
-    case "keyMessages": return data.keyMessages.join("\n");
     default: return "";
   }
 }
@@ -71,33 +206,22 @@ function applyRefinedContent(prev: CampaignResult | null, blockId: string, conte
       platformFields: prev.platformFields?.map((f) => f.key === key ? { ...f, value: content } : f),
     };
   }
-  if (blockId.startsWith("copy.")) {
-    const platform = blockId.replace("copy.", "");
-    return { ...prev, copy: { ...prev.copy, [platform]: content } };
-  }
   switch (blockId) {
     case "headline": return { ...prev, headline: content };
     case "audience": return { ...prev, audience: content };
-    case "budget": return { ...prev, budget: content };
-    case "uniqueAngle": return { ...prev, uniqueAngle: content };
-    case "launchTimeline": return { ...prev, launchTimeline: content };
-    case "keyMessages": return { ...prev, keyMessages: content.split("\n").map((s) => s.trim()).filter(Boolean) };
     default: return prev;
   }
 }
 
-interface RefineBarProps {
-  blockId: string;
-  value: string;
-  onChange: (v: string) => void;
-  onRefine: () => void;
-  isRefining: boolean;
-  disabled: boolean;
-}
-
-function RefineBar({ blockId: _blockId, value, onChange, onRefine, isRefining, disabled }: RefineBarProps) {
+// ─── Sub-components ───────────────────────────────────────────────────────────
+function RefineBar({
+  blockId: _blockId, value, onChange, onRefine, isRefining, disabled,
+}: {
+  blockId: string; value: string; onChange: (v: string) => void;
+  onRefine: () => void; isRefining: boolean; disabled: boolean;
+}) {
   return (
-    <div className="mt-2 flex gap-2 items-center">
+    <div className="mt-2.5 flex gap-2 items-center">
       <input
         className="flex-1 text-xs bg-[#0a0a0a] border border-white/10 rounded px-2.5 py-1.5 text-white placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/40 disabled:opacity-50"
         placeholder="Instrução de refinamento para este campo..."
@@ -119,49 +243,42 @@ function RefineBar({ blockId: _blockId, value, onChange, onRefine, isRefining, d
 }
 
 function PlatformFieldBlock({
-  field,
-  refineInput,
-  onRefineChange,
-  onRefine,
-  isRefining,
-  disabled,
+  field, refineInput, onRefineChange, onRefine, isRefining, disabled,
 }: {
-  field: CampaignPlatformField;
-  refineInput: string;
-  onRefineChange: (v: string) => void;
-  onRefine: () => void;
-  isRefining: boolean;
-  disabled: boolean;
+  field: CampaignPlatformField; refineInput: string; onRefineChange: (v: string) => void;
+  onRefine: () => void; isRefining: boolean; disabled: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const { toast } = useToast();
-  const preview = field.value.slice(0, 160);
-  const hasMore = field.value.length > 160;
+  const charLimit = 300;
+  const preview = field.value.slice(0, charLimit);
+  const hasMore = field.value.length > charLimit;
 
   return (
-    <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-4">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-semibold text-primary">{field.label}</p>
+    <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-lg p-4">
+      <div className="flex items-start justify-between mb-2 gap-2">
+        <p className="text-xs font-semibold text-primary leading-tight">{field.label}</p>
         <button
           onClick={() => {
             void navigator.clipboard.writeText(field.value);
-            toast({ description: `${field.label} copiado` });
+            toast({ description: `${field.label} copiado.` });
           }}
-          className="text-muted-foreground hover:text-white transition-colors"
+          className="text-muted-foreground hover:text-white transition-colors shrink-0"
+          title="Copiar campo"
         >
           <Copy className="w-3.5 h-3.5" />
         </button>
       </div>
-      <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">
+      <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">
         {expanded ? field.value : preview}
         {hasMore && !expanded && "..."}
       </p>
       {hasMore && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="text-xs text-primary/60 hover:text-primary mt-1.5 flex items-center gap-1"
+          className="text-xs text-primary/60 hover:text-primary mt-1.5 flex items-center gap-1 transition-colors"
         >
-          {expanded ? <><ChevronUp className="w-3 h-3" /> Menos</> : <><ChevronDown className="w-3 h-3" /> Ver mais</>}
+          {expanded ? <><ChevronUp className="w-3 h-3" /> Recolher</> : <><ChevronDown className="w-3 h-3" /> Ver completo</>}
         </button>
       )}
       <RefineBar
@@ -185,23 +302,25 @@ function CreativeBriefingBlock({ briefing }: { briefing: CampaignCreativeBriefin
   const copyAll = () => {
     const text = entries.map(([k, v]) => `${BRIEFING_LABELS[k] ?? k}: ${v}`).join("\n");
     void navigator.clipboard.writeText(text);
-    toast({ description: "Briefing copiado" });
+    toast({ description: "Briefing copiado." });
   };
 
   return (
-    <div className="border border-white/5 rounded-lg overflow-hidden">
+    <div className="border border-white/[0.05] rounded-lg overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/[0.02] transition-colors"
       >
         <div className="flex items-center gap-2">
-          <FileText className="w-3.5 h-3.5 text-muted-foreground" />
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Briefing Criativo</p>
+          <FileText className="w-3.5 h-3.5 text-muted-foreground/60" />
+          <p className="text-[11px] text-muted-foreground/60 uppercase tracking-widest font-medium">Briefing Criativo</p>
         </div>
-        {expanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+        {expanded
+          ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground/60" />
+          : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/60" />}
       </button>
       {expanded && (
-        <div className="border-t border-white/5 px-4 pb-4 pt-3 space-y-3">
+        <div className="border-t border-white/[0.05] px-4 pb-4 pt-3 space-y-3">
           <div className="flex justify-end">
             <button
               onClick={copyAll}
@@ -213,7 +332,9 @@ function CreativeBriefingBlock({ briefing }: { briefing: CampaignCreativeBriefin
           <div className="grid md:grid-cols-2 gap-2">
             {entries.map(([key, value]) => (
               <div key={key} className="bg-[#0a0a0a] rounded p-2.5">
-                <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest mb-0.5">{BRIEFING_LABELS[key] ?? key}</p>
+                <p className="text-[10px] text-muted-foreground/50 uppercase tracking-widest mb-0.5">
+                  {BRIEFING_LABELS[key] ?? key}
+                </p>
                 <p className="text-xs text-zinc-300 leading-snug">{value}</p>
               </div>
             ))}
@@ -224,209 +345,7 @@ function CreativeBriefingBlock({ briefing }: { briefing: CampaignCreativeBriefin
   );
 }
 
-function CopyBlock({ label, content }: { label: string; content: string }) {
-  const [expanded, setExpanded] = useState(false);
-  const { toast } = useToast();
-  const preview = content.slice(0, 120);
-  const hasMore = content.length > 120;
-
-  return (
-    <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-4">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-semibold text-primary capitalize">{label}</p>
-        <button
-          onClick={() => { navigator.clipboard.writeText(content); toast({ description: `Copy de ${label} copiado` }); }}
-          className="text-muted-foreground hover:text-white transition-colors"
-        >
-          <Copy className="w-3.5 h-3.5" />
-        </button>
-      </div>
-      <p className="text-xs text-muted-foreground leading-relaxed">
-        {expanded ? content : preview}
-        {hasMore && !expanded && "..."}
-      </p>
-      {hasMore && (
-        <button onClick={() => setExpanded(!expanded)} className="text-xs text-primary/60 hover:text-primary mt-1.5 flex items-center gap-1">
-          {expanded ? <><ChevronUp className="w-3 h-3" /> Menos</> : <><ChevronDown className="w-3 h-3" /> Ver mais</>}
-        </button>
-      )}
-    </div>
-  );
-}
-
-function buildGoalContext(goal: string): string {
-  if (!goal) return goal;
-  const lower = goal.toLowerCase();
-
-  if (lower.includes("mercado livre")) {
-    return `Vender no Mercado Livre — campanha para anúncio de produto em marketplace físico.
-Gere: título de anúncio como headline (máx. 60 chars, palavras-chave relevantes no início), descrição detalhada do produto como copy, benefícios e especificações como keyMessages, argumento competitivo de venda no uniqueAngle.
-CTA focado em compra no marketplace (ex: "Compre agora", "Adicione ao carrinho", "Aproveite a oferta").
-Canais recomendados: Mercado Livre, Mercado Ads. Orçamento: valor mensal realista para Produto Patrocinado (Mercado Ads).
-PROIBIDO: CTA de seguir no Instagram/TikTok, orçamento de Meta Ads ou Google Ads como canal principal.`;
-  }
-
-  if (lower.includes("hotmart")) {
-    return `Vender na Hotmart — campanha para produto digital em plataforma de infoprodutos.
-Gere: headline de página de vendas, promessa clara no subheadline, keyMessages com transformação prometida / bônus / garantia, copy para aquecer lista e atrair tráfego para a página.
-CTA de checkout direto (ex: "Quero acesso agora", "Garantir minha vaga", "Comprar com desconto").
-Estrutura de lançamento: captação → aquecimento → abertura de carrinho.`;
-  }
-
-  if (lower.includes("kiwify")) {
-    return `Vender na Kiwify — campanha para produto digital com foco em conversão direta e programa de afiliados.
-Gere: headline de oferta direta, subheadline com entrega de valor imediata, copy com urgência e prova social, keyMessages com preço acessível / entrega imediata / garantia.
-CTA de compra low ticket (ex: "Acesse por apenas R$...", "Comprar agora", "Garantir acesso").`;
-  }
-
-  if (lower.includes("whatsapp")) {
-    return `Vender via WhatsApp — campanha para abordagem direta e consultiva via mensagem.
-Gere: mensagem de abordagem inicial (sem spam, quebra de gelo natural), mensagem consultiva de acompanhamento com valor e prova social, CTA conversacional para continuar o contato.
-Foco em relacionamento, confiança e conversão via conversa direta. Tom pessoal, não corporativo.`;
-  }
-
-  return goal;
-}
-
-interface PlatformGuide {
-  name: string;
-  url: string;
-  steps: string[];
-  note: string;
-}
-
-function getPlatformGuide(goal: string, data: CampaignResult): PlatformGuide | null {
-  const g = goal.toLowerCase();
-  const headline = data.platformFields?.find((f) => f.key === "headline")?.value ?? data.headline ?? "";
-  const cta = data.platformFields?.find((f) => f.key === "cta")?.value ?? data.cta ?? "";
-  const hook = data.platformFields?.find((f) => f.key === "hook")?.value ?? "";
-  const legenda = data.platformFields?.find((f) => f.key === "legenda")?.value ?? "";
-
-  if (g.includes("hotmart")) {
-    return {
-      name: "Hotmart",
-      url: "https://app.hotmart.com",
-      steps: [
-        "Acesse app.hotmart.com e faça login na sua conta",
-        "Vá em Meus Produtos e selecione o produto desta campanha",
-        `Em Marketing > Páginas, crie uma nova página com a manchete: "${headline}"`,
-        `Defina o botão de compra com o CTA: "${cta}"`,
-        "Copie os textos de cada campo acima para os canais correspondentes",
-        "Em Afiliados > Programa de Afiliados, ative o link de afiliado para ampliar alcance",
-        "Acompanhe as conversões em Relatórios > Vendas após publicar",
-      ],
-      note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
-    };
-  }
-  if (g.includes("kiwify")) {
-    return {
-      name: "Kiwify",
-      url: "https://app.kiwify.com.br",
-      steps: [
-        "Acesse app.kiwify.com.br e faça login",
-        "Selecione o produto e acesse Configurações > Página de Vendas",
-        `Atualize o título principal com: "${headline}"`,
-        `Configure o botão de compra com: "${cta}"`,
-        "Ative o programa de afiliados em Afiliados > Configurações",
-        "Monitore as vendas em Dashboard > Transações",
-      ],
-      note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
-    };
-  }
-  if (g.includes("shopee")) {
-    return {
-      name: "Shopee",
-      url: "https://seller.shopee.com.br",
-      steps: [
-        "Acesse seller.shopee.com.br e faça login no Seller Centre",
-        "Vá em Meus Produtos e selecione o produto",
-        `Atualize o título com palavras-chave baseadas em: "${headline}"`,
-        "Configure cupons de desconto em Marketing > Vouchers",
-        "Ative Oferta Relâmpago para aumentar a visibilidade",
-        "Acompanhe a performance em Análise de Dados > Produtos",
-      ],
-      note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
-    };
-  }
-  if (g.includes("mercado livre")) {
-    return {
-      name: "Mercado Livre",
-      url: "https://www.mercadolivre.com.br",
-      steps: [
-        "Acesse Mercado Livre e faça login como vendedor",
-        "Vá em Meus Anúncios e selecione o produto",
-        `Atualize o título do anúncio com: "${headline}"`,
-        "Adicione a descrição desta campanha no campo de descrição do produto",
-        "Configure Produto Patrocinado em Publicidade",
-        "Monitore visitas e conversões em Central do Vendedor",
-      ],
-      note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
-    };
-  }
-  if (g.includes("instagram")) {
-    return {
-      name: "Instagram",
-      url: "https://www.instagram.com",
-      steps: [
-        "Acesse o Instagram e vá em Criar > Nova publicação",
-        `Use como legenda o copy de Instagram desta campanha`,
-        `Coloque a manchete "${headline}" nos primeiros 125 caracteres`,
-        "Publique como Reels para maior alcance orgânico",
-        `Use o CTA "${cta}" no caption e no sticker de link nos Stories`,
-        "Acompanhe o desempenho em Insights do perfil",
-      ],
-      note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
-    };
-  }
-  if (g.includes("tiktok")) {
-    return {
-      name: "TikTok",
-      url: "https://www.tiktok.com",
-      steps: [
-        `Abra o TikTok e grave um vídeo usando o hook nos primeiros 2 segundos: "${hook.slice(0, 80)}"`,
-        "Adicione legendas na tela com o texto principal da campanha",
-        `No caption use o texto da Legenda do Vídeo copiado acima`,
-        `Finalize em voz com o CTA: "${cta}"`,
-        "Poste entre 18h e 21h para maior alcance orgânico",
-      ],
-      note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
-    };
-  }
-  if (g.includes("facebook")) {
-    return {
-      name: "Facebook",
-      url: "https://www.facebook.com",
-      steps: [
-        "Acesse o Facebook e vá em Criar Publicação",
-        "Cole o Texto Principal desta campanha na publicação",
-        `A Headline "${headline}" será usada ao criar um anúncio no Meta Ads Manager`,
-        `Finalize com o Botão CTA: "${cta}"`,
-        "Publique na sua página ou grupo de maior alcance",
-        "Acompanhe engajamento em Insights da Página",
-      ],
-      note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
-    };
-  }
-  if (g.includes("whatsapp")) {
-    return {
-      name: "WhatsApp",
-      url: "https://web.whatsapp.com",
-      steps: [
-        "Abra o WhatsApp Business ou WhatsApp Web",
-        "Use a Abordagem Inicial desta campanha como primeira mensagem",
-        "Envie para seus contatos mais quentes primeiro",
-        "Aguarde resposta antes de enviar a Mensagem de Valor",
-        `Use o CTA "${cta}" para avançar na conversa`,
-        "Salve os contatos que responderam em uma lista específica para follow-up",
-      ],
-      note: "Publicação Assistida — orientações para publicação manual. Nenhuma ação automática é executada pela plataforma.",
-    };
-  }
-
-  void legenda;
-  return null;
-}
-
+// ─── Main component ───────────────────────────────────────────────────────────
 export function CreateCampaign() {
   const [product, setProduct] = useState("");
   const [audience, setAudience] = useState("");
@@ -458,20 +377,6 @@ export function CreateCampaign() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [campaignData, setCampaignData] = useState<CampaignResult | null>(null);
-
-  const detectedPlatform = useMemo(() => {
-    const gl = goal.toLowerCase();
-    if (gl.includes("hotmart")) return "hotmart";
-    if (gl.includes("kiwify")) return "kiwify";
-    if (gl.includes("shopee")) return "shopee";
-    if (gl.includes("mercado livre")) return "mercado_livre";
-    if (gl.includes("instagram")) return "instagram";
-    if (gl.includes("tiktok")) return "tiktok";
-    if (gl.includes("facebook")) return "facebook";
-    if (gl.includes("whatsapp")) return "whatsapp";
-    return undefined;
-  }, [goal]);
-
   const [refineInputs, setRefineInputs] = useState<Record<string, string>>({});
   const [refiningBlock, setRefiningBlock] = useState<string | null>(null);
   const [isRestored, setIsRestored] = useState(false);
@@ -480,24 +385,26 @@ export function CreateCampaign() {
   const isDone = status === "done";
   const isError = status === "error";
 
+  // Prefill from other modules
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem("iattom_campaign_prefill");
       if (!raw) return;
       sessionStorage.removeItem("iattom_campaign_prefill");
-      const prefill = JSON.parse(raw) as { product?: string; goal?: string; platform?: string };
+      const prefill = JSON.parse(raw) as { product?: string; goal?: string };
       if (prefill.product) setProduct(prefill.product);
       if (prefill.goal) setGoal(prefill.goal);
     } catch {}
   }, []);
 
+  // Reopen from Projetos Salvos
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem("iattom_reopen_campaign_v1");
       if (!raw) return;
       sessionStorage.removeItem("iattom_reopen_campaign_v1");
       const saved = JSON.parse(raw) as {
-        briefing?: { product?: string; goal?: string; mode?: string; audience?: string; productType?: string; niche?: string };
+        briefing?: { product?: string; goal?: string; mode?: string; audience?: string; productType?: string };
         result?: CampaignResult;
       };
       if (saved.briefing?.product) setProduct(saved.briefing.product);
@@ -528,7 +435,7 @@ export function CreateCampaign() {
     generate("/api/ai/create-campaign", {
       product,
       audience: audience || undefined,
-      goal: buildGoalContext(goal) || undefined,
+      goal: goal || undefined,
       mode: mode || undefined,
       productType: productType || undefined,
     }).then((res) => {
@@ -546,11 +453,9 @@ export function CreateCampaign() {
   const refineBlock = async (blockId: string) => {
     const instruction = refineInputs[blockId] ?? "";
     if (!instruction.trim() || !campaignData || refiningBlock) return;
-
     setRefiningBlock(blockId);
     const currentContent = getBlockContent(campaignData, blockId);
     const campaignContext = [product, goal, mode].filter(Boolean).join(" / ");
-
     try {
       const res = await fetch("/api/ai/refine-campaign-block", {
         method: "POST",
@@ -558,12 +463,10 @@ export function CreateCampaign() {
         body: JSON.stringify({ blockId, currentContent, instruction, campaignContext }),
         credentials: "include",
       });
-
       if (!res.ok) {
         const err = await res.json().catch(() => ({})) as { error?: string };
         throw new Error(err.error ?? `HTTP ${res.status}`);
       }
-
       const data = await res.json() as { refinedContent: string };
       setCampaignData((prev) => applyRefinedContent(prev, blockId, data.refinedContent));
       setRefineInputs((prev) => ({ ...prev, [blockId]: "" }));
@@ -577,16 +480,16 @@ export function CreateCampaign() {
     }
   };
 
-  const buildCampaignMeta = () => {
-    if (!campaignData) return null;
+  const handleSave = async () => {
+    if (!campaignData || isSaving) return;
     const title = product.trim()
       ? `${product.trim()}${goal ? ` — ${goal}` : ""}`
-      : campaignData.headline;
-    const platform = detectedPlatform;
-    const lines: string[] = [];
+      : (campaignData.platformFields?.[0]?.value?.slice(0, 60) ?? campaignData.headline ?? "Campanha");
+    const platform = campaignData.platform;
 
+    const lines: string[] = [];
     if (campaignData.platformFields && campaignData.platformFields.length > 0) {
-      lines.push(`CAMPANHA — ${goal || product.trim()}`);
+      lines.push(`ENTREGA — ${goal || product.trim()}`);
       if (product.trim()) lines.push(`Produto: ${product.trim()}`);
       lines.push("");
       campaignData.platformFields.forEach((f) => {
@@ -594,48 +497,15 @@ export function CreateCampaign() {
         lines.push(f.value);
         lines.push("");
       });
-      if (campaignData.creativeBriefing) {
-        lines.push("=== BRIEFING CRIATIVO ===");
-        const b = campaignData.creativeBriefing;
-        if (b.promessa) lines.push(`Promessa: ${b.promessa}`);
-        if (b.dor) lines.push(`Dor: ${b.dor}`);
-        if (b.publico) lines.push(`Público: ${b.publico}`);
-        if (b.tom) lines.push(`Tom: ${b.tom}`);
-      }
     } else {
       lines.push(`CAMPANHA: ${campaignData.headline}`);
-      if (campaignData.subheadline) lines.push(`Subheadline: ${campaignData.subheadline}`);
-      if (campaignData.cta) lines.push(`CTA: ${campaignData.cta}`);
-      lines.push(`\nPÚBLICO: ${campaignData.audience}`);
-      if (campaignData.channels?.length) lines.push(`CANAIS: ${campaignData.channels.join(", ")}`);
-      lines.push(`ORÇAMENTO: ${campaignData.budget}`);
-      if (campaignData.uniqueAngle) lines.push(`\nÂNGULO ÚNICO: ${campaignData.uniqueAngle}`);
-      if (campaignData.keyMessages?.length) {
-        lines.push(`\nMENSAGENS-CHAVE:`);
-        campaignData.keyMessages.forEach((m, i) => lines.push(`  ${i + 1}. ${m}`));
-      }
-      if (campaignData.copy && typeof campaignData.copy === "object") {
-        lines.push(`\nCOPY:`);
-        Object.entries(campaignData.copy as Record<string, string>).forEach(([p, c]) => {
-          lines.push(`\n[${p.toUpperCase()}]\n${c}`);
-        });
-      }
-      if (campaignData.launchTimeline) lines.push(`\nCRONOGRAMA:\n${campaignData.launchTimeline}`);
+      if (campaignData.audience) lines.push(`Público: ${campaignData.audience}`);
     }
-
     const content = lines.join("\n");
     const structuredData = JSON.stringify({
       briefing: { product: product.trim(), goal, mode, audience, productType },
       result: campaignData,
     });
-    return { title, platform, content, structuredData };
-  };
-
-  const handleSave = async () => {
-    if (!campaignData || isSaving) return;
-    const meta = buildCampaignMeta();
-    if (!meta) return;
-    const { title, platform, content, structuredData } = meta;
     const projectId = crypto.randomUUID();
     try {
       const raw = localStorage.getItem("iattom_saved_items_v1");
@@ -646,9 +516,9 @@ export function CreateCampaign() {
     setIsSaving(true);
     try {
       await saveItem({ id: projectId, title, type: "campaign", platform, content, data: structuredData, hasImages: false });
-      toast({ description: "Projeto salvo." });
+      toast({ description: "Projeto salvo em Projetos Salvos." });
     } catch {
-      toast({ description: "Erro ao salvar projeto. Tente novamente.", variant: "destructive" });
+      toast({ description: "Erro ao salvar. Tente novamente.", variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
@@ -659,11 +529,12 @@ export function CreateCampaign() {
 
   return (
     <div className="space-y-8">
+      {/* Header */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Construtor de Campanha</p>
+          <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Entrega por Plataforma</p>
           <h2 className="text-2xl font-bold text-white mb-1">Criar Campanha</h2>
-          <p className="text-muted-foreground text-sm">Gere uma estratégia completa de campanha com copy criado para a plataforma escolhida.</p>
+          <p className="text-muted-foreground text-sm">Escolha a plataforma. A IA gera exatamente os campos que você precisa — na ordem de copiar e colar.</p>
         </div>
         <Button size="sm" variant="outline" onClick={() => void refetchCredits()} disabled={fetchingCredits} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
           <RefreshCw className={`w-3.5 h-3.5 ${fetchingCredits ? "animate-spin" : ""}`} />
@@ -671,139 +542,170 @@ export function CreateCampaign() {
         </Button>
       </motion.div>
 
+      {/* Restored banner */}
       {isRestored && campaignData && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
           <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-primary/5 border border-primary/20">
             <div className="flex items-center gap-2.5">
               <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
-              <p className="text-sm text-primary font-medium">Campanha restaurada de Projetos Salvos</p>
+              <p className="text-sm text-primary font-medium">Entrega restaurada de Projetos Salvos</p>
             </div>
-            <button
-              onClick={handleReset}
-              className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"
-            >
-              <RefreshCw className="w-3 h-3" /> Nova Campanha
+            <button onClick={handleReset} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5">
+              <RefreshCw className="w-3 h-3" /> Nova entrega
             </button>
           </div>
         </motion.div>
       )}
 
+      {/* Form */}
       {!(isRestored && campaignData) && (
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
-        <Card className="bg-[#111111] border-white/5">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base font-semibold text-white">Dados da Campanha</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
+          <Card className="bg-[#111111] border-white/5">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base font-semibold text-white">Dados da Entrega</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-sm text-muted-foreground">Produto / Marca</Label>
+                  <Input
+                    placeholder="ex: Garrafa HydroElite, Curso de Excel, Consultoria de Tráfego"
+                    className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50"
+                    value={product}
+                    onChange={(e) => setProduct(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm text-muted-foreground">
+                    Plataforma de Destino <span className="text-red-400">*</span>
+                  </Label>
+                  <select
+                    value={goal}
+                    onChange={(e) => setGoal(e.target.value)}
+                    className={`w-full h-9 rounded-md border bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0 transition-colors ${product.trim() && !goal ? "border-amber-500/40" : "border-white/10"}`}
+                  >
+                    <option value="" disabled>Selecionar plataforma</option>
+                    <optgroup label="Marketplaces">
+                      <option value="Vender no Mercado Livre">Mercado Livre</option>
+                      <option value="Vender na Shopee">Shopee</option>
+                    </optgroup>
+                    <optgroup label="Produtos Digitais">
+                      <option value="Vender na Hotmart">Hotmart</option>
+                      <option value="Vender na Kiwify">Kiwify</option>
+                    </optgroup>
+                    <optgroup label="Redes Sociais">
+                      <option value="Vender no Facebook">Facebook</option>
+                      <option value="Vender no Instagram">Instagram</option>
+                      <option value="Vender no TikTok">TikTok</option>
+                    </optgroup>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-sm text-muted-foreground">Tipo de Produto</Label>
+                  <select
+                    value={productType}
+                    onChange={(e) => setProductType(e.target.value)}
+                    className="w-full h-9 rounded-md border border-white/10 bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0"
+                  >
+                    <option value="">Selecionar tipo (opcional)</option>
+                    <option value="Digital">Digital — curso, ebook, software, assinatura</option>
+                    <option value="Físico">Físico — roupas, eletrônicos, suplementos</option>
+                    <option value="Serviço">Serviço — consultoria, mentoria, agência</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm text-muted-foreground">Modo da Campanha</Label>
+                  <select
+                    value={mode}
+                    onChange={(e) => setMode(e.target.value)}
+                    className="w-full h-9 rounded-md border border-white/10 bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0"
+                  >
+                    <option value="">Padrão (Conversão)</option>
+                    <option value="Orgânico">Orgânico — sem tráfego pago</option>
+                    <option value="Iniciante">Iniciante — primeiras vendas</option>
+                    <option value="Conversão">Conversão — venda imediata</option>
+                    <option value="Viral">Viral — UGC, compartilhamento</option>
+                    <option value="Agressivo">Agressivo — alta pressão, remarketing</option>
+                    <option value="Premium">Premium — posicionamento de alto valor</option>
+                    <option value="Escala">Escala — produto validado em expansão</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="space-y-1.5">
-                <Label className="text-sm text-muted-foreground">Produto / Marca</Label>
-                <Input placeholder="ex: Garrafa HydroElite" className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50" value={product} onChange={(e) => setProduct(e.target.value)} />
+                <Label className="text-sm text-muted-foreground">Público-alvo (opcional)</Label>
+                <Input
+                  placeholder="ex: Mulheres 25-40 interessadas em bem-estar, atletas amadores"
+                  className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50"
+                  value={audience}
+                  onChange={(e) => setAudience(e.target.value)}
+                />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-sm text-muted-foreground">
-                  Objetivo da Campanha <span className="text-red-400">*</span>
-                </Label>
-                <select
-                  value={goal}
-                  onChange={(e) => setGoal(e.target.value)}
-                  className={`w-full h-9 rounded-md border bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0 transition-colors ${product.trim() && !goal ? "border-amber-500/40" : "border-white/10"}`}
-                >
-                  <option value="" disabled>Selecionar objetivo</option>
-                  <option value="Vender na Shopee">Vender na Shopee</option>
-                  <option value="Vender no Mercado Livre">Vender no Mercado Livre</option>
-                  <option value="Vender na Hotmart">Vender na Hotmart</option>
-                  <option value="Vender na Kiwify">Vender na Kiwify</option>
-                  <option value="Vender no Instagram">Vender no Instagram</option>
-                  <option value="Vender no TikTok">Vender no TikTok</option>
-                  <option value="Vender no Facebook">Vender no Facebook</option>
-                  <option value="Vender via WhatsApp">Vender via WhatsApp</option>
-                </select>
-              </div>
-            </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-sm text-muted-foreground">Modo da Campanha</Label>
-                <select
-                  value={mode}
-                  onChange={(e) => setMode(e.target.value)}
-                  className="w-full h-9 rounded-md border border-white/10 bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0"
-                >
-                  <option value="">Padrão (Conversão)</option>
-                  <option value="Iniciante">Iniciante — primeiras vendas, orçamento baixo</option>
-                  <option value="Orgânico">Orgânico — sem tráfego pago, conteúdo e creators</option>
-                  <option value="Baixo orçamento">Baixo orçamento — máx. R$1.500/mês, enxuto</option>
-                  <option value="Conversão">Conversão — venda imediata, funil direto</option>
-                  <option value="Viral">Viral — UGC, retenção, compartilhamento</option>
-                  <option value="Agressivo">Agressivo — alta pressão, remarketing, A/B</option>
-                  <option value="Premium">Premium — posicionamento de alto valor</option>
-                  <option value="Escala">Escala — expansão de produto já validado</option>
-                </select>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm text-muted-foreground">Tipo de Produto</Label>
-              <select
-                value={productType}
-                onChange={(e) => setProductType(e.target.value)}
-                className="w-full h-9 rounded-md border border-white/10 bg-[#0a0a0a] px-3 py-1 text-sm text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0"
-              >
-                <option value="">Selecionar tipo (opcional)</option>
-                <option value="Digital">Digital — curso, ebook, software, assinatura</option>
-                <option value="Físico">Físico — roupas, eletrônicos, suplementos</option>
-                <option value="Serviço">Serviço — consultoria, mentoria, agência</option>
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm text-muted-foreground">Público-alvo (opcional)</Label>
-              <Input placeholder="ex: Atletas 25-40, entusiastas de atividades ao ar livre" className="bg-[#0a0a0a] border-white/10 focus-visible:ring-primary/50" value={audience} onChange={(e) => setAudience(e.target.value)} />
-            </div>
-            {incompatibility && (
-              <div className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/[0.07] px-3.5 py-3">
-                <span className="text-red-400 text-sm leading-none mt-0.5">!</span>
-                <p className="text-xs text-red-300/90 leading-relaxed">
-                  {INCOMPATIBILITY_MESSAGES[incompatibility]}
-                </p>
-              </div>
-            )}
-            {typeMismatch && (
-              <div className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/[0.07] px-3.5 py-3">
-                <span className="text-red-400 text-sm leading-none mt-0.5">!</span>
-                <p className="text-xs text-red-300/90 leading-relaxed">
-                  {PRODUCT_TYPE_MISMATCH_MESSAGE}
-                </p>
-              </div>
-            )}
-            {product.trim() && !goal && (
-              <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/[0.06] px-3.5 py-3">
-                <span className="text-amber-400 text-sm leading-none mt-0.5">!</span>
-                <p className="text-xs text-amber-300/90 leading-relaxed">
-                  Escolha o objetivo da campanha antes de gerar.
-                </p>
-              </div>
-            )}
-            <CreditsGate feature="campaign" onSuccess={runGenerate} disabled={!product.trim() || !goal || isGenerating || incompatibility !== null || typeMismatch}>
-              {({ trigger, isLoading }) => (
-                <Button onClick={trigger} disabled={isLoading || isGenerating || !product.trim() || !goal || incompatibility !== null || typeMismatch} className="bg-primary text-primary-foreground hover:bg-primary/90 w-full disabled:opacity-40">
-                  {isLoading || isGenerating ? (
-                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Construindo sua campanha...</>
-                  ) : "Gerar Campanha"}
-                </Button>
+
+              {/* Alerts */}
+              {incompatibility && (
+                <div className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/[0.07] px-3.5 py-3">
+                  <span className="text-red-400 text-sm leading-none mt-0.5">!</span>
+                  <p className="text-xs text-red-300/90 leading-relaxed">{INCOMPATIBILITY_MESSAGES[incompatibility]}</p>
+                </div>
               )}
-            </CreditsGate>
-          </CardContent>
-        </Card>
-      </motion.div>
+              {typeMismatch && (
+                <div className="flex items-start gap-2.5 rounded-lg border border-red-500/30 bg-red-500/[0.07] px-3.5 py-3">
+                  <span className="text-red-400 text-sm leading-none mt-0.5">!</span>
+                  <p className="text-xs text-red-300/90 leading-relaxed">{PRODUCT_TYPE_MISMATCH_MESSAGE}</p>
+                </div>
+              )}
+              {product.trim() && !goal && (
+                <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/[0.06] px-3.5 py-3">
+                  <span className="text-amber-400 text-sm leading-none mt-0.5">!</span>
+                  <p className="text-xs text-amber-300/90 leading-relaxed">
+                    Selecione a plataforma de destino antes de gerar.
+                  </p>
+                </div>
+              )}
+
+              <CreditsGate
+                feature="campaign"
+                onSuccess={runGenerate}
+                disabled={!product.trim() || !goal || isGenerating || incompatibility !== null || typeMismatch}
+              >
+                {({ trigger, isLoading }) => (
+                  <Button
+                    onClick={trigger}
+                    disabled={isLoading || isGenerating || !product.trim() || !goal || incompatibility !== null || typeMismatch}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 w-full disabled:opacity-40"
+                  >
+                    {isLoading || isGenerating ? (
+                      <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Gerando entrega...</>
+                    ) : "Gerar Entrega"}
+                  </Button>
+                )}
+              </CreditsGate>
+            </CardContent>
+          </Card>
+        </motion.div>
       )}
 
+      {/* States */}
       <AnimatePresence mode="wait">
         {isGenerating && (
           <motion.div key="generating" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="flex items-center gap-3 text-muted-foreground mb-5">
-              <div className="flex gap-1">{[0, 1, 2].map((i) => (<span key={i} className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />))}</div>
-              <span className="text-sm">Criando sua estratégia de campanha...</span>
+              <div className="flex gap-1">
+                {[0, 1, 2].map((i) => (
+                  <span key={i} className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                ))}
+              </div>
+              <span className="text-sm">Gerando campos para {goal?.replace("Vender n", "").replace("Vender no", "").replace("Vender na", "").trim() ?? "a plataforma"}...</span>
             </div>
-            <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => (<div key={i} className="h-40 rounded-lg bg-white/5 border border-white/5 animate-pulse" style={{ animationDelay: `${i * 0.1}s` }} />))}</div>
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="h-24 rounded-lg bg-white/[0.03] border border-white/[0.04] animate-pulse" style={{ animationDelay: `${i * 0.08}s` }} />
+              ))}
+            </div>
           </motion.div>
         )}
 
@@ -812,8 +714,13 @@ export function CreateCampaign() {
             <Card className="bg-red-950/20 border-red-500/20">
               <CardContent className="p-5 flex items-center gap-4">
                 <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
-                <div className="flex-1"><p className="text-sm font-semibold text-red-400">Falha na geração</p><p className="text-xs text-muted-foreground mt-0.5">{error ?? "Não foi possível gerar a campanha neste momento. Tente novamente."}</p></div>
-                <Button size="sm" variant="outline" onClick={() => { handleReset(); }} className="border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0"><RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Tentar novamente</Button>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-red-400">Falha na geração</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{error ?? "Não foi possível gerar a entrega. Tente novamente."}</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={handleReset} className="border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0">
+                  <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Tentar novamente
+                </Button>
               </CardContent>
             </Card>
           </motion.div>
@@ -823,12 +730,13 @@ export function CreateCampaign() {
           <motion.div key="result" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="space-y-4">
             <Card className="bg-[#111111] border-primary/20">
               <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <Megaphone className="w-4 h-4 text-primary" />
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Megaphone className="w-4 h-4 text-primary shrink-0" />
                   <CardTitle className="text-base text-white">
-                    {hasPlatformFields ? `Campanha — ${goal}` : "Estratégia de Campanha"}
+                    {goal?.replace("Vender n", "").replace("Vender no ", "").replace("Vender na ", "").trim() ?? "Entrega"}
+                    {product.trim() ? ` — ${product.trim()}` : ""}
                   </CardTitle>
-                  <div className="ml-auto flex items-center gap-2">
+                  <div className="ml-auto flex items-center gap-3">
                     <button
                       onClick={handleSave}
                       disabled={isSaving}
@@ -836,199 +744,99 @@ export function CreateCampaign() {
                     >
                       <Save className="w-3 h-3" /> {isSaving ? "Salvando..." : "Salvar"}
                     </button>
-                    <button onClick={handleReset} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5">
-                      <RefreshCw className="w-3 h-3" /> Nova campanha
+                    <button
+                      onClick={handleReset}
+                      className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"
+                    >
+                      <RefreshCw className="w-3 h-3" /> Nova entrega
                     </button>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-5">
 
-                {/* === NOVO: Campos por plataforma em ordem === */}
+              <CardContent className="space-y-4">
+                {/* ── NOVA ARQUITETURA: Campos por plataforma ── */}
                 {hasPlatformFields && campaignData.platformFields && (
-                  <div className="space-y-3">
-                    <p className="text-xs text-muted-foreground uppercase tracking-widest font-medium">
-                      Campos da Plataforma — na ordem de publicação
-                    </p>
-                    {campaignData.platformFields.map((field) => {
-                      const blockId = `platformField.${field.key}`;
-                      return (
-                        <PlatformFieldBlock
-                          key={field.key}
-                          field={field}
-                          refineInput={refineInputs[blockId] ?? ""}
-                          onRefineChange={(v) => setRefineInput(blockId, v)}
-                          onRefine={() => refineBlock(blockId)}
-                          isRefining={refiningBlock === blockId}
-                          disabled={!!refiningBlock && refiningBlock !== blockId}
-                        />
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* === Briefing Criativo (colapsável) === */}
-                {hasPlatformFields && campaignData.creativeBriefing && (
-                  <CreativeBriefingBlock briefing={campaignData.creativeBriefing} />
-                )}
-
-                {/* === LEGADO: renderização antiga para campanhas antigas sem platformFields === */}
-                {!hasPlatformFields && (
                   <>
-                    {/* Manchete */}
-                    <div className="p-4 rounded-lg bg-primary/5 border border-primary/15">
-                      <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Manchete</p>
-                      <p className="text-white font-bold text-lg leading-snug">{campaignData.headline}</p>
-                      <p className="text-muted-foreground text-sm mt-1">{campaignData.subheadline}</p>
-                      {campaignData.cta && <p className="text-primary text-sm font-semibold mt-2">CTA: {campaignData.cta}</p>}
-                      <RefineBar
-                        blockId="headline"
-                        value={refineInputs["headline"] ?? ""}
-                        onChange={(v) => setRefineInput("headline", v)}
-                        onRefine={() => refineBlock("headline")}
-                        isRefining={refiningBlock === "headline"}
-                        disabled={!!refiningBlock && refiningBlock !== "headline"}
-                      />
+                    <div className="flex items-center gap-2 pb-1 border-b border-white/[0.05]">
+                      <p className="text-[11px] text-muted-foreground/60 uppercase tracking-widest font-medium">
+                        Entrega da plataforma — copie e cole na ordem
+                      </p>
                     </div>
 
-                    {/* Público / Canais / Orçamento */}
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-3">
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1.5 flex items-center gap-1"><Target className="w-3 h-3" /> Público</p>
-                        <p className="text-sm text-white">{campaignData.audience}</p>
-                        <RefineBar
-                          blockId="audience"
-                          value={refineInputs["audience"] ?? ""}
-                          onChange={(v) => setRefineInput("audience", v)}
-                          onRefine={() => refineBlock("audience")}
-                          isRefining={refiningBlock === "audience"}
-                          disabled={!!refiningBlock && refiningBlock !== "audience"}
-                        />
-                      </div>
-                      <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-3">
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1.5 flex items-center gap-1"><Globe className="w-3 h-3" /> Canais</p>
-                        <div className="flex flex-wrap gap-1">
-                          {campaignData.channels?.map((c) => (<span key={c} className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">{c}</span>))}
-                        </div>
-                      </div>
-                      <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-3">
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1.5">Orçamento</p>
-                        <p className="text-sm text-white">{campaignData.budget}</p>
-                        <RefineBar
-                          blockId="budget"
-                          value={refineInputs["budget"] ?? ""}
-                          onChange={(v) => setRefineInput("budget", v)}
-                          onRefine={() => refineBlock("budget")}
-                          isRefining={refiningBlock === "budget"}
-                          disabled={!!refiningBlock && refiningBlock !== "budget"}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Ângulo Único */}
-                    {campaignData.uniqueAngle && (
-                      <div className="flex items-start gap-2 p-3 rounded-lg bg-white/5 border border-white/5">
-                        <Zap className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="text-xs text-primary font-medium mb-0.5">Ângulo Único</p>
-                          <p className="text-xs text-muted-foreground">{campaignData.uniqueAngle}</p>
-                          <RefineBar
-                            blockId="uniqueAngle"
-                            value={refineInputs["uniqueAngle"] ?? ""}
-                            onChange={(v) => setRefineInput("uniqueAngle", v)}
-                            onRefine={() => refineBlock("uniqueAngle")}
-                            isRefining={refiningBlock === "uniqueAngle"}
-                            disabled={!!refiningBlock && refiningBlock !== "uniqueAngle"}
+                    <div className="space-y-3">
+                      {campaignData.platformFields.map((field) => {
+                        const blockId = `platformField.${field.key}`;
+                        return (
+                          <PlatformFieldBlock
+                            key={field.key}
+                            field={field}
+                            refineInput={refineInputs[blockId] ?? ""}
+                            onRefineChange={(v) => setRefineInput(blockId, v)}
+                            onRefine={() => refineBlock(blockId)}
+                            isRefining={refiningBlock === blockId}
+                            disabled={!!refiningBlock && refiningBlock !== blockId}
                           />
-                        </div>
-                      </div>
-                    )}
+                        );
+                      })}
+                    </div>
 
-                    {/* Copy por Plataforma */}
-                    {campaignData.copy && Object.keys(campaignData.copy).length > 0 && (
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3 font-medium">Copy da Campanha</p>
-                        <div className="grid md:grid-cols-2 gap-3">
-                          {Object.entries(campaignData.copy as Record<string, string>).map(([key, copyText]) => {
-                            const blockId = `copy.${key}`;
-                            return (
-                              <div key={key} className="bg-[#0a0a0a] border border-white/5 rounded-lg p-4">
-                                <CopyBlock label={key} content={copyText} />
-                                <RefineBar
-                                  blockId={blockId}
-                                  value={refineInputs[blockId] ?? ""}
-                                  onChange={(v) => setRefineInput(blockId, v)}
-                                  onRefine={() => refineBlock(blockId)}
-                                  isRefining={refiningBlock === blockId}
-                                  disabled={!!refiningBlock && refiningBlock !== blockId}
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Mensagens-chave */}
-                    {campaignData.keyMessages?.length > 0 && (
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2 font-medium">Mensagens-chave</p>
-                        <div className="space-y-1.5">
-                          {campaignData.keyMessages.map((msg, i) => (
-                            <div key={i} className="flex items-start gap-2 text-sm">
-                              <span className="text-primary font-bold shrink-0 text-xs mt-0.5">{i + 1}</span>
-                              <p className="text-muted-foreground text-xs">{msg}</p>
-                            </div>
-                          ))}
-                        </div>
-                        <RefineBar
-                          blockId="keyMessages"
-                          value={refineInputs["keyMessages"] ?? ""}
-                          onChange={(v) => setRefineInput("keyMessages", v)}
-                          onRefine={() => refineBlock("keyMessages")}
-                          isRefining={refiningBlock === "keyMessages"}
-                          disabled={!!refiningBlock && refiningBlock !== "keyMessages"}
-                        />
-                      </div>
-                    )}
-
-                    {/* Cronograma */}
-                    {campaignData.launchTimeline && (
-                      <div className="border-t border-white/5 pt-4">
-                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1.5 font-medium">Cronograma de Lançamento</p>
-                        <p className="text-sm text-muted-foreground whitespace-pre-line">{campaignData.launchTimeline}</p>
-                        <RefineBar
-                          blockId="launchTimeline"
-                          value={refineInputs["launchTimeline"] ?? ""}
-                          onChange={(v) => setRefineInput("launchTimeline", v)}
-                          onRefine={() => refineBlock("launchTimeline")}
-                          isRefining={refiningBlock === "launchTimeline"}
-                          disabled={!!refiningBlock && refiningBlock !== "launchTimeline"}
-                        />
-                      </div>
+                    {/* Briefing criativo — colapsável, discreto */}
+                    {campaignData.creativeBriefing && (
+                      <CreativeBriefingBlock briefing={campaignData.creativeBriefing} />
                     )}
                   </>
                 )}
 
-                {/* Publicação Assistida — sempre visível quando há plataforma */}
-                {goal && campaignData && (() => {
-                  const guide = getPlatformGuide(goal, campaignData);
+                {/* ── FALLBACK LEGADO — saves antigos sem platformFields ── */}
+                {!hasPlatformFields && (
+                  <div className="space-y-3">
+                    <div className="p-4 rounded-lg bg-primary/5 border border-primary/15">
+                      <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Manchete</p>
+                      <p className="text-white font-bold text-lg leading-snug">{campaignData.headline}</p>
+                      {campaignData.subheadline && <p className="text-muted-foreground text-sm mt-1">{campaignData.subheadline}</p>}
+                      {campaignData.cta && <p className="text-primary text-sm font-semibold mt-2">CTA: {campaignData.cta}</p>}
+                    </div>
+                    {campaignData.audience && (
+                      <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1.5">Público</p>
+                        <p className="text-sm text-white">{campaignData.audience}</p>
+                      </div>
+                    )}
+                    {campaignData.keyMessages?.length > 0 && (
+                      <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-2">Mensagens-chave</p>
+                        <div className="space-y-1.5">
+                          {campaignData.keyMessages.map((msg, i) => (
+                            <div key={i} className="flex items-start gap-2">
+                              <span className="text-primary font-bold text-xs mt-0.5 shrink-0">{i + 1}</span>
+                              <p className="text-xs text-muted-foreground">{msg}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Publicação assistida */}
+                {hasPlatformFields && campaignData.platformFields && (() => {
+                  const guide = getPlatformGuide(campaignData.platform, campaignData.platformFields);
                   if (!guide) return null;
                   return (
-                    <div className="border-t border-white/5 pt-4">
+                    <div className="border-t border-white/[0.05] pt-4">
                       <div className="flex items-center justify-between mb-3">
-                        <p className="text-xs text-primary uppercase tracking-widest font-medium">Publicação Assistida</p>
+                        <p className="text-xs text-primary/80 uppercase tracking-widest font-medium">Publicação Assistida</p>
                         <a
                           href={guide.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-primary/80 hover:text-primary border border-primary/20 hover:border-primary/40 rounded px-2 py-1 bg-primary/5 hover:bg-primary/10 transition-colors flex items-center gap-1"
+                          className="text-xs text-primary/70 hover:text-primary border border-primary/20 hover:border-primary/40 rounded px-2 py-1 bg-primary/5 hover:bg-primary/10 transition-colors flex items-center gap-1"
                         >
                           <ExternalLink className="w-3 h-3" /> Abrir {guide.name}
                         </a>
                       </div>
-                      <div className="bg-[#0a0a0a] border border-primary/10 rounded-lg p-4 space-y-3">
-                        <p className="text-sm font-semibold text-white">{guide.name}</p>
+                      <div className="bg-[#0a0a0a] border border-primary/10 rounded-lg p-4">
                         <ol className="space-y-2">
                           {guide.steps.map((step, i) => (
                             <li key={i} className="flex items-start gap-2.5">
@@ -1037,7 +845,7 @@ export function CreateCampaign() {
                             </li>
                           ))}
                         </ol>
-                        <p className="text-xs text-muted-foreground/50 italic border-t border-white/5 pt-2">{guide.note}</p>
+                        <p className="text-xs text-muted-foreground/40 italic border-t border-white/5 pt-2 mt-3">{guide.note}</p>
                       </div>
                     </div>
                   );
