@@ -17,7 +17,6 @@ import { logAiUsage } from "./logger.js";
 import { logger } from "../logger.js";
 import {
   HEYGEN_CONFIGURED,
-  AVATAR_IDS,
   VOICE_IDS,
   getOfficialAvatarId,
   generateVideo,
@@ -405,10 +404,8 @@ export async function streamVideoGeneration(
     // ── Modo real via HeyGen ─────────────────────────────────────────────────
     sendSSE(res, { type: "progress", message: "Preparando personagem..." });
 
-    // Seleção: Marcus/Candace (confirmados na conta) → fallback catálogo oficial por estilo×gênero
-    // masculino → Marcus_expressive_2024120201
-    // feminino  → candace_expressive_20240910
-    const avatarId = AVATAR_IDS[params.videoAvatar] || getOfficialAvatarId(params.videoEstilo, params.videoAvatar);
+    // Seleção por catálogo oficial: videoEstilo × videoAvatar
+    const avatarId = getOfficialAvatarId(params.videoEstilo, params.videoAvatar);
     const voiceId = VOICE_IDS[params.videoAvatar];
 
     if (!voiceId) {

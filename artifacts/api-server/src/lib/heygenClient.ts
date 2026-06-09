@@ -199,13 +199,8 @@ function dimensionForAspect(aspectRatio: string): { width: number; height: numbe
 export async function generateVideo(payload: HeyGenVideoPayload): Promise<{ videoId: string }> {
   const apiKey = process.env.HEYGEN_API_KEY!;
 
-  const isColor     = payload.background.startsWith("#");
   const aspectRatio = payload.aspectRatio ?? "16:9";
   const dimension   = dimensionForAspect(aspectRatio);
-
-  const background = isColor
-    ? { type: "color", value: payload.background }
-    : { type: "image", url: payload.background };
 
   const body = {
     video_inputs: [
@@ -220,7 +215,10 @@ export async function generateVideo(payload: HeyGenVideoPayload): Promise<{ vide
           input_text: payload.script,
           voice_id:   payload.voiceId,
         },
-        background,
+        background: {
+          type:  "color",
+          value: "#111111",
+        },
       },
     ],
     dimension,
@@ -232,8 +230,8 @@ export async function generateVideo(payload: HeyGenVideoPayload): Promise<{ vide
         avatar_id:   payload.avatarId,
         voice_id:    payload.voiceId,
         dimension,
-        background_type:  isColor ? "color" : "image",
-        background_value: payload.background.slice(0, 80),
+        background_type:  "color",
+        background_value: "#111111",
         script_length:    payload.script.length,
         script_preview:   payload.script.slice(0, 60),
         aspect_ratio:     aspectRatio,
