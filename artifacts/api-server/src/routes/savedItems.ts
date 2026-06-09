@@ -157,6 +157,44 @@ router.post("/saved-items/:id/assets", requireAuth, largeJson, async (req: Reque
   }
 });
 
+router.get("/saved-items/:id/video-assets", requireAuth, async (req: Request, res: Response) => {
+  const clerkUserId = (req as AuthenticatedRequest).clerkUserId;
+  const id = req.params["id"] as string;
+  try {
+    const [row] = await db
+      .select({ videosData: savedItemsTable.videosData })
+      .from(savedItemsTable)
+      .where(and(eq(savedItemsTable.id, id), eq(savedItemsTable.clerkUserId, clerkUserId)));
+    if (!row) return res.status(404).json({ error: "Não encontrado" });
+    const videos = row.videosData ? (JSON.parse(row.videosData) as unknown[]) : [];
+    return res.json({ videos });
+  } catch (err) {
+    req.log.error({ err }, "Failed to get item video assets");
+    return res.status(500).json({ error: "Erro ao buscar vídeos" });
+  }
+});
+
+router.post("/saved-items/:id/video-assets", requireAuth, async (req: Request, res: Response) => {
+  const clerkUserId = (req as AuthenticatedRequest).clerkUserId;
+  const id = req.params["id"] as string;
+  const { videos } = req.body as { videos: Array<{ videoUrl: string; title: string; durationSeconds?: number; savedAt: string; provider?: string }> };
+  if (!Array.isArray(videos)) {
+    return res.status(400).json({ error: "videos deve ser um array" });
+  }
+  try {
+    const [updated] = await db
+      .update(savedItemsTable)
+      .set({ videosData: JSON.stringify(videos) })
+      .where(and(eq(savedItemsTable.id, id), eq(savedItemsTable.clerkUserId, clerkUserId)))
+      .returning({ id: savedItemsTable.id });
+    if (!updated) return res.status(404).json({ error: "Projeto não encontrado" });
+    return res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Failed to save item video assets");
+    return res.status(500).json({ error: "Erro ao salvar vídeos" });
+  }
+});
+
 router.delete("/saved-items/:id", requireAuth, async (req: Request, res: Response) => {
   const clerkUserId = (req as AuthenticatedRequest).clerkUserId;
   const id = req.params["id"] as string;

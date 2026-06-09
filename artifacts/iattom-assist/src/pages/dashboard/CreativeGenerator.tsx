@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Loader2, RefreshCw, AlertCircle, Image, Save, Download, Video, ChevronRight } from "lucide-react";
 import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
 import { saveProjectAssets } from "@/lib/assetStorage";
-import { useSavedItems, type SavedItemRecord } from "@/hooks/useSavedItems";
+import { useSavedItems, type SavedItemRecord, type VideoAssetData } from "@/hooks/useSavedItems";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -282,7 +282,7 @@ export function CreativeGenerator() {
   const [pendingVideoId, setPendingVideoId] = useState<string | null>(null);
   const [isCheckingVideoId, setIsCheckingVideoId] = useState(false);
   const { toast } = useToast();
-  const { saveItem, saveItemAssets, getItems } = useSavedItems();
+  const { saveItem, saveItemAssets, getItems, saveItemVideoAssets } = useSavedItems();
   const { isFetching: fetchingCredits, refetch: refetchCredits } = useGetCreditsBalance({
     query: { queryKey: getGetCreditsBalanceQueryKey(), staleTime: 0 },
   });
@@ -691,7 +691,7 @@ export function CreativeGenerator() {
     setVideoLoadingProjects(true);
     try {
       const items = await getItems();
-      setVideoSaveProjects(items.filter((i) => !i.deletedAt && i.type === "creative"));
+      setVideoSaveProjects(items.filter((i) => !i.deletedAt));
     } catch {
       toast({ description: "Erro ao carregar projetos.", variant: "destructive" });
     } finally {
@@ -744,22 +744,21 @@ export function CreativeGenerator() {
 
   const doVideoSaveToExisting = async (proj: SavedItemRecord) => {
     if (!activeVideoResult || videoIsSaving) return;
-    const p = buildVideoPayload();
-    if (!p) return;
+    if (!activeVideoResult.videoUrl || activeVideoResult.isMock) {
+      toast({ description: "Vídeo de demonstração não pode ser salvo em projeto.", variant: "destructive" });
+      return;
+    }
     setVideoSaveDialogOpen(false);
     setVideoIsSaving(true);
     try {
-      // Usar proj.id real — backend faz upsert por ID (onConflictDoUpdate)
-      await saveItem({ id: proj.id, title: proj.title, type: proj.type, content: p.content, data: p.data, hasImages: false });
-      try {
-        const raw = localStorage.getItem("iattom_saved_items_v1");
-        const existing = raw ? (JSON.parse(raw) as Array<Record<string, unknown>>) : [];
-        const idx = existing.findIndex((i) => i["id"] === proj.id);
-        if (idx >= 0) {
-          existing[idx] = { ...existing[idx], content: p.content, data: p.data };
-          localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
-        }
-      } catch { /* ignore */ }
+      const videoEntry: VideoAssetData = {
+        videoUrl: activeVideoResult.videoUrl,
+        title: `Vídeo — ${activeVideoResult.prompt?.slice(0, 60) || "Gerado"}`,
+        durationSeconds: activeVideoResult.durationSeconds,
+        savedAt: new Date().toISOString(),
+        provider: "heygen",
+      };
+      await saveItemVideoAssets(proj.id, [videoEntry]);
       toast({ description: "Vídeo adicionado ao projeto." });
     } catch {
       toast({ description: "Erro ao salvar. Tente novamente.", variant: "destructive" });

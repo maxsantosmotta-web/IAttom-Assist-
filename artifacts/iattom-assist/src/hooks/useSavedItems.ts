@@ -25,6 +25,14 @@ export interface AssetData {
   format: string;
 }
 
+export interface VideoAssetData {
+  videoUrl: string;
+  title: string;
+  durationSeconds?: number;
+  savedAt: string;
+  provider?: string;
+}
+
 async function apiFetch<T>(path: string, token: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,
@@ -85,6 +93,23 @@ export function useSavedItems() {
     return res.assets ?? [];
   }, [getToken]);
 
+  const saveItemVideoAssets = useCallback(async (id: string, videos: VideoAssetData[]): Promise<void> => {
+    if (!videos.length) return;
+    const token = await resolveToken(getToken);
+    if (!token) throw new Error("Não autenticado");
+    await apiFetch<{ ok: boolean }>(`/api/saved-items/${id}/video-assets`, token, {
+      method: "POST",
+      body: JSON.stringify({ videos }),
+    });
+  }, [getToken]);
+
+  const getItemVideoAssets = useCallback(async (id: string): Promise<VideoAssetData[]> => {
+    const token = await resolveToken(getToken);
+    if (!token) return [];
+    const res = await apiFetch<{ videos: VideoAssetData[] }>(`/api/saved-items/${id}/video-assets`, token);
+    return res.videos ?? [];
+  }, [getToken]);
+
   const trashItem = useCallback(async (id: string): Promise<void> => {
     const token = await resolveToken(getToken);
     if (!token) throw new Error("Não autenticado");
@@ -109,5 +134,5 @@ export function useSavedItems() {
     await apiFetch<{ ok: boolean }>(`/api/saved-items/${id}/permanent`, token, { method: "DELETE" });
   }, [getToken]);
 
-  return { getItems, saveItem, saveItemAssets, getItemAssets, trashItem, getTrash, restoreItem, permanentDelete };
+  return { getItems, saveItem, saveItemAssets, getItemAssets, saveItemVideoAssets, getItemVideoAssets, trashItem, getTrash, restoreItem, permanentDelete };
 }

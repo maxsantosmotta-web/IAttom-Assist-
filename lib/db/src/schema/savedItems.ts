@@ -10,6 +10,7 @@ export const savedItemsTable = pgTable("saved_items_v2", {
   data: text("data"),
   imagesData: text("images_data"),
   hasImages: boolean("has_images").notNull().default(false),
+  videosData: text("videos_data"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   deletedAt: timestamp("deleted_at"),
   expiresAt: timestamp("expires_at"),

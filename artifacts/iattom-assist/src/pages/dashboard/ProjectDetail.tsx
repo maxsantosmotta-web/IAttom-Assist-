@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useParams, useLocation } from "wouter";
 import { loadProjectAssets, saveProjectAssets, deleteProjectAssets } from "@/lib/assetStorage";
-import { useSavedItems } from "@/hooks/useSavedItems";
+import { useSavedItems, type VideoAssetData } from "@/hooks/useSavedItems";
 import {
   ArrowLeft, Trash2, Loader2, Copy, Check, ChevronDown, ChevronUp,
   FileText, Megaphone, Sparkles, Video, Search, ImageOff, Download, X, RefreshCw,
@@ -111,6 +111,46 @@ function TextBlock({ label, value }: { label: string; value: string }) {
         </button>
       </div>
       <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{value}</p>
+    </div>
+  );
+}
+
+/* ─── LinkedVideosSection ────────────────────────────────────── */
+function LinkedVideosSection({ videos }: { videos: VideoAssetData[] }) {
+  if (videos.length === 0) return null;
+  return (
+    <div>
+      <SectionTitle>Vídeos anexados</SectionTitle>
+      <div className="space-y-4">
+        {videos.map((v, i) => (
+          <div key={i} className="rounded-xl border border-white/[0.06] bg-[#0a0a0a] overflow-hidden">
+            <video
+              src={v.videoUrl}
+              controls
+              playsInline
+              className="w-full bg-black"
+            />
+            <div className="flex items-center justify-between px-4 py-3">
+              <div>
+                <p className="text-xs text-zinc-400 font-medium truncate max-w-[220px]">{v.title || "Vídeo gerado"}</p>
+                {v.durationSeconds && (
+                  <p className="text-[10px] text-zinc-600 mt-0.5">{v.durationSeconds}s</p>
+                )}
+              </div>
+              <a
+                href={v.videoUrl}
+                download="iattom-video.mp4"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-primary transition-colors shrink-0"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Baixar
+              </a>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -537,7 +577,7 @@ export function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { getItems, getItemAssets, saveItemAssets } = useSavedItems();
+  const { getItems, getItemAssets, saveItemAssets, getItemVideoAssets } = useSavedItems();
   const [item, setItem] = useState<SavedItem | null | "not_found">(null);
   const [deletingId, setDeletingId] = useState(false);
   const [allCopied, setAllCopied] = useState(false);
@@ -546,6 +586,7 @@ export function ProjectDetail() {
   const [syncingImages, setSyncingImages] = useState(false);
   const [previewImage, setPreviewImage] = useState<{ img: ImageEntry; idx: number } | null>(null);
   const [confirmTrashOpen, setConfirmTrashOpen] = useState(false);
+  const [linkedVideos, setLinkedVideos] = useState<VideoAssetData[]>([]);
 
   useEffect(() => {
     if (!id) { setItem("not_found"); return; }
@@ -593,6 +634,12 @@ export function ProjectDetail() {
       } catch { /* API unavailable */ }
 
       setImagesLoadDone(true);
+
+      // 5. Load video assets (dedicated column — never touches data/content)
+      try {
+        const videoAssets = await getItemVideoAssets(id);
+        if (videoAssets.length > 0) setLinkedVideos(videoAssets);
+      } catch { /* API unavailable or no videos */ }
     }
 
     void loadItem();
@@ -827,6 +874,9 @@ export function ProjectDetail() {
           )}
         </>
       )}
+
+      {/* Vídeos anexados — aparece para qualquer tipo de projeto */}
+      <LinkedVideosSection videos={linkedVideos} />
 
       {/* Tech details — oculto para projetos de vídeo */}
       {!isVideoCreative && (() => {
