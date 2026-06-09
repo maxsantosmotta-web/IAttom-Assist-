@@ -725,7 +725,7 @@ export function CreateCampaign() {
           <h2 className="text-2xl font-bold text-white mb-1">Criar Campanha</h2>
           <p className="text-muted-foreground text-sm">
             {step === "platform"
-              ? "Escolha a plataforma. A IA gera exatamente os campos que você precisa — na ordem de copiar e colar."
+              ? "Escolha a plataforma. Gere exatamente os campos que você precisa — na ordem de copiar e colar."
               : currentPlatform
               ? `${currentPlatform.name} — ${currentPlatform.focus}`
               : "Configure e gere sua entrega."}

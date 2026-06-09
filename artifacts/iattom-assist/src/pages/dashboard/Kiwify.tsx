@@ -101,7 +101,7 @@ export function Kiwify() {
   };
 
   const handleCriarCampanha = () => {
-    sessionStorage.setItem("campaign_platform_context", JSON.stringify({ platform: "kiwify" }));
+    sessionStorage.setItem("iattom_campaign_prefill", JSON.stringify({ goal: "Vender na Kiwify" }));
     window.location.href = `${BASE}/dashboard/create-campaign`;
   };
 

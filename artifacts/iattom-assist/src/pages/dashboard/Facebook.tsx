@@ -387,7 +387,7 @@ export function Facebook() {
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    sessionStorage.setItem("campaign_platform_context", JSON.stringify({ platform: "facebook" }));
+                    sessionStorage.setItem("iattom_campaign_prefill", JSON.stringify({ goal: "Vender no Facebook" }));
                     window.location.href = `${BASE}/dashboard/create-campaign`;
                   }}
                   className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"

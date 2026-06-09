@@ -53,7 +53,7 @@ function AbaMinhaContaLoja({ connected, onConnect }: { connected: boolean; onCon
   };
 
   const handleCriarCampanha = () => {
-    sessionStorage.setItem("campaign_platform_context", JSON.stringify({ platform: "shopee" }));
+    sessionStorage.setItem("iattom_campaign_prefill", JSON.stringify({ goal: "Vender na Shopee" }));
     window.location.href = `${BASE}/dashboard/create-campaign`;
   };
 

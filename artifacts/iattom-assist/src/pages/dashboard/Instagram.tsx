@@ -392,7 +392,7 @@ export function Instagram() {
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    sessionStorage.setItem("campaign_platform_context", JSON.stringify({ platform: "instagram" }));
+                    sessionStorage.setItem("iattom_campaign_prefill", JSON.stringify({ goal: "Vender no Instagram" }));
                     window.location.href = `${BASE}/dashboard/create-campaign`;
                   }}
                   className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"

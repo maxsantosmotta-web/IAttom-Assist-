@@ -186,7 +186,7 @@ export function Hotmart() {
   };
 
   const handleCriarCampanha = () => {
-    sessionStorage.setItem("campaign_platform_context", JSON.stringify({ platform: "hotmart" }));
+    sessionStorage.setItem("iattom_campaign_prefill", JSON.stringify({ goal: "Vender na Hotmart" }));
     window.location.href = `${BASE}/dashboard/create-campaign`;
   };
 

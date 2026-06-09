@@ -691,7 +691,7 @@ export function CreativeGenerator() {
     setVideoLoadingProjects(true);
     try {
       const items = await getItems();
-      setVideoSaveProjects(items.filter((i) => !i.deletedAt));
+      setVideoSaveProjects(items.filter((i) => !i.deletedAt && i.type === "creative"));
     } catch {
       toast({ description: "Erro ao carregar projetos.", variant: "destructive" });
     } finally {

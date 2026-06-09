@@ -175,6 +175,11 @@ export function TikTok() {
     );
   };
 
+  const handleCriarCampanha = () => {
+    sessionStorage.setItem("iattom_campaign_prefill", JSON.stringify({ goal: "Vender no TikTok" }));
+    window.location.href = `${BASE}/dashboard/create-campaign`;
+  };
+
   const handleCriarAnuncio = () => {
     window.open("https://ads.tiktok.com/", "_blank", "noopener,noreferrer");
   };
@@ -376,6 +381,15 @@ export function TikTok() {
                 Monitore sua grade de conteúdo TikTok. Scripts e criativos são criados nos módulos centrais da plataforma.
               </p>
               <div className="flex flex-col gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCriarCampanha}
+                  className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
+                >
+                  <Megaphone className="w-3 h-3 mr-1.5" />
+                  Criar Campanha
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"
