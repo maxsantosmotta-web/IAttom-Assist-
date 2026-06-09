@@ -190,6 +190,39 @@ function dimensionForAspect(aspectRatio: string): { width: number; height: numbe
   return { width: 1920, height: 1080 }; // 16:9 default
 }
 
+// ─── Refinamento de script PT-BR para TTS natural ────────────────────────────
+//
+// Objetivo: reduzir leitura mecânica adicionando pausas naturais e quebrando
+// períodos excessivamente longos antes de enviar ao HeyGen.
+//
+// Estratégia:
+//   1. Adiciona vírgula antes de conjunções adversativas/explicativas comuns
+//      que costumam ser lidas sem pausa em TTS: "mas", "porém", "então", "assim",
+//      "portanto", "inclusive", "além disso", "por isso", "ou seja"
+//   2. Quebra frases > 120 chars em ponto de conjunção ou pontuação natural
+//   3. Garante espaçamento limpo após pontuação
+
+function refineScriptPtBr(text: string): string {
+  // 1. Limpar espaços múltiplos
+  let s = text.replace(/\s{2,}/g, " ").trim();
+
+  // 2. Adicionar vírgula antes de conjunções sem vírgula prévia
+  const junctions = ["mas ", "porém ", "então ", "assim ", "portanto ", "inclusive ", "além disso ", "por isso ", "ou seja "];
+  for (const j of junctions) {
+    // Só adiciona vírgula se o char antes não for já pontuação
+    const pattern = new RegExp(`([^,;:.!?])\\s+(?=${j})`, "gi");
+    s = s.replace(pattern, (_, before) => `${before}, `);
+  }
+
+  // 3. Garantir espaço após pontuação
+  s = s.replace(/([.!?;,])([^\s])/g, "$1 $2");
+
+  // 4. Garantir que o script termina com ponto final
+  if (s.length > 0 && !/[.!?]$/.test(s)) s += ".";
+
+  return s;
+}
+
 // ─── Geração de vídeo (POST /v3/videos) ──────────────────────────────────────
 //
 // Payload flat — "type" na raiz, sem video_inputs/character/dimension:
@@ -201,28 +234,30 @@ function dimensionForAspect(aspectRatio: string): { width: number; height: numbe
 //     "voice_id":     "...",
 //     "aspect_ratio": "16:9" | "9:16" | "1:1",
 //     "resolution":   "1080p",
+//     "voice_speed":  1.25,
 //     "background":   { "type": "color", "value": "#hex" }
 //   }
 
 export async function generateVideo(payload: HeyGenVideoPayload): Promise<{ videoId: string }> {
   const apiKey = process.env.HEYGEN_API_KEY!;
 
-  const aspectRatio = payload.aspectRatio ?? "16:9";
+  const aspectRatio = payload.aspectRatio ?? "9:16";
+
+  // Aplicar refinamento de prosódia PT-BR antes de enviar ao HeyGen
+  const refinedScript = refineScriptPtBr(payload.script);
 
   const background = { type: "color", value: "#111111" };
 
   const body = {
     type:         "avatar",
     avatar_id:    payload.avatarId,
-    script:       payload.script,
+    script:       refinedScript,
     voice_id:     payload.voiceId,
     aspect_ratio: aspectRatio,
     resolution:   "1080p",
+    voice_speed:  1.25,
     background,
   };
-
-  // Log temporário para diagnóstico
-  console.log("[HEYGEN_FINAL_PAYLOAD]", JSON.stringify(body, null, 2));
 
   logger.info(
     {

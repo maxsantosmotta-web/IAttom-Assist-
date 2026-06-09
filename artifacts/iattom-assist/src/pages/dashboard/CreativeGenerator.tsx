@@ -59,9 +59,8 @@ const VIDEO_AMBIENTES: { key: string; label: string }[] = [
 ];
 
 const VIDEO_FORMATOS: { key: VideoFormato; label: string }[] = [
-  { key: "9:16", label: "Reels / Stories" },
+  { key: "9:16", label: "Reels / Stories / Shorts" },
   { key: "1:1",  label: "Feed" },
-  { key: "16:9", label: "YouTube / Apresentação" },
 ];
 
 const VIDEO_DURACOES: { key: VideoDuration; label: string }[] = [
@@ -102,13 +101,11 @@ function VideoResultCard({
   onSave,
   isSaving,
   onReset,
-  saved,
 }: {
   result: VideoGenerationResult;
   onSave: () => void;
   isSaving: boolean;
   onReset: () => void;
-  saved?: boolean;
 }) {
   return (
     <motion.div
@@ -124,11 +121,11 @@ function VideoResultCard({
         <div className="flex items-center gap-3">
           <button
             onClick={onSave}
-            disabled={isSaving || saved}
+            disabled={isSaving}
             className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-            {isSaving ? "Salvando..." : saved ? "Salvo ✓" : "Salvar"}
+            {isSaving ? "Salvando..." : "Salvar"}
           </button>
           <button
             onClick={onReset}
@@ -170,16 +167,10 @@ function VideoResultCard({
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-400">
-                  {estiloLabel(result.videoEstilo)}
-                </span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-400">
-                  {ambienteLabel(result.videoAmbiente)}
-                </span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-400">
                   {result.videoAvatar === "masculino" ? "Masculino" : "Feminino"}
                 </span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-400">
-                  {formatoLabel(result.videoFormato ?? "16:9")}
+                  {formatoLabel(result.videoFormato ?? "9:16")}
                 </span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-400">
                   {result.durationSeconds}s
@@ -261,11 +252,11 @@ export function CreativeGenerator() {
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
-  // Video state
-  const [videoEstilo, setVideoEstilo] = useState<VideoEstilo>("executivo");
+  // Video state — estilo e ambiente são fixos (não selecionáveis pelo usuário)
+  const videoEstilo: VideoEstilo = "executivo";
+  const videoAmbiente = "corporativo";
   const [videoAvatar, setVideoAvatar] = useState<"masculino" | "feminino">("masculino");
-  const [videoAmbiente, setVideoAmbiente] = useState<string>("corporativo");
-  const [videoFormato, setVideoFormato] = useState<VideoFormato>("16:9");
+  const [videoFormato, setVideoFormato] = useState<VideoFormato>("9:16");
   const [videoDuration, setVideoDuration] = useState<VideoDuration>(20);
   const [videoPrompt, setVideoPrompt] = useState("");
   const [restoredVideoResult, setRestoredVideoResult] = useState<VideoGenerationResult | null>(null);
@@ -279,7 +270,11 @@ export function CreativeGenerator() {
     reset: videoReset,
   } = useAiStream<VideoGenerationResult>();
   const [videoIsSaving, setVideoIsSaving] = useState(false);
-  const [videoAutoSaved, setVideoAutoSaved] = useState(false);
+  const [videoSaveDialogOpen, setVideoSaveDialogOpen] = useState(false);
+  const [videoSaveDialogStep, setVideoSaveDialogStep] = useState<"choose" | "pick-project">("choose");
+  const [videoSaveProjects, setVideoSaveProjects] = useState<SavedItemRecord[]>([]);
+  const [videoLoadingProjects, setVideoLoadingProjects] = useState(false);
+  const [refreshFeedback, setRefreshFeedback] = useState(false);
   const { toast } = useToast();
   const { saveItem, saveItemAssets, getItems } = useSavedItems();
   const { isFetching: fetchingCredits, refetch: refetchCredits } = useGetCreditsBalance({
@@ -365,13 +360,10 @@ export function CreativeGenerator() {
       if (saved.type === "video") {
         // Restaurar vídeo salvo
         setCreativeType("video");
-        if (saved.videoEstilo && ["executivo", "consultor", "criador"].includes(saved.videoEstilo)) {
-          setVideoEstilo(saved.videoEstilo as VideoEstilo);
-        }
+        // videoEstilo e videoAmbiente são constantes fixas — não há setter
         if (saved.videoAvatar && ["masculino", "feminino"].includes(saved.videoAvatar)) {
           setVideoAvatar(saved.videoAvatar as "masculino" | "feminino");
         }
-        if (saved.videoAmbiente) setVideoAmbiente(saved.videoAmbiente);
         if (saved.videoFormato && ["9:16", "1:1", "16:9"].includes(saved.videoFormato)) {
           setVideoFormato(saved.videoFormato as VideoFormato);
         }
@@ -391,8 +383,6 @@ export function CreativeGenerator() {
             generatedAt: saved.generatedAt ?? "",
             isMock: saved.isMock ?? false,
           });
-          // Vídeo já está salvo — marcar como salvo para evitar duplicidade
-          setVideoAutoSaved(true);
         }
         return;
       }
@@ -587,7 +577,6 @@ export function CreativeGenerator() {
 
   const runVideoGenerate = (charge: () => void) => {
     setRestoredVideoResult(null);
-    setVideoAutoSaved(false);
     videoChargedFeatureRef.current = "creativeVideo20";
     videoGenerate("/api/ai/generate-video", {
       videoEstilo,
@@ -601,51 +590,86 @@ export function CreativeGenerator() {
     });
   };
 
-  const handleSaveVideo = async () => {
-    if (!activeVideoResult || videoIsSaving) return;
-    setVideoIsSaving(true);
+  const openVideoSaveDialog = () => {
+    if (!activeVideoResult) return;
+    setVideoSaveDialogStep("choose");
+    setVideoSaveDialogOpen(true);
+  };
 
+  const buildVideoPayload = (overrideTitle?: string) => {
+    if (!activeVideoResult) return null;
+    const vr = activeVideoResult;
     const content = [
       `Tipo: Vídeo`,
-      `Estilo: ${estiloLabel(activeVideoResult.videoEstilo)}`,
-      `Personagem: ${activeVideoResult.videoAvatar === "masculino" ? "Masculino" : "Feminino"}`,
-      `Ambiente: ${ambienteLabel(activeVideoResult.videoAmbiente)}`,
-      `Formato: ${formatoLabel(activeVideoResult.videoFormato ?? "16:9")}`,
-      `Duração: ${activeVideoResult.durationSeconds}s`,
-      `Prompt: ${activeVideoResult.prompt}`,
+      `Personagem: ${vr.videoAvatar === "masculino" ? "Masculino" : "Feminino"}`,
+      `Formato: ${formatoLabel(vr.videoFormato ?? "9:16")}`,
+      `Duração: ${vr.durationSeconds}s`,
+      `Prompt: ${vr.prompt}`,
     ].join(" | ");
-
     const data = JSON.stringify({
       type: "video",
-      videoEstilo: activeVideoResult.videoEstilo,
-      videoAvatar: activeVideoResult.videoAvatar,
-      videoAmbiente: activeVideoResult.videoAmbiente,
-      videoFormato: activeVideoResult.videoFormato ?? "16:9",
-      videoDuration: activeVideoResult.durationSeconds,
-      prompt: activeVideoResult.prompt,
-      videoUrl: activeVideoResult.videoUrl,
-      durationSeconds: activeVideoResult.durationSeconds,
-      generatedAt: activeVideoResult.generatedAt,
-      isMock: activeVideoResult.isMock,
+      videoEstilo: vr.videoEstilo,
+      videoAvatar: vr.videoAvatar,
+      videoAmbiente: vr.videoAmbiente,
+      videoFormato: vr.videoFormato ?? "9:16",
+      videoDuration: vr.durationSeconds,
+      prompt: vr.prompt,
+      videoUrl: vr.videoUrl,
+      durationSeconds: vr.durationSeconds,
+      generatedAt: vr.generatedAt,
+      isMock: vr.isMock,
     });
+    const title = overrideTitle ?? `Vídeo — ${vr.prompt.slice(0, 60) || "Criativo"}`;
+    return { content, data, title };
+  };
 
+  const persistVideoItem = async (title: string, content: string, data: string, successMsg: string) => {
     const projectId = crypto.randomUUID();
-    const title = `Vídeo ${estiloLabel(activeVideoResult.videoEstilo)} — ${activeVideoResult.prompt.slice(0, 50) || "Criativo"}`;
-
     try {
       const raw = localStorage.getItem("iattom_saved_items_v1");
       const existing = raw ? (JSON.parse(raw) as object[]) : [];
-      existing.unshift({
-        id: projectId, title, type: "creative", content, data, hasImages: false,
-        createdAt: new Date().toISOString(),
-      });
+      existing.unshift({ id: projectId, title, type: "creative", content, data, hasImages: false, createdAt: new Date().toISOString() });
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
     } catch { /* ignore */ }
+    await saveItem({ id: projectId, title, type: "creative", content, data, hasImages: false });
+    toast({ description: successMsg });
+  };
 
+  const doVideoSaveNew = async () => {
+    if (!activeVideoResult || videoIsSaving) return;
+    const p = buildVideoPayload();
+    if (!p) return;
+    setVideoSaveDialogOpen(false);
+    setVideoIsSaving(true);
     try {
-      await saveItem({ id: projectId, title, type: "creative", content, data, hasImages: false });
-      setVideoAutoSaved(true);
-      toast({ description: "Vídeo salvo com sucesso." });
+      await persistVideoItem(p.title, p.content, p.data, "Vídeo salvo com sucesso.");
+    } catch {
+      toast({ description: "Erro ao salvar. Tente novamente.", variant: "destructive" });
+    } finally {
+      setVideoIsSaving(false);
+    }
+  };
+
+  const loadVideoProjects = async () => {
+    setVideoLoadingProjects(true);
+    try {
+      const items = await getItems();
+      setVideoSaveProjects(items.filter((i) => !i.deletedAt));
+    } catch {
+      toast({ description: "Erro ao carregar projetos.", variant: "destructive" });
+    } finally {
+      setVideoLoadingProjects(false);
+    }
+  };
+
+  const doVideoSaveToExisting = async (proj: SavedItemRecord) => {
+    if (!activeVideoResult || videoIsSaving) return;
+    const p = buildVideoPayload(`${proj.title} — Vídeo`);
+    if (!p) return;
+    setVideoSaveDialogOpen(false);
+    setVideoIsSaving(true);
+    try {
+      await persistVideoItem(p.title, p.content, p.data, "Vídeo adicionado à biblioteca.");
     } catch {
       toast({ description: "Erro ao salvar. Tente novamente.", variant: "destructive" });
     } finally {
@@ -671,12 +695,17 @@ export function CreativeGenerator() {
         <Button
           size="sm"
           variant="outline"
-          onClick={() => void refetchCredits()}
+          onClick={() => {
+            void refetchCredits();
+            if (isVideoError) videoReset();
+            setRefreshFeedback(true);
+            setTimeout(() => setRefreshFeedback(false), 1500);
+          }}
           disabled={fetchingCredits}
           className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${fetchingCredits ? "animate-spin" : ""}`} />
-          Atualizar
+          {refreshFeedback ? "Atualizado" : "Atualizar"}
         </Button>
       </motion.div>
 
@@ -852,29 +881,6 @@ export function CreativeGenerator() {
             <Card className="bg-[#111111] border-white/5">
               <CardContent className="p-6 space-y-6">
 
-                {/* Estilo do personagem */}
-                <div className="space-y-3">
-                  <Label className="text-sm text-muted-foreground">Estilo do Personagem</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {VIDEO_ESTILOS.map((e) => (
-                      <button
-                        key={e.key}
-                        onClick={() => setVideoEstilo(e.key)}
-                        className={`flex flex-col items-center justify-center py-3 px-2 rounded-lg border text-xs font-medium transition-colors text-center gap-1 ${
-                          videoEstilo === e.key
-                            ? "bg-primary/15 text-primary border-primary/30"
-                            : "bg-[#0a0a0a] text-zinc-500 border-white/[0.08] hover:border-white/20 hover:text-zinc-300"
-                        }`}
-                      >
-                        <span className="font-semibold">{e.label}</span>
-                        <span className={`text-[10px] leading-tight ${videoEstilo === e.key ? "text-primary/70" : "text-zinc-600"}`}>
-                          {e.desc}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
                 {/* Personagem (M/F) */}
                 <div className="space-y-3">
                   <Label className="text-sm text-muted-foreground">Personagem</Label>
@@ -895,30 +901,10 @@ export function CreativeGenerator() {
                   </div>
                 </div>
 
-                {/* Ambiente */}
-                <div className="space-y-3">
-                  <Label className="text-sm text-muted-foreground">Ambiente</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {VIDEO_AMBIENTES.map((amb) => (
-                      <button
-                        key={amb.key}
-                        onClick={() => setVideoAmbiente(amb.key)}
-                        className={`py-2.5 px-2 rounded-lg border text-xs font-medium transition-colors text-center ${
-                          videoAmbiente === amb.key
-                            ? "bg-primary/15 text-primary border-primary/30"
-                            : "bg-[#0a0a0a] text-zinc-500 border-white/[0.08] hover:border-white/20 hover:text-zinc-300"
-                        }`}
-                      >
-                        {amb.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
                 {/* Formato do vídeo */}
                 <div className="space-y-3">
                   <Label className="text-sm text-muted-foreground">Formato</Label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     {VIDEO_FORMATOS.map((f) => (
                       <button
                         key={f.key}
@@ -1153,10 +1139,9 @@ export function CreativeGenerator() {
               <VideoResultCard
                 key="video-result"
                 result={activeVideoResult}
-                onSave={() => void handleSaveVideo()}
+                onSave={openVideoSaveDialog}
                 isSaving={videoIsSaving}
-                onReset={() => { videoReset(); setRestoredVideoResult(null); setVideoAutoSaved(false); }}
-                saved={videoAutoSaved}
+                onReset={() => { videoReset(); setRestoredVideoResult(null); }}
               />
             </>
           )}
@@ -1281,6 +1266,93 @@ export function CreativeGenerator() {
                   ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> Salvando...</>
                   : "Substituir imagem"
                 }
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+
+      </DialogContent>
+    </Dialog>
+
+    {/* ── Dialog: Salvar vídeo ── */}
+    <Dialog open={videoSaveDialogOpen} onOpenChange={(open) => { if (!videoIsSaving) setVideoSaveDialogOpen(open); }}>
+      <DialogContent className="bg-[#111111] border-white/10 max-w-sm">
+
+        {/* Passo 1 — Escolher destino */}
+        {videoSaveDialogStep === "choose" && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-base text-white">Onde deseja salvar este vídeo?</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col gap-2 mt-1">
+              <button
+                onClick={() => void doVideoSaveNew()}
+                disabled={videoIsSaving}
+                className="w-full flex items-center justify-between gap-3 p-4 rounded-xl border border-white/[0.08] bg-[#0a0a0a] hover:border-primary/30 hover:bg-primary/5 transition-colors text-left disabled:opacity-50"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-white">Salvar como novo projeto</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">Cria um novo projeto com este vídeo</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-zinc-600 shrink-0" />
+              </button>
+              <button
+                onClick={() => { setVideoSaveDialogStep("pick-project"); void loadVideoProjects(); }}
+                disabled={videoIsSaving}
+                className="w-full flex items-center justify-between gap-3 p-4 rounded-xl border border-white/[0.08] bg-[#0a0a0a] hover:border-primary/30 hover:bg-primary/5 transition-colors text-left disabled:opacity-50"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-white">Salvar em projeto existente</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">Vincula o vídeo a uma campanha já criada</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-zinc-600 shrink-0" />
+              </button>
+            </div>
+            <DialogFooter className="mt-2">
+              <Button variant="ghost" size="sm" onClick={() => setVideoSaveDialogOpen(false)} className="text-zinc-500 hover:text-white text-xs">
+                Cancelar
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {/* Passo 2 — Selecionar projeto existente */}
+        {videoSaveDialogStep === "pick-project" && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-base text-white">Selecionar projeto</DialogTitle>
+            </DialogHeader>
+            {videoLoadingProjects ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="w-5 h-5 animate-spin text-primary/60" />
+              </div>
+            ) : videoSaveProjects.length === 0 ? (
+              <div className="py-8 text-center">
+                <p className="text-sm text-zinc-500">Nenhum projeto salvo encontrado.</p>
+                <p className="text-xs text-zinc-600 mt-1">Gere e salve uma campanha primeiro.</p>
+              </div>
+            ) : (
+              <div className="max-h-64 overflow-y-auto space-y-1.5 mt-2 pr-0.5">
+                {videoSaveProjects.map((proj) => (
+                  <button
+                    key={proj.id}
+                    onClick={() => void doVideoSaveToExisting(proj)}
+                    className="w-full flex items-center justify-between gap-3 p-3 rounded-lg border border-white/[0.07] bg-[#0a0a0a] hover:border-primary/30 hover:bg-primary/5 transition-colors text-left"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm text-white truncate">{proj.title}</p>
+                      <p className="text-[11px] text-zinc-600 mt-0.5">
+                        {({ campaign: "Campanha", content: "Conteúdo", creative: "Criativo", video_script: "Script", product_discovery: "Produtos", product_validation: "Validação" }[proj.type] ?? "Projeto")}
+                      </p>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
+                  </button>
+                ))}
+              </div>
+            )}
+            <DialogFooter className="mt-3">
+              <Button variant="ghost" size="sm" onClick={() => setVideoSaveDialogStep("choose")} className="text-zinc-500 hover:text-white text-xs">
+                Voltar
               </Button>
             </DialogFooter>
           </>
