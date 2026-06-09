@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, TrendingUp, Star, DollarSign, BarChart2, Loader2, AlertCircle, RefreshCw, Zap, Users, Save, Copy } from "lucide-react";
+import { loadModuleState, saveModuleState, clearModuleState } from "@/hooks/useModulePersistence";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
@@ -55,16 +56,35 @@ export function FindProducts() {
   const activeResult = result ?? restoredResult;
 
   useEffect(() => {
+    // Restaurar de Projetos Salvos (sessionStorage tem prioridade)
     try {
       const raw = sessionStorage.getItem("iattom_restore_products_v1");
-      if (!raw) return;
-      sessionStorage.removeItem("iattom_restore_products_v1");
-      const saved = JSON.parse(raw) as { briefing?: { query?: string; niche?: string }; result?: FindProductsResult };
-      if (saved.briefing?.query) setQuery(saved.briefing.query);
-      if (saved.briefing?.niche) setNiche(saved.briefing.niche);
-      if (saved.result) setRestoredResult(saved.result);
+      if (raw) {
+        sessionStorage.removeItem("iattom_restore_products_v1");
+        const saved = JSON.parse(raw) as { briefing?: { query?: string; niche?: string }; result?: FindProductsResult };
+        if (saved.briefing?.query) setQuery(saved.briefing.query);
+        if (saved.briefing?.niche) setNiche(saved.briefing.niche);
+        if (saved.result) setRestoredResult(saved.result);
+        return;
+      }
+    } catch {}
+    // Preservação global: restaurar último trabalho via localStorage
+    try {
+      const persisted = loadModuleState<{ form: { query: string; niche: string }; result: FindProductsResult }>("find_products");
+      if (persisted) {
+        if (persisted.form.query) setQuery(persisted.form.query);
+        if (persisted.form.niche) setNiche(persisted.form.niche);
+        if (persisted.result) setRestoredResult(persisted.result);
+      }
     } catch {}
   }, []);
+
+  // Auto-salvar resultado no localStorage quando geração concluir
+  useEffect(() => {
+    if (status === "done" && result) {
+      saveModuleState("find_products", { form: { query, niche }, result });
+    }
+  }, [status, result, query, niche]);
 
   const runSearch = (charge: () => void) => {
     generate("/api/ai/find-products", { query, niche: niche || undefined }).then((res) => {
@@ -218,7 +238,7 @@ export function FindProducts() {
                 <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
                   <Save className="w-3 h-3" /> Salvar
                 </button>
-                <button onClick={() => reset()} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
+                <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("find_products"); }} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
                   <RefreshCw className="w-3 h-3" /> Nova busca
                 </button>
               </div>

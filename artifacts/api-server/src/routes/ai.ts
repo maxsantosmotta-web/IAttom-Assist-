@@ -129,6 +129,10 @@ router.post("/ai/generate-video", requireAuth, async (req, res): Promise<void> =
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  if (parsed.data.videoDuration > 30) {
+    res.status(400).json({ error: "Seu roteiro excede o limite máximo de 30 segundos. Reduza o texto e tente novamente." });
+    return;
+  }
   const ac = new AbortController();
   req.on("close", () => ac.abort());
   await streamVideoGeneration(parsed.data, res, clerkUserId, ac.signal);

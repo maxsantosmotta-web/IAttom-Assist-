@@ -30,7 +30,7 @@ export interface VideoGenerationInput {
   videoAvatar: "masculino" | "feminino";
   videoAmbiente: string;
   videoFormato: "9:16" | "1:1" | "16:9";
-  videoDuration: 20 | 40 | 60;
+  videoDuration: 30;
   videoPrompt: string;
 }
 

@@ -1303,7 +1303,7 @@ components:
           enum: ["9:16", "1:1", "16:9"]
         videoDuration:
           type: integer
-          enum: [20, 40, 60]
+          enum: [30]
         videoPrompt:
           type: string
       required:

@@ -491,9 +491,7 @@ export type AiGenerateVideoBodyVideoDuration =
   (typeof AiGenerateVideoBodyVideoDuration)[keyof typeof AiGenerateVideoBodyVideoDuration];
 
 export const AiGenerateVideoBodyVideoDuration = {
-  NUMBER_20: 20,
-  NUMBER_40: 40,
-  NUMBER_60: 60,
+  NUMBER_30: 30,
 } as const;
 
 export interface AiGenerateVideoBody {

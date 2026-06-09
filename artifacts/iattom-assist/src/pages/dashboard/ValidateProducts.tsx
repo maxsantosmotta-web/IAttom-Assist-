@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, AlertTriangle, TrendingUp, Users, DollarSign, Loader2, AlertCircle, RefreshCw, Lightbulb, Target, Zap, Save, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
+import { loadModuleState, saveModuleState, clearModuleState } from "@/hooks/useModulePersistence";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,12 +55,35 @@ export function ValidateProducts() {
   });
   const [targetMarket, setTargetMarket] = useState("");
   const { status, result, error, generate, reset } = useAiStream<ValidationResult>();
+  const [restoredResult, setRestoredResult] = useState<ValidationResult | null>(null);
+  const isRestoredMode = !!restoredResult && status === "idle";
+  const activeResult = result ?? restoredResult;
 
   const isGenerating = status === "generating";
   const isDone = status === "done";
   const isError = status === "error";
 
   const { toast } = useToast();
+
+  // Preservação global: restaurar último trabalho via localStorage
+  useEffect(() => {
+    try {
+      const persisted = loadModuleState<{ form: { productName: string; description: string; targetMarket: string }; result: ValidationResult }>("validate_product");
+      if (persisted) {
+        if (persisted.form.productName) setProductName(persisted.form.productName);
+        if (persisted.form.description) setDescription(persisted.form.description);
+        if (persisted.form.targetMarket) setTargetMarket(persisted.form.targetMarket);
+        if (persisted.result) setRestoredResult(persisted.result);
+      }
+    } catch {}
+  }, []);
+
+  // Auto-salvar resultado no localStorage quando geração concluir
+  useEffect(() => {
+    if (status === "done" && result) {
+      saveModuleState("validate_product", { form: { productName, description, targetMarket }, result });
+    }
+  }, [status, result, productName, description, targetMarket]);
 
   const runValidation = (charge: () => void) => {
     generate("/api/ai/validate-product", {
@@ -219,36 +243,36 @@ export function ValidateProducts() {
           </motion.div>
         )}
 
-        {isDone && result && (
+        {(isDone || isRestoredMode) && activeResult && (
           <motion.div key="result" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="space-y-4">
             <Card className="bg-[#111111] border-primary/20">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between gap-6 mb-6">
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Resultado da Validação</p>
-                    <h3 className="text-2xl font-bold text-white mb-1">{result.verdict}</h3>
+                    <h3 className="text-2xl font-bold text-white mb-1">{activeResult.verdict}</h3>
                     <div className="flex items-center gap-2 flex-wrap">
-                      {result.demandTrend && (
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full bg-white/5 border border-white/10 ${demandTrendColors[result.demandTrend] ?? "text-white"}`}>
-                          demanda {result.demandTrend}
+                      {activeResult.demandTrend && (
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full bg-white/5 border border-white/10 ${demandTrendColors[activeResult.demandTrend] ?? "text-white"}`}>
+                          demanda {activeResult.demandTrend}
                         </span>
                       )}
-                      {result.profitabilityRating && (
+                      {activeResult.profitabilityRating && (
                         <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-400/10 border border-emerald-400/20 text-emerald-400">
-                          rentabilidade {result.profitabilityRating}
+                          rentabilidade {activeResult.profitabilityRating}
                         </span>
                       )}
                     </div>
                   </div>
-                  <ScoreRing score={result.score} />
+                  <ScoreRing score={activeResult.score} />
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                   {[
-                    { label: "Tamanho do Mercado", value: result.marketSize, icon: DollarSign, color: "text-emerald-400" },
-                    { label: "Concorrência", value: result.competition, icon: Users, color: "text-amber-400" },
-                    { label: "Intenção de Compra", value: `${result.buyerIntentScore}%`, icon: Target, color: "text-primary" },
-                    { label: "Tendência de Demanda", value: result.demandTrend, icon: TrendingUp, color: demandTrendColors[result.demandTrend ?? ""] ?? "text-white" },
+                    { label: "Tamanho do Mercado", value: activeResult.marketSize, icon: DollarSign, color: "text-emerald-400" },
+                    { label: "Concorrência", value: activeResult.competition, icon: Users, color: "text-amber-400" },
+                    { label: "Intenção de Compra", value: `${activeResult.buyerIntentScore}%`, icon: Target, color: "text-primary" },
+                    { label: "Tendência de Demanda", value: activeResult.demandTrend, icon: TrendingUp, color: demandTrendColors[activeResult.demandTrend ?? ""] ?? "text-white" },
                   ].map((item) => {
                     const Icon = item.icon;
                     return (
@@ -265,11 +289,11 @@ export function ValidateProducts() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Pontos Fortes</p>
-                      {result.strengths?.length ? (
-                        <button onClick={() => { navigator.clipboard.writeText(result.strengths!.join("\n")); toast({ description: "Texto copiado" }); }} className="text-muted-foreground hover:text-white transition-colors" title="Copiar"><Copy className="w-3 h-3" /></button>
+                      {activeResult.strengths?.length ? (
+                        <button onClick={() => { navigator.clipboard.writeText(activeResult.strengths!.join("\n")); toast({ description: "Texto copiado" }); }} className="text-muted-foreground hover:text-white transition-colors" title="Copiar"><Copy className="w-3 h-3" /></button>
                       ) : null}
                     </div>
-                    {result.strengths?.map((s, i) => (
+                    {activeResult.strengths?.map((s, i) => (
                       <div key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
                         <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
                         <span className="text-xs">{s}</span>
@@ -279,11 +303,11 @@ export function ValidateProducts() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest">Riscos</p>
-                      {result.risks?.length ? (
-                        <button onClick={() => { navigator.clipboard.writeText(result.risks!.join("\n")); toast({ description: "Texto copiado" }); }} className="text-muted-foreground hover:text-white transition-colors" title="Copiar"><Copy className="w-3 h-3" /></button>
+                      {activeResult.risks?.length ? (
+                        <button onClick={() => { navigator.clipboard.writeText(activeResult.risks!.join("\n")); toast({ description: "Texto copiado" }); }} className="text-muted-foreground hover:text-white transition-colors" title="Copiar"><Copy className="w-3 h-3" /></button>
                       ) : null}
                     </div>
-                    {result.risks?.map((r, i) => (
+                    {activeResult.risks?.map((r, i) => (
                       <div key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
                         <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
                         <span className="text-xs">{r}</span>
@@ -293,11 +317,11 @@ export function ValidateProducts() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-semibold text-primary uppercase tracking-widest">Oportunidades</p>
-                      {result.opportunities?.length ? (
-                        <button onClick={() => { navigator.clipboard.writeText(result.opportunities!.join("\n")); toast({ description: "Texto copiado" }); }} className="text-muted-foreground hover:text-white transition-colors" title="Copiar"><Copy className="w-3 h-3" /></button>
+                      {activeResult.opportunities?.length ? (
+                        <button onClick={() => { navigator.clipboard.writeText(activeResult.opportunities!.join("\n")); toast({ description: "Texto copiado" }); }} className="text-muted-foreground hover:text-white transition-colors" title="Copiar"><Copy className="w-3 h-3" /></button>
                       ) : null}
                     </div>
-                    {result.opportunities?.map((o, i) => (
+                    {activeResult.opportunities?.map((o, i) => (
                       <div key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
                         <Lightbulb className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
                         <span className="text-xs">{o}</span>
@@ -311,36 +335,36 @@ export function ValidateProducts() {
                     <div className="flex items-center justify-between mb-1.5">
                       <p className="text-xs font-semibold text-primary uppercase tracking-widest">Recomendação IAttom</p>
                       <button
-                        onClick={() => { navigator.clipboard.writeText(result.recommendation); toast({ description: "Recomendação copiada" }); }}
+                        onClick={() => { navigator.clipboard.writeText(activeResult.recommendation); toast({ description: "Recomendação copiada" }); }}
                         className="text-muted-foreground hover:text-white transition-colors"
                         title="Copiar recomendação"
                       >
                         <Copy className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{result.recommendation}</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{activeResult.recommendation}</p>
                   </div>
-                  {result.launchStrategy && (
+                  {activeResult.launchStrategy && (
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <p className="text-xs font-semibold text-white/60 uppercase tracking-widest">Estratégia de Lançamento</p>
                         <button
-                          onClick={() => { navigator.clipboard.writeText(result.launchStrategy!); toast({ description: "Estratégia copiada" }); }}
+                          onClick={() => { navigator.clipboard.writeText(activeResult.launchStrategy!); toast({ description: "Estratégia copiada" }); }}
                           className="text-muted-foreground hover:text-white transition-colors"
                           title="Copiar estratégia"
                         >
                           <Copy className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed">{result.launchStrategy}</p>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{activeResult.launchStrategy}</p>
                     </div>
                   )}
-                  {result.pricingInsight && (
+                  {activeResult.pricingInsight && (
                     <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/15 group">
                       <Zap className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-                      <p className="text-xs text-white/80 flex-1">{result.pricingInsight}</p>
+                      <p className="text-xs text-white/80 flex-1">{activeResult.pricingInsight}</p>
                       <button
-                        onClick={() => { navigator.clipboard.writeText(result.pricingInsight!); toast({ description: "Insight copiado" }); }}
+                        onClick={() => { navigator.clipboard.writeText(activeResult.pricingInsight!); toast({ description: "Insight copiado" }); }}
                         className="text-muted-foreground hover:text-white transition-colors opacity-0 group-hover:opacity-100 shrink-0"
                         title="Copiar insight"
                       >
@@ -356,7 +380,7 @@ export function ValidateProducts() {
               <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5">
                 <Save className="w-3 h-3" /> Salvar
               </button>
-              <button onClick={reset} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5">
+              <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("validate_product"); }} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5">
                 <RefreshCw className="w-3 h-3" /> Validar outro produto
               </button>
             </div>

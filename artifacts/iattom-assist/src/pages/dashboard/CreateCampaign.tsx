@@ -7,6 +7,7 @@ import {
   Users, Camera, Play, CheckCircle2, ChevronLeft,
 } from "lucide-react";
 import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
+import { loadModuleState, saveModuleState, clearModuleState } from "@/hooks/useModulePersistence";
 import { getEffectiveProductType, detectIncompatibility, INCOMPATIBILITY_MESSAGES, detectProductTypeMismatch, PRODUCT_TYPE_MISMATCH_MESSAGE } from "@/lib/productPlatformCompatibility";
 import { useSavedItems } from "@/hooks/useSavedItems";
 import { Button } from "@/components/ui/button";
@@ -582,6 +583,30 @@ export function CreateCampaign() {
     } catch {}
   }, []);
 
+  // Preservação global: restaurar último trabalho via localStorage
+  useEffect(() => {
+    if (sessionStorage.getItem("iattom_campaign_prefill") || sessionStorage.getItem("iattom_reopen_campaign_v1")) return;
+    try {
+      const persisted = loadModuleState<{ form: { product: string; audience: string; goal: string; mode: string; productType: string }; result: CampaignResult }>("campaign");
+      if (persisted?.result) {
+        if (persisted.form.product) setProduct(persisted.form.product);
+        if (persisted.form.audience) setAudience(persisted.form.audience);
+        if (persisted.form.goal) { setGoal(persisted.form.goal); setStep("form"); }
+        if (persisted.form.mode) setMode(persisted.form.mode);
+        if (persisted.form.productType) setProductType(persisted.form.productType);
+        setCampaignData(persisted.result);
+        setIsRestored(true);
+      }
+    } catch {}
+  }, []);
+
+  // Auto-salvar quando campaignData mudar
+  useEffect(() => {
+    if (campaignData) {
+      saveModuleState("campaign", { form: { product, audience, goal, mode, productType }, result: campaignData });
+    }
+  }, [campaignData, product, audience, goal, mode, productType]);
+
   const handleReset = () => {
     reset();
     setCampaignData(null);
@@ -591,6 +616,7 @@ export function CreateCampaign() {
     setStep("platform");
     setGoal("");
     setMode("");
+    clearModuleState("campaign");
   };
 
   const handleBack = () => {

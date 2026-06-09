@@ -19,7 +19,7 @@ type CreativeType = "image" | "video";
 type PlatformKey = "instagram" | "facebook" | "tiktok" | "mercado_livre" | "shopee" | "hotmart" | "kiwify" | "perfil";
 type VideoEstilo = "executivo" | "consultor" | "criador";
 type VideoFormato = "9:16" | "1:1" | "16:9";
-type VideoDuration = 20 | 40 | 60;
+type VideoDuration = 30;
 
 const MAX_FORMATS = 3;
 
@@ -64,9 +64,7 @@ const VIDEO_FORMATOS: { key: VideoFormato; label: string }[] = [
 ];
 
 const VIDEO_DURACOES: { key: VideoDuration; label: string }[] = [
-  { key: 20, label: "20 segundos" },
-  { key: 40, label: "40 segundos" },
-  { key: 60, label: "60 segundos" },
+  { key: 30, label: "Duração máxima: 30 segundos" },
 ];
 
 function formatToAspectClass(format: string): string {
@@ -257,7 +255,7 @@ export function CreativeGenerator() {
   const videoAmbiente = "corporativo";
   const [videoAvatar, setVideoAvatar] = useState<"masculino" | "feminino">("masculino");
   const [videoFormato, setVideoFormato] = useState<VideoFormato>("9:16");
-  const [videoDuration, setVideoDuration] = useState<VideoDuration>(20);
+  const [videoDuration, setVideoDuration] = useState<VideoDuration>(30);
   const [videoPrompt, setVideoPrompt] = useState("");
   const [restoredVideoResult, setRestoredVideoResult] = useState<VideoGenerationResult | null>(null);
 
@@ -367,8 +365,8 @@ export function CreativeGenerator() {
         if (saved.videoFormato && ["9:16", "1:1", "16:9"].includes(saved.videoFormato)) {
           setVideoFormato(saved.videoFormato as VideoFormato);
         }
-        if (saved.videoDuration && [20, 40, 60].includes(saved.videoDuration as number)) {
-          setVideoDuration(saved.videoDuration as VideoDuration);
+        if (saved.videoDuration === 30) {
+          setVideoDuration(30);
         }
         if (saved.prompt) setVideoPrompt(saved.prompt);
         if (saved.videoUrl !== undefined) {
@@ -924,20 +922,8 @@ export function CreativeGenerator() {
                 {/* Duração */}
                 <div className="space-y-3">
                   <Label className="text-sm text-muted-foreground">Duração</Label>
-                  <div className="flex gap-3">
-                    {VIDEO_DURACOES.map((d) => (
-                      <button
-                        key={d.key}
-                        onClick={() => setVideoDuration(d.key)}
-                        className={`flex-1 flex items-center justify-center py-2.5 rounded-lg border text-sm font-medium transition-colors ${
-                          videoDuration === d.key
-                            ? "bg-primary/15 text-primary border-primary/30"
-                            : "bg-[#0a0a0a] text-zinc-500 border-white/[0.08] hover:border-white/20 hover:text-zinc-300"
-                        }`}
-                      >
-                        {d.label}
-                      </button>
-                    ))}
+                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-primary/20 bg-primary/5">
+                    <span className="text-xs font-medium text-primary">{VIDEO_DURACOES[0].label}</span>
                   </div>
                 </div>
 

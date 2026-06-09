@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSavedItems } from "@/hooks/useSavedItems";
 import { CreditsGate } from "@/components/CreditsGate";
 import { useAiStream } from "@/hooks/useAiStream";
+import { loadModuleState, saveModuleState, clearModuleState } from "@/hooks/useModulePersistence";
 import type { ContentResult } from "@/types/ai";
 
 function ContentTab({ content, label, icon: Icon }: { content: string; label: string; icon: React.ComponentType<{ className?: string }> }) {
@@ -61,17 +62,37 @@ export function CreateContent() {
   const activeResult = result ?? restoredResult;
 
   useEffect(() => {
+    // Restaurar de Projetos Salvos (sessionStorage tem prioridade)
     try {
       const raw = sessionStorage.getItem("iattom_restore_content_v1");
-      if (!raw) return;
-      sessionStorage.removeItem("iattom_restore_content_v1");
-      const saved = JSON.parse(raw) as { briefing?: { topic?: string; tone?: string; additionalContext?: string }; result?: ContentResult };
-      if (saved.briefing?.topic) setTopic(saved.briefing.topic);
-      if (saved.briefing?.tone) setTone(saved.briefing.tone);
-      if (saved.briefing?.additionalContext) setAdditionalContext(saved.briefing.additionalContext);
-      if (saved.result) setRestoredResult(saved.result);
+      if (raw) {
+        sessionStorage.removeItem("iattom_restore_content_v1");
+        const saved = JSON.parse(raw) as { briefing?: { topic?: string; tone?: string; additionalContext?: string }; result?: ContentResult };
+        if (saved.briefing?.topic) setTopic(saved.briefing.topic);
+        if (saved.briefing?.tone) setTone(saved.briefing.tone);
+        if (saved.briefing?.additionalContext) setAdditionalContext(saved.briefing.additionalContext);
+        if (saved.result) setRestoredResult(saved.result);
+        return;
+      }
+    } catch {}
+    // Preservação global: restaurar último trabalho salvo via localStorage
+    try {
+      const persisted = loadModuleState<{ form: { topic: string; tone: string; additionalContext: string }; result: ContentResult }>("content");
+      if (persisted) {
+        if (persisted.form.topic) setTopic(persisted.form.topic);
+        if (persisted.form.tone) setTone(persisted.form.tone);
+        if (persisted.form.additionalContext) setAdditionalContext(persisted.form.additionalContext);
+        if (persisted.result) setRestoredResult(persisted.result);
+      }
     } catch {}
   }, []);
+
+  // Auto-salvar resultado no localStorage quando geração concluir
+  useEffect(() => {
+    if (status === "done" && result) {
+      saveModuleState("content", { form: { topic, tone, additionalContext }, result });
+    }
+  }, [status, result, topic, tone, additionalContext]);
 
   const runGenerate = (charge: () => void) => {
     generate("/api/ai/create-content", { topic, tone: tone || undefined, additionalContext: additionalContext || undefined }).then((res) => {
@@ -196,7 +217,7 @@ export function CreateContent() {
               <h3 className="text-sm font-semibold text-white">Central de Conteúdo</h3>
               <div className="flex items-center gap-3">
                 <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><Save className="w-3 h-3" /> Salvar</button>
-                <button onClick={() => { reset(); setRestoredResult(null); }} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><RefreshCw className="w-3 h-3" /> Novo</button>
+                <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("content"); }} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><RefreshCw className="w-3 h-3" /> Novo</button>
               </div>
             </div>
 

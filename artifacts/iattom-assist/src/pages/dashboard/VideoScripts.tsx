@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSavedItems } from "@/hooks/useSavedItems";
 import { CreditsGate } from "@/components/CreditsGate";
 import { useAiStream } from "@/hooks/useAiStream";
+import { loadModuleState, saveModuleState, clearModuleState } from "@/hooks/useModulePersistence";
 import type { VideoScriptResult, ScriptScene } from "@/types/ai";
 
 export function VideoScripts() {
@@ -35,18 +36,39 @@ export function VideoScripts() {
   const activeResult = result ?? restoredResult;
 
   useEffect(() => {
+    // Restaurar de Projetos Salvos (sessionStorage tem prioridade)
     try {
       const raw = sessionStorage.getItem("iattom_restore_video_v1");
-      if (!raw) return;
-      sessionStorage.removeItem("iattom_restore_video_v1");
-      const saved = JSON.parse(raw) as { briefing?: { product?: string; format?: string; duration?: string; style?: string }; result?: VideoScriptResult };
-      if (saved.briefing?.product) setProduct(saved.briefing.product);
-      if (saved.briefing?.format) setFormat(saved.briefing.format);
-      if (saved.briefing?.duration) setDuration(saved.briefing.duration);
-      if (saved.briefing?.style) setStyle(saved.briefing.style);
-      if (saved.result) setRestoredResult(saved.result);
+      if (raw) {
+        sessionStorage.removeItem("iattom_restore_video_v1");
+        const saved = JSON.parse(raw) as { briefing?: { product?: string; format?: string; duration?: string; style?: string }; result?: VideoScriptResult };
+        if (saved.briefing?.product) setProduct(saved.briefing.product);
+        if (saved.briefing?.format) setFormat(saved.briefing.format);
+        if (saved.briefing?.duration) setDuration(saved.briefing.duration);
+        if (saved.briefing?.style) setStyle(saved.briefing.style);
+        if (saved.result) setRestoredResult(saved.result);
+        return;
+      }
+    } catch {}
+    // Preservação global: restaurar último trabalho via localStorage
+    try {
+      const persisted = loadModuleState<{ form: { product: string; format: string; duration: string; style: string }; result: VideoScriptResult }>("video_script");
+      if (persisted) {
+        if (persisted.form.product) setProduct(persisted.form.product);
+        if (persisted.form.format) setFormat(persisted.form.format);
+        if (persisted.form.duration) setDuration(persisted.form.duration);
+        if (persisted.form.style) setStyle(persisted.form.style);
+        if (persisted.result) setRestoredResult(persisted.result);
+      }
     } catch {}
   }, []);
+
+  // Auto-salvar resultado no localStorage quando geração concluir
+  useEffect(() => {
+    if (status === "done" && result) {
+      saveModuleState("video_script", { form: { product, format, duration, style }, result });
+    }
+  }, [status, result, product, format, duration, style]);
 
   const runGenerate = (charge: () => void) => {
     generate("/api/ai/video-script", { product, format: format || undefined, duration: duration || undefined, style: style || undefined }).then((res) => {
@@ -212,7 +234,7 @@ export function VideoScripts() {
                     <Badge variant="outline" className="border-primary/30 text-primary flex items-center gap-1 text-xs"><Clock className="w-3 h-3" />{activeResult.duration}</Badge>
                     <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><Save className="w-3 h-3" /> Salvar</button>
                     <button onClick={copyFull} className="text-muted-foreground hover:text-white transition-colors p-1"><Copy className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => { reset(); setRestoredResult(null); }} className="text-muted-foreground hover:text-white transition-colors text-xs flex items-center gap-1"><RefreshCw className="w-3 h-3" /></button>
+                    <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("video_script"); }} className="text-muted-foreground hover:text-white transition-colors text-xs flex items-center gap-1"><RefreshCw className="w-3 h-3" /></button>
                   </div>
                 </div>
               </CardHeader>
