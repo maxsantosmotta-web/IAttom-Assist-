@@ -18,10 +18,7 @@ import { logger } from "./logger.js";
 
 const HEYGEN_BASE_URL = "https://api.heygen.com";
 
-export const HEYGEN_CONFIGURED =
-  !!process.env.HEYGEN_API_KEY &&
-  !!process.env.HEYGEN_VOICE_MALE_ID &&
-  !!process.env.HEYGEN_VOICE_FEMALE_ID;
+export const HEYGEN_CONFIGURED = !!process.env.HEYGEN_API_KEY;
 
 // ─── Biblioteca Oficial de Avatares IAttom ────────────────────────────────────
 //
@@ -124,7 +121,7 @@ export function getOfficialAvatarId(
 // estilo+gênero não for encontrada no OFFICIAL_AVATAR_CATALOG.
 // Digital Twin confirmados via GET /v3/avatars/looks?avatar_type=digital_twin.
 //
-//   masculino → Ben   (ad8f529c87f64b1b82c24a3938c504f6)
+//   masculino → Ben    (ad8f529c87f64b1b82c24a3938c504f6)
 //   feminino  → Silvia (15141bd577c043cea1d58609abf55a74)
 
 const DEFAULT_AVATAR_MALE   = "ad8f529c87f64b1b82c24a3938c504f6";  // Ben   — Digital Twin Masculino
@@ -135,9 +132,22 @@ export const AVATAR_IDS: Record<"masculino" | "feminino", string> = {
   feminino:  DEFAULT_AVATAR_FEMALE,
 };
 
+// ─── Vozes PT-BR selecionadas ─────────────────────────────────────────────────
+//
+// Confirmadas via GET /v2/voices (2025-06-09).
+// Critérios: Portuguese, neutro brasileiro, sem sotaque regional,
+//            tom profissional/comercial, support_interactive_avatar: true.
+//
+//   masculino → Fabio - Newscaster    (1956ee743a61677602bbef9cfc48ebb9)
+//               Locução jornalística PT-BR — neutro, broadcast-quality
+//   feminino  → Brenda - Professional (00988b7d451d0722635ff7b2b9540a7b)
+//               Tom profissional PT-BR — natural, comercial
+//
+// HEYGEN_VOICE_MALE_ID / HEYGEN_VOICE_FEMALE_ID mantidos como override opcional.
+
 export const VOICE_IDS: Record<"masculino" | "feminino", string> = {
-  masculino: process.env.HEYGEN_VOICE_MALE_ID ?? "",
-  feminino:  process.env.HEYGEN_VOICE_FEMALE_ID ?? "",
+  masculino: process.env.HEYGEN_VOICE_MALE_ID  || "1956ee743a61677602bbef9cfc48ebb9",
+  feminino:  process.env.HEYGEN_VOICE_FEMALE_ID || "00988b7d451d0722635ff7b2b9540a7b",
 };
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
