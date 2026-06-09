@@ -1,7 +1,7 @@
 /**
  * HeyGen API Client — IAttom Assist
  *
- * Endpoint: POST /v3/videos — payload obrigatório: video_inputs + dimension
+ * Endpoint: POST /v3/videos — payload FLAT com type:"avatar" na raiz (Avatar IV)
  *
  * Modo seguro: HEYGEN_CONFIGURED = false → pipeline opera em mock sem erros.
  *
@@ -10,9 +10,8 @@
  *   HEYGEN_VOICE_MALE_ID     — voice_id PT-BR masculino (GET /v3/voices)
  *   HEYGEN_VOICE_FEMALE_ID   — voice_id PT-BR feminino  (GET /v3/voices)
  *
- * Avatares padrão (confirmados via v2/avatars na conta ativa):
- *   masculino → Marcus_expressive_2024120201 (Marcus Upper Body)
- *   feminino  → candace_expressive_20240910  (Candace in Pink Blazer Upper Body)
+ * Avatares: Digital Twin da conta — confirmados via GET /v3/avatars/looks?avatar_type=digital_twin
+ *   Todos têm supported_api_engines: ["avatar_v","avatar_iv"] + tags: ["AvatarTags.AVATAR_IV"]
  */
 
 import { logger } from "./logger.js";
@@ -26,21 +25,18 @@ export const HEYGEN_CONFIGURED =
 
 // ─── Biblioteca Oficial de Avatares IAttom ────────────────────────────────────
 //
-// Todos os avatar_ids abaixo foram confirmados via API HeyGen v2/avatars.
-// São avatares stock públicos (premium: false), compatíveis com engine Avatar IV.
+// Todos os avatar_ids abaixo são Digital Twin da conta HeyGen.
+// Confirmados via GET /v3/avatars/looks?avatar_type=digital_twin (2025-06-09).
+// Todos têm: supported_api_engines: ["avatar_v","avatar_iv"] + status: "completed"
+// Todos são portrait (preferred_orientation: "portrait") — nativos em 9:16.
 //
 // Estrutura:
 //   estilo     — executivo | consultor | criador
 //   genero     — masculino | feminino
-//   avatar_id  — ID real confirmado na API HeyGen
-//   nome       — nome do personagem
+//   avatarId   — ID real Digital Twin da conta
+//   nome       — nome do personagem na HeyGen
 //   categoria  — rótulo da biblioteca IAttom
-//   nativo916  — true quando a variante foi filmada em portrait (sem letterbox em 9:16)
-//
-// NOTA sobre 9:16:
-//   avatares com nativo916 = false ainda funcionam em 9:16 via API — o HeyGen
-//   centraliza o avatar e preenche laterais com a cor/imagem de fundo configurada.
-//   Para 9:16 totalmente nativo sem padding, use Annie ou Judith.
+//   nativo916  — true para portrait (todos neste catálogo)
 
 export interface OfficialAvatar {
   estilo: "executivo" | "consultor" | "criador";
@@ -55,48 +51,48 @@ export const OFFICIAL_AVATAR_CATALOG: OfficialAvatar[] = [
   {
     estilo:    "executivo",
     genero:    "masculino",
-    avatarId:  "Armando_Suit_Front_public",
-    nome:      "Armando",
+    avatarId:  "ad8f529c87f64b1b82c24a3938c504f6",
+    nome:      "Ben",
     categoria: "Executivo Masculino",
-    nativo916: false,
+    nativo916: true,
   },
   {
     estilo:    "consultor",
     genero:    "masculino",
-    avatarId:  "Colin_Business_Front_public",
-    nome:      "Colin",
+    avatarId:  "222ff1a5d33645e8ab97d0f07fad94e7",
+    nome:      "Eric",
     categoria: "Consultor Masculino",
-    nativo916: false,
+    nativo916: true,
   },
   {
     estilo:    "criador",
     genero:    "masculino",
-    avatarId:  "August_Cool_Style_public",
-    nome:      "August",
+    avatarId:  "3f5c6df32ece4bb5bb91fbeba36f88b2",
+    nome:      "Marcus",
     categoria: "Criador Masculino",
-    nativo916: false,
+    nativo916: true,
   },
   {
     estilo:    "executivo",
     genero:    "feminino",
-    avatarId:  "Annie_expressive_public",
-    nome:      "Annie",
+    avatarId:  "15141bd577c043cea1d58609abf55a74",
+    nome:      "Silvia",
     categoria: "Executiva Feminina",
     nativo916: true,
   },
   {
     estilo:    "consultor",
     genero:    "feminino",
-    avatarId:  "Imelda_Business_Front_public",
-    nome:      "Imelda",
+    avatarId:  "3e5d7c980b4146f3947806b917d54c32",
+    nome:      "Diana",
     categoria: "Consultora Feminina",
-    nativo916: false,
+    nativo916: true,
   },
   {
     estilo:    "criador",
     genero:    "feminino",
-    avatarId:  "Judith_expressive_2024120201",
-    nome:      "Judith",
+    avatarId:  "7ff6a5e83a864eb9a2560bc967ef2876",
+    nome:      "Stephanie",
     categoria: "Criadora Feminina",
     nativo916: true,
   },
@@ -122,16 +118,17 @@ export function getOfficialAvatarId(
   return fallback?.avatarId ?? OFFICIAL_AVATAR_CATALOG[0].avatarId;
 }
 
-// ─── Mapeamento: gênero → avatar_id ──────────────────────────────────────────
+// ─── Mapeamento: gênero → avatar_id (fallback legado) ────────────────────────
 //
-// Avatares confirmados via GET /v2/avatars na conta ativa.
-// IDs são do tipo "expressive upper body" — compatíveis com POST /v3/videos.
+// Usado apenas pelo fallback de getOfficialAvatarId quando a combinação
+// estilo+gênero não for encontrada no OFFICIAL_AVATAR_CATALOG.
+// Digital Twin confirmados via GET /v3/avatars/looks?avatar_type=digital_twin.
 //
-//   masculino → Marcus_expressive_2024120201   (Marcus Upper Body)
-//   feminino  → candace_expressive_20240910    (Candace in Pink Blazer Upper Body)
+//   masculino → Ben   (ad8f529c87f64b1b82c24a3938c504f6)
+//   feminino  → Silvia (15141bd577c043cea1d58609abf55a74)
 
-const DEFAULT_AVATAR_MALE   = "Marcus_expressive_2024120201";  // Marcus — Upper Body Masculino
-const DEFAULT_AVATAR_FEMALE = "candace_expressive_20240910";   // Candace — Upper Body Feminino
+const DEFAULT_AVATAR_MALE   = "ad8f529c87f64b1b82c24a3938c504f6";  // Ben   — Digital Twin Masculino
+const DEFAULT_AVATAR_FEMALE = "15141bd577c043cea1d58609abf55a74";   // Silvia — Digital Twin Feminino
 
 export const AVATAR_IDS: Record<"masculino" | "feminino", string> = {
   masculino: DEFAULT_AVATAR_MALE,
