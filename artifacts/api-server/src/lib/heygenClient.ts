@@ -156,6 +156,7 @@ export interface HeyGenVideoStatus {
   status: "pending" | "processing" | "completed" | "failed";
   videoUrl?: string;
   error?: string;
+  failureCode?: string;
 }
 
 // ─── Helper: extrai mensagem legível do erro HeyGen ──────────────────────────
@@ -263,7 +264,10 @@ export async function generateVideo(payload: HeyGenVideoPayload): Promise<{ vide
     throw new Error("HeyGen não retornou um video_id válido.");
   }
 
-  logger.info({ videoId, aspectRatio, avatarId: payload.avatarId }, "[heygenClient] vídeo criado com sucesso");
+  logger.info(
+    { videoId, aspectRatio, avatarId: payload.avatarId },
+    "[HEYGEN_VIDEO_CREATED] video_id=" + videoId,
+  );
   return { videoId };
 }
 
@@ -307,39 +311,61 @@ export async function getVideoStatus(videoId: string): Promise<HeyGenVideoStatus
   }
 
   return {
-    status: (d.status ?? "pending") as HeyGenVideoStatus["status"],
-    videoUrl: d.video_url,
-    error: d.failure_message ?? d.error,
+    status:      (d.status ?? "pending") as HeyGenVideoStatus["status"],
+    videoUrl:    d.video_url,
+    error:       d.failure_message ?? d.error,
+    failureCode: d.failure_code,
   };
 }
 
 // ─── Polling até conclusão ────────────────────────────────────────────────────
 
+// Polling: 120 tentativas × 5 s = 10 minutos de espera máxima.
+// Statuses intermediários aceitos: "waiting" | "pending" | "processing"
 export async function pollUntilDone(
   videoId: string,
   onProgress: (status: string) => void,
-  maxAttempts = 60,
-  intervalMs = 3_000,
+  maxAttempts = 120,
+  intervalMs = 5_000,
 ): Promise<string> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const statusData = await getVideoStatus(videoId);
 
+    logger.info(
+      { videoId, attempt: attempt + 1, maxAttempts, status: statusData.status },
+      "[HEYGEN_POLL] attempt=" + (attempt + 1) + " status=" + statusData.status,
+    );
+
     if (statusData.status === "completed" && statusData.videoUrl) {
-      logger.info({ videoId, attempt }, "[heygenClient] vídeo concluído");
+      logger.info(
+        { videoId, attempt: attempt + 1, videoUrl: statusData.videoUrl.slice(0, 80) },
+        "[HEYGEN_COMPLETED] video_id=" + videoId,
+      );
       return statusData.videoUrl;
     }
 
     if (statusData.status === "failed") {
-      const reason = statusData.error ?? "Falha na geração do vídeo.";
-      logger.error({ videoId, reason }, "[heygenClient] vídeo falhou");
-      throw new Error(reason);
+      const failureCode = statusData.failureCode ?? "UNKNOWN";
+      const failureMsg  = statusData.error ?? "Falha na geração do vídeo.";
+      logger.error(
+        { videoId, failureCode, failureMsg },
+        "[HEYGEN_FAILED] video_id=" + videoId +
+        " failure_code=" + failureCode +
+        " failure_message=" + failureMsg,
+      );
+      throw new Error(`Erro HeyGen: ${failureMsg} (código: ${failureCode})`);
     }
 
     onProgress(statusData.status);
     await new Promise<void>((resolve) => setTimeout(resolve, intervalMs));
   }
 
+  // Timeout real: vídeo pode ainda estar processando — informa video_id ao usuário
+  logger.warn(
+    { videoId, maxAttempts, totalMs: maxAttempts * intervalMs },
+    "[HEYGEN_TIMEOUT] video_id=" + videoId + " esgotou " + maxAttempts + " tentativas",
+  );
   throw new Error(
-    "Tempo esgotado na geração do vídeo. Seus créditos serão devolvidos automaticamente.",
+    `O vídeo ainda está processando na HeyGen (video_id: ${videoId}). Tente atualizar em alguns minutos.`,
   );
 }

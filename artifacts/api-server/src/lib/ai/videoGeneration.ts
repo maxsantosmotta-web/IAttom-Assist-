@@ -341,7 +341,7 @@ export async function streamVideoGeneration(
   const socket = (
     res as unknown as { socket?: { setTimeout: (ms: number) => void } }
   ).socket;
-  socket?.setTimeout(300_000);
+  socket?.setTimeout(660_000); // 11 min — cobre polling de 10 min + margem
 
   setupSSE(res);
   sendSSE(res, { type: "start" });
@@ -475,7 +475,8 @@ export async function streamVideoGeneration(
       rawMsg.startsWith("Não foi possível") ||
       rawMsg.startsWith("Tempo esgotado") ||
       rawMsg.startsWith("Configuração de avatar") ||
-      rawMsg.startsWith("Erro HeyGen")
+      rawMsg.startsWith("Erro HeyGen") ||
+      rawMsg.startsWith("O vídeo ainda está processando")
         ? rawMsg
         : "Não foi possível gerar o vídeo. Seus créditos serão devolvidos automaticamente.";
     sendSSEError(res, userMsg);
