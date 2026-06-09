@@ -180,6 +180,11 @@ export function TikTok() {
     window.location.href = `${BASE}/dashboard/create-campaign`;
   };
 
+  const handleCriarConteudo = () => {
+    sessionStorage.setItem("content_platform_context", JSON.stringify({ platform: "tiktok" }));
+    window.location.href = `${BASE}/dashboard/create-content`;
+  };
+
   const handleCriarAnuncio = () => {
     window.open("https://ads.tiktok.com/", "_blank", "noopener,noreferrer");
   };
@@ -372,7 +377,7 @@ export function TikTok() {
                 </div>
                 <div>
                   <CardTitle className="text-sm font-semibold text-white">Conteúdo</CardTitle>
-                  <p className="text-xs text-muted-foreground">Vídeos e publicações</p>
+                  <p className="text-xs text-muted-foreground">Conteúdos e publicações</p>
                 </div>
               </div>
             </CardHeader>
@@ -393,14 +398,11 @@ export function TikTok() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => showInfo(
-                    "Publicar vídeos",
-                    "A publicação direta no TikTok estará disponível após a conexão da conta. Você poderá agendar e publicar vídeos diretamente da plataforma.",
-                  )}
+                  onClick={handleCriarConteudo}
                   className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
                 >
-                  <ExternalLink className="w-3 h-3 mr-1.5" />
-                  Publicar vídeos
+                  <ClipboardList className="w-3 h-3 mr-1.5" />
+                  Criar conteúdo
                 </Button>
                 <Button
                   size="sm"

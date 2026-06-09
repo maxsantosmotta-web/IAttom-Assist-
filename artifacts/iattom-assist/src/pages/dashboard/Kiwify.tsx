@@ -110,6 +110,10 @@ export function Kiwify() {
     window.location.href = `${BASE}/dashboard/create-content`;
   };
 
+  const handleCriarAnuncio = () => {
+    window.open("https://app.kiwify.com.br/", "_blank", "noopener,noreferrer");
+  };
+
   // ─── Derived UI ────────────────────────────────────────────────────────────
 
   const activityRows = [
@@ -263,6 +267,15 @@ export function Kiwify() {
                 >
                   <ClipboardList className="w-3 h-3 mr-1.5" />
                   Criar conteúdo
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCriarAnuncio}
+                  className="w-full border-primary/30 text-primary hover:bg-primary/10 h-8 text-xs"
+                >
+                  <ExternalLink className="w-3 h-3 mr-1.5" />
+                  Criar anúncio
                 </Button>
               </div>
             </CardContent>
