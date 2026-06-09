@@ -398,7 +398,7 @@ export function Instagram() {
                   className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
                 >
                   <Megaphone className="w-3 h-3 mr-1.5" />
-                  Criar Campanha
+                  Criar campanha
                 </Button>
                 <Button
                   size="sm"
@@ -410,7 +410,7 @@ export function Instagram() {
                   className="w-full border-white/10 text-muted-foreground hover:text-white h-8 text-xs"
                 >
                   <ExternalLink className="w-3 h-3 mr-1.5" />
-                  Criar Conteúdo
+                  Criar conteúdo
                 </Button>
                 <Button
                   size="sm"
