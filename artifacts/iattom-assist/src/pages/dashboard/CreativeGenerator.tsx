@@ -238,7 +238,13 @@ function ConceptCard({ concept, index }: { concept: CreativeConcept; index: numb
 }
 
 export function CreativeGenerator() {
-  const [creativeType, setCreativeType] = useState<CreativeType>("image");
+  const [creativeType, setCreativeType] = useState<CreativeType>(() => {
+    try {
+      const saved = localStorage.getItem("iattom_creative_tab_v1");
+      if (saved === "video") return "video";
+    } catch { /* ignore */ }
+    return "image";
+  });
   const [platform, setPlatform] = useState<PlatformKey | "">("");
   const [selectedFormats, setSelectedFormats] = useState<string[]>([]);
   const [prompt, setPrompt] = useState("");
@@ -738,12 +744,23 @@ export function CreativeGenerator() {
 
   const doVideoSaveToExisting = async (proj: SavedItemRecord) => {
     if (!activeVideoResult || videoIsSaving) return;
-    const p = buildVideoPayload(`${proj.title} — Vídeo`);
+    const p = buildVideoPayload();
     if (!p) return;
     setVideoSaveDialogOpen(false);
     setVideoIsSaving(true);
     try {
-      await persistVideoItem(p.title, p.content, p.data, "Vídeo adicionado à biblioteca.");
+      // Usar proj.id real — backend faz upsert por ID (onConflictDoUpdate)
+      await saveItem({ id: proj.id, title: proj.title, type: proj.type, content: p.content, data: p.data, hasImages: false });
+      try {
+        const raw = localStorage.getItem("iattom_saved_items_v1");
+        const existing = raw ? (JSON.parse(raw) as Array<Record<string, unknown>>) : [];
+        const idx = existing.findIndex((i) => i["id"] === proj.id);
+        if (idx >= 0) {
+          existing[idx] = { ...existing[idx], content: p.content, data: p.data };
+          localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
+        }
+      } catch { /* ignore */ }
+      toast({ description: "Vídeo adicionado ao projeto." });
     } catch {
       toast({ description: "Erro ao salvar. Tente novamente.", variant: "destructive" });
     } finally {
@@ -794,7 +811,10 @@ export function CreativeGenerator() {
             <Label className="text-sm text-muted-foreground block mb-3">Tipo de criativo</Label>
             <div className="flex gap-3">
               <button
-                onClick={() => setCreativeType("image")}
+                onClick={() => {
+                  setCreativeType("image");
+                  try { localStorage.setItem("iattom_creative_tab_v1", "image"); } catch { /* ignore */ }
+                }}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
                   creativeType === "image"
                     ? "bg-primary/15 text-primary border-primary/30"
@@ -805,7 +825,10 @@ export function CreativeGenerator() {
                 Imagem
               </button>
               <button
-                onClick={() => setCreativeType("video")}
+                onClick={() => {
+                  setCreativeType("video");
+                  try { localStorage.setItem("iattom_creative_tab_v1", "video"); } catch { /* ignore */ }
+                }}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm font-medium transition-colors ${
                   creativeType === "video"
                     ? "bg-primary/15 text-primary border-primary/30"
