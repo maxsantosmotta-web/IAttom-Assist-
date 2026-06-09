@@ -254,8 +254,6 @@ export async function generateVideo(payload: HeyGenVideoPayload): Promise<{ vide
     script:       refinedScript,
     voice_id:     payload.voiceId,
     aspect_ratio: aspectRatio,
-    resolution:   "1080p",
-    voice_speed:  1.25,
     background,
   };
 
