@@ -53,7 +53,7 @@ const PLATFORMS: PlatformDef[] = [
     name: "Shopee",
     category: "Marketplace",
     description: "Marketplace com foco em volume, preço e palavras-chave.",
-    focus: "Foco em Produto + Palavras-chave",
+    focus: "Foco em Produto",
     accent: "#EE4D2D",
     icon: <ShoppingBag className="w-5 h-5" />,
     modes: [
@@ -796,7 +796,8 @@ export function CreateCampaign() {
                   </div>
                   <button
                     onClick={() => setStep("platform")}
-                    className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"
+                    className="text-xs transition-colors flex items-center gap-1.5 hover:opacity-80"
+                    style={{ color: currentPlatform?.accent ?? "#C9A84C" }}
                   >
                     🔁 Trocar
                   </button>
