@@ -731,10 +731,12 @@ export function CreateCampaign() {
               : "Configure e gere sua entrega."}
           </p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => { setIsRefreshing(true); void refetchCredits(); setTimeout(() => setIsRefreshing(false), 750); }} disabled={fetchingCredits || isRefreshing} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
-          <RefreshCw className={`w-3.5 h-3.5 ${(fetchingCredits || isRefreshing) ? "animate-spin" : ""}`} />
-          Atualizar
-        </Button>
+        {step !== "platform" && (
+          <Button size="sm" variant="outline" onClick={() => { setIsRefreshing(true); void refetchCredits(); setTimeout(() => { try { const p = loadModuleState<{ form: { product: string; audience: string; goal: string; mode: string; productType: string }; result: CampaignResult }>("campaign"); if (p?.result) setCampaignData(p.result); } catch {} setIsRefreshing(false); }, 750); }} disabled={fetchingCredits || isRefreshing} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
+            <RefreshCw className={`w-3.5 h-3.5 ${(fetchingCredits || isRefreshing) ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
+        )}
       </motion.div>
 
       {/* Restored banner */}
@@ -797,9 +799,9 @@ export function CreateCampaign() {
                   <button
                     onClick={() => setStep("platform")}
                     className="text-xs transition-colors flex items-center gap-1.5 hover:opacity-80"
-                    style={{ color: currentPlatform?.accent ?? "#C9A84C" }}
                   >
-                    🔁 Trocar
+                    <RefreshCw className="w-3 h-3 shrink-0" style={{ color: currentPlatform?.accent ?? "#C9A84C" }} />
+                    <span className="text-muted-foreground">Trocar</span>
                   </button>
                 </div>
               </CardHeader>
