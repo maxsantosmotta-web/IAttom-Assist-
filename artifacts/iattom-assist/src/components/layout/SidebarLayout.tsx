@@ -6,7 +6,6 @@ import {
   Command, BarChart2, BookMarked, Gift, Trash2,
   ShoppingCart, ShoppingBag, Music2,
   Flame, Layers, Instagram, Facebook, HelpCircle,
-  Target,
 } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -39,7 +38,6 @@ const navItems = [
   { href: "/dashboard/create-content", label: "Criar Conteúdo", icon: FileText },
   { href: "/dashboard/creative-generator", label: "Gerador Criativo", icon: Sparkles },
   { href: "/dashboard/video-scripts", label: "Scripts de Vídeo", icon: Video },
-  { href: "/dashboard/create-ad", label: "Criar Anúncio", icon: Target },
   { href: "/dashboard/mercado-livre", label: "Mercado Livre", icon: ShoppingCart },
   { href: "/dashboard/shopee", label: "Shopee", icon: ShoppingBag },
   { href: "/dashboard/tiktok", label: "TikTok", icon: Music2 },
