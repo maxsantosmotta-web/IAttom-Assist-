@@ -175,7 +175,7 @@ export function CreateAd() {
       creative: selCreative ? { id: selCreative.id, title: selCreative.title } : null,
       content:  selContent  ? { id: selContent.id,  title: selContent.title,  content: selContent.content  } : null,
     };
-    sessionStorage.setItem("iattom_ad_prefill", JSON.stringify(prefill));
+    sessionStorage.setItem("iattom_campaign_prefill", JSON.stringify({ product: selCampaign?.title ?? "" }));
     toast({ description: `Abrindo ${platform.label} com o anúncio configurado.` });
     navigate(platform.route);
   };
@@ -290,9 +290,9 @@ export function CreateAd() {
                       <EmptyState
                         icon={Sparkles}
                         message="Nenhum criativo salvo."
-                        hint="Gere criativos no módulo Gerador Criativo primeiro."
+                        hint="Gere criativos no módulo Criar Imagem primeiro."
                         route="/dashboard/creative-generator"
-                        routeLabel="Gerador Criativo"
+                        routeLabel="Criar Imagem"
                         navigate={navigate}
                       />
                     ) : (

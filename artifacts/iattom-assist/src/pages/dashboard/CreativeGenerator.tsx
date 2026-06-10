@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Loader2, RefreshCw, AlertCircle, Image, Save, Download, Video, ChevronRight } from "lucide-react";
-import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
+import { clearModuleState } from "@/hooks/useModulePersistence";
 import { saveProjectAssets } from "@/lib/assetStorage";
 import { useSavedItems, type SavedItemRecord, type VideoAssetData } from "@/hooks/useSavedItems";
 import { Button } from "@/components/ui/button";
@@ -278,15 +278,10 @@ export function CreativeGenerator() {
   const [videoSaveDialogStep, setVideoSaveDialogStep] = useState<"choose" | "pick-project">("choose");
   const [videoSaveProjects, setVideoSaveProjects] = useState<SavedItemRecord[]>([]);
   const [videoLoadingProjects, setVideoLoadingProjects] = useState(false);
-  const [refreshFeedback, setRefreshFeedback] = useState(false);
   const [pendingVideoId, setPendingVideoId] = useState<string | null>(null);
   const [isCheckingVideoId, setIsCheckingVideoId] = useState(false);
   const { toast } = useToast();
   const { saveItem, saveItemAssets, getItems, saveItemVideoAssets } = useSavedItems();
-  const { isFetching: fetchingCredits, refetch: refetchCredits } = useGetCreditsBalance({
-    query: { queryKey: getGetCreditsBalanceQueryKey(), staleTime: 0 },
-  });
-
   const refundCalledRef = useRef(false);
   const chargedFeatureRef = useRef<FeatureKey>("creativeImage1");
   const videoRefundCalledRef = useRef(false);
@@ -782,21 +777,6 @@ export function CreativeGenerator() {
           <h2 className="text-2xl font-bold text-white mb-1">Gerador Criativo</h2>
           <p className="text-muted-foreground text-sm">Gere imagens e vídeos prontos para publicação.</p>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => {
-            void refetchCredits();
-            if (isVideoError) videoReset();
-            setRefreshFeedback(true);
-            setTimeout(() => setRefreshFeedback(false), 1500);
-          }}
-          disabled={fetchingCredits}
-          className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${fetchingCredits ? "animate-spin" : ""}`} />
-          {refreshFeedback ? "Atualizado" : "Atualizar"}
-        </Button>
       </motion.div>
 
       {/* Tipo de criativo */}
@@ -1148,10 +1128,10 @@ export function CreativeGenerator() {
                   {isSaving ? "Salvando..." : "Salvar"}
                 </button>
                 <button
-                  onClick={() => { reset(); setRestoredResult(null); }}
-                  className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"
+                  onClick={() => { reset(); setRestoredResult(null); clearModuleState("creative"); }}
+                  className="text-xs text-muted-foreground hover:text-white transition-colors"
                 >
-                  <RefreshCw className="w-3 h-3" /> Gerar novamente
+                  Novo
                 </button>
               </div>
             </div>
@@ -1265,7 +1245,7 @@ export function CreativeGenerator() {
                 result={activeVideoResult}
                 onSave={openVideoSaveDialog}
                 isSaving={videoIsSaving}
-                onReset={() => { videoReset(); setRestoredVideoResult(null); }}
+                onReset={() => { videoReset(); setRestoredVideoResult(null); clearModuleState("creative"); }}
               />
             </>
           )}

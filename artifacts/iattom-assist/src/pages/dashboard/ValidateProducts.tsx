@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, AlertTriangle, TrendingUp, Users, DollarSign, Loader2, AlertCircle, RefreshCw, Lightbulb, Target, Zap, Save, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
+import { useSavedItems } from "@/hooks/useSavedItems";
 import { loadModuleState, saveModuleState, clearModuleState } from "@/hooks/useModulePersistence";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -50,9 +50,7 @@ function ScoreRing({ score }: { score: number }) {
 export function ValidateProducts() {
   const [productName, setProductName] = useState("");
   const [description, setDescription] = useState("");
-  const { isFetching: fetchingCredits, refetch: refetchCredits } = useGetCreditsBalance({
-    query: { queryKey: getGetCreditsBalanceQueryKey(), staleTime: 0 },
-  });
+  const { saveItem } = useSavedItems();
   const [targetMarket, setTargetMarket] = useState("");
   const { status, result, error, generate, reset } = useAiStream<ValidationResult>();
   const [restoredResult, setRestoredResult] = useState<ValidationResult | null>(null);
@@ -95,40 +93,36 @@ export function ValidateProducts() {
     });
   };
 
-  const handleSave = () => {
-    if (!result) return;
+  const buildValidationText = () => {
+    if (!activeResult) return "";
     const lines: string[] = [
       `PRODUTO: ${productName}`,
-      `RESULTADO: ${result.verdict}`,
-      `SCORE: ${result.score}`,
+      `RESULTADO: ${activeResult.verdict}`,
+      `SCORE: ${activeResult.score}`,
     ];
-    if (result.recommendation) lines.push(`\nRECOMENDAÇÃO:\n${result.recommendation}`);
-    if (result.strengths?.length) lines.push(`\nPONTOS FORTES:\n${result.strengths.join("\n")}`);
-    if (result.risks?.length) lines.push(`\nRISCOS:\n${result.risks.join("\n")}`);
-    if (result.opportunities?.length) lines.push(`\nOPORTUNIDADES:\n${result.opportunities.join("\n")}`);
-    if (result.launchStrategy) lines.push(`\nESTRATÉGIA:\n${result.launchStrategy}`);
-    if (result.pricingInsight) lines.push(`\nPREÇO:\n${result.pricingInsight}`);
-    const content = lines.join("\n");
+    if (activeResult.recommendation) lines.push(`\nRECOMENDAÇÃO:\n${activeResult.recommendation}`);
+    if (activeResult.strengths?.length) lines.push(`\nPONTOS FORTES:\n${activeResult.strengths.join("\n")}`);
+    if (activeResult.risks?.length) lines.push(`\nRISCOS:\n${activeResult.risks.join("\n")}`);
+    if (activeResult.opportunities?.length) lines.push(`\nOPORTUNIDADES:\n${activeResult.opportunities.join("\n")}`);
+    if (activeResult.launchStrategy) lines.push(`\nESTRATÉGIA:\n${activeResult.launchStrategy}`);
+    if (activeResult.pricingInsight) lines.push(`\nPREÇO:\n${activeResult.pricingInsight}`);
+    return lines.join("\n");
+  };
+
+  const handleSave = () => {
+    if (!activeResult) return;
+    const content = buildValidationText();
     const title = productName.trim() || "Validação de produto";
+    const id = crypto.randomUUID();
+    const data = JSON.stringify({ briefing: { productName, description, targetMarket }, result: activeResult });
     try {
       const raw = localStorage.getItem("iattom_saved_items_v1");
       const existing = raw ? (JSON.parse(raw) as object[]) : [];
-      existing.unshift({
-        id: crypto.randomUUID(),
-        title,
-        type: "product_validation",
-        content,
-        data: JSON.stringify({
-          briefing: { productName, description, targetMarket },
-          result,
-        }),
-        createdAt: new Date().toISOString(),
-      });
+      existing.unshift({ id, title, type: "product_validation", content, data, createdAt: new Date().toISOString() });
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
-      toast({ description: "Salvo com sucesso." });
-    } catch {
-      toast({ description: "Erro ao salvar.", variant: "destructive" });
-    }
+    } catch {}
+    void saveItem({ id, title, type: "product_validation", content, data }).catch(() => {});
+    toast({ description: "Salvo com sucesso." });
   };
 
   const handleRetry = () => {
@@ -148,10 +142,6 @@ export function ValidateProducts() {
           <h2 className="text-2xl font-bold text-white mb-1">Validar Produtos</h2>
           <p className="text-muted-foreground text-sm">Execute validação de mercado antes de comprometer recursos.</p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => void refetchCredits()} disabled={fetchingCredits} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
-          <RefreshCw className={`w-3.5 h-3.5 ${fetchingCredits ? "animate-spin" : ""}`} />
-          Atualizar
-        </Button>
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
@@ -377,11 +367,17 @@ export function ValidateProducts() {
             </Card>
 
             <div className="flex justify-end gap-3">
+              <button
+                onClick={() => { navigator.clipboard.writeText(buildValidationText()); toast({ description: "Resultado copiado" }); }}
+                className="text-xs text-muted-foreground hover:text-white transition-colors"
+              >
+                Copiar tudo
+              </button>
               <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5">
                 <Save className="w-3 h-3" /> Salvar
               </button>
-              <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("validate_product"); }} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5">
-                <RefreshCw className="w-3 h-3" /> Validar outro produto
+              <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("validate_product"); }} className="text-xs text-muted-foreground hover:text-white transition-colors">
+                Novo
               </button>
             </div>
           </motion.div>

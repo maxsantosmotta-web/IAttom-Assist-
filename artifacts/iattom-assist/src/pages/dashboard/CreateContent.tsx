@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FileText, Loader2, Copy, RefreshCw, AlertCircle, Hash, Mail, MessageSquare, Twitter, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,10 +48,6 @@ export function CreateContent() {
   const { status, result, error, generate, reset } = useAiStream<ContentResult>();
   const { toast } = useToast();
   const { saveItem } = useSavedItems();
-  const { isFetching: fetchingCredits, refetch: refetchCredits } = useGetCreditsBalance({
-    query: { queryKey: getGetCreditsBalanceQueryKey(), staleTime: 0 },
-  });
-
   const isGenerating = status === "generating";
   const isDone = status === "done";
   const isError = status === "error";
@@ -120,7 +115,12 @@ export function CreateContent() {
       existing.unshift({ id, title, type: "content", content, data, createdAt: new Date().toISOString() });
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
     } catch {}
-    void saveItem({ id, title, type: "content", content, data }).catch(() => {});
+    let platform: string | undefined;
+    try {
+      const ctx = sessionStorage.getItem("content_platform_context");
+      if (ctx) { platform = (JSON.parse(ctx) as { platform?: string }).platform; }
+    } catch {}
+    void saveItem({ id, title, type: "content", content, data, platform }).catch(() => {});
     toast({ description: "Projeto salvo" });
   };
 
@@ -132,10 +132,6 @@ export function CreateContent() {
           <h2 className="text-2xl font-bold text-white mb-1">Criar Conteúdo</h2>
           <p className="text-muted-foreground text-sm">Gere um pacote completo de conteúdo — blog, redes sociais, e-mail, SMS — com um único prompt.</p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => void refetchCredits()} disabled={fetchingCredits} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
-          <RefreshCw className={`w-3.5 h-3.5 ${fetchingCredits ? "animate-spin" : ""}`} />
-          Atualizar
-        </Button>
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
@@ -216,8 +212,26 @@ export function CreateContent() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-white">Central de Conteúdo</h3>
               <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    if (!activeResult) return;
+                    const lines: string[] = [];
+                    if (activeResult.seoTitle) lines.push(`TÍTULO SEO: ${activeResult.seoTitle}`);
+                    if (activeResult.seoDescription) lines.push(`META DESCRIÇÃO: ${activeResult.seoDescription}`);
+                    if (activeResult.blog) lines.push(`\nBLOG:\n${activeResult.blog}`);
+                    if (activeResult.social) lines.push(`\nSOCIAL:\n${activeResult.social}`);
+                    if (activeResult.email) lines.push(`\nE-MAIL:\n${activeResult.email}`);
+                    if (activeResult.tweetThread) lines.push(`\nTHREAD:\n${activeResult.tweetThread}`);
+                    if (activeResult.smsText) lines.push(`\nSMS:\n${activeResult.smsText}`);
+                    navigator.clipboard.writeText(lines.join("\n"));
+                    toast({ description: "Conteúdo copiado" });
+                  }}
+                  className="text-xs text-muted-foreground hover:text-white transition-colors"
+                >
+                  Copiar tudo
+                </button>
                 <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><Save className="w-3 h-3" /> Salvar</button>
-                <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("content"); }} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><RefreshCw className="w-3 h-3" /> Novo</button>
+                <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("content"); }} className="text-xs text-muted-foreground hover:text-white transition-colors">Novo</button>
               </div>
             </div>
 

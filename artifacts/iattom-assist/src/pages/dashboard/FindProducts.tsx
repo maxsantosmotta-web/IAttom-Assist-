@@ -4,7 +4,6 @@ import { Search, TrendingUp, Star, DollarSign, BarChart2, Loader2, AlertCircle, 
 import { loadModuleState, saveModuleState, clearModuleState } from "@/hooks/useModulePersistence";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -43,10 +42,6 @@ export function FindProducts() {
   const { status, result, error, generate, reset } = useAiStream<FindProductsResult>();
   const { toast } = useToast();
   const { saveItem } = useSavedItems();
-  const { isFetching: fetchingCredits, refetch: refetchCredits } = useGetCreditsBalance({
-    query: { queryKey: getGetCreditsBalanceQueryKey(), staleTime: 0 },
-  });
-
   const isGenerating = status === "generating";
   const isDone = status === "done";
   const isError = status === "error";
@@ -97,8 +92,8 @@ export function FindProducts() {
     generate("/api/ai/find-products", { query, niche: niche || undefined });
   };
 
-  const handleSave = () => {
-    if (!activeResult) return;
+  const buildFindProductsText = () => {
+    if (!activeResult) return "";
     const lines: string[] = [];
     if (activeResult.marketInsight) lines.push(`VISÃO DE MERCADO:\n${activeResult.marketInsight}`);
     activeResult.products?.forEach((p: FoundProduct, i: number) => {
@@ -108,7 +103,12 @@ export function FindProducts() {
       if (p.whyNow) lines.push(`Por que agora: ${p.whyNow}`);
       if (p.keySellingPoints?.length) lines.push(`Diferenciais: ${p.keySellingPoints.join(", ")}`);
     });
-    const content = lines.join("\n");
+    return lines.join("\n");
+  };
+
+  const handleSave = () => {
+    if (!activeResult) return;
+    const content = buildFindProductsText();
     const title = `Busca: ${query.trim() || "produtos"}`;
     const id = crypto.randomUUID();
     const data = JSON.stringify({ briefing: { query, niche }, result: activeResult });
@@ -130,10 +130,6 @@ export function FindProducts() {
           <h2 className="text-2xl font-bold text-white mb-1">Buscar Produtos</h2>
           <p className="text-muted-foreground text-sm">Descubra produtos de alta margem e tendência de mercado real.</p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => void refetchCredits()} disabled={fetchingCredits} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
-          <RefreshCw className={`w-3.5 h-3.5 ${fetchingCredits ? "animate-spin" : ""}`} />
-          Atualizar
-        </Button>
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
@@ -235,11 +231,17 @@ export function FindProducts() {
               </h3>
               <div className="flex items-center gap-3">
                 <span className="text-xs text-muted-foreground">{activeResult.products?.length ?? 0} encontrados</span>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(buildFindProductsText()); toast({ description: "Resultado copiado" }); }}
+                  className="text-xs text-muted-foreground hover:text-white transition-colors"
+                >
+                  Copiar tudo
+                </button>
                 <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
                   <Save className="w-3 h-3" /> Salvar
                 </button>
-                <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("find_products"); }} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
-                  <RefreshCw className="w-3 h-3" /> Nova busca
+                <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("find_products"); }} className="text-xs text-muted-foreground hover:text-white transition-colors">
+                  Novo
                 </button>
               </div>
             </div>
