@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Loader2, RefreshCw, AlertCircle, Image, Save, Download, Video, ChevronRight } from "lucide-react";
+import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
 import { clearModuleState } from "@/hooks/useModulePersistence";
 import { saveProjectAssets } from "@/lib/assetStorage";
 import { useSavedItems, type SavedItemRecord, type VideoAssetData } from "@/hooks/useSavedItems";
@@ -282,6 +283,9 @@ export function CreativeGenerator() {
   const [isCheckingVideoId, setIsCheckingVideoId] = useState(false);
   const { toast } = useToast();
   const { saveItem, saveItemAssets, getItems, saveItemVideoAssets } = useSavedItems();
+  const { isFetching: fetchingCredits, refetch: refetchCredits } = useGetCreditsBalance({
+    query: { queryKey: getGetCreditsBalanceQueryKey(), staleTime: 0 },
+  });
   const refundCalledRef = useRef(false);
   const chargedFeatureRef = useRef<FeatureKey>("creativeImage1");
   const videoRefundCalledRef = useRef(false);
@@ -777,6 +781,10 @@ export function CreativeGenerator() {
           <h2 className="text-2xl font-bold text-white mb-1">Gerador Criativo</h2>
           <p className="text-muted-foreground text-sm">Gere imagens e vídeos prontos para publicação.</p>
         </div>
+        <Button size="sm" variant="outline" onClick={() => void refetchCredits()} disabled={fetchingCredits} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
+          <RefreshCw className={`w-3.5 h-3.5 ${fetchingCredits ? "animate-spin" : ""}`} />
+          Atualizar
+        </Button>
       </motion.div>
 
       {/* Tipo de criativo */}

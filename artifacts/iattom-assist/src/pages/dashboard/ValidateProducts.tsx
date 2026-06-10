@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, AlertTriangle, TrendingUp, Users, DollarSign, Loader2, AlertCircle, RefreshCw, Lightbulb, Target, Zap, Save, Copy } from "lucide-react";
+import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { useSavedItems } from "@/hooks/useSavedItems";
 import { loadModuleState, saveModuleState, clearModuleState } from "@/hooks/useModulePersistence";
@@ -51,6 +52,9 @@ export function ValidateProducts() {
   const [productName, setProductName] = useState("");
   const [description, setDescription] = useState("");
   const { saveItem } = useSavedItems();
+  const { isFetching: fetchingCredits, refetch: refetchCredits } = useGetCreditsBalance({
+    query: { queryKey: getGetCreditsBalanceQueryKey(), staleTime: 0 },
+  });
   const [targetMarket, setTargetMarket] = useState("");
   const { status, result, error, generate, reset } = useAiStream<ValidationResult>();
   const [restoredResult, setRestoredResult] = useState<ValidationResult | null>(null);
@@ -142,6 +146,10 @@ export function ValidateProducts() {
           <h2 className="text-2xl font-bold text-white mb-1">Validar Produtos</h2>
           <p className="text-muted-foreground text-sm">Execute validação de mercado antes de comprometer recursos.</p>
         </div>
+        <Button size="sm" variant="outline" onClick={() => void refetchCredits()} disabled={fetchingCredits} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
+          <RefreshCw className={`w-3.5 h-3.5 ${fetchingCredits ? "animate-spin" : ""}`} />
+          Atualizar
+        </Button>
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>

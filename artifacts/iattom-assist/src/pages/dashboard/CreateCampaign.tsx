@@ -6,6 +6,7 @@ import {
   FileText, ShoppingCart, ShoppingBag, Flame, Sparkles,
   Users, Camera, Play, CheckCircle2, ChevronLeft,
 } from "lucide-react";
+import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
 import { loadModuleState, saveModuleState, clearModuleState } from "@/hooks/useModulePersistence";
 import { getEffectiveProductType, detectIncompatibility, INCOMPATIBILITY_MESSAGES, detectProductTypeMismatch, PRODUCT_TYPE_MISMATCH_MESSAGE } from "@/lib/productPlatformCompatibility";
 import { useSavedItems } from "@/hooks/useSavedItems";
@@ -514,6 +515,9 @@ export function CreateCampaign() {
   const { status, result, error, generate, reset } = useAiStream<CampaignResult>();
   const { toast } = useToast();
   const { saveItem } = useSavedItems();
+  const { isFetching: fetchingCredits, refetch: refetchCredits } = useGetCreditsBalance({
+    query: { queryKey: getGetCreditsBalanceQueryKey(), staleTime: 0 },
+  });
   const refundCalledRef = useRef(false);
   useEffect(() => {
     if (status === "error" && !refundCalledRef.current) {
@@ -726,6 +730,10 @@ export function CreateCampaign() {
               : "Configure e gere sua entrega."}
           </p>
         </div>
+        <Button size="sm" variant="outline" onClick={() => void refetchCredits()} disabled={fetchingCredits} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
+          <RefreshCw className={`w-3.5 h-3.5 ${fetchingCredits ? "animate-spin" : ""}`} />
+          Atualizar
+        </Button>
       </motion.div>
 
       {/* Restored banner */}
