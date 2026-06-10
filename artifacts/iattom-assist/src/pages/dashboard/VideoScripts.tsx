@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Video, Loader2, Copy, AlertCircle, RefreshCw, Clock, Music, Zap, Film, Share2, Save, ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { Video, Loader2, Copy, AlertCircle, RefreshCw, Music, Zap, Film, Share2, Save, ChevronDown, ChevronUp, Plus } from "lucide-react";
 import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -233,15 +233,14 @@ export function VideoScripts() {
             )}
             <Card className="bg-[#111111] border-primary/20">
               <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-2">
                   <CardTitle className="text-base text-white flex items-center gap-2">
                     <Video className="w-4 h-4 text-primary" />{activeResult.title}
                   </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="border-primary/30 text-primary flex items-center gap-1 text-xs"><Clock className="w-3 h-3" />{activeResult.duration}</Badge>
-                    <button onClick={copyFull} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1"><Copy className="w-3 h-3" /> Copiar tudo</button>
-                    <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><Save className="w-3 h-3" /> Salvar</button>
-                    <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("video_script"); }} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1"><Plus className="w-3 h-3" /> Novo</button>
+                  <div className="flex items-center gap-3">
+                    <button onClick={copyFull} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1 whitespace-nowrap"><Copy className="w-3 h-3" /> Copiar Tudo</button>
+                    <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5 whitespace-nowrap"><Save className="w-3 h-3" /> Salvar</button>
+                    <button onClick={() => { reset(); setRestoredResult(null); setProduct(""); setFormat(""); setDuration(""); setStyle(""); clearModuleState("video_script"); }} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1 whitespace-nowrap"><Plus className="w-3 h-3" /> Novo</button>
                   </div>
                 </div>
               </CardHeader>
