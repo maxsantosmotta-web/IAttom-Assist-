@@ -236,6 +236,7 @@ export function CreativeGenerator() {
   const [prompt, setPrompt] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [restoredResult, setRestoredResult] = useState<CreativeIdeasResult | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveDialogStep, setSaveDialogStep] = useState<"choose" | "pick-project" | "confirm-replace">("choose");
   const [existingProjects, setExistingProjects] = useState<SavedItemRecord[]>([]);
@@ -804,8 +805,8 @@ export function CreativeGenerator() {
           <h2 className="text-2xl font-bold text-white mb-1">Gerador Criativo</h2>
           <p className="text-muted-foreground text-sm">Gere imagens e vídeos prontos para publicação.</p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => void refetchCredits()} disabled={fetchingCredits} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
-          <RefreshCw className={`w-3.5 h-3.5 ${fetchingCredits ? "animate-spin" : ""}`} />
+        <Button size="sm" variant="outline" onClick={() => { setIsRefreshing(true); void refetchCredits(); setTimeout(() => setIsRefreshing(false), 750); }} disabled={fetchingCredits || isRefreshing} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
+          <RefreshCw className={`w-3.5 h-3.5 ${(fetchingCredits || isRefreshing) ? "animate-spin" : ""}`} />
           Atualizar
         </Button>
       </motion.div>
@@ -1132,7 +1133,15 @@ export function CreativeGenerator() {
           </motion.div>
         )}
 
-        {(isDone || isRestoredMode) && activeResult && Array.isArray(activeResult.concepts) && (
+        {(isDone || isRestoredMode) && activeResult && isRefreshing && (
+          <motion.div key="img-refreshing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="space-y-3 animate-pulse">
+              <div className="h-32 rounded-lg bg-white/5 border border-white/5" />
+              <div className="h-24 rounded-lg bg-white/5 border border-white/5" />
+            </div>
+          </motion.div>
+        )}
+        {(isDone || isRestoredMode) && activeResult && Array.isArray(activeResult.concepts) && !isRefreshing && (
           <motion.div
             key="result"
             initial={{ opacity: 0, y: 12 }}
@@ -1272,7 +1281,15 @@ export function CreativeGenerator() {
             </motion.div>
           )}
 
-          {(isVideoDone || isVideoRestoredMode) && activeVideoResult && (
+          {(isVideoDone || isVideoRestoredMode) && activeVideoResult && isRefreshing && (
+            <motion.div key="vid-refreshing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <div className="space-y-3 animate-pulse">
+                <div className="h-32 rounded-lg bg-white/5 border border-white/5" />
+                <div className="h-24 rounded-lg bg-white/5 border border-white/5" />
+              </div>
+            </motion.div>
+          )}
+          {(isVideoDone || isVideoRestoredMode) && activeVideoResult && !isRefreshing && (
             <>
               {isVideoRestoredMode && (
                 <motion.div

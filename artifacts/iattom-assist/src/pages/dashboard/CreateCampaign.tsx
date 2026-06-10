@@ -537,6 +537,7 @@ export function CreateCampaign() {
   const [refineInputs, setRefineInputs] = useState<Record<string, string>>({});
   const [refiningBlock, setRefiningBlock] = useState<string | null>(null);
   const [isRestored, setIsRestored] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const isGenerating = status === "generating";
   const isDone = status === "done";
@@ -730,8 +731,8 @@ export function CreateCampaign() {
               : "Configure e gere sua entrega."}
           </p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => void refetchCredits()} disabled={fetchingCredits} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
-          <RefreshCw className={`w-3.5 h-3.5 ${fetchingCredits ? "animate-spin" : ""}`} />
+        <Button size="sm" variant="outline" onClick={() => { setIsRefreshing(true); void refetchCredits(); setTimeout(() => setIsRefreshing(false), 750); }} disabled={fetchingCredits || isRefreshing} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
+          <RefreshCw className={`w-3.5 h-3.5 ${(fetchingCredits || isRefreshing) ? "animate-spin" : ""}`} />
           Atualizar
         </Button>
       </motion.div>
@@ -924,8 +925,18 @@ export function CreateCampaign() {
           </motion.div>
         )}
 
+        {/* ── Result skeleton on refresh ── */}
+        {showResult && isRefreshing && (
+          <motion.div key="refreshing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="space-y-3 animate-pulse">
+              <div className="h-32 rounded-lg bg-white/5 border border-white/5" />
+              <div className="h-24 rounded-lg bg-white/5 border border-white/5" />
+            </div>
+          </motion.div>
+        )}
+
         {/* ── Result ── */}
-        {showResult && campaignData && (
+        {showResult && campaignData && !isRefreshing && (
           <motion.div key="result" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="space-y-4">
             <Card className="bg-[#111111] border-primary/20">
               <CardHeader className="pb-3">

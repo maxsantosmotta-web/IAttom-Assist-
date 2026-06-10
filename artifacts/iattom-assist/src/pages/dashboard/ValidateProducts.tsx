@@ -58,6 +58,7 @@ export function ValidateProducts() {
   const [targetMarket, setTargetMarket] = useState("");
   const { status, result, error, generate, reset } = useAiStream<ValidationResult>();
   const [restoredResult, setRestoredResult] = useState<ValidationResult | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const isRestoredMode = !!restoredResult && status === "idle";
   const activeResult = result ?? restoredResult;
 
@@ -146,8 +147,8 @@ export function ValidateProducts() {
           <h2 className="text-2xl font-bold text-white mb-1">Validar Produtos</h2>
           <p className="text-muted-foreground text-sm">Execute validação de mercado antes de comprometer recursos.</p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => void refetchCredits()} disabled={fetchingCredits} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
-          <RefreshCw className={`w-3.5 h-3.5 ${fetchingCredits ? "animate-spin" : ""}`} />
+        <Button size="sm" variant="outline" onClick={() => { setIsRefreshing(true); void refetchCredits(); setTimeout(() => setIsRefreshing(false), 750); }} disabled={fetchingCredits || isRefreshing} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
+          <RefreshCw className={`w-3.5 h-3.5 ${(fetchingCredits || isRefreshing) ? "animate-spin" : ""}`} />
           Atualizar
         </Button>
       </motion.div>
@@ -205,6 +206,12 @@ export function ValidateProducts() {
         </Card>
       </motion.div>
 
+      {isRefreshing ? (
+        <div className="space-y-3 animate-pulse">
+          <div className="h-32 rounded-lg bg-white/5 border border-white/5" />
+          <div className="h-24 rounded-lg bg-white/5 border border-white/5" />
+        </div>
+      ) : (
       <AnimatePresence mode="wait">
         {isGenerating && (
           <motion.div key="generating" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -391,6 +398,7 @@ export function ValidateProducts() {
           </motion.div>
         )}
       </AnimatePresence>
+      )}
     </div>
   );
 }

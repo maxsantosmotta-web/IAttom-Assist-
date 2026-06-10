@@ -57,6 +57,7 @@ export function CreateContent() {
   const isError = status === "error";
 
   const [restoredResult, setRestoredResult] = useState<ContentResult | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const isRestoredMode = !!restoredResult && status === "idle";
   const activeResult = result ?? restoredResult;
 
@@ -131,8 +132,8 @@ export function CreateContent() {
           <h2 className="text-2xl font-bold text-white mb-1">Criar Conteúdo</h2>
           <p className="text-muted-foreground text-sm">Gere um pacote completo de conteúdo — blog, redes sociais, e-mail, SMS — com um único prompt.</p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => void refetchCredits()} disabled={fetchingCredits} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
-          <RefreshCw className={`w-3.5 h-3.5 ${fetchingCredits ? "animate-spin" : ""}`} />
+        <Button size="sm" variant="outline" onClick={() => { setIsRefreshing(true); void refetchCredits(); setTimeout(() => setIsRefreshing(false), 750); }} disabled={fetchingCredits || isRefreshing} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">
+          <RefreshCw className={`w-3.5 h-3.5 ${(fetchingCredits || isRefreshing) ? "animate-spin" : ""}`} />
           Atualizar
         </Button>
       </motion.div>
@@ -181,6 +182,12 @@ export function CreateContent() {
         </Card>
       </motion.div>
 
+      {isRefreshing ? (
+        <div className="space-y-3 animate-pulse">
+          <div className="h-32 rounded-lg bg-white/5 border border-white/5" />
+          <div className="h-24 rounded-lg bg-white/5 border border-white/5" />
+        </div>
+      ) : (
       <AnimatePresence mode="wait">
         {isGenerating && (
           <motion.div key="generating" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -277,6 +284,7 @@ export function CreateContent() {
           </motion.div>
         )}
       </AnimatePresence>
+      )}
     </div>
   );
 }
