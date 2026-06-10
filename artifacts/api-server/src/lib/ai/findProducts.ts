@@ -7,6 +7,7 @@ interface FindProductsInput {
   niche?: string;
   priceRange?: string;
   targetMarket?: string;
+  platform?: string;
 }
 import { logAiUsage } from "./logger.js";
 
@@ -67,17 +68,18 @@ Retorne exatamente esta estrutura:
     }
   ],
   "marketInsight": string (2-3 frases de análise especializada de mercado em PT-BR),
-  "topPick": string (nome exato do melhor produto da lista)
+  "topPick": string (nome exato do produto retornado)
 }
 
-Retorne 5-6 produtos. Cada recomendação deve ser premium, específica e baseada em dados reais. Todos os textos, incluindo nomes, categorias, descrições e insights, devem estar em português brasileiro.`;
+Retorne APENAS 1 produto — a melhor oportunidade encontrada. A recomendação deve ser premium, específica e baseada em dados reais. Todos os textos devem estar em português brasileiro.`;
 
-  const userPrompt = `Pesquise produtos vencedores sobre: "${params.query}"
+  const userPrompt = `Pesquise o MELHOR produto vencedor sobre: "${params.query}"
 ${params.niche ? `Nicho: ${params.niche}` : ""}
+${params.platform ? `Plataforma de venda: ${params.platform}` : ""}
 ${params.priceRange ? `Faixa de preço: ${params.priceRange}` : ""}
 ${params.targetMarket ? `Mercado-alvo: ${params.targetMarket}` : ""}
 
-Retorne um JSON com 5-6 recomendações específicas e acionáveis, com dados reais de mercado. Responda integralmente em português brasileiro.`;
+Retorne um JSON com APENAS 1 produto — a oportunidade mais vencedora e acionável para o contexto dado, com dados reais de mercado. Responda integralmente em português brasileiro.`;
 
   let fullResponse = "";
 

@@ -37,9 +37,20 @@ const competitionColors: Record<string, string> = {
 
 const quickSearches = ["Em alta agora", "Alta margem", "Baixa concorrência", "Casa & Decoração", "Fitness", "Acessórios tech"];
 
+const PLATFORM_OPTIONS = [
+  { key: "Instagram", label: "Instagram" },
+  { key: "Facebook", label: "Facebook" },
+  { key: "TikTok", label: "TikTok" },
+  { key: "Mercado Livre", label: "Mercado Livre" },
+  { key: "Shopee", label: "Shopee" },
+  { key: "Hotmart", label: "Hotmart" },
+  { key: "Kiwify", label: "Kiwify" },
+];
+
 export function FindProducts() {
   const [query, setQuery] = useState("");
   const [niche, setNiche] = useState("");
+  const [platform, setPlatform] = useState("");
   const { status, result, error, generate, reset } = useAiStream<FindProductsResult>();
   const { toast } = useToast();
   const { saveItem } = useSavedItems();
@@ -60,19 +71,21 @@ export function FindProducts() {
       const raw = sessionStorage.getItem("iattom_restore_products_v1");
       if (raw) {
         sessionStorage.removeItem("iattom_restore_products_v1");
-        const saved = JSON.parse(raw) as { briefing?: { query?: string; niche?: string }; result?: FindProductsResult };
+        const saved = JSON.parse(raw) as { briefing?: { query?: string; niche?: string; platform?: string }; result?: FindProductsResult };
         if (saved.briefing?.query) setQuery(saved.briefing.query);
         if (saved.briefing?.niche) setNiche(saved.briefing.niche);
+        if (saved.briefing?.platform) setPlatform(saved.briefing.platform);
         if (saved.result) setRestoredResult(saved.result);
         return;
       }
     } catch {}
     // Preservação global: restaurar último trabalho via localStorage
     try {
-      const persisted = loadModuleState<{ form: { query: string; niche: string }; result: FindProductsResult }>("find_products");
+      const persisted = loadModuleState<{ form: { query: string; niche: string; platform: string }; result: FindProductsResult }>("find_products");
       if (persisted) {
         if (persisted.form.query) setQuery(persisted.form.query);
         if (persisted.form.niche) setNiche(persisted.form.niche);
+        if (persisted.form.platform) setPlatform(persisted.form.platform);
         if (persisted.result) setRestoredResult(persisted.result);
       }
     } catch {}
@@ -81,19 +94,19 @@ export function FindProducts() {
   // Auto-salvar resultado no localStorage quando geração concluir
   useEffect(() => {
     if (status === "done" && result) {
-      saveModuleState("find_products", { form: { query, niche }, result });
+      saveModuleState("find_products", { form: { query, niche, platform }, result });
     }
-  }, [status, result, query, niche]);
+  }, [status, result, query, niche, platform]);
 
   const runSearch = (charge: () => void) => {
-    generate("/api/ai/find-products", { query, niche: niche || undefined }).then((res) => {
+    generate("/api/ai/find-products", { query, niche: niche || undefined, platform: platform || undefined }).then((res) => {
       if (res !== null) charge();
     });
   };
 
   const handleRetry = () => {
     reset();
-    generate("/api/ai/find-products", { query, niche: niche || undefined });
+    generate("/api/ai/find-products", { query, niche: niche || undefined, platform: platform || undefined });
   };
 
   const buildFindProductsText = () => {
@@ -115,14 +128,14 @@ export function FindProducts() {
     const content = buildFindProductsText();
     const title = `Busca: ${query.trim() || "produtos"}`;
     const id = crypto.randomUUID();
-    const data = JSON.stringify({ briefing: { query, niche }, result: activeResult });
+    const data = JSON.stringify({ briefing: { query, niche, platform }, result: activeResult });
     try {
       const raw = localStorage.getItem("iattom_saved_items_v1");
       const existing = raw ? (JSON.parse(raw) as object[]) : [];
       existing.unshift({ id, title, type: "product_discovery", content, data, createdAt: new Date().toISOString() });
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
     } catch {}
-    void saveItem({ id, title, type: "product_discovery", content, data }).catch(() => {});
+    void saveItem({ id, title, type: "product_discovery", content, data, ...(platform ? { platform } : {}) }).catch(() => {});
     toast({ description: "Salvo com sucesso." });
   };
 
@@ -176,6 +189,24 @@ export function FindProducts() {
                 </button>
               ))}
             </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-2">Plataforma (opcional)</p>
+              <div className="flex flex-wrap gap-2">
+                {PLATFORM_OPTIONS.map((p) => (
+                  <button
+                    key={p.key}
+                    onClick={() => setPlatform(platform === p.key ? "" : p.key)}
+                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                      platform === p.key
+                        ? "bg-primary/20 border-primary/40 text-primary"
+                        : "bg-white/5 border-white/10 text-muted-foreground hover:border-primary/30 hover:text-primary"
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </CardContent>
         </Card>
       </motion.div>
@@ -191,11 +222,7 @@ export function FindProducts() {
               </div>
               <span className="text-sm">IAttom está analisando mercados para <span className="text-white">"{query}"</span>...</span>
             </div>
-            <div className="space-y-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-24 rounded-lg bg-white/5 border border-white/5 animate-pulse" style={{ animationDelay: `${i * 0.1}s` }} />
-              ))}
-            </div>
+            <div className="h-32 rounded-lg bg-white/5 border border-white/5 animate-pulse" />
           </motion.div>
         )}
 
@@ -233,25 +260,19 @@ export function FindProducts() {
                 <p className="text-sm text-white/80 leading-relaxed">{activeResult.marketInsight}</p>
               </div>
             )}
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
-                Resultados para "{query}"
-              </h3>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground">{activeResult.products?.length ?? 0} encontrados</span>
-                <button
-                  onClick={() => { navigator.clipboard.writeText(buildFindProductsText()); toast({ description: "Resultado copiado" }); }}
-                  className="text-xs text-muted-foreground hover:text-white transition-colors"
-                >
-                  Copiar tudo
-                </button>
-                <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
-                  <Save className="w-3 h-3" /> Salvar
-                </button>
-                <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("find_products"); }} className="text-xs text-muted-foreground hover:text-white transition-colors">
-                  Novo
-                </button>
-              </div>
+            <div className="flex justify-end gap-3 mb-4">
+              <button
+                onClick={() => { navigator.clipboard.writeText(buildFindProductsText()); toast({ description: "Resultado copiado" }); }}
+                className="text-xs text-muted-foreground hover:text-white transition-colors"
+              >
+                Copiar tudo
+              </button>
+              <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
+                <Save className="w-3 h-3" /> Salvar
+              </button>
+              <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("find_products"); }} className="text-xs text-muted-foreground hover:text-white transition-colors">
+                Novo
+              </button>
             </div>
             <div className="space-y-3">
               {activeResult.products?.map((product: FoundProduct, i: number) => (

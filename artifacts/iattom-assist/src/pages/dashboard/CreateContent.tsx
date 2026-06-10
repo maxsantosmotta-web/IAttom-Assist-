@@ -119,12 +119,7 @@ export function CreateContent() {
       existing.unshift({ id, title, type: "content", content, data, createdAt: new Date().toISOString() });
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
     } catch {}
-    let platform: string | undefined;
-    try {
-      const ctx = sessionStorage.getItem("content_platform_context");
-      if (ctx) { platform = (JSON.parse(ctx) as { platform?: string }).platform; }
-    } catch {}
-    void saveItem({ id, title, type: "content", content, data, platform }).catch(() => {});
+    void saveItem({ id, title, type: "content", content, data }).catch(() => {});
     toast({ description: "Projeto salvo" });
   };
 
