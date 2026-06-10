@@ -56,7 +56,7 @@ export function Facebook() {
   }, [loadAnalytics]);
 
   const handleCriarAnuncio = () => {
-    window.open("https://adsmanager.facebook.com/", "_blank", "noopener,noreferrer");
+    window.open("https://business.facebook.com/adsmanager/manage/campaigns", "_blank", "noopener,noreferrer");
   };
 
   const handleCriarCampanha = () => {

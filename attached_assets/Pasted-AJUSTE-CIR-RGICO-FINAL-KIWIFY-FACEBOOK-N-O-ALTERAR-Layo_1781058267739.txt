@@ -1,0 +1,108 @@
+AJUSTE CIRÚRGICO FINAL — KIWIFY + FACEBOOK
+
+NÃO ALTERAR:
+
+- Layout global das plataformas
+- Cards já padronizados
+- Dados de analytics
+- Backend
+- OAuth
+- APIs
+- Rotas internas
+- Créditos
+- Yato Brain
+- Projetos Salvos
+- Botões Criar campanha / Criar conteúdo / Projetos salvos
+- Outras plataformas
+
+ESCOPO:
+Alterar somente:
+
+1. Texto do CTA principal da Kiwify.
+2. Destino/comportamento do CTA principal do Facebook.
+
+==================================================
+
+1. KIWIFY — PADRONIZAR TEXTO DO CTA
+   ==================================================
+
+Arquivo:
+Kiwify.tsx
+
+Alterar somente o texto visível do botão principal do topo:
+
+De:
+Criar produto
+
+Para:
+Criar anúncio
+
+IMPORTANTE:
+
+- Não mudar URL.
+- Não mudar handler.
+- Não mudar ícone.
+- Não mudar card Publicação Assistida.
+- Não mudar texto interno da plataforma.
+- Não mudar comportamento.
+
+Resultado esperado:
+Kiwify deve ficar visualmente padronizada com as demais plataformas, usando "Criar anúncio" como CTA principal.
+
+==================================================
+2. FACEBOOK — CORRIGIR CTA CRIAR ANÚNCIO
+
+Arquivo:
+Facebook.tsx
+
+Problema atual:
+Ao clicar em Criar anúncio, o Android/Chrome intercepta o destino e abre a Play Store do app "Anúncios do Facebook", em vez de levar para a tela web da Meta/Ads Manager.
+
+Objetivo:
+Fazer o botão Criar anúncio abrir uma experiência web da Meta, nem que seja tela de login, mas sem cair na Play Store.
+
+Antes de alterar:
+Mapear no Facebook.tsx qual URL está atualmente no handleCriarAnuncio.
+
+Testar/ajustar o destino para reduzir interceptação Android.
+
+Prioridade de destino:
+
+1. Usar URL web do Meta Ads Manager que force ambiente desktop/web, evitando deep link de app.
+2. Preferir URL que leve para Ads Manager ou criação de campanha.
+3. Se criação direta continuar sendo interceptada, usar a home web do Ads Manager/Business em modo navegador.
+
+Sugestões para testar no código:
+
+- https://adsmanager.facebook.com/adsmanager/manage/campaigns
+- https://adsmanager.facebook.com/adsmanager/creation
+- https://business.facebook.com/adsmanager/manage/campaigns
+- https://business.facebook.com/adsmanager/creation
+
+Aplicar a alternativa mais segura contra interceptação Android.
+
+IMPORTANTE:
+
+- Não usar facebook.com/adsmanager.
+- Não usar m.facebook.com.
+- Não abrir Play Store.
+- Não mexer em integração Meta.
+- Não mexer em OAuth.
+- Não criar modal.
+- Não criar toast.
+- Não alterar Instagram.
+
+Resultado esperado:
+Ao clicar em Criar anúncio no Facebook, abrir uma página web da Meta/Ads Manager ou tela de login web, sem redirecionar para Google Play.
+
+==================================================
+VALIDAÇÃO FINAL
+
+Após executar:
+
+- Rodar typecheck.
+- Confirmar arquivos alterados.
+- Confirmar que somente Kiwify.tsx e Facebook.tsx foram tocados.
+- Confirmar que Kiwify manteve a mesma URL e apenas mudou "Criar produto" para "Criar anúncio".
+- Confirmar qual URL final foi aplicada no Facebook.
+- Confirmar que não houve alteração nas demais plataformas.
