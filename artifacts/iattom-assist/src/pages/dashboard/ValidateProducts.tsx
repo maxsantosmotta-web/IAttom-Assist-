@@ -268,7 +268,7 @@ export function ValidateProducts() {
               <div className="flex items-center gap-3">
                 <button onClick={() => { navigator.clipboard.writeText(buildValidationText()); toast({ description: "Resultado copiado" }); }} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1"><Copy className="w-3 h-3" /> Copiar tudo</button>
                 <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><Save className="w-3 h-3" /> Salvar</button>
-                <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("validate_product"); }} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1"><Plus className="w-3 h-3" /> Novo</button>
+                <button onClick={() => { reset(); setRestoredResult(null); setProductName(""); setDescription(""); setTargetMarket(""); clearModuleState("validate_product"); }} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1"><Plus className="w-3 h-3" /> Novo</button>
               </div>
             </div>
             <Card className="bg-[#111111] border-primary/20">
