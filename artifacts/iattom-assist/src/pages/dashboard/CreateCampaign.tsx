@@ -4,7 +4,7 @@ import {
   Megaphone, Loader2, Copy, AlertCircle, RefreshCw,
   ChevronDown, ChevronUp, Zap, Save, ExternalLink,
   FileText, ShoppingCart, ShoppingBag, Flame, Sparkles,
-  Users, Camera, Play, CheckCircle2, ChevronLeft, Plus,
+  Users, Camera, Play, CheckCircle2, Plus,
 } from "lucide-react";
 import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
 import { loadModuleState, saveModuleState, clearModuleState } from "@/hooks/useModulePersistence";
@@ -1015,20 +1015,6 @@ export function CreateCampaign() {
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={handleBack} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
-                      <ChevronLeft className="w-3 h-3" /><span className="hidden sm:inline">Voltar</span>
-                    </button>
-                    <button onClick={copyAllCampaign} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
-                      <Copy className="w-3 h-3" /><span className="hidden sm:inline">Copiar Tudo</span>
-                    </button>
-                    <button onClick={handleSave} disabled={isSaving} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1 disabled:opacity-50">
-                      <Save className="w-3 h-3" /><span className="hidden sm:inline">{isSaving ? "Salvando..." : "Salvar"}</span>
-                    </button>
-                    <button onClick={handleReset} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
-                      <Plus className="w-3 h-3" /> Novo
-                    </button>
-                  </div>
                 </div>
               </CardHeader>
 
@@ -1036,10 +1022,13 @@ export function CreateCampaign() {
                 {/* ── Campos por plataforma ── */}
                 {hasPlatformFields && campaignData.platformFields && (
                   <>
-                    <div className="flex items-center gap-2 pb-1 border-b border-white/[0.05]">
-                      <p className="text-[11px] text-muted-foreground/60 uppercase tracking-widest font-medium">
-                        Entrega da plataforma — copie e cole na ordem
-                      </p>
+                    <div className="w-full flex items-center justify-between pb-1 border-b border-white/[0.05]">
+                      <p className="text-[11px] text-muted-foreground/60 uppercase tracking-widest font-medium">Entrega.</p>
+                      <div className="flex items-center gap-3">
+                        <button onClick={copyAllCampaign} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1 whitespace-nowrap"><Copy className="w-3 h-3" /> Copiar Tudo</button>
+                        <button onClick={handleSave} disabled={isSaving} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1 disabled:opacity-50 whitespace-nowrap"><Save className="w-3 h-3" />{isSaving ? "Salvando..." : "Salvar"}</button>
+                        <button onClick={handleReset} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1 whitespace-nowrap"><Plus className="w-3 h-3" /> Novo</button>
+                      </div>
                     </div>
 
                     <div className="space-y-3">
