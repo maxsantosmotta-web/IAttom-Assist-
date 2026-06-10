@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Video, Loader2, Copy, AlertCircle, RefreshCw, Clock, Music, Zap, Film, Share2, Save, ChevronDown, ChevronUp } from "lucide-react";
+import { Video, Loader2, Copy, AlertCircle, RefreshCw, Clock, Music, Zap, Film, Share2, Save, ChevronDown, ChevronUp, Plus } from "lucide-react";
 import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -105,7 +105,7 @@ export function VideoScripts() {
     const content = lines.join("\n");
     const title = product.trim() || activeResult.title || "Script gerado";
     const id = crypto.randomUUID();
-    const data = JSON.stringify({ briefing: { product, format, duration, style }, result });
+    const data = JSON.stringify({ briefing: { product, format, duration, style }, result: activeResult });
     try {
       const raw = localStorage.getItem("iattom_saved_items_v1");
       const existing = raw ? (JSON.parse(raw) as object[]) : [];
@@ -120,6 +120,7 @@ export function VideoScripts() {
     <div className="space-y-8">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="flex items-start justify-between gap-4">
         <div>
+          <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Criação de Scripts com IA</p>
           <h2 className="text-2xl font-bold text-white mb-1">Scripts de Vídeo</h2>
           <p className="text-muted-foreground text-sm">Roteiros prontos com hooks, cenas e direção.</p>
         </div>
@@ -238,9 +239,9 @@ export function VideoScripts() {
                   </CardTitle>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="border-primary/30 text-primary flex items-center gap-1 text-xs"><Clock className="w-3 h-3" />{activeResult.duration}</Badge>
+                    <button onClick={copyFull} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1"><Copy className="w-3 h-3" /> Copiar tudo</button>
                     <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><Save className="w-3 h-3" /> Salvar</button>
-                    <button onClick={copyFull} className="text-xs text-muted-foreground hover:text-white transition-colors">Copiar tudo</button>
-                    <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("video_script"); }} className="text-xs text-muted-foreground hover:text-white transition-colors">Novo</button>
+                    <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("video_script"); }} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1"><Plus className="w-3 h-3" /> Novo</button>
                   </div>
                 </div>
               </CardHeader>

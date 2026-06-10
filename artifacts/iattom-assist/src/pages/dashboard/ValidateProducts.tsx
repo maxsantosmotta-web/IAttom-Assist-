@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle, AlertTriangle, TrendingUp, Users, DollarSign, Loader2, AlertCircle, RefreshCw, Lightbulb, Target, Zap, Save, Copy } from "lucide-react";
+import { CheckCircle, AlertTriangle, TrendingUp, Users, DollarSign, Loader2, AlertCircle, RefreshCw, Lightbulb, Target, Zap, Save, Copy, Plus } from "lucide-react";
 import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { useSavedItems } from "@/hooks/useSavedItems";
@@ -68,8 +68,21 @@ export function ValidateProducts() {
 
   const { toast } = useToast();
 
-  // Preservação global: restaurar último trabalho via localStorage
+  // Restore from Projetos Salvos (sessionStorage) — with localStorage fallback
   useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("iattom_restore_validation_v1");
+      if (raw) {
+        sessionStorage.removeItem("iattom_restore_validation_v1");
+        const saved = JSON.parse(raw) as { briefing?: { productName?: string; description?: string; targetMarket?: string }; result?: ValidationResult };
+        if (saved.briefing?.productName) setProductName(saved.briefing.productName);
+        if (saved.briefing?.description) setDescription(saved.briefing.description);
+        if (saved.briefing?.targetMarket) setTargetMarket(saved.briefing.targetMarket);
+        if (saved.result) setRestoredResult(saved.result);
+        return;
+      }
+    } catch {}
+    // Preservação global: restaurar último trabalho via localStorage
     try {
       const persisted = loadModuleState<{ form: { productName: string; description: string; targetMarket: string }; result: ValidationResult }>("validate_product");
       if (persisted) {
@@ -250,6 +263,14 @@ export function ValidateProducts() {
 
         {(isDone || isRestoredMode) && activeResult && (
           <motion.div key="result" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white">Análise de Produto</h3>
+              <div className="flex items-center gap-3">
+                <button onClick={() => { navigator.clipboard.writeText(buildValidationText()); toast({ description: "Resultado copiado" }); }} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1"><Copy className="w-3 h-3" /> Copiar tudo</button>
+                <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><Save className="w-3 h-3" /> Salvar</button>
+                <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("validate_product"); }} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1"><Plus className="w-3 h-3" /> Novo</button>
+              </div>
+            </div>
             <Card className="bg-[#111111] border-primary/20">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between gap-6 mb-6">
@@ -381,20 +402,6 @@ export function ValidateProducts() {
               </CardContent>
             </Card>
 
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => { navigator.clipboard.writeText(buildValidationText()); toast({ description: "Resultado copiado" }); }}
-                className="text-xs text-muted-foreground hover:text-white transition-colors"
-              >
-                Copiar tudo
-              </button>
-              <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5">
-                <Save className="w-3 h-3" /> Salvar
-              </button>
-              <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("validate_product"); }} className="text-xs text-muted-foreground hover:text-white transition-colors">
-                Novo
-              </button>
-            </div>
           </motion.div>
         )}
       </AnimatePresence>

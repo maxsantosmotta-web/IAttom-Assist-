@@ -4,7 +4,7 @@ import {
   Megaphone, Loader2, Copy, AlertCircle, RefreshCw,
   ChevronDown, ChevronUp, Zap, Save, ExternalLink,
   FileText, ShoppingCart, ShoppingBag, Flame, Sparkles,
-  Users, Camera, Play, CheckCircle2, ChevronLeft,
+  Users, Camera, Play, CheckCircle2, ChevronLeft, Plus,
 } from "lucide-react";
 import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
 import { loadModuleState, saveModuleState, clearModuleState } from "@/hooks/useModulePersistence";
@@ -1025,8 +1025,8 @@ export function CreateCampaign() {
                     <button onClick={handleSave} disabled={isSaving} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1 disabled:opacity-50">
                       <Save className="w-3 h-3" /><span className="hidden sm:inline">{isSaving ? "Salvando..." : "Salvar"}</span>
                     </button>
-                    <button onClick={handleReset} className="text-xs text-muted-foreground hover:text-white transition-colors">
-                      Novo
+                    <button onClick={handleReset} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
+                      <Plus className="w-3 h-3" /> Novo
                     </button>
                   </div>
                 </div>

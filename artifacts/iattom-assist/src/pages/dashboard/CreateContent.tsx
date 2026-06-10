@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Loader2, Copy, RefreshCw, AlertCircle, Hash, Mail, MessageSquare, Twitter, Save } from "lucide-react";
+import { FileText, Loader2, Copy, RefreshCw, AlertCircle, Hash, Mail, MessageSquare, Twitter, Save, Plus } from "lucide-react";
 import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -121,7 +121,7 @@ export function CreateContent() {
       localStorage.setItem("iattom_saved_items_v1", JSON.stringify(existing));
     } catch {}
     void saveItem({ id, title, type: "content", content, data }).catch(() => {});
-    toast({ description: "Projeto salvo" });
+    toast({ description: "Salvo com sucesso." });
   };
 
   return (
@@ -236,12 +236,12 @@ export function CreateContent() {
                     navigator.clipboard.writeText(lines.join("\n"));
                     toast({ description: "Conteúdo copiado" });
                   }}
-                  className="text-xs text-muted-foreground hover:text-white transition-colors"
+                  className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1"
                 >
-                  Copiar tudo
+                  <Copy className="w-3 h-3" /> Copiar tudo
                 </button>
                 <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"><Save className="w-3 h-3" /> Salvar</button>
-                <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("content"); }} className="text-xs text-muted-foreground hover:text-white transition-colors">Novo</button>
+                <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("content"); }} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1"><Plus className="w-3 h-3" /> Novo</button>
               </div>
             </div>
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, TrendingUp, Star, DollarSign, BarChart2, Loader2, AlertCircle, RefreshCw, Zap, Users, Save, Copy } from "lucide-react";
+import { Search, TrendingUp, Star, DollarSign, BarChart2, Loader2, AlertCircle, RefreshCw, Zap, Users, Save, Copy, Plus } from "lucide-react";
 import { useGetCreditsBalance, getGetCreditsBalanceQueryKey } from "@workspace/api-client-react";
 import { loadModuleState, saveModuleState, clearModuleState } from "@/hooks/useModulePersistence";
 import { Input } from "@/components/ui/input";
@@ -270,15 +270,15 @@ export function FindProducts() {
             <div className="flex justify-end gap-3 mb-4">
               <button
                 onClick={() => { navigator.clipboard.writeText(buildFindProductsText()); toast({ description: "Resultado copiado" }); }}
-                className="text-xs text-muted-foreground hover:text-white transition-colors"
+                className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1"
               >
-                Copiar tudo
+                <Copy className="w-3 h-3" /> Copiar tudo
               </button>
               <button onClick={handleSave} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
                 <Save className="w-3 h-3" /> Salvar
               </button>
-              <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("find_products"); }} className="text-xs text-muted-foreground hover:text-white transition-colors">
-                Novo
+              <button onClick={() => { reset(); setRestoredResult(null); clearModuleState("find_products"); }} className="text-xs text-muted-foreground hover:text-white transition-colors flex items-center gap-1">
+                <Plus className="w-3 h-3" /> Novo
               </button>
             </div>
             <div className="space-y-3">
