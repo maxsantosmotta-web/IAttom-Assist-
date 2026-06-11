@@ -1398,6 +1398,11 @@ interface HelpHistoryMsg {
 // Fetch a persisted help image from GCS and return it as a base64 data URL.
 // Used to reinsert the last history image into the OpenAI vision context.
 async function fetchHistoryImageAsDataUrl(imageUrl: string): Promise<string | null> {
+  // Format 1: base64 data URL — already usable by OpenAI vision, return as-is
+  if (imageUrl.startsWith("data:image/") && imageUrl.includes("base64,")) {
+    return imageUrl;
+  }
+  // Format 2: GCS serving path — fetch from object storage and convert to data URL
   const match = imageUrl.match(/\/help\/images\/([0-9a-f-]{36})$/);
   if (!match) return null;
   const imageId = match[1];
