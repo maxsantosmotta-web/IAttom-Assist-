@@ -50,6 +50,7 @@ export interface CampaignResult {
   platform?: string;
   platformFields?: CampaignPlatformField[];
   creativeBriefing?: CampaignCreativeBriefing;
+  _normalizedProduct?: string;
 }
 
 function detectGoalPlatform(goal?: string): string {
@@ -946,6 +947,9 @@ Responda integralmente em português brasileiro.`;
       if (isOrganic && raw.platformFields) {
         raw.platformFields = hardLockOrganicFields(raw.platformFields);
       }
+
+      // Propagar produto normalizado → frontend usa para título e persistência
+      raw._normalizedProduct = productWords;
 
       // Normalizar campo de hashtags: modelo retorna palavras sem # → converter para #hashtags
       if (raw.platformFields) {

@@ -70,6 +70,7 @@ export interface CampaignResult {
   platform?: string;
   platformFields?: CampaignPlatformField[];
   creativeBriefing?: CampaignCreativeBriefing;
+  _normalizedProduct?: string;
 }
 
 export interface ContentResult {

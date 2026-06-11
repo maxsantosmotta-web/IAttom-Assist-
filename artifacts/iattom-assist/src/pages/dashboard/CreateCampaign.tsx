@@ -732,14 +732,15 @@ export function CreateCampaign() {
 
   const handleSave = async () => {
     if (!campaignData || isSaving) return;
-    const title = product.trim()
-      ? `${product.trim()}${goal ? ` — ${currentPlatform?.name ?? goal}` : ""}`
+    const normalizedProd = (campaignData._normalizedProduct ?? product).trim();
+    const title = normalizedProd
+      ? `${normalizedProd}${goal ? ` — ${currentPlatform?.name ?? goal}` : ""}`
       : (campaignData.platformFields?.[0]?.value?.slice(0, 60) ?? campaignData.headline ?? "Campanha");
     const platform = campaignData.platform;
     const lines: string[] = [];
     if (campaignData.platformFields && campaignData.platformFields.length > 0) {
       lines.push(`ENTREGA — ${currentPlatform?.name ?? goal}`);
-      if (product.trim()) lines.push(`Produto: ${product.trim()}`);
+      if (normalizedProd) lines.push(`Produto: ${normalizedProd}`);
       lines.push("");
       campaignData.platformFields.forEach((f) => { lines.push(`${f.label.toUpperCase()}:`); lines.push(f.value); lines.push(""); });
     } else {
