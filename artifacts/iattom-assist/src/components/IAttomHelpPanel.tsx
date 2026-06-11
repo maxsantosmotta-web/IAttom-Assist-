@@ -9,8 +9,8 @@ interface Message {
   role: "assistant" | "user";
   content: string;
   streaming?: boolean;
-  /** Data URL for images attached by the user — display only, not persisted */
-  imageUrl?: string;
+  /** Data URLs for images attached by the user — display only, not persisted */
+  imageUrls?: string[];
 }
 
 interface AttachedImage {
@@ -54,7 +54,7 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
   const [syncDoneLabel, setSyncDoneLabel] = useState("Atualizado agora");
   const [confirmClear,  setConfirmClear]  = useState(false);
 
-  const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null);
+  const [attachedImages, setAttachedImages] = useState<AttachedImage[]>([]);
 
   const messagesEndRef     = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -204,24 +204,39 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
     setConfirmClear(false);
   };
 
-  // ── File selection handler ────────────────────────────────────────────────
+  // ── File selection handler (up to 10 images) ─────────────────────────────
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!e.target) return;
-    // Reset input so the same file can be re-selected
+    const files = Array.from(e.target.files ?? []);
+    // Reset the input so the same files can be re-selected later
     (e.target as HTMLInputElement).value = "";
-    if (!file) return;
-    if (!file.type.startsWith("image/")) return;
-    if (file.size > 5_000_000) {
-      // silently ignore files > 5MB
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      if (dataUrl) setAttachedImage({ dataUrl, name: file.name });
-    };
-    reader.readAsDataURL(file);
+    if (files.length === 0) return;
+
+    const MAX_IMAGES = 10;
+    const current = attachedImages.length;
+    const slots = MAX_IMAGES - current;
+    if (slots <= 0) return; // already at limit
+
+    const eligible = files
+      .filter((f) => f.type.startsWith("image/") && f.size <= 5_000_000)
+      .slice(0, slots);
+
+    if (eligible.length === 0) return;
+
+    const readers = eligible.map(
+      (file) =>
+        new Promise<AttachedImage>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const dataUrl = ev.target?.result as string;
+            if (dataUrl) resolve({ dataUrl, name: file.name });
+          };
+          reader.readAsDataURL(file);
+        }),
+    );
+
+    void Promise.all(readers).then((newImages) => {
+      setAttachedImages((prev) => [...prev, ...newImages].slice(0, MAX_IMAGES));
+    });
   };
 
   // ── Send message ─────────────────────────────────────────────────────────────
@@ -229,12 +244,12 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
     const text = input.trim();
     if (!text || loading) return;
 
-    const snapshot = attachedImage;
+    const snapshots = [...attachedImages];
     const userMsg: Message = {
       id: crypto.randomUUID(),
       role: "user",
       content: text,
-      ...(snapshot ? { imageUrl: snapshot.dataUrl } : {}),
+      ...(snapshots.length > 0 ? { imageUrls: snapshots.map((i) => i.dataUrl) } : {}),
     };
 
     const history = messages
@@ -244,7 +259,7 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
 
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
-    setAttachedImage(null);
+    setAttachedImages([]);
     if (inputRef.current) inputRef.current.style.height = "auto";
     setLoading(true);
     setTimeout(() => scrollToBottom("smooth"), 30);
@@ -259,7 +274,7 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
 
     try {
       const body: Record<string, unknown> = { message: text, history };
-      if (snapshot) body.imageBase64 = snapshot.dataUrl;
+      if (snapshots.length > 0) body.images = snapshots.map((i) => i.dataUrl);
 
       const res = await fetch(`${BASE_URL}/api/help/chat`, {
         method: "POST",
@@ -514,12 +529,17 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
                           : "bg-white/[0.04] text-zinc-300 rounded-tl-sm border border-white/[0.06]"
                       }`}
                     >
-                      {msg.imageUrl && (
-                        <img
-                          src={msg.imageUrl}
-                          alt="Imagem anexada"
-                          className="max-w-full max-h-48 rounded-lg mb-2 object-contain border border-white/10"
-                        />
+                      {msg.imageUrls && msg.imageUrls.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {msg.imageUrls.map((url, idx) => (
+                            <img
+                              key={idx}
+                              src={url}
+                              alt={`Imagem ${idx + 1}`}
+                              className="max-h-40 max-w-[48%] rounded-lg object-contain border border-white/10"
+                            />
+                          ))}
+                        </div>
                       )}
                       {msg.content}
                       {msg.streaming && msg.content === "" && (
@@ -542,32 +562,57 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
 
             {/* Input */}
             <div className="px-4 pb-5 pt-3 border-t border-white/[0.07] shrink-0">
-              {/* Image preview strip — shown above the textarea when an image is attached */}
-              {attachedImage && (
-                <div className="flex items-center gap-2 mb-1.5 px-1">
-                  <div className="relative shrink-0">
-                    <img
-                      src={attachedImage.dataUrl}
-                      alt="Pré-visualização"
-                      className="h-14 w-14 rounded-lg object-cover border border-white/10"
-                    />
+              {/* Image preview strip — shown above the textarea when images are attached */}
+              {attachedImages.length > 0 && (
+                <div className="mb-1.5 px-1">
+                  {/* Count + clear all */}
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] text-zinc-500">
+                      {attachedImages.length === 1
+                        ? "1 imagem anexada"
+                        : `${attachedImages.length} imagens anexadas`}
+                      {attachedImages.length >= 10 && (
+                        <span className="ml-1 text-primary/70">(limite atingido)</span>
+                      )}
+                    </span>
                     <button
-                      onClick={() => setAttachedImage(null)}
-                      className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-zinc-700 border border-white/10 flex items-center justify-center hover:bg-zinc-600 transition-colors"
-                      aria-label="Remover imagem"
+                      onClick={() => setAttachedImages([])}
+                      className="text-[11px] text-zinc-600 hover:text-zinc-400 transition-colors"
                     >
-                      <X className="w-2.5 h-2.5 text-zinc-300" />
+                      Remover todas
                     </button>
                   </div>
-                  <span className="text-[11px] text-zinc-500 truncate max-w-[140px]">{attachedImage.name}</span>
+                  {/* Thumbnails row */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {attachedImages.map((img, idx) => (
+                      <div key={idx} className="relative shrink-0">
+                        <img
+                          src={img.dataUrl}
+                          alt={`Imagem ${idx + 1}`}
+                          className="h-14 w-14 rounded-lg object-cover border border-white/10"
+                          title={img.name}
+                        />
+                        <button
+                          onClick={() =>
+                            setAttachedImages((prev) => prev.filter((_, i) => i !== idx))
+                          }
+                          className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-zinc-700 border border-white/10 flex items-center justify-center hover:bg-zinc-600 transition-colors"
+                          aria-label={`Remover imagem ${idx + 1}`}
+                        >
+                          <X className="w-2.5 h-2.5 text-zinc-300" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {/* Hidden file input */}
+              {/* Hidden file input — multiple selection allowed */}
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 className="hidden"
                 onChange={handleFileSelect}
               />
@@ -588,8 +633,8 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={loading || !historyLoaded}
-                  className={`w-7 h-7 flex items-center justify-center rounded-lg shrink-0 mb-0.5 transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
-                    attachedImage
+                  className={`relative w-7 h-7 flex items-center justify-center rounded-lg shrink-0 mb-0.5 transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
+                    attachedImages.length > 0
                       ? "bg-primary/20 text-primary border border-primary/30"
                       : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06]"
                   }`}

@@ -293,6 +293,49 @@ COMO REDIRECIONAR (comportamento correto):
 Orientações estratégicas, análises, diagnósticos, comparações e recomendações são papel do assistente — não confunda com entregar o produto final pronto.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXCEÇÃO CRIATIVA — PROMPT PARA CRIAR IMAGEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+O assistente pode criar um prompt descritivo detalhado para uso no módulo Criar Imagem quando o usuário solicitar. Essa é a única entrega criativa diretamente autorizada neste chat — tudo o mais pertence aos módulos.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CRÉDITOS E PLANOS — PROIBIDO ABSOLUTO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NUNCA mencione créditos neste chat. Isso inclui:
+— Quantidade, saldo ou consumo de créditos.
+— Custo em créditos de qualquer ação ou módulo.
+— Formas de economizar ou aumentar créditos.
+— Comparações de planos em termos de créditos.
+— Sugestões de como contornar módulos pagos.
+Se o usuário perguntar sobre créditos ou planos: redirecione com: "Para informações sobre planos e créditos, acesse a seção Assinatura no menu lateral."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REDIRECIONAMENTO ACOLHEDOR (OBRIGATÓRIO)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Nunca bloqueie com frieza. Quando não puder executar algo, oriente com calor e utilidade.
+
+ERRADO: "Não posso fazer isso."
+CERTO: "Entendi o que você precisa. Essa ação pertence ao módulo Criar Campanha. Posso te mostrar o que preencher em cada campo para obter o melhor resultado."
+
+O usuário deve sair de cada interação sentindo que foi bem atendido — mesmo quando a resposta for um redirecionamento. Sempre termine com um próximo passo claro e prático.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CORREÇÃO SEMÂNTICA (OBRIGATÓRIO)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Antes de responder, avalie se alguma palavra da mensagem é provavelmente um erro de digitação.
+
+Alta confiança — corrigir silenciosamente:
+Use a forma correta na resposta sem comentar o erro. Exemplo: "markting" → use "marketing" naturalmente na resposta, sem apontar o erro.
+
+Dúvida razoável — confirmar primeiro:
+"Entendi. Para confirmar: quando você escreveu '[palavra]', quis dizer '[possível correção]'?"
+Aguarde confirmação antes de gerar a resposta completa.
+
+Proibido:
+— Propagar erro evidente como se fosse uma palavra válida.
+— Gerar resposta longa usando a palavra incorreta sem validação.
+— Perguntar sobre correção quando a confiança for alta.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 REGRAS ABSOLUTAS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 1. Use o contexto fornecido como fonte principal.
@@ -1170,31 +1213,62 @@ ${recentHistory}`;
 
 // ── Chat ─────────────────────────────────────────────────────────────────────
 
-// ── Vision instruction — injected when user attaches an image ─────────────────
-const VISION_INSTRUCTION = `
+// ── Vision instruction — injected when user attaches images ──────────────────
+function buildVisionInstruction(imageCount: number): string {
+  const plural = imageCount > 1;
+  const countLabel = plural ? `${imageCount} imagens` : "uma imagem";
+
+  const multiProtocol = plural
+    ? `
+ANÁLISE DE JORNADA (${imageCount} IMAGENS):
+Trate o conjunto como uma jornada sequencial. Protocolo obrigatório:
+1. Comece sua resposta com: "Recebi ${imageCount} imagens."
+2. Identifique a função de cada imagem na ordem recebida: tela inicial, configuração, erro, resultado, etc.
+3. Reconstrua o fluxo — o que aconteceu em cada etapa.
+4. Aponte onde o problema começa — não apenas onde o erro aparece.
+5. Explique a relação entre as imagens: como uma leva à seguinte.
+6. Se a sequência não estiver clara: informe — "Analisei as imagens na ordem enviada, mas alguns prints podem estar fora de sequência."
+
+Prioridade de organização:
+— Ordem enviada pelo usuário (sempre a base)
+— Numeração visível na imagem
+— Horário visível na captura
+— Continuidade visual da tela
+— Continuidade do texto entre imagens
+— Relação entre erro, tela anterior e tela seguinte
+`
+    : "";
+
+  return `
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ANÁLISE DE IMAGEM (INSTRUÇÃO ATIVA)
+ANÁLISE DE ${plural ? `${imageCount} IMAGENS` : "IMAGEM"} (INSTRUÇÃO ATIVA)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-O usuário enviou uma imagem junto com a mensagem. Analise com atenção todos os elementos visuais presentes:
-— mensagens de erro ou avisos
-— campos de configuração, tokens, webhooks, URLs, credenciais
-— status de integração, badges, labels, indicadores
-— fluxos de tela, dashboards, formulários, modais
-— qualquer texto legível na imagem
+O usuário enviou ${countLabel} junto com a mensagem.
+${multiProtocol}
+Em cada imagem, identifique com atenção:
+— Mensagens de erro ou avisos
+— Campos de configuração, tokens, webhooks, URLs, credenciais
+— Status de integração, badges, labels, indicadores
+— Fluxos de tela, dashboards, formulários, modais
+— Qualquer texto legível${plural ? "\n— Continuidade ou ruptura em relação à imagem anterior" : ""}
 
 Protocolo obrigatório:
 1. Identifique o problema ou situação com base no que está visível.
-2. Forneça diagnóstico preciso combinando imagem + texto do usuário.
+2. Forneça diagnóstico preciso combinando ${plural ? "imagens" : "imagem"} + texto do usuário.
 3. Sugira ações concretas e sequenciais para resolver.
-4. Se a imagem não contiver contexto suficiente para um diagnóstico preciso, informe o que está faltando.
-5. Nunca afirme que não consegue ver a imagem — analise o que for possível.`;
+4. Se ${plural ? "as imagens" : "a imagem"} não ${plural ? "contiverem" : "contiver"} contexto suficiente: informe o que está faltando.
+5. Nunca afirme que não consegue ver ${plural ? "as imagens" : "a imagem"} — analise o que for possível.
+6. Nunca invente informações que não aparecem nas imagens.`;
+}
 
 router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
-  const { message, history, imageBase64 } = req.body as {
+  const { message, history, images } = req.body as {
     message?: string;
     history?: HistoryMessage[];
-    imageBase64?: string;
+    /** Array of base64 data URLs, max 10. Single-image compat: also accepts imageBase64. */
+    images?: string[];
+    imageBase64?: string; // legacy single-image field — still accepted
   };
 
   if (!message || typeof message !== "string" || message.trim() === "") {
@@ -1202,12 +1276,25 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  // Validate imageBase64 when present — must be a data URL from an image type
-  const hasImage =
-    typeof imageBase64 === "string" &&
-    imageBase64.startsWith("data:image/") &&
-    imageBase64.includes(";base64,") &&
-    imageBase64.length < 8_000_000; // ~6MB limit
+  // Support both new `images[]` and legacy `imageBase64` field
+  const rawImages: string[] = Array.isArray((req.body as { images?: string[] }).images)
+    ? (req.body as { images: string[] }).images
+    : typeof (req.body as { imageBase64?: string }).imageBase64 === "string"
+      ? [(req.body as { imageBase64: string }).imageBase64]
+      : [];
+
+  // Validate each image: must be a data URL, image type, under 6MB, max 10 items
+  const validImages = rawImages
+    .slice(0, 10)
+    .filter(
+      (img) =>
+        typeof img === "string" &&
+        img.startsWith("data:image/") &&
+        img.includes(";base64,") &&
+        img.length < 8_000_000,
+    );
+
+  const hasImages = validImages.length > 0;
 
   const conversationHistory: HistoryMessage[] = Array.isArray(history)
     ? history.slice(-6)
@@ -1309,15 +1396,15 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
     systemWithContext += sessionUserCtxBlock;
   }
 
-  // ── Vision: inject image analysis instruction when image is attached ────────
-  if (hasImage) {
-    systemWithContext += VISION_INSTRUCTION;
+  // ── Vision: inject image analysis instruction when images are attached ───────
+  if (hasImages) {
+    systemWithContext += buildVisionInstruction(validImages.length);
   }
 
   setupSSE(res);
   sendSSE(res, { type: "start" });
 
-  // ── Build the user content — text-only or text + image ────────────────────
+  // ── Build the user content — text-only or text + images ──────────────────
   type MsgContent =
     | string
     | Array<
@@ -1325,10 +1412,13 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
         | { type: "text"; text: string }
       >;
 
-  const userContent: MsgContent = hasImage
+  const userContent: MsgContent = hasImages
     ? [
-        { type: "image_url", image_url: { url: imageBase64 as string, detail: "auto" } },
-        { type: "text", text: semanticNormalize(message) },
+        ...validImages.map((img) => ({
+          type: "image_url" as const,
+          image_url: { url: img, detail: "auto" as const },
+        })),
+        { type: "text" as const, text: semanticNormalize(message) },
       ]
     : semanticNormalize(message);
 
