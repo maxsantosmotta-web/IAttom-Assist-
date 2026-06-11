@@ -2,7 +2,7 @@ import type { Response } from "express";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { setupSSE, sendSSE, sendSSEError, sendSSEDone } from "./stream.js";
 import { logAiUsage } from "./logger.js";
-import { semanticNormalize } from "./semanticNormalize.js";
+import { semanticNormalize, normalizeHashtags } from "./semanticNormalize.js";
 
 interface CreateCampaignInput {
   product: string;
@@ -945,6 +945,15 @@ Responda integralmente em português brasileiro.`;
 
       if (isOrganic && raw.platformFields) {
         raw.platformFields = hardLockOrganicFields(raw.platformFields);
+      }
+
+      // Normalizar campo de hashtags: modelo retorna palavras sem # → converter para #hashtags
+      if (raw.platformFields) {
+        raw.platformFields = raw.platformFields.map((f) =>
+          f.key === "hashtags" && f.value
+            ? { ...f, value: normalizeHashtags(f.value) }
+            : f,
+        );
       }
 
       sendSSE(res, { type: "result", data: raw });
