@@ -1170,16 +1170,44 @@ ${recentHistory}`;
 
 // ── Chat ─────────────────────────────────────────────────────────────────────
 
+// ── Vision instruction — injected when user attaches an image ─────────────────
+const VISION_INSTRUCTION = `
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ANÁLISE DE IMAGEM (INSTRUÇÃO ATIVA)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+O usuário enviou uma imagem junto com a mensagem. Analise com atenção todos os elementos visuais presentes:
+— mensagens de erro ou avisos
+— campos de configuração, tokens, webhooks, URLs, credenciais
+— status de integração, badges, labels, indicadores
+— fluxos de tela, dashboards, formulários, modais
+— qualquer texto legível na imagem
+
+Protocolo obrigatório:
+1. Identifique o problema ou situação com base no que está visível.
+2. Forneça diagnóstico preciso combinando imagem + texto do usuário.
+3. Sugira ações concretas e sequenciais para resolver.
+4. Se a imagem não contiver contexto suficiente para um diagnóstico preciso, informe o que está faltando.
+5. Nunca afirme que não consegue ver a imagem — analise o que for possível.`;
+
 router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
-  const { message, history } = req.body as {
+  const { message, history, imageBase64 } = req.body as {
     message?: string;
     history?: HistoryMessage[];
+    imageBase64?: string;
   };
 
   if (!message || typeof message !== "string" || message.trim() === "") {
     res.status(400).json({ error: "message é obrigatório." });
     return;
   }
+
+  // Validate imageBase64 when present — must be a data URL from an image type
+  const hasImage =
+    typeof imageBase64 === "string" &&
+    imageBase64.startsWith("data:image/") &&
+    imageBase64.includes(";base64,") &&
+    imageBase64.length < 8_000_000; // ~6MB limit
 
   const conversationHistory: HistoryMessage[] = Array.isArray(history)
     ? history.slice(-6)
@@ -1281,18 +1309,43 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
     systemWithContext += sessionUserCtxBlock;
   }
 
+  // ── Vision: inject image analysis instruction when image is attached ────────
+  if (hasImage) {
+    systemWithContext += VISION_INSTRUCTION;
+  }
+
   setupSSE(res);
   sendSSE(res, { type: "start" });
 
+  // ── Build the user content — text-only or text + image ────────────────────
+  type MsgContent =
+    | string
+    | Array<
+        | { type: "image_url"; image_url: { url: string; detail: "auto" } }
+        | { type: "text"; text: string }
+      >;
+
+  const userContent: MsgContent = hasImage
+    ? [
+        { type: "image_url", image_url: { url: imageBase64 as string, detail: "auto" } },
+        { type: "text", text: semanticNormalize(message) },
+      ]
+    : semanticNormalize(message);
+
   try {
-    const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
-      { role: "system", content: systemWithContext },
+    // Build messages array. Content is string for system/history entries and
+    // optionally an image+text array for the current user turn.
+    // Cast to unknown first — the OpenAI SDK union requires exact role literals
+    // that TypeScript can't narrow through the mixed array literal.
+    const messages = [
+      { role: "system" as const, content: systemWithContext },
       ...conversationHistory.map((m) => ({
         role: m.role as "user" | "assistant",
         content: m.content,
       })),
-      { role: "user", content: semanticNormalize(message) },
-    ];
+      { role: "user" as const, content: userContent },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ] as unknown as Parameters<typeof openai.chat.completions.create>[0]["messages"];
 
     const stream = await openai.chat.completions.create({
       model: "gpt-5-mini",

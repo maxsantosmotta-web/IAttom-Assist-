@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, Loader2, Trash2, RefreshCw } from "lucide-react";
+import { X, Send, Loader2, Trash2, RefreshCw, Paperclip } from "lucide-react";
 import { LogoMark } from "@/components/ui/Logo";
 import { useUser } from "@clerk/react";
 
@@ -9,6 +9,13 @@ interface Message {
   role: "assistant" | "user";
   content: string;
   streaming?: boolean;
+  /** Data URL for images attached by the user — display only, not persisted */
+  imageUrl?: string;
+}
+
+interface AttachedImage {
+  dataUrl: string;
+  name: string;
 }
 
 const BASE_URL = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -47,9 +54,12 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
   const [syncDoneLabel, setSyncDoneLabel] = useState("Atualizado agora");
   const [confirmClear,  setConfirmClear]  = useState(false);
 
+  const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null);
+
   const messagesEndRef     = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef           = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef       = useRef<HTMLInputElement>(null);
 
   // Tracks the Promise of the in-flight POST /api/help/save.
   // syncHistory awaits this before fetching — eliminates the race condition.
@@ -194,12 +204,38 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
     setConfirmClear(false);
   };
 
+  // ── File selection handler ────────────────────────────────────────────────
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!e.target) return;
+    // Reset input so the same file can be re-selected
+    (e.target as HTMLInputElement).value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+    if (file.size > 5_000_000) {
+      // silently ignore files > 5MB
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      if (dataUrl) setAttachedImage({ dataUrl, name: file.name });
+    };
+    reader.readAsDataURL(file);
+  };
+
   // ── Send message ─────────────────────────────────────────────────────────────
   const sendMessage = async () => {
     const text = input.trim();
     if (!text || loading) return;
 
-    const userMsg: Message = { id: crypto.randomUUID(), role: "user", content: text };
+    const snapshot = attachedImage;
+    const userMsg: Message = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: text,
+      ...(snapshot ? { imageUrl: snapshot.dataUrl } : {}),
+    };
 
     const history = messages
       .filter((m) => !m.streaming && m.content !== "" && m.id !== "init")
@@ -208,6 +244,7 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
 
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setAttachedImage(null);
     if (inputRef.current) inputRef.current.style.height = "auto";
     setLoading(true);
     setTimeout(() => scrollToBottom("smooth"), 30);
@@ -221,10 +258,13 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
     let finalAssistantContent = "";
 
     try {
+      const body: Record<string, unknown> = { message: text, history };
+      if (snapshot) body.imageBase64 = snapshot.dataUrl;
+
       const res = await fetch(`${BASE_URL}/api/help/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, history }),
+        body: JSON.stringify(body),
         credentials: "include",
       });
 
@@ -474,6 +514,13 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
                           : "bg-white/[0.04] text-zinc-300 rounded-tl-sm border border-white/[0.06]"
                       }`}
                     >
+                      {msg.imageUrl && (
+                        <img
+                          src={msg.imageUrl}
+                          alt="Imagem anexada"
+                          className="max-w-full max-h-48 rounded-lg mb-2 object-contain border border-white/10"
+                        />
+                      )}
                       {msg.content}
                       {msg.streaming && msg.content === "" && (
                         <span className="inline-flex gap-1 items-center h-4">
@@ -495,6 +542,36 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
 
             {/* Input */}
             <div className="px-4 pb-5 pt-3 border-t border-white/[0.07] shrink-0">
+              {/* Image preview strip — shown above the textarea when an image is attached */}
+              {attachedImage && (
+                <div className="flex items-center gap-2 mb-1.5 px-1">
+                  <div className="relative shrink-0">
+                    <img
+                      src={attachedImage.dataUrl}
+                      alt="Pré-visualização"
+                      className="h-14 w-14 rounded-lg object-cover border border-white/10"
+                    />
+                    <button
+                      onClick={() => setAttachedImage(null)}
+                      className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-zinc-700 border border-white/10 flex items-center justify-center hover:bg-zinc-600 transition-colors"
+                      aria-label="Remover imagem"
+                    >
+                      <X className="w-2.5 h-2.5 text-zinc-300" />
+                    </button>
+                  </div>
+                  <span className="text-[11px] text-zinc-500 truncate max-w-[140px]">{attachedImage.name}</span>
+                </div>
+              )}
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+
               <div className="flex items-end gap-2 rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2.5 focus-within:border-primary/25 transition-colors">
                 <textarea
                   ref={inputRef}
@@ -507,6 +584,20 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
                   className="flex-1 resize-none bg-transparent text-[13px] text-zinc-200 placeholder:text-zinc-600 outline-none leading-relaxed overflow-y-auto sidebar-scroll"
                   style={{ minHeight: "20px", maxHeight: "112px" }}
                 />
+                {/* Attach image button */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={loading || !historyLoaded}
+                  className={`w-7 h-7 flex items-center justify-center rounded-lg shrink-0 mb-0.5 transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
+                    attachedImage
+                      ? "bg-primary/20 text-primary border border-primary/30"
+                      : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06]"
+                  }`}
+                  aria-label="Anexar imagem"
+                  title="Anexar imagem (máx. 5MB)"
+                >
+                  <Paperclip className="w-3.5 h-3.5" />
+                </button>
                 <button
                   onClick={() => void sendMessage()}
                   disabled={!input.trim() || loading || !historyLoaded}
