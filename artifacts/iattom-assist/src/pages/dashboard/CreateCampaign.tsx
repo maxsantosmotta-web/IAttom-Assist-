@@ -1006,8 +1006,8 @@ export function CreateCampaign() {
                   <div className="flex-1 min-w-0">
                     <CardTitle className="text-base text-white flex items-baseline gap-1 flex-wrap">
                       <span className="shrink-0">{currentPlatform?.name ?? "Entrega"}</span>
-                      {product.trim() && (
-                        <span className="text-muted-foreground/60 font-normal text-sm truncate min-w-0">— {product.trim()}</span>
+                      {(campaignData._normalizedProduct ?? product).trim() && (
+                        <span className="text-muted-foreground/60 font-normal text-sm truncate min-w-0">— {(campaignData._normalizedProduct ?? product).trim()}</span>
                       )}
                     </CardTitle>
                     {mode && (
