@@ -10,6 +10,7 @@ interface VideoScriptInput {
   style?: string;
 }
 import { logAiUsage } from "./logger.js";
+import { semanticNormalize } from "./semanticNormalize.js";
 
 export interface ScriptScene {
   time: string;
@@ -48,8 +49,6 @@ export async function streamVideoScript(
 
 REGRA OBRIGATÓRIA DE IDIOMA: Responda SEMPRE em português brasileiro. NUNCA responda em inglês, espanhol ou qualquer outro idioma. Todos os roteiros, ganchos, cenas, direções e textos devem estar integralmente em português brasileiro.
 
-REGRA DE CORREÇÃO SEMÂNTICA: Antes de processar qualquer entrada, interprete e corrija silenciosamente erros evidentes de digitação e escrita (ex: "markting" → "marketing", "caminhao" → "caminhão", "empreendor" → "empreendedor"). Utilize sempre a forma correta nas respostas. Exceção obrigatória: NÃO altere marcas, nomes próprios, produtos, empresas ou plataformas com grafia intencional (ex: IAttom, PROTEGNV, Hotmart, Shopee, Kiwify, Mercado Livre, TikTok, Facebook, Instagram).
-
 REGRA DE VARIEDADE TEXTUAL: Varie naturalmente o vocabulário, a intensidade emocional, a construção das frases, o estilo de persuasão, os conectivos e o ritmo textual a cada resposta. Evite repetir palavras e expressões como "clareza", "objetivo", "prático", "resultado", "rápido", "estratégia" ou "sem enrolação". Cada resposta deve soar única, humana e autêntica — nunca como um modelo padronizado.
 
 REGRA DE OBJETIVIDADE: Seja direto e escaneável. Comece com o ponto mais relevante. Use blocos curtos, ações concretas e linguagem direta. Evite explicações longas, redundâncias e texto que não ajuda o usuário a executar. Mantenha a qualidade estratégica, mas elimine o excesso — menos é mais quando o conteúdo é denso e acionável.
@@ -80,11 +79,14 @@ Retorne exatamente esta estrutura:
 
 Escreva roteiros que pareçam produzidos para uma grande campanha de marca. Cada cena deve ter propósito claro e impacto emocional.`;
 
+  const _product = semanticNormalize(params.product);
+  const _hook = params.hook ? semanticNormalize(params.hook) : undefined;
+
   const userPrompt = `Escreva um roteiro de vídeo para:
-Produto/Marca: "${params.product}"
+Produto/Marca: "${_product}"
 Formato: ${format}
 Duração: ${duration}
-${params.hook ? `Ideia de gancho: ${params.hook}` : ""}
+${_hook ? `Ideia de gancho: ${_hook}` : ""}
 ${params.style ? `Estilo: ${params.style}` : ""}
 
 Crie um roteiro completo e pronto para produção, com 4-6 cenas que maximizem a retenção do espectador e gerem conversões. Responda integralmente em português brasileiro.`;

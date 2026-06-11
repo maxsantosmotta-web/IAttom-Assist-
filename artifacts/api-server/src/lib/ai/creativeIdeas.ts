@@ -3,6 +3,7 @@ import { openai } from "@workspace/integrations-openai-ai-server";
 import { generateImageBuffer } from "@workspace/integrations-openai-ai-server/image";
 import { setupSSE, sendSSE, sendSSEError, sendSSEDone } from "./stream.js";
 import { logAiUsage } from "./logger.js";
+import { semanticNormalize } from "./semanticNormalize.js";
 import { logger } from "../logger.js";
 import { buildRefinedContext } from "./interpretationEngine.js";
 
@@ -121,7 +122,7 @@ export async function streamCreativeIdeas(
   setupSSE(res);
   sendSSE(res, { type: "start" });
 
-  const productName = params.prompt.trim();
+  const productName = semanticNormalize(params.prompt).trim();
   const platform = params.platform;
   const selectedFormats = params.selectedFormats.slice(0, 3);
   const numConcepts = selectedFormats.length;
@@ -157,8 +158,6 @@ ${refinedCtx.systemEnhancement}
 
 FORMATOS SOLICITADOS:
 ${formatList}
-
-REGRA DE CORREÇÃO SEMÂNTICA: Antes de construir o briefing, interprete e corrija silenciosamente erros evidentes de digitação no nome ou descrição do produto (ex: "cuzinha" → "cozinha", "calca" → "calça", "tenis" → "tênis"). Utilize sempre a forma correta no briefing e nos prompts gerados. Exceção obrigatória: NÃO altere marcas, nomes comerciais ou produtos com grafia intencional (ex: IAttom, PROTEGNV, Hotmart, Shopee, Kiwify).
 
 REGRA ABSOLUTA DE FIDELIDADE AO PRODUTO: O produto informado é a referência central e obrigatória. NÃO substitua por versão genérica ou produto parecido. Preserve o nome exato, aparência, proporções e categoria do produto.
 

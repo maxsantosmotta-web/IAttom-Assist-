@@ -6,6 +6,7 @@ import { setupSSE, sendSSE, sendSSEError, sendSSEDone } from "../lib/ai/stream.j
 import { getRelevantContext, type HistoryMessage } from "../lib/help/knowledge/index.js";
 import { db, helpMessages } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
+import { semanticNormalize } from "../lib/ai/semanticNormalize.js";
 
 const router: IRouter = Router();
 
@@ -34,11 +35,6 @@ EXCEÇÃO OBRIGATÓRIA — NÃO pergunte antes quando a mensagem contiver qualqu
 — restrições de tempo ou capital declaradas (ex: "pouco tempo", "sem capital")
 — pedido explícito de escolha ou ranking (ex: "o que você escolheria", "qual primeiro", "onde focar")
 Nesses casos: tome posição com os dados disponíveis → responda com decisão, ranking ou análise econômica → peça refinamento apenas no final, nunca antes.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PROTOCOLO DE CORREÇÃO SEMÂNTICA (OBRIGATÓRIO)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Antes de processar qualquer mensagem, interprete e corrija silenciosamente erros evidentes de digitação e escrita (ex: "hotmat" → "Hotmart", "markting" → "marketing", "coalth" → "coach", "empreendor" → "empreendedor", "kiwfiy" → "Kiwify"). Responda sempre com base na intenção correta, utilizando os termos corretos. Exceção obrigatória: NÃO altere marcas, nomes próprios, plataformas ou produtos com grafia intencional (ex: IAttom, PROTEGNV, Hotmart, Shopee, Kiwify, Mercado Livre, TikTok, Facebook, Instagram). Nunca informe ao usuário que corrigiu um erro — apenas responda com a interpretação correta.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PROTOCOLO DE MENTOR ESTRATÉGICO (OBRIGATÓRIO)
@@ -1295,7 +1291,7 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
         role: m.role as "user" | "assistant",
         content: m.content,
       })),
-      { role: "user", content: message },
+      { role: "user", content: semanticNormalize(message) },
     ];
 
     const stream = await openai.chat.completions.create({
@@ -1322,7 +1318,7 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
       try {
         const retryMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
           { role: "system", content: buildContextualReasoningPrompt(conversationHistory) + sessionUserCtxBlock },
-          { role: "user", content: message },
+          { role: "user", content: semanticNormalize(message) },
         ];
         const retryStream = await openai.chat.completions.create({
           model: "gpt-5-mini",

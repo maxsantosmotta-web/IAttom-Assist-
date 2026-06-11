@@ -2,6 +2,7 @@ import type { Response } from "express";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { setupSSE, sendSSE, sendSSEError, sendSSEDone } from "./stream.js";
 import { logAiUsage } from "./logger.js";
+import { semanticNormalize } from "./semanticNormalize.js";
 
 interface CreateCampaignInput {
   product: string;
@@ -534,8 +535,6 @@ function hardLockOrganicFields(fields: CampaignPlatformField[]): CampaignPlatfor
 
 const BASE_RULES = `IDIOMA: Responda SEMPRE em português brasileiro. Nunca em inglês ou espanhol.
 
-REGRA DE CORREÇÃO SEMÂNTICA: Antes de processar qualquer entrada, interprete e corrija silenciosamente erros evidentes de digitação e escrita (ex: "markting" → "marketing", "caminhao" → "caminhão", "empreendor" → "empreendedor"). Utilize sempre a forma correta nos campos gerados. Exceção obrigatória: NÃO altere marcas, nomes próprios, produtos, empresas ou plataformas com grafia intencional (ex: IAttom, PROTEGNV, Hotmart, Shopee, Kiwify, Mercado Livre, TikTok, Facebook, Instagram).
-
 ARQUITETURA DE ENTREGA — REGRA ABSOLUTA:
 Você é um especialista em marketing digital para o mercado brasileiro. Sua função é preencher um schema FIXO por plataforma.
 
@@ -878,7 +877,7 @@ export async function streamCreateCampaign(
 
   // Classifica o que o usuário forneceu vs. o que não forneceu
   // para reforçar a camada de integridade de dados no user prompt
-  const productWords = params.product.trim();
+  const productWords = semanticNormalize(params.product).trim();
   const providedData = [
     `Nome/descrição do produto: "${productWords}" — USE SOMENTE estes dados como base de especificação`,
     params.productType ? `Tipo de produto: ${params.productType}` : null,

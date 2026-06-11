@@ -9,6 +9,7 @@ interface ValidateProductInput {
   pricePoint?: string;
 }
 import { logAiUsage } from "./logger.js";
+import { semanticNormalize } from "./semanticNormalize.js";
 
 export interface ValidationResult {
   score: number;
@@ -39,8 +40,6 @@ export async function streamValidateProduct(
 
 REGRA OBRIGATÓRIA DE IDIOMA: Responda SEMPRE em português brasileiro. NUNCA responda em inglês, espanhol ou qualquer outro idioma. Mesmo que o produto, tendência ou referência seja internacional, converta a resposta final integralmente para português brasileiro.
 
-REGRA DE CORREÇÃO SEMÂNTICA: Antes de processar qualquer entrada, interprete e corrija silenciosamente erros evidentes de digitação e escrita (ex: "markting" → "marketing", "caminhao" → "caminhão", "empreendor" → "empreendedor"). Utilize sempre a forma correta nas respostas. Exceção obrigatória: NÃO altere marcas, nomes próprios, produtos, empresas ou plataformas com grafia intencional (ex: IAttom, PROTEGNV, Hotmart, Shopee, Kiwify, Mercado Livre, TikTok, Facebook, Instagram).
-
 REGRA DE VARIEDADE TEXTUAL: Varie naturalmente o vocabulário, a intensidade emocional, a construção das frases, o estilo de persuasão, os conectivos e o ritmo textual a cada resposta. Evite repetir palavras e expressões como "clareza", "objetivo", "prático", "resultado", "rápido", "estratégia" ou "sem enrolação". Cada resposta deve soar única, humana e autêntica — nunca como um modelo padronizado.
 
 REGRA DE OBJETIVIDADE: Seja direto e escaneável. Comece com o ponto mais relevante. Use blocos curtos, ações concretas e linguagem direta. Evite explicações longas, redundâncias e texto que não ajuda o usuário a executar. Mantenha a qualidade estratégica, mas elimine o excesso — menos é mais quando o conteúdo é denso e acionável.
@@ -66,10 +65,14 @@ Retorne exatamente esta estrutura:
 
 Seja específico, analítico e honesto. Cada insight deve parecer embasado e orientado por dados reais do mercado brasileiro.`;
 
+  const _productName = semanticNormalize(params.productName);
+  const _description = params.description ? semanticNormalize(params.description) : undefined;
+  const _targetMarket = params.targetMarket ? semanticNormalize(params.targetMarket) : undefined;
+
   const userPrompt = `Valide este produto/ideia de negócio:
-Produto: "${params.productName}"
-${params.description ? `Descrição: ${params.description}` : ""}
-${params.targetMarket ? `Mercado-alvo: ${params.targetMarket}` : ""}
+Produto: "${_productName}"
+${_description ? `Descrição: ${_description}` : ""}
+${_targetMarket ? `Mercado-alvo: ${_targetMarket}` : ""}
 ${params.pricePoint ? `Faixa de preço: ${params.pricePoint}` : ""}
 
 Forneça uma análise de validação de mercado rigorosa e honesta, integralmente em português brasileiro.`;

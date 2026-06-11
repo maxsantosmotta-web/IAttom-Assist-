@@ -4,6 +4,7 @@ import { db, savedPromptsTable } from "@workspace/db";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth.js";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { z } from "zod/v4";
+import { semanticNormalize } from "../lib/ai/semanticNormalize.js";
 
 const router: IRouter = Router();
 
@@ -122,14 +123,13 @@ router.post("/prompts/generate", requireAuth, async (req, res): Promise<void> =>
     res.status(400).json({ error: "Dados inválidos" });
     return;
   }
-  const { tipo, subject } = parsed.data;
+  const { tipo, subject: rawSubject } = parsed.data;
+  const subject = semanticNormalize(rawSubject);
   const tipoKey = tipo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
   const module = TIPO_TO_MODULE[tipoKey] ?? "content";
   const tipoCtx = TIPO_CONTEXT[tipoKey] ?? "prompt profissional reutilizável";
 
   const systemMsg = `Você é um especialista em criar prompts premium para sistemas de IA de marketing e negócios digitais em português brasileiro.
-
-Antes de processar, interprete e corrija silenciosamente erros evidentes de digitação no assunto informado (ex: "markting" → "marketing", "empreendor" → "empreendedor"). Utilize sempre a forma correta no prompt gerado. Exceção: NÃO altere marcas, nomes próprios ou plataformas com grafia intencional (ex: IAttom, Hotmart, Shopee, Kiwify, Mercado Livre).
 
 Crie um ${tipoCtx} sobre o assunto: ${subject}.
 
