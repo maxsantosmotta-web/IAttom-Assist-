@@ -63,6 +63,11 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
   const inputRef           = useRef<HTMLTextAreaElement>(null);
   const fileInputRef       = useRef<HTMLInputElement>(null);
 
+  // AbortController for the in-flight /help/chat SSE request
+  const abortControllerRef = useRef<AbortController | null>(null);
+  // Tracks whether component is still mounted — guards setState after unmount
+  const mountedRef         = useRef(true);
+
   // Tracks the Promise of the in-flight POST /api/help/save.
   // syncHistory awaits this before fetching — eliminates the race condition.
   const pendingSaveRef = useRef<Promise<void>>(Promise.resolve());
@@ -71,6 +76,15 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
 
   useEffect(() => { firstNameRef.current = firstName; }, [firstName]);
   useEffect(() => { messagesRef.current  = messages;  }, [messages]);
+
+  // Mount/unmount lifecycle — abort any in-flight stream on unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   // Cleanup sync timer on unmount
   useEffect(() => () => {
@@ -292,10 +306,25 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
         : {}),
     };
 
-    const history = messages
+    // Build history — include imageUrls only for the last user message that has them.
+    // All other history messages are text-only to keep token cost bounded.
+    const historySlice = messages
       .filter((m) => !m.streaming && m.content !== "" && m.id !== "init")
-      .slice(-6)
-      .map((m) => ({ role: m.role, content: m.content }));
+      .slice(-6);
+
+    // Index of the last user message in the slice that carries imageUrls
+    const lastImgIdx = historySlice.reduce<number>((found, m, i) => {
+      if (m.role === "user" && m.imageUrls && m.imageUrls.length > 0) return i;
+      return found;
+    }, -1);
+
+    const history = historySlice.map((m, i) => ({
+      role: m.role,
+      content: m.content,
+      ...(i === lastImgIdx && m.imageUrls && m.imageUrls.length > 0
+        ? { imageUrls: m.imageUrls }
+        : {}),
+    }));
 
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
@@ -313,6 +342,11 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
     let finalAssistantContent = "";
     let streamCompleted = false;
 
+    // Abort any previous in-flight request before starting a new one
+    abortControllerRef.current?.abort();
+    const ac = new AbortController();
+    abortControllerRef.current = ac;
+
     try {
       // Always send dataUrls to OpenAI (base64 required for vision)
       const body: Record<string, unknown> = { message: text, history };
@@ -323,6 +357,7 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
         credentials: "include",
+        signal: ac.signal,
       });
 
       if (!res.ok || !res.body) throw new Error("Erro na resposta.");
@@ -347,45 +382,56 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
             };
             if (data.type === "chunk" && data.content) {
               finalAssistantContent += data.content;
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === assistantId ? { ...m, content: m.content + data.content } : m
-                )
-              );
+              if (mountedRef.current) {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantId ? { ...m, content: m.content + data.content } : m
+                  )
+                );
+              }
             } else if (data.type === "done") {
               streamCompleted = true;
             } else if (data.type === "error" && data.message) {
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === assistantId ? { ...m, content: data.message! } : m
-                )
-              );
+              if (mountedRef.current) {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantId ? { ...m, content: data.message! } : m
+                  )
+                );
+              }
             }
           } catch {
             // malformed SSE line — skip
           }
         }
       }
-    } catch {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantId
-            ? { ...m, content: finalAssistantContent
-                ? finalAssistantContent + "\n\n(resposta interrompida — tente novamente)"
-                : "Não foi possível processar sua mensagem. Tente novamente." }
-            : m
-        )
-      );
+    } catch (err) {
+      // Request aborted (component unmounted or new message sent) — do not update UI
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      if (mountedRef.current) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId
+              ? { ...m, content: finalAssistantContent
+                  ? finalAssistantContent + "\n\n(resposta interrompida — tente novamente)"
+                  : "Não foi possível processar sua mensagem. Tente novamente." }
+              : m
+          )
+        );
+      }
     } finally {
-      setMessages((prev) =>
-        prev.map((m) => (m.id === assistantId ? { ...m, streaming: false } : m))
-      );
-      setLoading(false);
-      if (finalAssistantContent) {
-        const contentToSave = streamCompleted
-          ? finalAssistantContent
-          : finalAssistantContent + "\n\n(resposta interrompida — tente novamente)";
-        saveExchange(text, contentToSave, storageUrls.length > 0 ? storageUrls : undefined);
+      if (mountedRef.current) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === assistantId ? { ...m, streaming: false } : m))
+        );
+        setLoading(false);
+        // Only save if there is content and component is still mounted
+        if (finalAssistantContent) {
+          const contentToSave = streamCompleted
+            ? finalAssistantContent
+            : finalAssistantContent + "\n\n(resposta interrompida — tente novamente)";
+          saveExchange(text, contentToSave, storageUrls.length > 0 ? storageUrls : undefined);
+        }
       }
     }
   };

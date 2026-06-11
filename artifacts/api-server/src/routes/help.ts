@@ -139,7 +139,8 @@ Pergunte internamente: "O que o usuário realmente quer?"
 Classifique em: dúvida / erro / diagnóstico / orientação / comparação / explicação / projeção / suporte / análise de imagem.
 Nunca assuma intenção sem evidência explícita na mensagem atual.
 Se houver ambiguidade sem imagem: faça UMA pergunta de esclarecimento antes de responder.
-Se houver imagem com texto vago (ex: "Esses são os pontos.", "Vê isso."): pergunte — "Recebi as imagens. Você quer que eu identifique problemas, analise o fluxo, avalie os destaques ou investigue algum erro específico?"
+Se houver imagem com texto vago (ex: "Esses são os pontos.", "Vê isso.") E o histórico imediato NÃO contiver autorização prévia de análise: pergunte — "Recebi as imagens. Você quer que eu identifique problemas, analise o fluxo, avalie os destaques ou investigue algum erro específico?"
+Se o histórico imediato já contiver confirmação do tipo de análise — "as duas opções", "pode começar", "analise", "sim", "isso", "continua", "os dois", "ambos", "pode", "claro" ou qualquer resposta que indique autorização — execute a análise diretamente sem reconfirmar.
 
 ETAPA 2 — CONTEXTO
 Prioridade obrigatória, nesta ordem:
@@ -172,13 +173,15 @@ Antes de formular a resposta, verifique se alguma palavra da mensagem é provave
 Alta confiança → corrija silenciosamente na resposta ("markting" → use "marketing" naturalmente).
 Dúvida razoável → confirme antes: "Quando você escreveu '[palavra]', quis dizer '[correção]'?"
 Proibido: propagar palavra incorreta como válida / construir resposta longa com palavra suspeita não confirmada.
+Persistência de correção: se o histórico mostrar que o usuário já confirmou uma correção ou explicou o significado de uma palavra (ex: "colt é profissional que ajuda pessoas a definir objetivos"), use sempre a forma correta pelo restante da conversa sem reconfirmar. Nunca trate a palavra como indefinida novamente nessa conversa.
 
 ETAPA 7 — LIMITES
 Verifique se o que o usuário pediu é algo que o Help executa diretamente ou apenas orienta.
 O Help ORIENTA. O Help NÃO EXECUTA.
 Proibido gerar ou criar qualquer um dos seguintes: campanha, conteúdo, copy, anúncio, roteiro, script, prompt, criativo visual, imagem, vídeo, briefing, legenda, hashtags, mensagens prontas, tickets, respostas de suporte.
 Proibido construir: estratégia completa, campanha, funil, plano comercial, cronograma, execução passo a passo pronta para uso.
-Quando bloqueado: redirecione com calor e utilidade — "Entendi o que você precisa. Essa ação pertence ao módulo [X]. Posso te orientar sobre o que preencher em cada campo."
+Quando bloqueado: redirecione com calor e utilidade — "Entendi o que você precisa. Essa ação é feita no módulo [X]. Caminho: Dashboard → [X]."
+Nunca elabore o conteúdo do módulo. Nunca descreva campos, estrutura interna ou elementos que seriam inseridos no módulo.
 Nunca bloqueie com frieza. Nunca deixe o usuário sem um próximo passo claro.
 
 Nota sobre decisões estratégicas: o Help PODE orientar, comparar, projetar, sugerir caminhos, ajudar na tomada de decisão, explicar cenários em alto nível e indicar módulos. O que não pode é entregar o produto pronto — isso pertence aos módulos.
@@ -435,7 +438,8 @@ PROIBIDO PREENCHER: nunca preencher campos de módulos, nunca montar campanha po
 Quando o usuário pedir entrega completa, redirecione com utilidade — CAMINHOS OBRIGATÓRIOS:
 - Campanha completa → "Essa ação é feita no módulo Criar Campanha. Caminho: Dashboard → Criar Campanha."
 - Conteúdo, post, legenda ou copy → "Essa ação é feita no módulo Criar Conteúdo. Caminho: Dashboard → Criar Conteúdo."
-- Prompt ou prompt para imagem → "Essa ação pertence ao módulo Prompt. Caminho: Dashboard → Prompt. Depois de gerar o prompt, use o módulo Criar Imagem para produzir o visual."
+- Prompt para imagem → "Para criar imagem, use o módulo Criar Imagem. O campo de prompt fica dentro desse módulo. Caminho: Dashboard → Criar Imagem."
+- Prompts salvos (consultar ou reutilizar prompts já criados) → "Prompts Salvos é a biblioteca para consultar e reutilizar prompts já salvos. Caminho: Dashboard → Prompts Salvos."
 - Imagem ou criativo visual → "Essa ação pertence ao módulo Criar Imagem. Caminho: Dashboard → Criar Imagem."
 - Roteiro, script ou vídeo → "Essa ação pertence ao módulo Scripts de Vídeo. Caminho: Dashboard → Scripts de Vídeo."
 - Encontrar produto → "Use o módulo Buscar Produtos. Caminho: Dashboard → Buscar Produtos."
@@ -476,7 +480,7 @@ REDIRECIONAMENTO ACOLHEDOR (OBRIGATÓRIO)
 Nunca bloqueie com frieza. Quando não puder executar algo, oriente com calor e utilidade.
 
 ERRADO: "Não posso fazer isso."
-CERTO: "Entendi o que você precisa. Essa ação pertence ao módulo Criar Campanha. Posso te mostrar o que preencher em cada campo para obter o melhor resultado."
+CERTO: "Entendi o que você precisa. Essa ação é feita no módulo Criar Campanha. Caminho: Dashboard → Criar Campanha."
 
 O usuário deve sair de cada interação sentindo que foi bem atendido — mesmo quando a resposta for um redirecionamento. Sempre termine com um próximo passo claro e prático.
 
@@ -1384,6 +1388,34 @@ ${recentHistory}`;
 
 // ── Chat ─────────────────────────────────────────────────────────────────────
 
+// Extended history message type — includes imageUrls when frontend reinjects images
+interface HelpHistoryMsg {
+  role: string;
+  content: string;
+  imageUrls?: string[];
+}
+
+// Fetch a persisted help image from GCS and return it as a base64 data URL.
+// Used to reinsert the last history image into the OpenAI vision context.
+async function fetchHistoryImageAsDataUrl(imageUrl: string): Promise<string | null> {
+  const match = imageUrl.match(/\/help\/images\/([0-9a-f-]{36})$/);
+  if (!match) return null;
+  const imageId = match[1];
+  const privateObjectDir = process.env.PRIVATE_OBJECT_DIR ?? "";
+  if (!privateObjectDir) return null;
+  try {
+    const { bucketName, objectPrefix } = parseHelpImageGCSPath(privateObjectDir);
+    const objectName = `${objectPrefix ? objectPrefix + "/" : ""}help-images/${imageId}`;
+    const file = objectStorageClient.bucket(bucketName).file(objectName);
+    const [buffer] = await file.download();
+    const [meta] = await file.getMetadata();
+    const contentType = (meta.contentType as string) || "image/jpeg";
+    return `data:${contentType};base64,${buffer.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
 // ── Vision instruction — injected when user attaches images ──────────────────
 function buildVisionInstruction(imageCount: number): string {
   const plural = imageCount > 1;
@@ -1444,13 +1476,19 @@ Protocolo obrigatório:
 4. Sugira ações concretas e sequenciais para resolver.
 5. Se ${plural ? "as imagens" : "a imagem"} não ${plural ? "contiverem" : "contiver"} contexto suficiente: informe o que está faltando.
 6. Nunca afirme que não consegue ver ${plural ? "as imagens" : "a imagem"} — analise o que for possível.
-7. Nunca invente informações que não aparecem nas imagens.`;
+7. Nunca invente informações que não aparecem nas imagens.
+
+Se o histórico imediato mostrar que o tipo de análise já foi confirmado (o usuário já respondeu o que quer ${plural ? "das imagens" : "da imagem"}), inicie a análise diretamente — não repita a pergunta de confirmação.`;
 }
 
 router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
+  // Abort signal — terminates the OpenAI stream when the client disconnects
+  const ac = new AbortController();
+  req.on("close", () => ac.abort());
+
   const { message, history, images } = req.body as {
     message?: string;
-    history?: HistoryMessage[];
+    history?: HelpHistoryMsg[];
     /** Array of base64 data URLs, max 10. Single-image compat: also accepts imageBase64. */
     images?: string[];
     imageBase64?: string; // legacy single-image field — still accepted
@@ -1481,9 +1519,13 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
 
   const hasImages = validImages.length > 0;
 
-  const conversationHistory: HistoryMessage[] = Array.isArray(history)
-    ? history.slice(-6)
-    : [];
+  // rawHistory preserves imageUrls for last-image reinsertion into OpenAI context.
+  // conversationHistory strips imageUrls — used for intent detection, context extraction.
+  const rawHistory: HelpHistoryMsg[] = Array.isArray(history) ? history.slice(-6) : [];
+  const conversationHistory: HistoryMessage[] = rawHistory.map((m) => ({
+    role: (m.role === "user" || m.role === "assistant" ? m.role : "user") as "user" | "assistant",
+    content: m.content,
+  }));
 
   // ── Continuation detection ────────────────────────────────────────────────
   const isContinuation = detectContinuation(message);
@@ -1607,17 +1649,46 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
       ]
     : semanticNormalize(message);
 
+  // ── History image reinsertion ──────────────────────────────────────────────
+  // Locate the last user message in rawHistory that carries imageUrls.
+  // Fetch those images from GCS so OpenAI vision can see them again.
+  // Only the LAST such message is reinjected — all others remain text-only.
+  const lastHistoryImgMsg = [...rawHistory].reverse().find(
+    (m) => m.role === "user" && Array.isArray(m.imageUrls) && (m.imageUrls?.length ?? 0) > 0,
+  );
+
+  let historyImgContent: Array<{ type: "image_url"; image_url: { url: string; detail: "auto" } }> = [];
+  if (lastHistoryImgMsg?.imageUrls && lastHistoryImgMsg.imageUrls.length > 0) {
+    const fetched = await Promise.all(lastHistoryImgMsg.imageUrls.map(fetchHistoryImageAsDataUrl));
+    historyImgContent = fetched
+      .filter((u): u is string => !!u)
+      .map((url) => ({ type: "image_url" as const, image_url: { url, detail: "auto" as const } }));
+  }
+
   try {
-    // Build messages array. Content is string for system/history entries and
-    // optionally an image+text array for the current user turn.
+    // Build messages array.
+    // — History user messages: semanticNormalize applied; last image message reinserted as multimodal.
+    // — Current user message: text-only or text+images (existing logic).
     // Cast to unknown first — the OpenAI SDK union requires exact role literals
     // that TypeScript can't narrow through the mixed array literal.
     const messages = [
       { role: "system" as const, content: systemWithContext },
-      ...conversationHistory.map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
+      ...rawHistory.map((m) => {
+        const isLastImg = m === lastHistoryImgMsg && historyImgContent.length > 0;
+        if (isLastImg) {
+          return {
+            role: m.role as "user" | "assistant",
+            content: [
+              ...historyImgContent,
+              { type: "text" as const, text: semanticNormalize(m.content) },
+            ],
+          };
+        }
+        return {
+          role: m.role as "user" | "assistant",
+          content: m.role === "user" ? semanticNormalize(m.content) : m.content,
+        };
+      }),
       { role: "user" as const, content: userContent },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ] as unknown as Parameters<typeof openai.chat.completions.create>[0]["messages"];
@@ -1627,7 +1698,7 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
       max_completion_tokens: 2048,
       messages,
       stream: true,
-    });
+    }, { signal: ac.signal });
 
     let chunkCount = 0;
     for await (const chunk of stream) {
