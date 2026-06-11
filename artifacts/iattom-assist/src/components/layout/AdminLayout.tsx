@@ -45,7 +45,7 @@ const navItems = [
   { href: "/admin/activity", label: "Atividade", icon: Activity },
   { href: "/admin/waitlist", label: "Lista de Espera", icon: Clock },
   { href: "/admin/feedback", label: "Feedback", icon: MessageSquare },
-  { href: "/admin/integrations", label: "Integrações", icon: Wifi },
+  // { href: "/admin/integrations", label: "Integrações", icon: Wifi }, // oculto — módulo interno, uso futuro
   { href: "/admin/instagram", label: "Instagram", icon: Instagram },
   { href: "/admin/facebook",  label: "Facebook",  icon: Facebook  },
   { href: "/admin/shopee", label: "Shopee", icon: ShoppingBag },

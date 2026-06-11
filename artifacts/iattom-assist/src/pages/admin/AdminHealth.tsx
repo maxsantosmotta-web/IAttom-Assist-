@@ -61,7 +61,7 @@ export function AdminHealth() {
           <div>
             <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Monitoramento</p>
             <h2 className="text-2xl font-bold text-white mb-1">Saúde da Plataforma</h2>
-            <p className="text-muted-foreground text-sm">Verificação em tempo real dos serviços críticos da plataforma.</p>
+            <p className="text-muted-foreground text-sm">Verificação em tempo real.</p>
           </div>
           <Button
             size="sm" variant="outline"
@@ -69,7 +69,7 @@ export function AdminHealth() {
             className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-            {data ? "Verificar Novamente" : "Verificar Agora"}
+            {"Verificar"}
           </Button>
         </div>
       </motion.div>
