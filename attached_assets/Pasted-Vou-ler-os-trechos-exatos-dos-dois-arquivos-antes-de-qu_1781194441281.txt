@@ -1,0 +1,60 @@
+Vou ler os trechos exatos dos dois arquivos antes de qualquer alteração.
+
+Preciso ler o restante dos trechos críticos antes de editar:
+
+Preciso ver o endpoint /help/chat e a seção buildVisionInstruction completos antes de editar:
+
+Tenho tudo o que preciso. Executando todas as correções agora — frontend e backend em paralelo, dentro do escopo cirúrgico definido.
+
+Continuando com todas as edições restantes em paralelo:
+
+Agora faço todas as edições do backend em paralelo — cada edit é independente:
+
+Continuando com todas as edições do backend em paralelo:
+
+Continuando com as edições restantes do backend todas em paralelo:
+
+Continuando com as edições restantes do backend:
+
+Batching the remaining backend edits — all independent, all in one response:
+
+Continuando com as edições restantes do backend — todas em paralelo:
+
+Edições finais do backend — a parte mais importante (endpoint /help/chat). Preciso ver o trecho exato para edição precisa:
+
+Agora faço a edição maior do endpoint /help/chat — todas as mudanças restantes em uma única operação:
+
+Agora edito o endpoint /help/chat — a parte central de todas as correções:
+
+Preciso ler o bloco de construção de messages na versão atual após as edições anteriores:
+
+Edição final — mensagens com imageUrls do histórico + semanticNormalize + signal para OpenAI:
+
+Typecheck completo agora:
+
+Erro de tipo no role: string — preciso fazer o cast correto:
+
+Typecheck zerado. Reiniciando os workflows:
+
+Todos os servidores estão rodando limpos. Todas as 6 correções cirúrgicas foram aplicadas com typecheck zerado.
+
+Resumo completo do que foi feito:
+
+Frontend — IAttomHelpPanel.tsx
+
+AbortController — abortControllerRef + mountedRef + cleanup no useEffect evita requisições zumbis quando o painel fecha
+imageUrls no histórico — a última mensagem do usuário no slice da conversa envia imageUrls para o backend poder rebuscar as imagens
+signal no fetch — signal: ac.signal propaga o cancelamento até a conexão SSE
+Guard no AbortError — catch não trata AbortError como erro real (retorna silenciosamente)
+setState gateado em mountedRef.current — nenhum setState roda após desmontagem
+Backend — help.ts
+6. HelpHistoryMsg interface — tipo estendido com imageUrls? para distinguir rawHistory de conversationHistory
+
+fetchHistoryImageAsDataUrl helper — rebusca imagem do GCS via UUID extraído da URL /help/images/{uuid} e retorna data URL base64
+rawHistory vs conversationHistory — rawHistory preserva imageUrls para reinserção; conversationHistory (texto-only) alimenta todas as funções de intent/contexto existentes
+Reinserção multimodal no histórico — a última mensagem com imageUrls é reconstruída com image_url[] + texto para o OpenAI vision manter contexto visual entre turnos
+semanticNormalize no histórico — mensagens user do histórico também são normalizadas antes de ir para a OpenAI
+AbortController no endpoint — req.on("close", () => ac.abort()) + signal: ac.signal no openai.chat.completions.create libera o slot de streaming quando o cliente desconecta
+Correção de roteamento de módulos — "Prompt" substituído por "Criar Imagem" + "Prompts Salvos" separado com caminho correto
+REDIRECIONAMENTO ACOLHEDOR — removida a frase "Posso te mostrar o que preencher em cada campo" (implica execução indevida)
+buildVisionInstruction — adicionada regra: se o tipo de análise já foi confirmado no histórico recente, iniciar análise diretamente sem repetir a pergunta de confirmação
