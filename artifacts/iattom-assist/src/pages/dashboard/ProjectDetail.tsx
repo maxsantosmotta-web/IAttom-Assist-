@@ -469,6 +469,7 @@ function extractImages(type: string, parsed: { result: unknown; creatives?: Crea
 }
 
 function ImagesSection({ images, onPreview }: { images: ImageEntry[]; onPreview: (img: ImageEntry, idx: number) => void }) {
+  if (images.length === 0) return null;
   const handleDownload = (img: ImageEntry, idx: number) => {
     const a = document.createElement("a");
     a.href = `data:image/png;base64,${img.base64}`;
@@ -478,49 +479,38 @@ function ImagesSection({ images, onPreview }: { images: ImageEntry[]; onPreview:
   return (
     <div>
       <SectionTitle>Imagens do Projeto</SectionTitle>
-      {images.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-10 rounded-xl border border-white/[0.05] bg-[#0a0a0a] text-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
-            <ImageOff className="w-5 h-5 text-zinc-700" />
-          </div>
-          <p className="text-xs text-zinc-500 max-w-[280px] leading-relaxed">
-            As imagens originais não estão armazenadas neste projeto. Gere ou salve novamente para manter os arquivos visuais.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {images.map((img, i) => (
-            <div key={i} className="rounded-xl border border-white/[0.06] bg-[#0a0a0a] overflow-hidden group/img">
-              <button
-                onClick={() => onPreview(img, i)}
-                className="block w-full relative"
-                title="Clique para ampliar"
-              >
-                <img
-                  src={`data:image/png;base64,${img.base64}`}
-                  alt={img.label}
-                  className="w-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/30 transition-colors duration-200 flex items-center justify-center">
-                  <span className="text-white text-xs font-medium opacity-0 group-hover/img:opacity-100 transition-opacity duration-200 bg-black/60 px-3 py-1.5 rounded-full">
-                    Ampliar
-                  </span>
-                </div>
-              </button>
-              <div className="p-3 flex items-center justify-between gap-2">
-                <p className="text-xs text-zinc-400 truncate">{img.label}</p>
-                <button
-                  onClick={() => handleDownload(img, i)}
-                  className="flex items-center gap-1 text-xs text-zinc-500 hover:text-primary transition-colors shrink-0"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Baixar
-                </button>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {images.map((img, i) => (
+          <div key={i} className="rounded-xl border border-white/[0.06] bg-[#0a0a0a] overflow-hidden group/img">
+            <button
+              onClick={() => onPreview(img, i)}
+              className="block w-full relative"
+              title="Clique para ampliar"
+            >
+              <img
+                src={`data:image/png;base64,${img.base64}`}
+                alt={img.label}
+                className="w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/30 transition-colors duration-200 flex items-center justify-center">
+                <span className="text-white text-xs font-medium opacity-0 group-hover/img:opacity-100 transition-opacity duration-200 bg-black/60 px-3 py-1.5 rounded-full">
+                  Ampliar
+                </span>
               </div>
+            </button>
+            <div className="p-3 flex items-center justify-between gap-2">
+              <p className="text-xs text-zinc-400 truncate">{img.label}</p>
+              <button
+                onClick={() => handleDownload(img, i)}
+                className="flex items-center gap-1 text-xs text-zinc-500 hover:text-primary transition-colors shrink-0"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Baixar
+              </button>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
