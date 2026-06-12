@@ -255,6 +255,7 @@ export async function generateVideo(payload: HeyGenVideoPayload): Promise<{ vide
     voice_id:     payload.voiceId,
     aspect_ratio: aspectRatio,
     background,
+    voice_speed:  1.25,
   };
 
   logger.info(

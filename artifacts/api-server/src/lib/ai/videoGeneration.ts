@@ -304,6 +304,47 @@ Entre ${minWords} e ${maxWords} palavras. Apenas a fala, sem nenhum outro texto.
   throw new Error("Não foi possível gerar o roteiro. Tente simplificar o prompt.");
 }
 
+// ─── Detecção automática de estilo pelo prompt ───────────────────────────────
+//
+// Analisa palavras-chave do prompt para distribuir o uso entre os 3 estilos
+// do catálogo, alcançando automaticamente os 6 avatares (2 por estilo).
+//
+// Regras de pontuação:
+//   criador    — marketing, reels, vendas, produto, promoção, campanhas
+//   consultor  — estratégia, dica, como fazer, problema, solução, especialista
+//   executivo  — institucional, autoridade, marca (default quando empatado)
+//
+// Esta função é usada SOMENTE para selecionar o avatar_id via getOfficialAvatarId.
+// O estilo declarado pelo frontend (params.videoEstilo) permanece inalterado
+// para todos os outros fins (logging, resultado, roteiro).
+
+function detectEstiloFromPrompt(
+  prompt: string,
+): "executivo" | "consultor" | "criador" {
+  const p = prompt.toLowerCase();
+
+  const criadorSignals = [
+    "reels", "viral", "stories", "tiktok", "instagram",
+    "vendas", "vender", "oferta", "promoção", "desconto", "lançamento",
+    "marketing", "anúncio", "campanha", "compre", "garanta", "aproveite",
+    "conversão", "cliente", "público", "audiência", "engajamento",
+  ];
+
+  const consultorSignals = [
+    "consultoria", "diagnóstico", "estratégia", "estratégico",
+    "dica", "como fazer", "passo a passo", "aprenda", "ensinar",
+    "solução", "problema", "orientar", "ajuda", "suporte",
+    "especialista", "expert", "guia", "tutorial", "método",
+  ];
+
+  const criadorScore  = criadorSignals.filter((s) => p.includes(s)).length;
+  const consultorScore = consultorSignals.filter((s) => p.includes(s)).length;
+
+  if (criadorScore > consultorScore)  return "criador";
+  if (consultorScore > criadorScore)  return "consultor";
+  return "executivo";
+}
+
 // ─── Duração efetiva (com promoção) ─────────────────────────────────────────
 
 function effectiveDuration(script: string, requested: number): number {
@@ -404,8 +445,11 @@ export async function streamVideoGeneration(
     // ── Modo real via HeyGen ─────────────────────────────────────────────────
     sendSSE(res, { type: "progress", message: "Preparando personagem..." });
 
-    // Seleção por catálogo oficial: videoEstilo × videoAvatar
-    const avatarId = getOfficialAvatarId(params.videoEstilo, params.videoAvatar);
+    // Seleção por catálogo oficial: estilo detectado automaticamente × gênero escolhido
+    // detectEstiloFromPrompt analisa o prompt e distribui entre executivo/consultor/criador,
+    // permitindo o uso dos 6 avatares do catálogo sem seletor manual.
+    const detectedEstilo = detectEstiloFromPrompt(params.videoPrompt);
+    const avatarId = getOfficialAvatarId(detectedEstilo, params.videoAvatar);
     const voiceId = VOICE_IDS[params.videoAvatar];
 
     if (!voiceId) {
