@@ -244,8 +244,8 @@ export function CreativeGenerator() {
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
-  // Video state — estilo e ambiente são fixos (não selecionáveis pelo usuário)
-  const videoEstilo: VideoEstilo = "executivo";
+  // Video state — estilo selecionado pelo usuário (null = não selecionado, bloqueia geração)
+  const [videoEstilo, setVideoEstilo] = useState<VideoEstilo | null>(null);
   const videoAmbiente = "corporativo";
   const [videoAvatar, setVideoAvatar] = useState<"masculino" | "feminino">("masculino");
   const [videoFormato, setVideoFormato] = useState<VideoFormato>("9:16");
@@ -366,9 +366,10 @@ export function CreativeGenerator() {
         if (Array.isArray(f.selectedFormats)) setSelectedFormats(f.selectedFormats.slice(0, MAX_FORMATS));
         setRestoredResult(persisted.result as CreativeIdeasResult);
       } else if (persisted.type === "video" && persisted.result) {
-        const f = persisted.form as { videoPrompt?: string; videoAvatar?: string; videoFormato?: string; videoDuration?: number };
+        const f = persisted.form as { videoPrompt?: string; videoEstilo?: string; videoAvatar?: string; videoFormato?: string; videoDuration?: number };
         setCreativeType("video");
         if (f.videoPrompt) setVideoPrompt(f.videoPrompt);
+        if (f.videoEstilo && ["executivo", "consultor", "criador"].includes(f.videoEstilo)) setVideoEstilo(f.videoEstilo as VideoEstilo);
         if (f.videoAvatar && ["masculino", "feminino"].includes(f.videoAvatar)) setVideoAvatar(f.videoAvatar as "masculino" | "feminino");
         if (f.videoFormato && ["9:16", "1:1", "16:9"].includes(f.videoFormato)) setVideoFormato(f.videoFormato as VideoFormato);
         if (f.videoDuration === 30) setVideoDuration(30);
@@ -407,7 +408,9 @@ export function CreativeGenerator() {
       if (saved.type === "video") {
         // Restaurar vídeo salvo
         setCreativeType("video");
-        // videoEstilo e videoAmbiente são constantes fixas — não há setter
+        if (saved.videoEstilo && ["executivo", "consultor", "criador"].includes(saved.videoEstilo)) {
+          setVideoEstilo(saved.videoEstilo as VideoEstilo);
+        }
         if (saved.videoAvatar && ["masculino", "feminino"].includes(saved.videoAvatar)) {
           setVideoAvatar(saved.videoAvatar as "masculino" | "feminino");
         }
@@ -459,7 +462,7 @@ export function CreativeGenerator() {
   // Auto-salvar vídeo gerado no localStorage
   useEffect(() => {
     if (videoStatus === "done" && videoResult) {
-      saveModuleState("creative", { type: "video", form: { videoPrompt, videoAvatar, videoFormato, videoDuration }, result: videoResult });
+      saveModuleState("creative", { type: "video", form: { videoPrompt, videoEstilo, videoAvatar, videoFormato, videoDuration }, result: videoResult });
     }
   }, [videoStatus, videoResult, videoPrompt, videoAvatar, videoFormato, videoDuration]);
 
@@ -628,7 +631,7 @@ export function CreativeGenerator() {
   const resultCount = Array.isArray(activeResult?.concepts) ? activeResult.concepts.length : 0;
 
   // ── Vídeo ────────────────────────────────────────────────────────────────
-  const canGenerateVideo = !!videoPrompt.trim();
+  const canGenerateVideo = !!videoPrompt.trim() && !!videoEstilo;
   const isVideoGenerating = videoStatus === "generating";
   const isVideoDone = videoStatus === "done";
   const isVideoError = videoStatus === "error";
@@ -637,6 +640,7 @@ export function CreativeGenerator() {
   const isVideoRestoredMode = !!restoredVideoResult && videoStatus === "idle";
 
   const runVideoGenerate = (charge: () => void) => {
+    if (!videoEstilo) return;
     setRestoredVideoResult(null);
     videoChargedFeatureRef.current = "creativeVideo20";
     videoGenerate("/api/ai/generate-video", {
@@ -739,7 +743,7 @@ export function CreativeGenerator() {
         const recovered: VideoGenerationResult = {
           videoUrl: statusData.videoUrl,
           durationSeconds: 30,
-          videoEstilo,
+          videoEstilo: videoEstilo ?? "executivo",
           videoAvatar,
           videoAmbiente,
           videoFormato,
@@ -1008,6 +1012,28 @@ export function CreativeGenerator() {
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* Estilo do personagem */}
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    {VIDEO_ESTILOS.map((e) => (
+                      <button
+                        key={e.key}
+                        onClick={() => setVideoEstilo(e.key)}
+                        className={`flex-1 flex items-center justify-center py-2 rounded-lg border text-xs font-medium transition-colors ${
+                          videoEstilo === e.key
+                            ? "bg-primary/15 text-primary border-primary/30"
+                            : "bg-[#0a0a0a] text-zinc-500 border-white/[0.08] hover:border-white/20 hover:text-zinc-300"
+                        }`}
+                      >
+                        {e.label}
+                      </button>
+                    ))}
+                  </div>
+                  {!videoEstilo && (
+                    <p className="text-[11px] text-red-400/80">Selecione um personagem.</p>
+                  )}
                 </div>
 
                 {/* Formato do vídeo */}
