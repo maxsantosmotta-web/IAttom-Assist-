@@ -604,28 +604,31 @@ export function ProjectDetail() {
       if (!resolved) return;
 
       // 3. Load images: IndexedDB first (local cache), then API fallback (cross-device)
+      let imagesFromIdb = false;
       try {
         const idbAssets = await loadProjectAssets(id);
         if (idbAssets.length > 0) {
           setIdbImages(idbAssets.map(a => ({ label: a.label, base64: a.base64, format: a.format })));
           setImagesLoadDone(true);
-          return;
+          imagesFromIdb = true;
         }
       } catch { /* IndexedDB unavailable */ }
 
       // 4. No local images — try API assets (persisted on save device)
-      try {
-        const apiAssets = await getItemAssets(id);
-        if (apiAssets.length > 0) {
-          setIdbImages(apiAssets.map(a => ({ label: a.label, base64: a.base64, format: a.format })));
-          // Populate IndexedDB as cache for offline use
-          void saveProjectAssets(id, apiAssets).catch(() => {});
-        }
-      } catch { /* API unavailable */ }
+      if (!imagesFromIdb) {
+        try {
+          const apiAssets = await getItemAssets(id);
+          if (apiAssets.length > 0) {
+            setIdbImages(apiAssets.map(a => ({ label: a.label, base64: a.base64, format: a.format })));
+            // Populate IndexedDB as cache for offline use
+            void saveProjectAssets(id, apiAssets).catch(() => {});
+          }
+        } catch { /* API unavailable */ }
 
-      setImagesLoadDone(true);
+        setImagesLoadDone(true);
+      }
 
-      // 5. Load video assets (dedicated column — never touches data/content)
+      // 5. Load video assets — always runs regardless of image loading path
       try {
         const videoAssets = await getItemVideoAssets(id);
         if (videoAssets.length > 0) setLinkedVideos(videoAssets);

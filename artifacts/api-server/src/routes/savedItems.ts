@@ -9,6 +9,7 @@ const router: IRouter = Router();
 const TRASH_TTL_MS = 48 * 60 * 60 * 1000;
 
 // Columns returned in list views — excludes imagesData (can be several MB per row)
+// videosData is included because it stores only video URLs/metadata (not base64)
 const LIST_COLUMNS = {
   id: savedItemsTable.id,
   clerkUserId: savedItemsTable.clerkUserId,
@@ -18,6 +19,7 @@ const LIST_COLUMNS = {
   content: savedItemsTable.content,
   data: savedItemsTable.data,
   hasImages: savedItemsTable.hasImages,
+  videosData: savedItemsTable.videosData,
   createdAt: savedItemsTable.createdAt,
   deletedAt: savedItemsTable.deletedAt,
   expiresAt: savedItemsTable.expiresAt,

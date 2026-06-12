@@ -13,6 +13,7 @@ export interface SavedItemPayload {
 
 export interface SavedItemRecord extends SavedItemPayload {
   clerkUserId: string;
+  videosData?: string | null;
   createdAt: string;
   deletedAt: string | null;
   expiresAt: string | null;

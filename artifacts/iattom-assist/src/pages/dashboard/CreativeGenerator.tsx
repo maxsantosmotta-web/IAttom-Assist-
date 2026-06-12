@@ -1373,7 +1373,15 @@ export function CreativeGenerator() {
               </div>
             ) : (
               <div className="max-h-64 overflow-y-auto space-y-1.5 mt-2 pr-0.5">
-                {existingProjects.map((proj) => (
+                {existingProjects.map((proj) => {
+                  const hasImg = !!proj.hasImages;
+                  const hasVid = !!proj.videosData;
+                  const mediaLabel = hasImg && hasVid
+                    ? "Imagem e vídeo existentes"
+                    : hasImg ? "Imagem existente"
+                    : hasVid ? "Vídeo existente"
+                    : null;
+                  return (
                   <button
                     key={proj.id}
                     onClick={() => handleSelectProject(proj)}
@@ -1383,16 +1391,16 @@ export function CreativeGenerator() {
                       <p className="text-sm text-white truncate">{proj.title}</p>
                       <p className="text-[11px] text-zinc-600 mt-0.5">
                         {({ campaign: "Campanha", content: "Conteúdo", creative: "Criativo", video_script: "Script", product_discovery: "Produtos", product_validation: "Validação" }[proj.type] ?? "Projeto")}
-                        {proj.hasImages ? " · Já tem imagem" : ""}
                       </p>
                     </div>
-                    {proj.hasImages && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
-                        Substituir
+                    {mediaLabel && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 border border-white/[0.08] shrink-0 whitespace-nowrap">
+                        {mediaLabel}
                       </span>
                     )}
                   </button>
-                ))}
+                  );
+                })}
               </div>
             )}
             <DialogFooter className="mt-3">
@@ -1498,7 +1506,15 @@ export function CreativeGenerator() {
               </div>
             ) : (
               <div className="max-h-64 overflow-y-auto space-y-1.5 mt-2 pr-0.5">
-                {videoSaveProjects.map((proj) => (
+                {videoSaveProjects.map((proj) => {
+                  const hasImg = !!proj.hasImages;
+                  const hasVid = !!proj.videosData;
+                  const mediaLabel = hasImg && hasVid
+                    ? "Imagem e vídeo existentes"
+                    : hasImg ? "Imagem existente"
+                    : hasVid ? "Vídeo existente"
+                    : null;
+                  return (
                   <button
                     key={proj.id}
                     onClick={() => void doVideoSaveToExisting(proj)}
@@ -1510,9 +1526,16 @@ export function CreativeGenerator() {
                         {({ campaign: "Campanha", content: "Conteúdo", creative: "Criativo", video_script: "Script", product_discovery: "Produtos", product_validation: "Validação" }[proj.type] ?? "Projeto")}
                       </p>
                     </div>
-                    <ChevronRight className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
+                    {mediaLabel ? (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-zinc-400 border border-white/[0.08] shrink-0 whitespace-nowrap">
+                        {mediaLabel}
+                      </span>
+                    ) : (
+                      <ChevronRight className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
+                    )}
                   </button>
-                ))}
+                  );
+                })}
               </div>
             )}
             <DialogFooter className="mt-3">
