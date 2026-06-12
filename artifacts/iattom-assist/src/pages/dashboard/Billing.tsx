@@ -141,7 +141,7 @@ const CREDIT_BTN: Record<string, string> = {
 
 const PLAN_DESC: Record<string, string> = {
   free:     "Plano de demonstração para conhecer o IAttom Assist antes de contratar um plano pago.",
-  pro:      "Melhor custo-benefício. Tudo que você precisa para crescer.",
+  pro:      "Ideal para quem deseja começar a criar campanhas, imagens e utilizar os principais recursos do IAttom Assist.",
   business: "Recursos avançados e automações para escalar.",
   agency:   "Experiência máxima. Ideal para agências e times.",
 };
@@ -549,12 +549,39 @@ export function Billing() {
                           </li>
                         ))}
                       </>
+                    ) : planKey === "pro" ? (
+                      <>
+                        {[
+                          "Criar Prompt (30 utilizações)",
+                          "Criar Campanha (25 utilizações)",
+                          "Criar Imagem (10 imagens)",
+                          "IAttom Help (200 mensagens)",
+                          "Navegação pela Plataforma",
+                          "Publicação Assistida",
+                          "Recursos de análise e monitoramento",
+                          "Biblioteca",
+                        ].map((f) => (
+                          <li key={f} className="flex items-start gap-2">
+                            <Check className="w-3.5 h-3.5 shrink-0 mt-0.5 text-[#C9A84C]" />
+                            <span className="text-xs text-zinc-400">{f}</span>
+                          </li>
+                        ))}
+                        {[
+                          "Buscar Produtos",
+                          "Validar Produto",
+                          "Criar Conteúdo",
+                          "Scripts de Vídeo",
+                        ].map((f) => (
+                          <li key={f} className="flex items-start gap-2">
+                            <CircleSlash className="w-3.5 h-3.5 shrink-0 mt-0.5 text-zinc-600" />
+                            <span className="text-xs text-zinc-600">{f}</span>
+                          </li>
+                        ))}
+                      </>
                     ) : (
                       plan.features.map((feature) => (
                         <li key={feature} className="flex items-start gap-2">
-                          <Check className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${
-                            planKey === "pro" ? "text-[#C9A84C]" : "text-zinc-500"
-                          }`} />
+                          <Check className="w-3.5 h-3.5 shrink-0 mt-0.5 text-zinc-500" />
                           <span className="text-xs text-zinc-400">{feature}</span>
                         </li>
                       ))
