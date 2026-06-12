@@ -6,7 +6,7 @@ import { openai } from "@workspace/integrations-openai-ai-server";
 import { setupSSE, sendSSE, sendSSEError, sendSSEDone } from "../lib/ai/stream.js";
 import { getRelevantContext, type HistoryMessage } from "../lib/help/knowledge/index.js";
 import { db, helpMessages } from "@workspace/db";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, and } from "drizzle-orm";
 import { semanticNormalize } from "../lib/ai/semanticNormalize.js";
 import { objectStorageClient } from "../lib/objectStorage.js";
 
@@ -301,7 +301,7 @@ EXPRESSÕES PROIBIDAS QUANDO O OBJETIVO FOR GERAÇÃO:
 INTENÇÕES INDIRETAS que também disparam bloqueio imediato (redirecionar sem coletar dados):
 "preparar arte", "criar arte", "criar criativo", "foto de produto", "arte para vender", "anúncio", "copy", "legenda", "texto para postagem", "roteiro", "script", "prompt", "prompt de imagem", "prompt de vídeo", "estrutura de campanha", "promessa", "headline", "CTA", "criar anúncio", "vender produto", "preparar campanha", "montar campanha", "fazer campanha", "fazer conteúdo", "criar conteúdo", "preparar conteúdo", "montar conteúdo", "fazer prompt", "preparar prompt", "montar prompt".
 
-Quando bloqueado: redirecione com calor e utilidade — "Essa necessidade será atendida pelo módulo [X]. Caminho: Dashboard → [X]."
+Quando bloqueado: redirecione com calor e utilidade — "Essa necessidade será atendida pelo módulo [X]."
 Nunca elabore o conteúdo do módulo. Nunca descreva campos, estrutura interna ou elementos que seriam inseridos no módulo.
 Nunca bloqueie com frieza. Quando o próximo passo envolver geração, criação, execução, campanha, conteúdo, prompt, roteiro, copy, headline, CTA, briefing, promessa, funil ou checklist, direcione ao módulo correto e encerre — não planeje nem prepare.
 Encerre a resposta após o direcionamento — sem perguntas adicionais, sem coleta de dados, sem preparação.
@@ -594,18 +594,18 @@ PROIBIDO REVISAR PARA PUBLICAÇÃO: não revisar briefing, promessa, roteiro, ca
 PROIBIDO COLETAR DADOS PARA GERAÇÃO: não solicitar produto, público, formato, plataforma, objetivo, promessa, briefing, CTA, headline, estilo visual, cores, dimensões ou nicho quando forem usados para gerar material.
 
 Quando o usuário pedir entrega completa, redirecione com utilidade — CAMINHOS OBRIGATÓRIOS:
-- Campanha completa → "Essa necessidade será atendida pelo módulo Criar Campanha. Caminho: Dashboard → Criar Campanha."
-- Conteúdo, post, legenda ou copy → "Essa necessidade será atendida pelo módulo Criar Conteúdo. Caminho: Dashboard → Criar Conteúdo."
-- Prompt (criar, montar, preparar, fazer, reutilizar) → "Essa necessidade será atendida pelo módulo Criar Prompt. Caminho: Dashboard → Criar Prompt."
-- Imagem, criativo visual ou arte → "Essa necessidade será atendida pelo módulo Criar Imagem. Caminho: Dashboard → Criar Imagem."
-- Roteiro, script ou vídeo → "Essa necessidade será atendida pelo módulo Scripts de Vídeo. Caminho: Dashboard → Scripts de Vídeo."
-- Encontrar produto → "Use o módulo Buscar Produtos. Caminho: Dashboard → Buscar Produtos."
-- Validar produto → "Use o módulo Validar Produto. Caminho: Dashboard → Validar Produto."
-- Publicar ou anunciar → "Use o módulo da plataforma correspondente. Caminho: Dashboard → [plataforma]."
-- Projetos, campanhas ou históricos salvos → "Acesse a Biblioteca. Caminho: Dashboard → Biblioteca."
+- Campanha completa → "Essa necessidade será atendida pelo módulo Criar Campanha."
+- Conteúdo, post, legenda ou copy → "Essa necessidade será atendida pelo módulo Criar Conteúdo."
+- Prompt (criar, montar, preparar, fazer, reutilizar) → "Essa necessidade será atendida pelo módulo Criar Prompt."
+- Imagem, criativo visual ou arte → "Essa necessidade será atendida pelo módulo Criar Imagem."
+- Roteiro, script ou vídeo → "Essa necessidade será atendida pelo módulo Scripts de Vídeo."
+- Encontrar produto → "Use o módulo Buscar Produtos."
+- Validar produto → "Use o módulo Validar Produto."
+- Publicar ou anunciar → "Use o módulo da plataforma correspondente."
+- Materiais ou históricos salvos → "Acesse a Biblioteca."
 
 REDIRECIONAMENTO CORRETO (encerrar após o direcionamento — sem perguntas, sem coleta):
-"Essa necessidade será atendida pelo módulo [X]. Caminho: Dashboard → [X]."
+"Essa necessidade será atendida pelo módulo [X]."
 Nunca bloqueie com frieza. Sempre direcione para o módulo correto ao encerrar.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -638,7 +638,7 @@ REDIRECIONAMENTO ACOLHEDOR (OBRIGATÓRIO)
 Nunca bloqueie com frieza. Quando não puder executar algo, oriente com calor e utilidade.
 
 ERRADO: "Não posso fazer isso."
-CERTO: "Entendi o que você precisa. Essa ação é feita no módulo Criar Campanha. Caminho: Dashboard → Criar Campanha."
+CERTO: "Entendi o que você precisa. Essa ação é feita no módulo Criar Campanha."
 
 O usuário deve sair de cada interação sentindo que foi bem atendido — mesmo quando a resposta for um redirecionamento. Sempre termine com o módulo correto indicado quando houver intenção de criação ou execução.
 
@@ -1665,10 +1665,16 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
     imageBase64?: string; // legacy single-image field — still accepted
   };
 
-  if (!message || typeof message !== "string" || message.trim() === "") {
-    res.status(400).json({ error: "message é obrigatório." });
+  const hasMessage = typeof message === "string" && message.trim() !== "";
+  const rawImgsPre = req.body as { images?: unknown; imageBase64?: unknown };
+  const hasImagesPre = Array.isArray(rawImgsPre.images)
+    ? rawImgsPre.images.length > 0
+    : typeof rawImgsPre.imageBase64 === "string" && rawImgsPre.imageBase64.length > 0;
+  if (!hasMessage && !hasImagesPre) {
+    res.status(400).json({ error: "Envie uma mensagem ou imagem." });
     return;
   }
+  const effectiveMessage = hasMessage ? (message as string).trim() : "";
 
   // Support both new `images[]` and legacy `imageBase64` field
   const rawImages: string[] = Array.isArray((req.body as { images?: string[] }).images)
@@ -1703,7 +1709,7 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
   // ──────────────────────────────────────────────────────────────────────────
 
   // ── Continuation detection ────────────────────────────────────────────────
-  const isContinuation = detectContinuation(message);
+  const isContinuation = detectContinuation(effectiveMessage);
   const lastAssistantContent =
     conversationHistory
       .filter((m) => m.role === "assistant")
@@ -1715,23 +1721,23 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
 
   // ── Retrieval ──────────────────────────────────────────────────────────────
   let { context: relevantContext, outOfScope, intent, nearDomain } = getRelevantContext(
-    message,
+    effectiveMessage,
     conversationHistory
   );
 
   // ── Correção 3: Context + refusal loop protections ────────────────────────
 
   // Extract significant terms from query (siglas ≥2 UPPERCASE, words ≥6 non-stopword)
-  const significantTerms = extractSignificantTerms(message);
+  const significantTerms = extractSignificantTerms(effectiveMessage);
 
   // Bloco 7 (improved): term used by assistant OR user is asking about a term
   const termInHistory = isSignificantTermInAssistantHistory(significantTerms, conversationHistory);
-  const askingAboutTerm = isAskingAboutTerm(message);
+  const askingAboutTerm = isAskingAboutTerm(effectiveMessage);
   const isTermContext = outOfScope && (termInHistory || (askingAboutTerm && conversationHistory.length > 0));
 
   // Bloco 8 (improved): last response was refusal AND user is contesting it
   const wasRefusal = lastResponseWasRefusal(conversationHistory);
-  const isContesting = isContestingRefusal(message);
+  const isContesting = isContestingRefusal(effectiveMessage);
   const isRefusalLoop = outOfScope && wasRefusal && (isContesting || askingAboutTerm);
 
   // ── Shared: recent history block for consultive prompts ───────────────────
@@ -1820,9 +1826,9 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
           type: "image_url" as const,
           image_url: { url: img, detail: "auto" as const },
         })),
-        { type: "text" as const, text: semanticNormalize(message) },
+        { type: "text" as const, text: semanticNormalize(effectiveMessage) },
       ]
-    : semanticNormalize(message);
+    : semanticNormalize(effectiveMessage);
 
   // ── History image reinsertion ──────────────────────────────────────────────
   // Locate the last user message in rawHistory that carries imageUrls.
@@ -1920,7 +1926,7 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
       try {
         const retryMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
           { role: "system", content: buildContextualReasoningPrompt(conversationHistory) + sessionUserCtxBlock },
-          { role: "user", content: semanticNormalize(message) },
+          { role: "user", content: semanticNormalize(effectiveMessage) },
         ];
         const retryStream = await openai.chat.completions.create({
           model: "gpt-5-mini",
@@ -2036,6 +2042,31 @@ router.delete("/help/history", requireAuth, async (req, res): Promise<void> => {
   } catch {
     req.log.error({ msg: "Error clearing help history", userId });
     res.status(500).json({ error: "Erro ao limpar histórico." });
+  }
+});
+
+// ── Delete single message ─────────────────────────────────────────────────────
+router.delete("/help/messages/:id", requireAuth, async (req, res): Promise<void> => {
+  const userId = getAuth(req)?.userId;
+  if (!userId) { res.status(401).json({ error: "Não autenticado." }); return; }
+
+  const msgId = parseInt(req.params["id"] as string, 10);
+  if (isNaN(msgId)) { res.status(400).json({ error: "ID inválido." }); return; }
+
+  try {
+    const result = await db
+      .delete(helpMessages)
+      .where(and(eq(helpMessages.id, msgId), eq(helpMessages.clerkUserId, userId)))
+      .returning({ id: helpMessages.id });
+
+    if (result.length === 0) {
+      res.status(404).json({ error: "Mensagem não encontrada." });
+      return;
+    }
+    res.json({ ok: true });
+  } catch {
+    req.log.error({ msg: "Error deleting help message", userId, msgId });
+    res.status(500).json({ error: "Erro ao excluir mensagem." });
   }
 });
 

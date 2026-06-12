@@ -56,12 +56,15 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
   const [syncDoneLabel, setSyncDoneLabel] = useState("Atualizado agora");
   const [confirmClear,  setConfirmClear]  = useState(false);
 
-  const [attachedImages, setAttachedImages] = useState<AttachedImage[]>([]);
+  const [attachedImages,   setAttachedImages]   = useState<AttachedImage[]>([]);
+  const [longPressedMsgId, setLongPressedMsgId] = useState<string | null>(null);
+  const [hoveredMsgId,     setHoveredMsgId]     = useState<string | null>(null);
 
   const messagesEndRef     = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef           = useRef<HTMLTextAreaElement>(null);
   const fileInputRef       = useRef<HTMLInputElement>(null);
+  const pressTimerRef      = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // AbortController for the in-flight /help/chat SSE request
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -444,16 +447,41 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      void sendMessage();
-    }
+  const handleKeyDown = (_e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Enter always inserts a newline — send via the button only.
+    // This ensures natural multiline input on all platforms including mobile.
   };
 
   const hasHistory =
     messages.length > 1 ||
     (messages.length === 1 && messages[0].id !== "init");
+
+  // ── Delete single message ────────────────────────────────────────────────────
+  const deleteMessage = async (msgId: string) => {
+    setLongPressedMsgId(null);
+    setHoveredMsgId(null);
+    // Optimistic remove from UI
+    setMessages((prev) => prev.filter((m) => m.id !== msgId));
+    // Fire-and-forget server delete — only works for DB-persisted messages (numeric id)
+    if (/^\d+$/.test(msgId)) {
+      try {
+        await fetch(`${BASE_URL}/api/help/messages/${msgId}`, {
+          method: "DELETE",
+          credentials: "include",
+        });
+      } catch {
+        // silent — message is already removed from local state
+      }
+    }
+  };
+
+  // ── Long-press handlers (mobile) ────────────────────────────────────────────
+  const startPress = (msgId: string) => {
+    pressTimerRef.current = setTimeout(() => setLongPressedMsgId(msgId), 500);
+  };
+  const cancelPress = () => {
+    if (pressTimerRef.current) { clearTimeout(pressTimerRef.current); pressTimerRef.current = null; }
+  };
 
   // Subtitle shown below the panel title — shows sync status feedback
   const subtitleText =
@@ -617,49 +645,69 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
                   </span>
                 </div>
               ) : (
-                messages.map((msg) => (
+                messages.map((msg) => {
+                  const canDelete = !msg.streaming && msg.id !== "init";
+                  const showDeleteBtn = canDelete && (hoveredMsgId === msg.id || longPressedMsgId === msg.id);
+                  return (
                   <div
                     key={msg.id}
-                    className={`flex gap-2.5 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
+                    className={`relative flex gap-2.5 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
+                    onMouseEnter={() => canDelete && setHoveredMsgId(msg.id)}
+                    onMouseLeave={() => { setHoveredMsgId(null); if (longPressedMsgId === msg.id) setLongPressedMsgId(null); }}
+                    onTouchStart={() => canDelete && startPress(msg.id)}
+                    onTouchEnd={cancelPress}
+                    onTouchMove={cancelPress}
                   >
                     {msg.role === "assistant" && (
                       <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
                         <LogoMark size={15} />
                       </div>
                     )}
-                    <div
-                      className={`max-w-[82%] rounded-2xl px-4 py-3 text-[13px] leading-relaxed whitespace-pre-wrap ${
-                        msg.role === "user"
-                          ? "bg-primary/10 text-zinc-200 rounded-tr-sm border border-primary/[0.15]"
-                          : "bg-white/[0.04] text-zinc-300 rounded-tl-sm border border-white/[0.06]"
-                      }`}
-                    >
-                      {msg.imageUrls && msg.imageUrls.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mb-2">
-                          {msg.imageUrls.map((url, idx) => (
-                            <img
-                              key={idx}
-                              src={url}
-                              alt={`Imagem ${idx + 1}`}
-                              className="max-h-40 max-w-[48%] rounded-lg object-contain border border-white/10"
-                            />
-                          ))}
-                        </div>
-                      )}
-                      {msg.content}
-                      {msg.streaming && msg.content === "" && (
-                        <span className="inline-flex gap-1 items-center h-4">
-                          <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: "0ms" }} />
-                          <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: "150ms" }} />
-                          <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: "300ms" }} />
-                        </span>
-                      )}
-                      {msg.streaming && msg.content !== "" && (
-                        <span className="inline-block w-0.5 h-3.5 bg-primary ml-0.5 animate-pulse align-middle" />
+                    <div className="relative">
+                      <div
+                        className={`max-w-[82%] rounded-2xl px-4 py-3 text-[13px] leading-relaxed whitespace-pre-wrap ${
+                          msg.role === "user"
+                            ? "bg-primary/10 text-zinc-200 rounded-tr-sm border border-primary/[0.15]"
+                            : "bg-white/[0.04] text-zinc-300 rounded-tl-sm border border-white/[0.06]"
+                        }`}
+                      >
+                        {msg.imageUrls && msg.imageUrls.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                            {msg.imageUrls.map((url, idx) => (
+                              <img
+                                key={idx}
+                                src={url}
+                                alt={`Imagem ${idx + 1}`}
+                                className="max-h-40 max-w-[48%] rounded-lg object-contain border border-white/10"
+                              />
+                            ))}
+                          </div>
+                        )}
+                        {msg.content}
+                        {msg.streaming && msg.content === "" && (
+                          <span className="inline-flex gap-1 items-center h-4">
+                            <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: "0ms" }} />
+                            <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: "150ms" }} />
+                            <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: "300ms" }} />
+                          </span>
+                        )}
+                        {msg.streaming && msg.content !== "" && (
+                          <span className="inline-block w-0.5 h-3.5 bg-primary ml-0.5 animate-pulse align-middle" />
+                        )}
+                      </div>
+                      {showDeleteBtn && (
+                        <button
+                          onClick={() => void deleteMessage(msg.id)}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center hover:bg-red-900/60 hover:border-red-500/30 transition-colors z-10"
+                          aria-label="Excluir mensagem"
+                        >
+                          <X className="w-2.5 h-2.5 text-zinc-400" />
+                        </button>
                       )}
                     </div>
                   </div>
-                ))
+                  );
+                })
               )}
               <div ref={messagesEndRef} />
               </div>
@@ -728,7 +776,7 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
                   value={input}
                   onChange={(e) => { setInput(e.target.value); autoResize(e.target); }}
                   onKeyDown={handleKeyDown}
-                  placeholder="Pergunte algo... (Shift+Enter para nova linha)"
+                  placeholder="Pergunte algo sobre o IAttom Assist..."
                   rows={1}
                   disabled={loading || !historyLoaded || syncStatus !== "idle"}
                   className="flex-1 resize-none bg-transparent text-[13px] text-zinc-200 placeholder:text-zinc-600 outline-none leading-relaxed overflow-y-auto sidebar-scroll"
@@ -750,7 +798,7 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
                 </button>
                 <button
                   onClick={() => void sendMessage()}
-                  disabled={!input.trim() || loading || !historyLoaded}
+                  disabled={(!input.trim() && attachedImages.length === 0) || loading || !historyLoaded}
                   className="w-7 h-7 flex items-center justify-center rounded-lg bg-primary text-black shrink-0 mb-0.5 disabled:opacity-30 disabled:cursor-not-allowed hover:brightness-110 active:scale-95 transition-all"
                   aria-label="Enviar mensagem"
                 >
