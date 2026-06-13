@@ -25,13 +25,14 @@ async function getStripeCredentials(): Promise<{ secretKey: string; webhookSecre
       );
       if (resp.ok) {
         const data = await resp.json() as {
-          items?: Array<{ settings?: { secret_key?: string; webhook_secret?: string } }>;
+          items?: Array<{ settings?: { secret?: string; secret_key?: string; webhook_secret?: string } }>;
         };
         const settings = data.items?.[0]?.settings;
-        if (settings?.secret_key) {
+        const secretKey = settings?.secret ?? settings?.secret_key;
+        if (secretKey) {
           return {
-            secretKey: settings.secret_key,
-            webhookSecret: settings.webhook_secret,
+            secretKey,
+            webhookSecret: settings?.webhook_secret,
           };
         }
       }
