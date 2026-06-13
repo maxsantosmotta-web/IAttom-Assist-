@@ -21,28 +21,15 @@ import { PLAN_CREDITS, PLAN_NAMES, PLAN_PRICES, PLAN_SAVINGS } from "@/lib/credi
 
 /* ─── credit packages ────────────────────────────────────────────────── */
 const CREDIT_PACKAGES = [
-  { id: "credits_100",  credits: 100,  label: "100",   price: "R$ 29,90",  tag: "Acessível",    perUnit: "R$ 0,30/cr" },
-  { id: "credits_300",  credits: 300,  label: "300",   price: "R$ 69,90",  tag: "Vantagem",     perUnit: "R$ 0,23/cr" },
-  { id: "credits_700",  credits: 700,  label: "700",   price: "R$ 97,90",  tag: "Mais Popular", perUnit: "R$ 0,14/cr" },
-  { id: "credits_1500", credits: 1500, label: "1.500", price: "R$ 137,90", tag: "Melhor Valor",  perUnit: "R$ 0,09/cr" },
+  { id: "credits_300",  credits: 300,  label: "300",   price: "R$ 39,90",  tag: "Acessível",   perUnit: "" },
+  { id: "credits_700",  credits: 700,  label: "700",   price: "R$ 79,90",  tag: "Vantagem",    perUnit: "" },
+  { id: "credits_1500", credits: 1500, label: "1.500", price: "R$ 149,90", tag: "Melhor Valor", perUnit: "" },
 ] as const;
 
 /* ─── image packages ─────────────────────────────────────────────────── */
 const IMAGE_PACKAGES = [
   {
     id: "image_20", tag: "CRIATIVO 20", images: 20, price: "R$ 47,00",
-    bg: "bg-[#0e0c06]",
-    border: "border-[#C9A84C]/55 shadow-[0_0_36px_-4px_rgba(201,168,76,0.20)] hover:shadow-[0_0_44px_-4px_rgba(201,168,76,0.28)]",
-    topLine: "via-[#C9A84C]/60",
-    ambient: "from-[#C9A84C]/[0.06]",
-    badge: "bg-[#C9A84C] text-black shadow-[0_2px_8px_rgba(201,168,76,0.35)]",
-    iconBg: "bg-[#C9A84C]/15 border border-[#C9A84C]/30",
-    iconColor: "text-[#E8C96A]",
-    labelColor: "text-[#E8C96A]",
-    btn: "bg-gradient-to-r from-[#C9A84C] to-[#E8C96A] text-black hover:brightness-110 font-black",
-  },
-  {
-    id: "image_35", tag: "CRIATIVO 35", images: 35, price: "R$ 79,00",
     bg: "bg-[#0a080e]",
     border: "border-violet-500/50 shadow-[0_0_36px_-6px_rgba(139,92,246,0.22)] hover:shadow-[0_0_44px_-6px_rgba(139,92,246,0.30)]",
     topLine: "via-violet-400/70",
@@ -54,7 +41,7 @@ const IMAGE_PACKAGES = [
     btn: "bg-violet-600 text-white hover:bg-violet-500 font-bold",
   },
   {
-    id: "image_50", tag: "CRIATIVO 50", images: 50, price: "R$ 89,00",
+    id: "image_35", tag: "CRIATIVO 35", images: 35, price: "R$ 79,00",
     bg: "bg-[#040b07]",
     border: "border-emerald-700/40 hover:border-emerald-700/55 shadow-[0_0_36px_-4px_rgba(6,78,59,0.25)]",
     topLine: "via-emerald-600/40",
@@ -64,6 +51,18 @@ const IMAGE_PACKAGES = [
     iconColor: "text-emerald-400",
     labelColor: "text-emerald-400",
     btn: "bg-emerald-800 text-white hover:bg-emerald-700 font-bold",
+  },
+  {
+    id: "image_50", tag: "CRIATIVO 50", images: 50, price: "R$ 89,00",
+    bg: "bg-[#0e0c06]",
+    border: "border-[#C9A84C]/55 shadow-[0_0_36px_-4px_rgba(201,168,76,0.20)] hover:shadow-[0_0_44px_-4px_rgba(201,168,76,0.28)]",
+    topLine: "via-[#C9A84C]/60",
+    ambient: "from-[#C9A84C]/[0.06]",
+    badge: "bg-[#C9A84C] text-black shadow-[0_2px_8px_rgba(201,168,76,0.35)]",
+    iconBg: "bg-[#C9A84C]/15 border border-[#C9A84C]/30",
+    iconColor: "text-[#E8C96A]",
+    labelColor: "text-[#E8C96A]",
+    btn: "bg-gradient-to-r from-[#C9A84C] to-[#E8C96A] text-black hover:brightness-110 font-black",
   },
 ] as const;
 
