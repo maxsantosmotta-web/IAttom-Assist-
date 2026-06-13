@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Check, Zap, Crown, RefreshCw, Star, Sparkles, Building2, TrendingUp } from "lucide-react";
+import { X, Check, Zap, Crown, RefreshCw, Star, Sparkles, Building2, TrendingUp, ChevronLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -74,7 +74,7 @@ export function PlanComparisonModal({ open, onClose, highlightPlan = "pro" }: Pl
   const checkout = useCreateCheckoutSession({
     mutation: {
       onSuccess: (data) => { if (data.url) window.location.href = data.url; },
-      onError: () => toast({ title: "Erro no checkout", description: "Tente novamente.", variant: "destructive" }),
+      onError: () => toast({ title: "Não foi possível iniciar o upgrade", description: "Tente novamente em alguns instantes.", variant: "destructive" }),
     },
   });
 
@@ -145,6 +145,13 @@ export function PlanComparisonModal({ open, onClose, highlightPlan = "pro" }: Pl
                     </button>
                   ))}
                 </div>
+                <button
+                  onClick={onClose}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors border border-white/[0.07]"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  Voltar
+                </button>
                 <button
                   onClick={onClose}
                   className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors"
