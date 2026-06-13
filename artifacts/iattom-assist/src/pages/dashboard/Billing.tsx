@@ -324,10 +324,26 @@ export function Billing() {
   const [videoPending, setVideoPending] = useState<string | null>(null);
   const [imagePending, setImagePending] = useState<string | null>(null);
 
-  const handleBuyImagePack = (packId: string) => {
+  const handleBuyImagePack = async (packId: string) => {
+    if (currentPlan === "free") {
+      setShowComparison(true);
+      return;
+    }
     setImagePending(packId);
-    toast({ title: "Em breve", description: "Pacotes de criativos estarão disponíveis na próxima etapa." });
-    setTimeout(() => setImagePending(null), 1200);
+    try {
+      const resp = await fetch("/api/stripe/creatives/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packageId: packId }),
+      });
+      const data = await resp.json() as { url?: string; error?: string };
+      if (!resp.ok) throw new Error(data.error ?? "Erro");
+      if (data.url) window.location.href = data.url;
+    } catch {
+      toast({ title: "Erro ao iniciar checkout", description: "Não foi possível iniciar o checkout. Tente novamente.", variant: "destructive" });
+    } finally {
+      setImagePending(null);
+    }
   };
 
   const handleBuyVideoPack = (packId: string) => {
@@ -336,6 +352,10 @@ export function Billing() {
     setTimeout(() => setVideoPending(null), 1200);
   };
   const handleBuyCredits = async (packageId: string) => {
+    if (currentPlan === "free") {
+      setShowComparison(true);
+      return;
+    }
     setCreditsPending(packageId);
     try {
       const resp = await fetch("/api/stripe/credits/checkout", {

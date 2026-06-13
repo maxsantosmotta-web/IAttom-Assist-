@@ -85,7 +85,7 @@ export async function createCreditPurchaseCheckoutSession(
           unit_amount: unitAmountBrl,
           product_data: {
             name: packageName,
-            description: `${credits.toLocaleString("pt-BR")} créditos — compra avulsa`,
+            description: `${credits.toLocaleString("pt-BR")} créditos — compra avulsa (não expiram)`,
           },
         },
         quantity: 1,
@@ -97,17 +97,56 @@ export async function createCreditPurchaseCheckoutSession(
     client_reference_id: clerkUserId,
     metadata: {
       clerkUserId,
-      type: "credit_purchase",
-      packageId,
+      type: "credit_pack",
+      targetBalance: "general_extra",
+      amount: String(credits),
+      packId: packageId,
       credits: String(credits),
     },
-    payment_intent_data: {
-      metadata: {
-        clerkUserId,
-        type: "credit_purchase",
-        packageId,
-        credits: String(credits),
+  });
+
+  if (!session.url) throw new Error("Stripe checkout session URL is null");
+  return session.url;
+}
+
+export async function createCreativePurchaseCheckoutSession(
+  clerkUserId: string,
+  packageId: string,
+  creativeCredits: number,
+  unitAmountBrl: number,
+  packageName: string,
+): Promise<string> {
+  const customerId = await ensureStripeCustomer(clerkUserId);
+  const stripe = await getUncachableStripeClient();
+
+  const billingUrl = `${APP_ORIGIN}${BASE_PATH}/dashboard/billing`;
+
+  const session = await stripe.checkout.sessions.create({
+    customer: customerId,
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price_data: {
+          currency: "brl",
+          unit_amount: unitAmountBrl,
+          product_data: {
+            name: packageName,
+            description: `${creativeCredits} créditos criativos — compra avulsa (não expiram)`,
+          },
+        },
+        quantity: 1,
       },
+    ],
+    mode: "payment",
+    success_url: `${billingUrl}?payment=credits_success`,
+    cancel_url: `${billingUrl}?payment=canceled`,
+    client_reference_id: clerkUserId,
+    metadata: {
+      clerkUserId,
+      type: "creative_pack",
+      targetBalance: "creative_extra",
+      amount: String(creativeCredits),
+      packId: packageId,
     },
   });
 

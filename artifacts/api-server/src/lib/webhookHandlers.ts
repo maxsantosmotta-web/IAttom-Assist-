@@ -66,6 +66,7 @@ async function handleSubscriptionChange(
     const balanceBefore = user.credits;
     const balanceAfter = newCredits;
 
+    // Only reset plan credits; extraCredits and extraCreativeCredits are preserved
     await db
       .update(users)
       .set({
@@ -103,6 +104,7 @@ async function handleSubscriptionChange(
     const balanceBefore = user.credits;
     const balanceAfter = PLAN_CREDITS.free;
 
+    // Only reset plan credits; extraCredits and extraCreativeCredits are preserved
     await db
       .update(users)
       .set({
@@ -153,6 +155,7 @@ async function handleSubscriptionDeleted(
   const balanceBefore = user.credits;
   const balanceAfter = PLAN_CREDITS.free;
 
+  // Only reset plan credits; extraCredits and extraCreativeCredits are preserved
   await db
     .update(users)
     .set({
@@ -181,16 +184,37 @@ async function handleSubscriptionDeleted(
   logger.info({ userId: user.id }, "Subscription deleted — reverted to free");
 }
 
-async function handleCreditPurchase(
+async function handlePackagePurchase(
   session: Stripe.Checkout.Session,
 ): Promise<void> {
-  if (session.metadata?.type !== "credit_purchase") return;
+  const meta = session.metadata ?? {};
+  const { type, clerkUserId } = meta;
 
-  const clerkUserId = session.metadata.clerkUserId;
-  const credits = parseInt(session.metadata.credits ?? "0", 10);
+  const isCreditPack   = type === "credit_pack" || type === "credit_purchase";
+  const isCreativePack = type === "creative_pack";
 
-  if (!clerkUserId || !credits) {
-    logger.warn({ sessionId: session.id }, "Credit purchase: missing metadata");
+  if (!isCreditPack && !isCreativePack) return;
+
+  if (!clerkUserId) {
+    logger.warn({ sessionId: session.id }, "Package purchase: missing clerkUserId in metadata");
+    return;
+  }
+
+  const amount = parseInt(meta.amount ?? meta.credits ?? "0", 10);
+  if (!amount || amount <= 0) {
+    logger.warn({ sessionId: session.id }, "Package purchase: invalid amount in metadata");
+    return;
+  }
+
+  // Idempotency — skip if this session was already processed
+  const existing = await db
+    .select({ id: creditsTransactions.id })
+    .from(creditsTransactions)
+    .where(eq(creditsTransactions.stripeSessionId, session.id))
+    .limit(1);
+
+  if (existing.length > 0) {
+    logger.info({ sessionId: session.id }, "Package purchase: already processed, skipping");
     return;
   }
 
@@ -200,31 +224,59 @@ async function handleCreditPurchase(
     .where(eq(users.clerkId, clerkUserId));
 
   if (!user) {
-    logger.warn({ clerkUserId }, "Credit purchase: user not found");
+    logger.warn({ clerkUserId }, "Package purchase: user not found");
     return;
   }
 
-  const balanceBefore = user.credits;
-  const balanceAfter = balanceBefore + credits;
+  if (isCreativePack) {
+    const balanceBefore = user.extraCreativeCredits ?? 0;
+    const balanceAfter  = balanceBefore + amount;
 
-  await db
-    .update(users)
-    .set({ credits: balanceAfter, updatedAt: new Date() })
-    .where(eq(users.clerkId, clerkUserId));
+    await db
+      .update(users)
+      .set({ extraCreativeCredits: balanceAfter, updatedAt: new Date() })
+      .where(eq(users.clerkId, clerkUserId));
 
-  await db.insert(creditsTransactions).values({
-    clerkUserId,
-    amount: credits,
-    type: "credit",
-    description: `Compra avulsa de ${credits.toLocaleString("pt-BR")} créditos`,
-    balanceBefore,
-    balanceAfter,
-  });
+    await db.insert(creditsTransactions).values({
+      clerkUserId,
+      amount,
+      type: "credit",
+      balanceType: "creative",
+      description: `Compra de criativos avulsos — ${amount} créditos criativos`,
+      balanceBefore,
+      balanceAfter,
+      stripeSessionId: session.id,
+    });
 
-  logger.info(
-    { clerkUserId, credits, balanceBefore, balanceAfter },
-    "Credit purchase processed — credits added",
-  );
+    logger.info(
+      { clerkUserId, amount, balanceBefore, balanceAfter, sessionId: session.id },
+      "Creative pack processed — extraCreativeCredits updated",
+    );
+  } else {
+    const balanceBefore = user.extraCredits ?? 0;
+    const balanceAfter  = balanceBefore + amount;
+
+    await db
+      .update(users)
+      .set({ extraCredits: balanceAfter, updatedAt: new Date() })
+      .where(eq(users.clerkId, clerkUserId));
+
+    await db.insert(creditsTransactions).values({
+      clerkUserId,
+      amount,
+      type: "credit",
+      balanceType: "general",
+      description: `Compra de créditos avulsos — ${amount.toLocaleString("pt-BR")} créditos`,
+      balanceBefore,
+      balanceAfter,
+      stripeSessionId: session.id,
+    });
+
+    logger.info(
+      { clerkUserId, amount, balanceBefore, balanceAfter, sessionId: session.id },
+      "Credit pack processed — extraCredits updated",
+    );
+  }
 }
 
 export class WebhookHandlers {
@@ -263,7 +315,7 @@ export class WebhookHandlers {
           );
           break;
         case "checkout.session.completed":
-          await handleCreditPurchase(
+          await handlePackagePurchase(
             event.data.object as Stripe.Checkout.Session,
           );
           break;

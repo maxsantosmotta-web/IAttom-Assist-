@@ -12,5 +12,6 @@ export const creditsTransactions = pgTable("credits_transactions", {
   description: text("description").notNull(),
   balanceBefore: integer("balance_before").notNull(),
   balanceAfter: integer("balance_after").notNull(),
+  stripeSessionId: text("stripe_session_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

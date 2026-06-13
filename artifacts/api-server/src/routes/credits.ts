@@ -41,8 +41,8 @@ router.get("/credits/balance", requireAuth, async (req, res): Promise<void> => {
   const lowCreativeCredit = creativePercentage < 20;
 
   res.json(GetCreditsBalanceResponse.parse({
-    balance: user.credits,
-    creativeBalance: user.creativeCredits,
+    balance: user.credits + (user.extraCredits ?? 0),
+    creativeBalance: user.creativeCredits + (user.extraCreativeCredits ?? 0),
     plan: user.plan,
     planLimit,
     creativePlanLimit,

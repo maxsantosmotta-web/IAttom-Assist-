@@ -1,4 +1,4 @@
-import { eq, count } from "drizzle-orm";
+import { eq, count, sql } from "drizzle-orm";
 import { db, users, creditsTransactions } from "@workspace/db";
 
 export const FEATURE_COSTS = {
@@ -36,6 +36,18 @@ export const CREATIVE_FEATURES = new Set<FeatureKey>([
   "creativeImage3",
 ]);
 
+const DEBIT_DESCRIPTIONS: Record<string, string> = {
+  product_discovery: "Uso do Buscador de Produtos",
+  product_validation: "Uso do Validador de Produtos",
+  campaign: "Uso do Criador de Campanha",
+  content: "Uso do Criador de Conteúdo",
+  creativeImage1: "Uso do Gerador Criativo (1 imagem)",
+  creativeImage2: "Uso do Gerador Criativo (2 imagens)",
+  creativeImage3: "Uso do Gerador Criativo (3 imagens)",
+  video_script: "Uso do Gerador de Scripts",
+  prompt_creation: "Criação de Prompt",
+};
+
 export async function getUserWithCredits(clerkId: string) {
   const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId));
   return user ?? null;
@@ -44,32 +56,48 @@ export async function getUserWithCredits(clerkId: string) {
 export async function deductCredits(clerkId: string, feature: FeatureKey) {
   const cost = FEATURE_COSTS[feature];
   const isCreative = CREATIVE_FEATURES.has(feature);
-  const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId));
 
+  const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId));
   if (!user) return { success: false as const, error: "user_not_found" as const };
 
-  const currentBalance = isCreative ? user.creativeCredits : user.credits;
+  const planBalance  = isCreative ? user.creativeCredits  : user.credits;
+  const extraBalance = isCreative ? (user.extraCreativeCredits ?? 0) : (user.extraCredits ?? 0);
+  const total        = planBalance + extraBalance;
 
-  if (currentBalance < cost) {
+  if (total < cost) {
     return {
       success: false as const,
       error: "insufficient_credits" as const,
-      balance: currentBalance,
+      balance: total,
       required: cost,
     };
   }
 
-  const balanceBefore = currentBalance;
-  const balanceAfter = balanceBefore - cost;
+  const fromPlan  = Math.min(cost, planBalance);
+  const fromExtra = cost - fromPlan;
+
+  const newPlanBalance  = planBalance  - fromPlan;
+  const newExtraBalance = extraBalance - fromExtra;
+
+  const updateFields = isCreative
+    ? {
+        creativeCredits:      newPlanBalance,
+        extraCreativeCredits: newExtraBalance,
+        updatedAt: new Date(),
+      }
+    : {
+        credits:      newPlanBalance,
+        extraCredits: newExtraBalance,
+        updatedAt: new Date(),
+      };
 
   const [updated] = await db
     .update(users)
-    .set({
-      ...(isCreative ? { creativeCredits: balanceAfter } : { credits: balanceAfter }),
-      updatedAt: new Date(),
-    })
+    .set(updateFields)
     .where(eq(users.clerkId, clerkId))
     .returning();
+
+  const newTotal = total - cost;
 
   const [tx] = await db
     .insert(creditsTransactions)
@@ -79,26 +107,16 @@ export async function deductCredits(clerkId: string, feature: FeatureKey) {
       type: "debit",
       feature,
       balanceType: isCreative ? "creative" : "general",
-      description: ({
-        product_discovery: "Uso do Buscador de Produtos",
-        product_validation: "Uso do Validador de Produtos",
-        campaign: "Uso do Criador de Campanha",
-        content: "Uso do Criador de Conteúdo",
-        creativeImage1: "Uso do Gerador Criativo (1 imagem)",
-        creativeImage2: "Uso do Gerador Criativo (2 imagens)",
-        creativeImage3: "Uso do Gerador Criativo (3 imagens)",
-        video_script: "Uso do Gerador de Scripts",
-        prompt_creation: "Criação de Prompt",
-      } as Record<string, string>)[feature] ?? `Uso de ${feature.replace(/_/g, " ")}`,
-      balanceBefore,
-      balanceAfter,
+      description: DEBIT_DESCRIPTIONS[feature] ?? `Uso de ${feature.replace(/_/g, " ")}`,
+      balanceBefore: total,
+      balanceAfter:  newTotal,
     })
     .returning();
 
   return {
     success: true as const,
     creditsUsed: cost,
-    newBalance: balanceAfter,
+    newBalance: newTotal,
     transactionId: tx.id,
     user: updated,
   };
@@ -114,7 +132,7 @@ export async function adjustCredits(
   if (!user) return null;
 
   const balanceBefore = user.credits;
-  const balanceAfter = Math.max(0, balanceBefore + amount);
+  const balanceAfter  = Math.max(0, balanceBefore + amount);
 
   const [updated] = await db
     .update(users)

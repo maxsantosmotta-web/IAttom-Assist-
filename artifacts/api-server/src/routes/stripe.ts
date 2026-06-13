@@ -6,10 +6,12 @@ import {
   requireAuth,
   type AuthenticatedRequest,
 } from "../middlewares/requireAuth.js";
+import { requirePlan } from "../middlewares/requirePlan.js";
 import {
   createCheckoutSession,
   createBillingPortalSession,
   createCreditPurchaseCheckoutSession,
+  createCreativePurchaseCheckoutSession,
   createFreeStartCheckoutSession,
 } from "../lib/stripeService.js";
 import {
@@ -19,17 +21,25 @@ import {
 
 const router: IRouter = Router();
 
+/* ─── credit packages ─────────────────────────────────────────────────── */
 const CREDIT_PACKAGES = [
-  { id: "credits_100",  credits: 100,  unitAmountBrl: 2990,  name: "Pacote 100 Créditos",   displayPrice: "R$ 29,90"  },
-  { id: "credits_300",  credits: 300,  unitAmountBrl: 6990,  name: "Pacote 300 Créditos",   displayPrice: "R$ 69,90"  },
-  { id: "credits_700",  credits: 700,  unitAmountBrl: 9790,  name: "Pacote 700 Créditos",   displayPrice: "R$ 97,90"  },
-  { id: "credits_1500", credits: 1500, unitAmountBrl: 13790, name: "Pacote 1.500 Créditos", displayPrice: "R$ 137,90" },
+  { id: "credits_300",  credits: 300,  unitAmountBrl: 3990,  name: "Pacote 300 Créditos",   displayPrice: "R$ 39,90"  },
+  { id: "credits_700",  credits: 700,  unitAmountBrl: 7990,  name: "Pacote 700 Créditos",   displayPrice: "R$ 79,90"  },
+  { id: "credits_1500", credits: 1500, unitAmountBrl: 14990, name: "Pacote 1.500 Créditos", displayPrice: "R$ 149,90" },
+] as const;
+
+/* ─── creative packages ───────────────────────────────────────────────── */
+const CREATIVE_PACKAGES = [
+  { id: "creative_20", creativeCredits: 200, unitAmountBrl: 4700, name: "Criativo 20", displayPrice: "R$ 47,00" },
+  { id: "creative_35", creativeCredits: 350, unitAmountBrl: 7900, name: "Criativo 35", displayPrice: "R$ 79,00" },
+  { id: "creative_50", creativeCredits: 500, unitAmountBrl: 8900, name: "Criativo 50", displayPrice: "R$ 89,00" },
 ] as const;
 
 router.get("/stripe/credit-packages", requireAuth, (_req: Request, res: Response) => {
   res.json(CREDIT_PACKAGES);
 });
 
+/* ─── POST /stripe/credits/checkout — créditos avulsos ───────────────── */
 const CreditCheckoutBodySchema = z.object({
   packageId: z.string().min(1),
 });
@@ -37,6 +47,7 @@ const CreditCheckoutBodySchema = z.object({
 router.post(
   "/stripe/credits/checkout",
   requireAuth,
+  requirePlan(["pro", "business", "agency"]),
   async (req: Request, res: Response) => {
     const parsed = CreditCheckoutBodySchema.safeParse(req.body);
     if (!parsed.success) {
@@ -72,6 +83,51 @@ router.post(
   },
 );
 
+/* ─── POST /stripe/creatives/checkout — criativos avulsos ────────────── */
+const CreativeCheckoutBodySchema = z.object({
+  packageId: z.string().min(1),
+});
+
+router.post(
+  "/stripe/creatives/checkout",
+  requireAuth,
+  requirePlan(["pro", "business", "agency"]),
+  async (req: Request, res: Response) => {
+    const parsed = CreativeCheckoutBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "packageId is required" });
+    }
+
+    const { packageId } = parsed.data;
+    const pkg = CREATIVE_PACKAGES.find((p) => p.id === packageId);
+    if (!pkg) {
+      return res.status(400).json({ error: "Pacote criativo inválido" });
+    }
+
+    const clerkUserId = (req as AuthenticatedRequest).clerkUserId;
+
+    try {
+      const url = await createCreativePurchaseCheckoutSession(
+        clerkUserId,
+        pkg.id,
+        pkg.creativeCredits,
+        pkg.unitAmountBrl,
+        pkg.name,
+      );
+      return res.json({ url });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("not configured")) {
+        req.log.warn("Creative checkout attempted but billing is not configured");
+        return res.status(503).json({ error: "Faturamento não disponível neste ambiente." });
+      }
+      req.log.error({ err }, "Failed to create creative purchase checkout session");
+      return res.status(500).json({ error: "Falha ao iniciar o checkout" });
+    }
+  },
+);
+
+/* ─── plan constants ──────────────────────────────────────────────────── */
 const PLAN_CREDITS: Record<string, number> = {
   free: 50,
   pro: 500,
@@ -268,7 +324,6 @@ router.post(
     const { priceId, planKey } = parsed.data;
 
     try {
-      /* free/START plan has no Stripe priceId — use dedicated $0 checkout */
       if (priceId === "free" || planKey === "free") {
         const url = await createFreeStartCheckoutSession(clerkUserId);
         return res.json({ url });
