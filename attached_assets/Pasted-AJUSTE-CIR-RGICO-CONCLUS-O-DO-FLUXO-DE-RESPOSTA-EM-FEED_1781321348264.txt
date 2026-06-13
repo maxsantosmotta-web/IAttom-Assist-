@@ -1,0 +1,186 @@
+AJUSTE CIRÚRGICO — CONCLUSÃO DO FLUXO DE RESPOSTA EM FEEDBACKS
+
+NÃO ALTERAR LAYOUT.
+
+NÃO ALTERAR FILTROS.
+
+NÃO ALTERAR CORES.
+
+NÃO ALTERAR CARDS.
+
+NÃO ALTERAR ESTRUTURA VISUAL.
+
+O OBJETIVO É APENAS CONCLUIR A IMPLEMENTAÇÃO DA FUNCIONALIDADE JÁ EXISTENTE.
+
+==================================================
+
+CENÁRIO ATUAL
+
+O módulo Feedback já possui:
+
+✔ Listagem de feedbacks
+
+✔ Status visual
+
+✔ Filtros
+
+✔ Contadores
+
+✔ Botão "Responder"
+
+✔ Fluxo visual de resposta
+
+Porém a resposta não é persistida e não altera o estado real do feedback.
+
+Ou seja:
+
+A interface existe.
+
+A funcionalidade não está concluída.
+
+==================================================
+
+OBJETIVO
+
+Transformar a resposta administrativa em uma ação real.
+
+Ao responder um feedback:
+
+- salvar resposta;
+- registrar data;
+- atualizar status;
+- exibir resposta vinculada ao feedback.
+
+==================================================
+
+VALIDAR IMPLEMENTAÇÃO ATUAL
+
+Mapear:
+
+- tabela utilizada pelos feedbacks;
+- estrutura de armazenamento;
+- endpoint existente;
+- fluxo atual do botão Responder;
+- ponto exato onde a persistência deixa de acontecer.
+
+==================================================
+
+PERSISTÊNCIA
+
+Ao enviar resposta:
+
+Salvar:
+
+- resposta administrativa;
+- data da resposta;
+- identificador do administrador que respondeu.
+
+Exemplo:
+
+adminResponse
+
+respondedAt
+
+respondedBy
+
+(utilizar os campos existentes se já houver estrutura semelhante)
+
+==================================================
+
+ATUALIZAÇÃO DE STATUS
+
+Após resposta salva:
+
+Alterar automaticamente:
+
+Não Respondida
+
+↓
+
+Respondida
+
+Atualizar:
+
+- contadores;
+- filtros;
+- badges;
+- listagem.
+
+Sem necessidade de refresh manual.
+
+==================================================
+
+EXIBIÇÃO
+
+Dentro do card do feedback exibir:
+
+Feedback do usuário
+
+↓
+
+Resposta Oficial IAttom
+
+↓
+
+Data da resposta
+
+Manter o comentário original intacto.
+
+==================================================
+
+EDITAR RESPOSTA
+
+Caso já tenha sido respondido:
+
+Substituir botão:
+
+Responder
+
+por
+
+Editar Resposta
+
+Permitindo alterar apenas a resposta administrativa.
+
+Nunca alterar:
+
+- comentário do usuário;
+- nota do usuário;
+- avaliação do usuário.
+
+==================================================
+
+ORDENAÇÃO
+
+Manter prioridade:
+
+1. Não Respondidas
+2. Respondidas
+
+==================================================
+
+VALIDAÇÃO FINAL
+
+✔ Resposta salva no banco
+
+✔ Resposta reaparece ao abrir a tela
+
+✔ Status muda para Respondida
+
+✔ Contadores atualizam
+
+✔ Filtros Respondidas/Não Respondidas funcionam
+
+✔ Histórico permanece íntegro
+
+✔ Avaliação original permanece intacta
+
+✔ Administrador consegue editar apenas sua resposta
+
+✔ Sem alterar layout
+
+✔ Sem recriar o módulo
+
+✔ Apenas concluir a implementação da funcionalidade já existente
+
+EXECUTAR SOMENTE ESTE AJUSTE.

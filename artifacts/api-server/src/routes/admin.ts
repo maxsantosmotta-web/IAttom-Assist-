@@ -437,6 +437,7 @@ router.post("/admin/waitlist/grant", requireAdmin, async (req, res): Promise<voi
 const ReviewFeedbackBody = z.object({
   status: z.enum(["new", "reviewed", "resolved"]).optional(),
   adminNotes: z.string().max(1000).optional(),
+  adminResponse: z.string().max(2000).optional().nullable(),
 });
 
 router.get("/admin/feedback", requireAdmin, async (req, res): Promise<void> => {
@@ -463,12 +464,17 @@ router.patch("/admin/feedback/:id", requireAdmin, async (req, res): Promise<void
   const parsed = ReviewFeedbackBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: "Invalid body" }); return; }
 
+  const now = new Date();
   const [entry] = await db
     .update(feedbackTable)
     .set({
       ...(parsed.data.status ? { status: parsed.data.status } : {}),
       ...(parsed.data.adminNotes !== undefined ? { adminNotes: parsed.data.adminNotes } : {}),
-      reviewedAt: new Date(),
+      ...(parsed.data.adminResponse !== undefined ? {
+        adminResponse: parsed.data.adminResponse,
+        ...(parsed.data.adminResponse?.trim() ? { adminRespondedAt: now } : {}),
+      } : {}),
+      reviewedAt: now,
     })
     .where(eq(feedbackTable.id, id))
     .returning();
