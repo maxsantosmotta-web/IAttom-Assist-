@@ -284,7 +284,7 @@ export function Billing() {
   const checkout = useCreateCheckoutSession({
     mutation: {
       onSuccess: (data) => { if (data.url) window.location.href = data.url; },
-      onError: () => toast({ title: "Erro ao iniciar checkout", description: "Não foi possível iniciar o checkout. Tente novamente.", variant: "destructive" }),
+      onError: () => toast({ title: "Não foi possível iniciar o upgrade", description: "Tente novamente em alguns instantes.", variant: "destructive" }),
     },
   });
   const portal = useCreateBillingPortal({
@@ -324,53 +324,15 @@ export function Billing() {
   const [videoPending, setVideoPending] = useState<string | null>(null);
   const [imagePending, setImagePending] = useState<string | null>(null);
 
-  const handleBuyImagePack = async (packId: string) => {
-    if (currentPlan === "free") {
-      setShowComparison(true);
-      return;
-    }
-    setImagePending(packId);
-    try {
-      const resp = await fetch("/api/stripe/creatives/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packageId: packId }),
-      });
-      const data = await resp.json() as { url?: string; error?: string };
-      if (!resp.ok) throw new Error(data.error ?? "Erro");
-      if (data.url) window.location.href = data.url;
-    } catch {
-      toast({ title: "Erro ao iniciar checkout", description: "Não foi possível iniciar o checkout. Tente novamente.", variant: "destructive" });
-    } finally {
-      setImagePending(null);
-    }
+  const handleBuyImagePack = (_packId: string) => {
+    toast({ title: "Compra de pacote em breve", description: "Esta opção estará disponível na próxima etapa.", variant: "destructive" });
   };
 
-  const handleBuyVideoPack = (packId: string) => {
-    setVideoPending(packId);
-    toast({ title: "Em breve", description: "Pacotes de vídeo estarão disponíveis na próxima etapa." });
-    setTimeout(() => setVideoPending(null), 1200);
+  const handleBuyVideoPack = (_packId: string) => {
+    toast({ title: "Compra de pacote em breve", description: "Esta opção estará disponível na próxima etapa.", variant: "destructive" });
   };
-  const handleBuyCredits = async (packageId: string) => {
-    if (currentPlan === "free") {
-      setShowComparison(true);
-      return;
-    }
-    setCreditsPending(packageId);
-    try {
-      const resp = await fetch("/api/stripe/credits/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packageId }),
-      });
-      const data = await resp.json() as { url?: string; error?: string };
-      if (!resp.ok) throw new Error(data.error ?? "Erro");
-      if (data.url) window.location.href = data.url;
-    } catch {
-      toast({ title: "Erro ao iniciar checkout", description: "Não foi possível iniciar o checkout. Tente novamente.", variant: "destructive" });
-    } finally {
-      setCreditsPending(null);
-    }
+  const handleBuyCredits = (_packageId: string) => {
+    toast({ title: "Compra de pacote em breve", description: "Esta opção estará disponível na próxima etapa.", variant: "destructive" });
   };
 
   const handleUpgrade = (priceId: string | null | undefined, planKey: string) => {
