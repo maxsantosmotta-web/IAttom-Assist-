@@ -6,9 +6,9 @@ import { logger } from "./logger.js";
 
 const PLAN_CREDITS: Record<string, number> = {
   free: 0,
-  pro: 600,
-  business: 1350,
-  agency: 3000,
+  pro: 400,
+  business: 1000,
+  agency: 2300,
 };
 
 const PLAN_CREATIVE_CREDITS: Record<string, number> = {
