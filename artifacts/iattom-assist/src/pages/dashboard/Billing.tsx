@@ -427,7 +427,7 @@ export function Billing() {
               const isCurrent  = planKey === currentPlan && hasActiveSub;
               const isUpgrade  = PLAN_ORDER.indexOf(planKey) > PLAN_ORDER.indexOf(currentPlan);
               const isDowngrade= PLAN_ORDER.indexOf(planKey) < PLAN_ORDER.indexOf(currentPlan);
-              const isPopular  = planKey === "pro";
+              const isPopular  = planKey === "business";
               const PIcon      = PLAN_ICON[planKey] ?? PLAN_ICON.free;
               const savings    = PLAN_SAVINGS[planKey] ?? 0;
               const perMonth   = getPerMonth(planKey);
@@ -552,13 +552,14 @@ export function Billing() {
                     ) : planKey === "pro" ? (
                       <>
                         {[
-                          "Criar Prompt (30 utilizações)",
-                          "Criar Campanha (25 utilizações)",
-                          "Criar Imagem (10 imagens)",
-                          "IAttom Help (200 mensagens)",
+                          "Criar Prompt",
+                          "Criar Campanha",
+                          "Criar Imagem",
+                          "IAttom Help",
                           "Navegação pela Plataforma",
                           "Publicação Assistida",
-                          "Recursos de análise e monitoramento",
+                          "Análise",
+                          "Monitoramento",
                           "Biblioteca",
                         ].map((f) => (
                           <li key={f} className="flex items-start gap-2">

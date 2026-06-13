@@ -27,7 +27,7 @@ export const PLAN_NAMES: Record<string, string> = {
 
 export const PLAN_SAVINGS: Record<string, number> = {
   free:     17,
-  pro:      16,
+  pro:      15,
   business: 16,
   agency:   16,
 };
