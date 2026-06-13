@@ -1,0 +1,173 @@
+EXECUÇÃO CIRÚRGICA — ALIMENTAÇÃO OFICIAL DOS PLANOS
+
+OBJETIVO
+
+Garantir que ativação, renovação, upgrade, downgrade e sincronização de assinatura alimentem corretamente todos os recursos oficiais dos planos.
+
+NÃO ALTERAR FATURAMENTO.
+
+NÃO ALTERAR STRIPE PRODUCTS.
+
+NÃO ALTERAR UX.
+
+NÃO ALTERAR MÓDULOS.
+
+NÃO IMPLEMENTAR BLOQUEIOS AINDA.
+
+APENAS GARANTIR A ENTREGA CORRETA DOS RECURSOS DOS PLANOS.
+
+==================================================
+
+VALORES OFICIAIS
+
+FREE
+
+credits = 0
+
+creativeCredits = 0
+
+Help = 0
+
+==================================================
+
+START
+
+credits = 400
+
+creativeCredits = 100
+
+Help = 200
+
+==================================================
+
+PREMIUM
+
+credits = 1000
+
+creativeCredits = 150
+
+Help = 350
+
+==================================================
+
+PRO
+
+credits = 2300
+
+creativeCredits = 250
+
+Help = 700
+
+==================================================
+
+INVESTIGAR E AJUSTAR
+
+Todos os pontos que alimentam recursos de plano:
+
+- ativação inicial;
+- renovação;
+- upgrade;
+- downgrade;
+- reativação;
+- sincronização manual;
+- webhook Stripe;
+- criação de usuário;
+- recuperação de assinatura.
+
+==================================================
+
+VALIDAR
+
+Quando usuário entra em START:
+
+recebe:
+
+400 créditos gerais
+
+100 créditos criativo
+
+200 mensagens Help
+
+==================================================
+
+Quando usuário entra em PREMIUM:
+
+recebe:
+
+1000 créditos gerais
+
+150 créditos criativo
+
+350 mensagens Help
+
+==================================================
+
+Quando usuário entra em PRO:
+
+recebe:
+
+2300 créditos gerais
+
+250 créditos criativo
+
+700 mensagens Help
+
+==================================================
+
+FREE
+
+Não recebe:
+
+- créditos gerais;
+- créditos criativo;
+- mensagens Help.
+
+==================================================
+
+HELP
+
+Verificar se o reset do Help continua funcionando corretamente na renovação.
+
+Não alterar arquitetura do Help.
+
+==================================================
+
+CRIATIVOS
+
+Verificar se o reset de creativeCredits acompanha corretamente o plano.
+
+==================================================
+
+CRÉDITOS GERAIS
+
+Verificar se o reset de credits acompanha corretamente o plano.
+
+==================================================
+
+VALIDAÇÃO FINAL
+
+✔ START = 400 / 100 / 200
+
+✔ PREMIUM = 1000 / 150 / 350
+
+✔ PRO = 2300 / 250 / 700
+
+✔ FREE = 0 / 0 / 0
+
+✔ Ativação correta
+
+✔ Renovação correta
+
+✔ Upgrade correto
+
+✔ Downgrade correto
+
+✔ Sincronização correta
+
+✔ Sem alterar módulos
+
+✔ Sem alterar bloqueios
+
+✔ Sem alterar faturamento
+
+EXECUTAR SOMENTE ESTE AJUSTE.
