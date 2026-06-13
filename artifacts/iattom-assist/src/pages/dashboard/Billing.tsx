@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import {
   Crown, Check, Zap, ExternalLink, AlertTriangle, RefreshCw,
   CreditCard, Gift, TrendingUp, Star, Lock,
-  Sparkles, Building2, Rocket, CircleSlash, ShoppingCart, Plus, Film,
+  Sparkles, Building2, Rocket, CircleSlash, ShoppingCart, Plus, Film, Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,46 @@ const CREDIT_PACKAGES = [
   { id: "credits_300",  credits: 300,  label: "300",   price: "R$ 69,90",  tag: "Vantagem",     perUnit: "R$ 0,23/cr" },
   { id: "credits_700",  credits: 700,  label: "700",   price: "R$ 97,90",  tag: "Mais Popular", perUnit: "R$ 0,14/cr" },
   { id: "credits_1500", credits: 1500, label: "1.500", price: "R$ 137,90", tag: "Melhor Valor",  perUnit: "R$ 0,09/cr" },
+] as const;
+
+/* ─── image packages ─────────────────────────────────────────────────── */
+const IMAGE_PACKAGES = [
+  {
+    id: "image_20", tag: "CRIATIVO 20", images: 20, price: "R$ 47,00",
+    bg: "bg-[#0e0c06]",
+    border: "border-[#C9A84C]/55 shadow-[0_0_36px_-4px_rgba(201,168,76,0.20)] hover:shadow-[0_0_44px_-4px_rgba(201,168,76,0.28)]",
+    topLine: "via-[#C9A84C]/60",
+    ambient: "from-[#C9A84C]/[0.06]",
+    badge: "bg-[#C9A84C] text-black shadow-[0_2px_8px_rgba(201,168,76,0.35)]",
+    iconBg: "bg-[#C9A84C]/15 border border-[#C9A84C]/30",
+    iconColor: "text-[#E8C96A]",
+    labelColor: "text-[#E8C96A]",
+    btn: "bg-gradient-to-r from-[#C9A84C] to-[#E8C96A] text-black hover:brightness-110 font-black",
+  },
+  {
+    id: "image_35", tag: "CRIATIVO 35", images: 35, price: "R$ 79,00",
+    bg: "bg-[#0a080e]",
+    border: "border-violet-500/50 shadow-[0_0_36px_-6px_rgba(139,92,246,0.22)] hover:shadow-[0_0_44px_-6px_rgba(139,92,246,0.30)]",
+    topLine: "via-violet-400/70",
+    ambient: "from-violet-500/[0.06]",
+    badge: "bg-violet-600 text-white shadow-[0_2px_8px_rgba(139,92,246,0.35)]",
+    iconBg: "bg-violet-500/15 border border-violet-500/30",
+    iconColor: "text-violet-400",
+    labelColor: "text-violet-400",
+    btn: "bg-violet-600 text-white hover:bg-violet-500 font-bold",
+  },
+  {
+    id: "image_50", tag: "CRIATIVO 50", images: 50, price: "R$ 89,00",
+    bg: "bg-[#040b07]",
+    border: "border-emerald-700/40 hover:border-emerald-700/55 shadow-[0_0_36px_-4px_rgba(6,78,59,0.25)]",
+    topLine: "via-emerald-600/40",
+    ambient: "from-emerald-800/[0.06]",
+    badge: "bg-emerald-800 text-emerald-200",
+    iconBg: "bg-emerald-800/25 border border-emerald-700/30",
+    iconColor: "text-emerald-400",
+    labelColor: "text-emerald-400",
+    btn: "bg-emerald-800 text-white hover:bg-emerald-700 font-bold",
+  },
 ] as const;
 
 /* ─── video packages ─────────────────────────────────────────────────── */
@@ -283,6 +323,13 @@ export function Billing() {
 
   const [creditsPending, setCreditsPending] = useState<string | null>(null);
   const [videoPending, setVideoPending] = useState<string | null>(null);
+  const [imagePending, setImagePending] = useState<string | null>(null);
+
+  const handleBuyImagePack = (packId: string) => {
+    setImagePending(packId);
+    toast({ title: "Em breve", description: "Pacotes de criativos estarão disponíveis na próxima etapa." });
+    setTimeout(() => setImagePending(null), 1200);
+  };
 
   const handleBuyVideoPack = (packId: string) => {
     setVideoPending(packId);
@@ -783,6 +830,65 @@ export function Billing() {
                   className={`w-full h-9 text-xs ${CREDIT_BTN[scheme]}`}
                   onClick={() => handleBuyCredits(pkg.id)}
                   disabled={isPending || creditsPending !== null}
+                >
+                  {isPending
+                    ? <><RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />Aguarde...</>
+                    : <><ShoppingCart className="w-3.5 h-3.5 mr-1.5" />Comprar</>
+                  }
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Pacotes de Imagem (Criativos) ─────────────────────────────── */}
+      <div className="rounded-xl border border-white/[0.07] bg-[#111111] p-6">
+        <div className="flex items-start gap-4 flex-wrap mb-5">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Palette className="w-4 h-4 text-primary" />
+              <p className="text-xs text-primary uppercase tracking-widest font-semibold">Pacotes de Criativos</p>
+            </div>
+            <h2 className="text-sm font-semibold text-zinc-300">Mais Criativos para Seus Anúncios</h2>
+            <p className="text-xs text-zinc-600 mt-0.5">Crie mais imagens e amplie suas possibilidades de divulgação com materiais profissionais.</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
+          {IMAGE_PACKAGES.map((pkg) => {
+            const isPending = imagePending === pkg.id;
+            return (
+              <div
+                key={pkg.id}
+                className={`relative flex flex-col rounded-xl border pt-8 px-5 pb-5 transition-all duration-200 ${pkg.bg} ${pkg.border}`}
+              >
+                <div className={`absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent ${pkg.topLine} to-transparent rounded-t-xl`} />
+                <div className={`absolute top-0 inset-x-0 h-8 bg-gradient-to-b ${pkg.ambient} to-transparent rounded-t-xl pointer-events-none`} />
+
+                <div className="absolute -top-px left-1/2 -translate-x-1/2">
+                  <span className={`inline-block text-[9px] font-bold px-3 py-0.5 rounded-b-md whitespace-nowrap tracking-wide ${pkg.badge}`}>
+                    {pkg.tag}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2.5 mb-3 mt-1">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${pkg.iconBg}`}>
+                    <Palette className={`w-3.5 h-3.5 ${pkg.iconColor}`} />
+                  </div>
+                  <div>
+                    <p className={`text-lg font-bold leading-none ${pkg.labelColor}`}>{pkg.images}</p>
+                    <p className="text-[10px] text-zinc-600 mt-0.5">imagens</p>
+                  </div>
+                </div>
+
+                <p className="text-xl font-bold mb-5 text-white">{pkg.price}</p>
+
+                <Button
+                  size="sm"
+                  className={`w-full h-9 text-xs ${pkg.btn}`}
+                  onClick={() => handleBuyImagePack(pkg.id)}
+                  disabled={isPending || imagePending !== null}
                 >
                   {isPending
                     ? <><RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />Aguarde...</>
