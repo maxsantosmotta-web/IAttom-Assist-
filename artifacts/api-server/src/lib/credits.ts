@@ -9,7 +9,6 @@ export const FEATURE_COSTS = {
   creativeImage1: 10,
   creativeImage2: 15,
   creativeImage3: 20,
-  creativeVideo20: 40,
   video_script: 10,
 } as const;
 
@@ -67,7 +66,6 @@ export async function deductCredits(clerkId: string, feature: FeatureKey) {
         creativeImage1: "Uso do Gerador Criativo (1 imagem)",
         creativeImage2: "Uso do Gerador Criativo (2 imagens)",
         creativeImage3: "Uso do Gerador Criativo (3 imagens)",
-        creativeVideo20: "Uso do Gerador de Vídeo (20s)",
         video_script: "Uso do Gerador de Scripts",
       } as Record<string, string>)[feature] ?? `Uso de ${feature.replace(/_/g, " ")}`,
       balanceBefore,

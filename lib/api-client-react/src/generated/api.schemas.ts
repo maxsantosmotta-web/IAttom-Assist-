@@ -189,7 +189,6 @@ export const UseCreditsBodyFeature = {
   creativeImage2: "creativeImage2",
   creativeImage3: "creativeImage3",
   video_script: "video_script",
-  creativeVideo20: "creativeVideo20",
 } as const;
 
 export interface UseCreditsBody {

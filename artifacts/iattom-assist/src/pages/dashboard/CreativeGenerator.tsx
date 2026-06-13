@@ -275,8 +275,6 @@ export function CreativeGenerator() {
   });
   const refundCalledRef = useRef(false);
   const chargedFeatureRef = useRef<FeatureKey>("creativeImage1");
-  const videoRefundCalledRef = useRef(false);
-  const videoChargedFeatureRef = useRef<FeatureKey>("creativeVideo20");
 
   useEffect(() => {
     if (status === "error" && !refundCalledRef.current) {
@@ -292,24 +290,6 @@ export function CreativeGenerator() {
       refundCalledRef.current = false;
     }
   }, [status]);
-
-  useEffect(() => {
-    if (videoStatus === "error" && !videoRefundCalledRef.current) {
-      // Timeout: vídeo foi criado na HeyGen, não deve devolver créditos
-      if (!videoError?.includes("video_id:")) {
-        videoRefundCalledRef.current = true;
-        fetch("/api/credits/refund", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ feature: videoChargedFeatureRef.current }),
-          credentials: "include",
-        }).catch(() => {});
-      }
-    }
-    if (videoStatus === "idle" || videoStatus === "generating") {
-      videoRefundCalledRef.current = false;
-    }
-  }, [videoStatus, videoError]);
 
   // Detectar timeout e persistir video_id pendente no localStorage
   useEffect(() => {
@@ -639,10 +619,9 @@ export function CreativeGenerator() {
   const activeVideoResult = videoResult ?? restoredVideoResult;
   const isVideoRestoredMode = !!restoredVideoResult && videoStatus === "idle";
 
-  const runVideoGenerate = (charge: () => void) => {
+  const runVideoGenerate = () => {
     if (!videoEstilo) return;
     setRestoredVideoResult(null);
-    videoChargedFeatureRef.current = "creativeVideo20";
     videoGenerate("/api/ai/generate-video", {
       videoEstilo,
       videoAvatar,
@@ -650,8 +629,6 @@ export function CreativeGenerator() {
       videoFormato,
       videoDuration,
       videoPrompt: videoPrompt.trim(),
-    }).then((res) => {
-      if (res !== null) charge();
     });
   };
 
@@ -1088,26 +1065,17 @@ export function CreativeGenerator() {
                 </div>
 
                 {/* Gerar vídeo */}
-                <CreditsGate
-                  feature="creativeVideo20"
-                  onSuccess={runVideoGenerate}
+                <Button
+                  onClick={runVideoGenerate}
                   disabled={!canGenerateVideo || isVideoGenerating}
-                  hideCostBadge
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
                 >
-                  {({ trigger, isLoading }) => (
-                    <Button
-                      onClick={trigger}
-                      disabled={!canGenerateVideo || isVideoGenerating || isLoading}
-                      className="bg-primary text-primary-foreground hover:bg-primary/90 w-full"
-                    >
-                      {isVideoGenerating || isLoading ? (
-                        <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Gerando vídeo...</>
-                      ) : (
-                        <><Sparkles className="w-4 h-4 mr-2" /> Gerar Vídeo</>
-                      )}
-                    </Button>
+                  {isVideoGenerating ? (
+                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Gerando vídeo...</>
+                  ) : (
+                    <><Sparkles className="w-4 h-4 mr-2" /> Gerar Vídeo</>
                   )}
-                </CreditsGate>
+                </Button>
               </CardContent>
             </Card>
           </motion.div>

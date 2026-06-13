@@ -6,7 +6,6 @@ export const FEATURE_COSTS = {
   creativeImage1: 10,
   creativeImage2: 15,
   creativeImage3: 20,
-  creativeVideo20: 40,
   video_script: 10,
 } as const;
 
