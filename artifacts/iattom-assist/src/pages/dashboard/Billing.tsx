@@ -142,7 +142,7 @@ const CREDIT_BTN: Record<string, string> = {
 const PLAN_DESC: Record<string, string> = {
   free:     "Plano de demonstração para conhecer o IAttom Assist antes de contratar um plano pago.",
   pro:      "Ideal para quem deseja começar a criar campanhas, imagens e utilizar os principais recursos do IAttom Assist.",
-  business: "Recursos avançados e automações para escalar.",
+  business: "Mais controle, mais produção, mais oportunidades de venda.",
   agency:   "Experiência máxima. Ideal para agências e times.",
 };
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -173,7 +173,7 @@ function BillingToggle({ value, onChange }: { value: "monthly" | "annual"; onCha
           {opt === "monthly" ? "Mensal" : "Anual"}
           {opt === "annual" && (
             <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 tracking-widest">
-              economize até 17%
+              economize até 20%
             </span>
           )}
         </button>
@@ -457,7 +457,7 @@ export function Billing() {
                   )}
                   {isPopular && !isCurrent && (
                     <div className="absolute -top-px left-1/2 -translate-x-1/2">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-3 py-0.5 rounded-b-md bg-emerald-600 text-white">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-3 py-0.5 rounded-b-md bg-violet-600 text-white shadow-[0_2px_8px_rgba(139,92,246,0.35)]">
                         <Star className="w-2.5 h-2.5 fill-white" />
                         MAIS ESCOLHIDO
                       </span>
@@ -508,7 +508,9 @@ export function Billing() {
                     <div className="flex items-center gap-1.5 mb-4 p-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
                       <Zap className="w-3.5 h-3.5 text-primary fill-primary shrink-0" />
                       <span className="text-xs font-semibold text-zinc-300">
-                        {(PLAN_CREDITS[planKey as keyof typeof PLAN_CREDITS] ?? plan.credits).toLocaleString("pt-BR")} créditos / mês
+                        {billing === "annual"
+                          ? ((PLAN_CREDITS[planKey as keyof typeof PLAN_CREDITS] ?? plan.credits) * 12).toLocaleString("pt-BR") + " créditos / ano"
+                          : (PLAN_CREDITS[planKey as keyof typeof PLAN_CREDITS] ?? plan.credits).toLocaleString("pt-BR") + " créditos / mês"}
                       </span>
                     </div>
                   )}
