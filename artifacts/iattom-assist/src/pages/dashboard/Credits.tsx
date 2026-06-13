@@ -18,7 +18,7 @@ const featureLabels: Record<string, string> = {
   product_validation: "Validar Produtos",
   campaign: "Criar Campanha",
   content: "Criar Conteúdo",
-  creative: "Gerador Criativo",
+  creative: "Criar Imagem e Vídeo",
   video_script: "Scripts de Vídeo",
 };
 
@@ -27,7 +27,7 @@ const descriptionTranslations: Record<string, string> = {
   "Used product validation feature": "Uso do Validador de Produtos",
   "Used campaign feature": "Uso do Criador de Campanha",
   "Used content feature": "Uso do Criador de Conteúdo",
-  "Used creative feature": "Uso do Gerador Criativo",
+  "Used creative feature": "Uso do Criar Imagem e Vídeo",
   "Used video script feature": "Uso do Gerador de Scripts",
 };
 

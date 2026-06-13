@@ -23,7 +23,7 @@ const quickActions = [
   { href: "/dashboard/validate-products", label: "Validar Produtos", icon: CheckCircle, desc: "Teste a demanda do mercado", color: "text-emerald-400", bg: "bg-emerald-400/10 border-emerald-400/20", glow: "hover:shadow-[0_0_30px_-6px_rgba(52,211,153,0.15)]", module: "product_validation" },
   { href: "/dashboard/create-campaign", label: "Criar Campanha", icon: Megaphone, desc: "Lance campanhas direcionadas", color: "text-amber-400", bg: "bg-amber-400/10 border-amber-400/20", glow: "hover:shadow-[0_0_30px_-6px_rgba(251,191,36,0.15)]", module: "campaign" },
   { href: "/dashboard/create-content", label: "Criar Conteúdo", icon: FileText, desc: "Gere textos persuasivos", color: "text-blue-400", bg: "bg-blue-400/10 border-blue-400/20", glow: "hover:shadow-[0_0_30px_-6px_rgba(96,165,250,0.15)]", module: "content" },
-  { href: "/dashboard/creative-generator", label: "Gerador Criativo", icon: Sparkles, desc: "Crie materiais visuais", color: "text-purple-400", bg: "bg-purple-400/10 border-purple-400/20", glow: "hover:shadow-[0_0_30px_-6px_rgba(192,132,252,0.15)]", module: "creative" },
+  { href: "/dashboard/creative-generator", label: "Criar Imagem e Vídeo", icon: Sparkles, desc: "Crie imagens e vídeos com IA", color: "text-purple-400", bg: "bg-purple-400/10 border-purple-400/20", glow: "hover:shadow-[0_0_30px_-6px_rgba(192,132,252,0.15)]", module: "creative" },
   { href: "/dashboard/video-scripts", label: "Scripts de Vídeo", icon: Video, desc: "Escreva scripts virais", color: "text-rose-400", bg: "bg-rose-400/10 border-rose-400/20", glow: "hover:shadow-[0_0_30px_-6px_rgba(251,113,133,0.15)]", module: "video_script" },
 ];
 

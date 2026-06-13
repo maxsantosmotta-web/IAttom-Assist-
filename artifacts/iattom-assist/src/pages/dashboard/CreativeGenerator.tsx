@@ -812,7 +812,7 @@ export function CreativeGenerator() {
     }
   };
 
-  if (!isAdmin && !["pro", "business", "agency"].includes(planSlug)) return <ModuleLockGate allowedPlans={["pro", "business", "agency"]} moduleName="Criar Imagem" />;
+  if (!isAdmin && !["pro", "business", "agency"].includes(planSlug)) return <ModuleLockGate allowedPlans={["pro", "business", "agency"]} moduleName="Criar Imagem e Vídeo" />;
   return (
     <>
     <div className="space-y-6">
@@ -825,7 +825,7 @@ export function CreativeGenerator() {
       >
         <div>
           <p className="text-xs text-primary uppercase tracking-widest font-medium mb-1">Módulo Criativo</p>
-          <h2 className="text-2xl font-bold text-white mb-1">Gerador Criativo</h2>
+          <h2 className="text-2xl font-bold text-white mb-1">Criar Imagem e Vídeo</h2>
           <p className="text-muted-foreground text-sm">Gere imagens e vídeos prontos para publicação.</p>
         </div>
         <Button size="sm" variant="outline" onClick={() => { setIsRefreshing(true); void refetchCredits(); setTimeout(() => { try { const p = loadModuleState<{ type: "image" | "video"; form: Record<string, unknown>; result: unknown }>("creative"); if (p?.type === "image" && p.result && typeof p.result === "object" && "concepts" in (p.result as object)) { setRestoredResult(p.result as CreativeIdeasResult); } else if (p?.type === "video" && p.result) { setRestoredVideoResult(p.result as VideoGenerationResult); } } catch {} setIsRefreshing(false); }, 750); }} disabled={fetchingCredits || isRefreshing} className="border-white/10 text-zinc-400 hover:text-white hover:border-white/20 gap-1.5 shrink-0 mt-1">

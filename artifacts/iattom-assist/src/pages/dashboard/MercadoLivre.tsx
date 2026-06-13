@@ -211,7 +211,7 @@ export function MercadoLivre() {
                     [
                       { icon: Megaphone,     label: "Criar Campanha", value: getCount(activity, "create-campaign") },
                       { icon: ClipboardList, label: "Criar Conteúdo", value: getCount(activity, "create-content") },
-                      { icon: Sparkles,      label: "Criar Imagem",   value: getCount(activity, "creative-generator") },
+                      { icon: Sparkles,      label: "Criar Imagem e Vídeo",   value: getCount(activity, "creative-generator") },
                     ].map(({ icon: Icon, label, value }) => (
                       <div key={label} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
                         <div className="flex items-center gap-2">

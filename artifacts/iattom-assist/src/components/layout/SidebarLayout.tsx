@@ -36,7 +36,7 @@ const navItems = [
   { href: "/dashboard/validate-products", label: "Validar Produto", icon: CheckCircle },
   { href: "/dashboard/create-campaign", label: "Criar Campanha", icon: Megaphone },
   { href: "/dashboard/create-content", label: "Criar Conteúdo", icon: FileText },
-  { href: "/dashboard/creative-generator", label: "Criar Imagem", icon: Sparkles },
+  { href: "/dashboard/creative-generator", label: "Criar Imagem e Vídeo", icon: Sparkles },
   { href: "/dashboard/prompts", label: "Criar Prompt", icon: BookMarked },
   { href: "/dashboard/video-scripts", label: "Scripts de Vídeo", icon: Video },
   { href: "/dashboard/projects", label: "Biblioteca", icon: FolderOpen },

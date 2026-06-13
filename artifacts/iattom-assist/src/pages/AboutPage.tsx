@@ -69,7 +69,7 @@ export function AboutPage() {
               </li>
               <li className="flex gap-3">
                 <span className="text-[#C9A84C] mt-0.5 shrink-0">—</span>
-                <span><strong className="text-zinc-200">Gerador Criativo</strong> — Criação de imagens e visuais para campanhas, anúncios e redes sociais.</span>
+                <span><strong className="text-zinc-200">Criar Imagem e Vídeo</strong> — Criação de imagens e vídeos com IA para campanhas, anúncios e redes sociais.</span>
               </li>
             </ul>
           </section>

@@ -290,9 +290,9 @@ export function CreateAd() {
                       <EmptyState
                         icon={Sparkles}
                         message="Nenhum criativo salvo."
-                        hint="Gere criativos no módulo Criar Imagem primeiro."
+                        hint="Gere criativos no módulo Criar Imagem e Vídeo primeiro."
                         route="/dashboard/creative-generator"
-                        routeLabel="Criar Imagem"
+                        routeLabel="Criar Imagem e Vídeo"
                         navigate={navigate}
                       />
                     ) : (

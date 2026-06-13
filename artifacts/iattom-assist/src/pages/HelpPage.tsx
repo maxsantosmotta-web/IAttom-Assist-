@@ -93,6 +93,38 @@ export function HelpPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-white mb-4 pb-3 border-b border-white/5">
+              Criar Imagem e Vídeo
+            </h2>
+            <div className="space-y-4">
+              <div className="bg-white/[0.03] border border-white/5 rounded-xl p-5">
+                <h3 className="text-sm font-semibold text-zinc-200 mb-2">Como gerar um vídeo com IA?</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed">
+                  Acesse o módulo <strong className="text-zinc-300">Criar Imagem e Vídeo</strong> no menu lateral. Na aba "Vídeo", descreva o que deseja gerar e clique em "Gerar Vídeo". É necessário ter saldo de vídeos disponível — adquira um pacote na página de Faturamento.
+                </p>
+              </div>
+              <div className="bg-white/[0.03] border border-white/5 rounded-xl p-5">
+                <h3 className="text-sm font-semibold text-zinc-200 mb-2">Onde fica o módulo de vídeo?</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed">
+                  O módulo de geração de vídeos está dentro do <strong className="text-zinc-300">Criar Imagem e Vídeo</strong>, acessível pelo menu lateral. Ele reúne a criação de imagens e vídeos com IA em um único lugar.
+                </p>
+              </div>
+              <div className="bg-white/[0.03] border border-white/5 rounded-xl p-5">
+                <h3 className="text-sm font-semibold text-zinc-200 mb-2">Como adquirir saldo para gerar vídeos?</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed">
+                  Acesse <strong className="text-zinc-300">Faturamento</strong> no menu lateral e escolha um pacote de vídeos (5, 7 ou 10 vídeos). O saldo é permanente — não expira e não está vinculado ao ciclo mensal de créditos.
+                </p>
+              </div>
+              <div className="bg-white/[0.03] border border-white/5 rounded-xl p-5">
+                <h3 className="text-sm font-semibold text-zinc-200 mb-2">Criar Imagem e Vídeo gera os dois tipos de conteúdo?</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed">
+                  Sim. O módulo <strong className="text-zinc-300">Criar Imagem e Vídeo</strong> possui duas abas: uma para geração de imagens (consome créditos do plano) e outra para geração de vídeos com IA (consome saldo de vídeos adquirido separadamente).
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-white mb-4 pb-3 border-b border-white/5">
               Integrações de plataforma
             </h2>
             <div className="space-y-4">

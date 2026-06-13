@@ -13,7 +13,7 @@ const ALL_PAGES = [
   { href: "/dashboard/validate-products", label: "Validar Produtos", icon: CheckCircle, desc: "Teste a demanda do mercado", keywords: "validar mercado" },
   { href: "/dashboard/create-campaign", label: "Criar Campanha", icon: Megaphone, desc: "Campanhas de marketing", keywords: "campanha marketing" },
   { href: "/dashboard/create-content", label: "Criar Conteúdo", icon: FileText, desc: "Gere textos persuasivos", keywords: "conteudo copy texto" },
-  { href: "/dashboard/creative-generator", label: "Gerador Criativo", icon: Sparkles, desc: "Crie materiais visuais", keywords: "criativo design visual" },
+  { href: "/dashboard/creative-generator", label: "Criar Imagem e Vídeo", icon: Sparkles, desc: "Crie imagens e vídeos com IA", keywords: "criativo imagem video design visual" },
   { href: "/dashboard/video-scripts", label: "Scripts de Vídeo", icon: Video, desc: "Scripts virais para vídeo", keywords: "video script" },
   { href: "/dashboard/projects", label: "Projetos", icon: FolderOpen, desc: "Gerencie seus projetos", keywords: "projetos workspace" },
   { href: "/dashboard/history", label: "Atividades", icon: Clock, desc: "Histórico de execuções", keywords: "atividades historico log" },
