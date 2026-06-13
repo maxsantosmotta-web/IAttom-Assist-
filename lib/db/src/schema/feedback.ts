@@ -13,6 +13,8 @@ export const feedbackTable = pgTable("feedback", {
   rating: integer("rating"),
   status: feedbackStatusEnum("status").notNull().default("new"),
   adminNotes: text("admin_notes"),
+  adminResponse: text("admin_response"),
+  adminRespondedAt: timestamp("admin_responded_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   reviewedAt: timestamp("reviewed_at"),
 });
