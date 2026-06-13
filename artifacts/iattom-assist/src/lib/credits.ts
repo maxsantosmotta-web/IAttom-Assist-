@@ -7,6 +7,7 @@ export const FEATURE_COSTS = {
   creativeImage2: 15,
   creativeImage3: 20,
   video_script: 10,
+  prompt_creation: 5,
 } as const;
 
 export const PLAN_CREDITS = {

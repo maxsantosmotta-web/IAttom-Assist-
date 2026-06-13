@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookMarked, Copy, Trash2, Plus, Search, Check, X, RefreshCw,
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { CreditsGate } from "@/components/CreditsGate";
 
 interface SavedPrompt {
   id: number;
@@ -76,6 +77,8 @@ export function SavedPrompts() {
   const [guidedSubject, setGuidedSubject] = useState("");
   const [generating, setGenerating]       = useState(false);
   const [generated, setGenerated]         = useState(false);
+  const chargedRef          = useRef(false);
+  const generateTriggerRef  = useRef<(() => void) | null>(null);
   const [newTitle, setNewTitle]           = useState("");
   const [newPrompt, setNewPrompt]         = useState("");
   const [saving, setSaving]               = useState(false);
@@ -210,8 +213,7 @@ export function SavedPrompts() {
   };
 
   // ── Generate + Save ─────────────────────────────────────────────────
-  const generatePrompt = async () => {
-    if (!guidedTipo || !guidedSubject.trim()) return;
+  const generatePromptCore = async () => {
     setGenerating(true);
     setGenerated(false);
     try {
@@ -227,12 +229,27 @@ export function SavedPrompts() {
         setGenerated(true);
         toast({ description: "Prompt gerado. Revise e salve." });
       } else {
+        if (chargedRef.current) {
+          void fetch("/api/credits/refund", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ feature: "prompt_creation" }),
+          });
+        }
         toast({ description: data.error ?? "Erro ao gerar prompt. Tente novamente.", variant: "destructive" });
       }
     } catch {
+      if (chargedRef.current) {
+        void fetch("/api/credits/refund", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ feature: "prompt_creation" }),
+        });
+      }
       toast({ description: "Erro de conexão. Tente novamente.", variant: "destructive" });
     } finally {
       setGenerating(false);
+      chargedRef.current = false;
     }
   };
 
@@ -330,7 +347,7 @@ export function SavedPrompts() {
                 <Input
                   value={guidedSubject}
                   onChange={(e) => setGuidedSubject(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && canGenerate && !generating) void generatePrompt(); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && canGenerate && !generating) generateTriggerRef.current?.(); }}
                   placeholder="Digite o assunto principal do prompt"
                   className="bg-[#111111] border-white/[0.08] text-zinc-200 placeholder:text-zinc-700 h-9 text-xs"
                 />
@@ -339,15 +356,30 @@ export function SavedPrompts() {
                 </p>
               </div>
 
-              <Button
-                onClick={() => void generatePrompt()}
+              <CreditsGate
+                feature="prompt_creation"
+                onSuccess={(charge) => {
+                  charge();
+                  chargedRef.current = true;
+                  void generatePromptCore();
+                }}
                 disabled={!canGenerate || generating}
-                size="sm"
-                className="bg-primary text-black hover:bg-primary/90 font-bold text-xs h-9 w-full gap-2 disabled:opacity-40"
               >
-                <Wand2 className={`w-3.5 h-3.5 ${generating ? "animate-spin" : ""}`} />
-                {generating ? "Gerando prompt..." : "Gerar Prompt"}
-              </Button>
+                {({ trigger, isLoading }) => {
+                  generateTriggerRef.current = trigger;
+                  return (
+                    <Button
+                      onClick={trigger}
+                      disabled={!canGenerate || generating || isLoading}
+                      size="sm"
+                      className="bg-primary text-black hover:bg-primary/90 font-bold text-xs h-9 w-full gap-2 disabled:opacity-40"
+                    >
+                      <Wand2 className={`w-3.5 h-3.5 ${generating ? "animate-spin" : ""}`} />
+                      {generating ? "Gerando prompt..." : "Gerar Prompt"}
+                    </Button>
+                  );
+                }}
+              </CreditsGate>
 
               {/* Generated result */}
               <AnimatePresence>
@@ -379,15 +411,27 @@ export function SavedPrompts() {
                       />
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button
-                        onClick={() => void generatePrompt()}
+                      <CreditsGate
+                        feature="prompt_creation"
+                        onSuccess={(charge) => {
+                          charge();
+                          chargedRef.current = true;
+                          void generatePromptCore();
+                        }}
                         disabled={generating}
-                        size="sm" variant="outline"
-                        className="border-white/10 text-zinc-400 hover:text-white text-xs h-9 gap-1.5"
                       >
-                        <Wand2 className="w-3 h-3" />
-                        Gerar novamente
-                      </Button>
+                        {({ trigger, isLoading }) => (
+                          <Button
+                            onClick={trigger}
+                            disabled={generating || isLoading}
+                            size="sm" variant="outline"
+                            className="border-white/10 text-zinc-400 hover:text-white text-xs h-9 gap-1.5"
+                          >
+                            <Wand2 className="w-3 h-3" />
+                            Gerar novamente
+                          </Button>
+                        )}
+                      </CreditsGate>
                       <Button
                         onClick={() => void savePrompt()}
                         disabled={!canSave || saving}

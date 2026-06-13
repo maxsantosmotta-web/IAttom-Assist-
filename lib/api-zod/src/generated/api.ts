@@ -271,6 +271,7 @@ export const UseCreditsBody = zod.object({
     "creativeImage2",
     "creativeImage3",
     "video_script",
+    "prompt_creation",
   ]),
 });
 

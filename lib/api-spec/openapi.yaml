@@ -854,7 +854,7 @@ components:
       properties:
         feature:
           type: string
-          enum: [product_discovery, product_validation, campaign, content, creativeImage1, creativeImage2, creativeImage3, video_script]
+          enum: [product_discovery, product_validation, campaign, content, creativeImage1, creativeImage2, creativeImage3, video_script, prompt_creation]
       required:
         - feature
 
