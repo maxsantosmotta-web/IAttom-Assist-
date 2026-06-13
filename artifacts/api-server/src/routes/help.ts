@@ -5,12 +5,20 @@ import { requireAuth } from "../middlewares/requireAuth.js";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { setupSSE, sendSSE, sendSSEError, sendSSEDone } from "../lib/ai/stream.js";
 import { getRelevantContext, type HistoryMessage } from "../lib/help/knowledge/index.js";
-import { db, helpMessages } from "@workspace/db";
-import { eq, asc, and } from "drizzle-orm";
+import { db, helpMessages, users } from "@workspace/db";
+import { eq, asc, and, sql } from "drizzle-orm";
 import { semanticNormalize } from "../lib/ai/semanticNormalize.js";
 import { objectStorageClient } from "../lib/objectStorage.js";
 
 const router: IRouter = Router();
+
+// ── Help usage limits per plan ────────────────────────────────────────────────
+const HELP_LIMITS: Record<string, number> = {
+  free:     0,
+  pro:    200,
+  business: 350,
+  agency:  700,
+};
 
 // ── GCS helpers for Help image persistence ────────────────────────────────
 
@@ -1652,7 +1660,68 @@ Protocolo obrigatório:
 Se o histórico imediato mostrar que o tipo de análise já foi confirmado (o usuário já respondeu o que quer ${plural ? "das imagens" : "da imagem"}), inicie a análise diretamente — não repita a pergunta de confirmação.`;
 }
 
+// ── Help usage: read ─────────────────────────────────────────────────────────
+
+router.get("/help/usage", requireAuth, async (req, res): Promise<void> => {
+  const userId = getAuth(req)?.userId;
+  if (!userId) { res.status(401).json({ error: "Não autenticado." }); return; }
+
+  try {
+    const [user] = await db.select().from(users).where(eq(users.clerkId, userId));
+    if (!user) { res.status(404).json({ error: "Usuário não encontrado." }); return; }
+
+    const plan = user.plan as string;
+    const limit = HELP_LIMITS[plan] ?? 0;
+
+    // Auto-reset if the 30-day window has elapsed
+    const now = new Date();
+    const resetAt = user.helpUsedResetAt;
+    const cycleExpired = !resetAt || (now.getTime() - resetAt.getTime()) > 30 * 24 * 60 * 60 * 1000;
+    const used = cycleExpired ? 0 : user.helpMessagesUsed;
+
+    res.json({
+      used,
+      limit,
+      remaining: Math.max(0, limit - used),
+      plan,
+    });
+  } catch (err) {
+    req.log.error({ msg: "Error fetching help usage", err });
+    res.status(500).json({ error: "Erro ao buscar uso do Help." });
+  }
+});
+
+// ── Help chat ─────────────────────────────────────────────────────────────────
+
 router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
+  const chatUserId = getAuth(req)?.userId;
+  if (!chatUserId) { res.status(401).json({ error: "Não autenticado." }); return; }
+
+  // ── Help limit check ──────────────────────────────────────────────────────
+  const [userRecord] = await db.select().from(users).where(eq(users.clerkId, chatUserId));
+  if (!userRecord) { res.status(401).json({ error: "Usuário não encontrado." }); return; }
+
+  const helpLimit = HELP_LIMITS[userRecord.plan as string] ?? 0;
+  if (helpLimit === 0) {
+    res.status(402).json({ error: "Seu plano atual não inclui acesso ao IAttom Help. Faça upgrade para liberar esse recurso.", code: "HELP_NO_ACCESS" });
+    return;
+  }
+
+  // Auto-reset monthly cycle if expired
+  const now = new Date();
+  const resetAt = userRecord.helpUsedResetAt;
+  const cycleExpired = !resetAt || (now.getTime() - resetAt.getTime()) > 30 * 24 * 60 * 60 * 1000;
+  if (cycleExpired) {
+    await db.update(users).set({ helpMessagesUsed: 0, helpUsedResetAt: now, updatedAt: now }).where(eq(users.clerkId, chatUserId));
+    userRecord.helpMessagesUsed = 0;
+  }
+
+  if (userRecord.helpMessagesUsed >= helpLimit) {
+    res.status(402).json({ error: "Você atingiu o limite de mensagens do IAttom Help para este ciclo. Aguarde a renovação ou faça upgrade de plano.", code: "HELP_LIMIT_REACHED" });
+    return;
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   // Abort signal — terminates the OpenAI stream when the client disconnects
   const ac = new AbortController();
   req.on("close", () => ac.abort());
@@ -1960,6 +2029,15 @@ router.post("/help/chat", requireAuth, async (req, res): Promise<void> => {
       "O IAttom Help está temporariamente indisponível. Tente novamente em alguns instantes."
     );
     return;
+  }
+
+  // Increment help usage counter
+  try {
+    await db.update(users)
+      .set({ helpMessagesUsed: sql`${users.helpMessagesUsed} + 1`, updatedAt: new Date() })
+      .where(eq(users.clerkId, chatUserId));
+  } catch (err) {
+    req.log.warn({ msg: "Failed to increment help usage counter", err });
   }
 
   sendSSEDone(res);

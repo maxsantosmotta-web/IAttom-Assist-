@@ -65,6 +65,8 @@ async function handleSubscriptionChange(
         credits: newCredits,
         stripeSubscriptionId: subscription.id,
         stripeSubscriptionStatus: status,
+        helpMessagesUsed: 0,
+        helpUsedResetAt: new Date(),
         updatedAt: new Date(),
       })
       .where(eq(users.clerkId, user.clerkId));

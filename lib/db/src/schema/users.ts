@@ -15,6 +15,8 @@ export const users = pgTable("users", {
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   stripeSubscriptionStatus: text("stripe_subscription_status"),
+  helpMessagesUsed: integer("help_messages_used").notNull().default(0),
+  helpUsedResetAt: timestamp("help_used_reset_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

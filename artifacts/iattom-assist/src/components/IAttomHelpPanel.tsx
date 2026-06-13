@@ -60,6 +60,9 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
   const [longPressedMsgId, setLongPressedMsgId] = useState<string | null>(null);
   const [hoveredMsgId,     setHoveredMsgId]     = useState<string | null>(null);
 
+  // ── Help usage counter ────────────────────────────────────────────────────
+  const [usage, setUsage] = useState<{ used: number; limit: number; remaining: number } | null>(null);
+
   const messagesEndRef     = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef           = useRef<HTMLTextAreaElement>(null);
@@ -144,6 +147,19 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
     },
     []
   );
+
+  // ── fetchUsage — fetch help usage counter from API ────────────────────────
+  const fetchUsage = useCallback(() => {
+    fetch(`${BASE_URL}/api/help/usage`, { credentials: "include" })
+      .then((r) => r.ok ? (r.json() as Promise<{ used: number; limit: number; remaining: number }>) : Promise.reject())
+      .then((data) => { if (mountedRef.current) setUsage(data); })
+      .catch(() => { /* silent — counter simply won't render */ });
+  }, []);
+
+  // Fetch usage whenever panel opens or userId changes
+  useEffect(() => {
+    if (open && userId) fetchUsage();
+  }, [open, userId, fetchUsage]);
 
   // ── Initial load — only fires when userId changes ─────────────────────────
   useEffect(() => {
@@ -371,6 +387,20 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
         signal: ac.signal,
       });
 
+      if (res.status === 402) {
+        const errData = await res.json() as { error?: string; code?: string };
+        const msg = errData.code === "HELP_NO_ACCESS"
+          ? "Seu plano atual não inclui o IAttom Help. Faça upgrade para acessar esse recurso."
+          : "Você atingiu o limite de mensagens do IAttom Help para este ciclo. Faça upgrade ou aguarde a renovação.";
+        if (mountedRef.current) {
+          setMessages((prev) =>
+            prev.map((m) => m.id === assistantId ? { ...m, content: msg, streaming: false } : m)
+          );
+          setLoading(false);
+          fetchUsage();
+        }
+        return;
+      }
       if (!res.ok || !res.body) throw new Error("Erro na resposta.");
 
       const reader  = res.body.getReader();
@@ -443,6 +473,7 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
             : finalAssistantContent + "\n\n(resposta interrompida — tente novamente)";
           saveExchange(text, contentToSave, storageUrls.length > 0 ? storageUrls : undefined);
         }
+        fetchUsage();
       }
     }
   };
@@ -770,45 +801,74 @@ export function IAttomHelpPanel({ open, onClose, skipEntryAnimation = false }: I
                 onChange={handleFileSelect}
               />
 
-              <div className="flex items-end gap-2 rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2.5 focus-within:border-primary/25 transition-colors">
-                <textarea
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => { setInput(e.target.value); autoResize(e.target); }}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Pergunte algo sobre o IAttom Assist..."
-                  rows={1}
-                  disabled={loading || !historyLoaded || syncStatus !== "idle"}
-                  className="flex-1 resize-none bg-transparent text-[13px] text-zinc-200 placeholder:text-zinc-600 outline-none leading-relaxed overflow-y-auto sidebar-scroll"
-                  style={{ minHeight: "20px", maxHeight: "112px" }}
-                />
-                {/* Attach image button */}
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={loading || !historyLoaded}
-                  className={`relative w-7 h-7 flex items-center justify-center rounded-lg shrink-0 mb-0.5 transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
-                    attachedImages.length > 0
-                      ? "bg-primary/20 text-primary border border-primary/30"
-                      : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06]"
-                  }`}
-                  aria-label="Anexar imagem"
-                  title="Anexar imagem (máx. 5MB)"
-                >
-                  <Paperclip className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => void sendMessage()}
-                  disabled={(!input.trim() && attachedImages.length === 0) || loading || !historyLoaded}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg bg-primary text-black shrink-0 mb-0.5 disabled:opacity-30 disabled:cursor-not-allowed hover:brightness-110 active:scale-95 transition-all"
-                  aria-label="Enviar mensagem"
-                >
-                  {loading ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Send className="w-3.5 h-3.5" />
-                  )}
-                </button>
-              </div>
+              {/* Usage counter */}
+              {usage !== null && usage.limit > 0 && (
+                <div className="flex items-center justify-end mb-1.5 px-0.5">
+                  <span className={`text-[11px] tabular-nums ${
+                    usage.remaining === 0
+                      ? "text-amber-500/80"
+                      : usage.remaining <= 20
+                        ? "text-amber-500/60"
+                        : "text-zinc-600"
+                  }`}>
+                    {usage.used} / {usage.limit} mensagens
+                  </span>
+                </div>
+              )}
+
+              {/* Block banner — FREE plan or limit reached */}
+              {usage !== null && (usage.limit === 0 || usage.remaining === 0) ? (
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3 text-center">
+                  <p className="text-[12px] text-amber-400/90 font-medium leading-relaxed">
+                    {usage.limit === 0
+                      ? "O IAttom Help não está disponível no plano gratuito."
+                      : "Limite de mensagens atingido para este ciclo."}
+                  </p>
+                  <p className="text-[11px] text-zinc-500 mt-1">
+                    Faça upgrade para continuar usando o IAttom Help.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-end gap-2 rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2.5 focus-within:border-primary/25 transition-colors">
+                  <textarea
+                    ref={inputRef}
+                    value={input}
+                    onChange={(e) => { setInput(e.target.value); autoResize(e.target); }}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Pergunte algo sobre o IAttom Assist..."
+                    rows={1}
+                    disabled={loading || !historyLoaded || syncStatus !== "idle"}
+                    className="flex-1 resize-none bg-transparent text-[13px] text-zinc-200 placeholder:text-zinc-600 outline-none leading-relaxed overflow-y-auto sidebar-scroll"
+                    style={{ minHeight: "20px", maxHeight: "112px" }}
+                  />
+                  {/* Attach image button */}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={loading || !historyLoaded}
+                    className={`relative w-7 h-7 flex items-center justify-center rounded-lg shrink-0 mb-0.5 transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
+                      attachedImages.length > 0
+                        ? "bg-primary/20 text-primary border border-primary/30"
+                        : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06]"
+                    }`}
+                    aria-label="Anexar imagem"
+                    title="Anexar imagem (máx. 5MB)"
+                  >
+                    <Paperclip className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => void sendMessage()}
+                    disabled={(!input.trim() && attachedImages.length === 0) || loading || !historyLoaded}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg bg-primary text-black shrink-0 mb-0.5 disabled:opacity-30 disabled:cursor-not-allowed hover:brightness-110 active:scale-95 transition-all"
+                    aria-label="Enviar mensagem"
+                  >
+                    {loading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Send className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           </motion.div>
         </>
