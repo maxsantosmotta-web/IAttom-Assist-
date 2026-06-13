@@ -579,6 +579,37 @@ export function Billing() {
                           </li>
                         ))}
                       </>
+                    ) : planKey === "business" ? (
+                      <>
+                        {[
+                          "Criar Prompt",
+                          "Criar Campanha",
+                          "Criar Imagem",
+                          "Validar Produto",
+                          "Scripts de Vídeo",
+                          "IAttom Help",
+                          "Gerador de Vídeo (Opcional - consultar pacote)",
+                          "Navegação pela Plataforma",
+                          "Publicação Assistida",
+                          "Análise",
+                          "Monitoramento",
+                          "Biblioteca",
+                        ].map((f) => (
+                          <li key={f} className="flex items-start gap-2">
+                            <Check className="w-3.5 h-3.5 shrink-0 mt-0.5 text-violet-400" />
+                            <span className="text-xs text-zinc-400">{f}</span>
+                          </li>
+                        ))}
+                        {[
+                          "Buscar Produtos",
+                          "Criar Conteúdo",
+                        ].map((f) => (
+                          <li key={f} className="flex items-start gap-2">
+                            <CircleSlash className="w-3.5 h-3.5 shrink-0 mt-0.5 text-zinc-600" />
+                            <span className="text-xs text-zinc-600">{f}</span>
+                          </li>
+                        ))}
+                      </>
                     ) : (
                       plan.features.map((feature) => (
                         <li key={feature} className="flex items-start gap-2">

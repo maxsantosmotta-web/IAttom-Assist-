@@ -14,7 +14,7 @@ export const FEATURE_COSTS = {
 export const PLAN_CREDITS = {
   free: 50,
   pro: 700,
-  business: 2000,
+  business: 1500,
   agency: 10000,
 } as const;
 
@@ -28,7 +28,7 @@ export const PLAN_NAMES: Record<string, string> = {
 export const PLAN_SAVINGS: Record<string, number> = {
   free:     17,
   pro:      15,
-  business: 16,
+  business: 18,
   agency:   16,
 };
 
@@ -43,7 +43,7 @@ export const PLAN_PRICES: Record<string, {
 }> = {
   free:     { monthly: 19.90, yearly: 197,  monthlyDisplay: "R$19,90/mês",  yearlyDisplay: "R$197/ano",    yearlyMonthlyDisplay: "R$16,42/mês",  label: "START",    color: "text-blue-300"   },
   pro:      { monthly: 69,    yearly: 697,  monthlyDisplay: "R$69/mês",     yearlyDisplay: "R$697/ano",    yearlyMonthlyDisplay: "R$58,08/mês",  label: "START",    color: "text-[#C9A84C]"  },
-  business: { monthly: 197,   yearly: 1997, monthlyDisplay: "R$197/mês",    yearlyDisplay: "R$1.997/ano",  yearlyMonthlyDisplay: "R$166,42/mês", label: "PREMIUM",  color: "text-violet-400" },
+  business: { monthly: 159,   yearly: 1565, monthlyDisplay: "R$159/mês",    yearlyDisplay: "R$1.565/ano",  yearlyMonthlyDisplay: "R$130,42/mês", label: "PREMIUM",  color: "text-violet-400" },
   agency:   { monthly: 497,   yearly: 4997, monthlyDisplay: "R$497/mês",    yearlyDisplay: "R$4.997/ano",  yearlyMonthlyDisplay: "R$416,42/mês", label: "PRO",      color: "text-[#E8C96A]"  },
 };
 
