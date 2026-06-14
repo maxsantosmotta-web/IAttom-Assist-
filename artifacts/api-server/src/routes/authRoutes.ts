@@ -3,7 +3,7 @@ import { getAuth } from "@clerk/express";
 import { eq } from "drizzle-orm";
 import { db, users } from "@workspace/db";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
-import { getOrSyncUser, getAdminCount } from "../lib/userSync";
+import { getOrSyncUser, getAdminCount, getOrCreateUserFromClerk } from "../lib/userSync";
 import { SyncUserBody, SyncUserResponse, GetMeResponse, BootstrapAdminResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -25,8 +25,8 @@ router.post("/auth/sync", requireAuth, async (req, res): Promise<void> => {
 
 router.get("/auth/me", requireAuth, async (req, res): Promise<void> => {
   const { clerkUserId } = req as AuthenticatedRequest;
-  const [user] = await db.select().from(users).where(eq(users.clerkId, clerkUserId));
-  if (!user) { res.status(404).json({ error: "User not found. Call /auth/sync first." }); return; }
+  const user = await getOrCreateUserFromClerk(clerkUserId);
+  if (!user) { res.status(500).json({ error: "Failed to resolve user from Clerk" }); return; }
   res.json(GetMeResponse.parse(user));
 });
 

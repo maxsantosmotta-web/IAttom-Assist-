@@ -1,5 +1,6 @@
 import { eq, count } from "drizzle-orm";
 import { db, users } from "@workspace/db";
+import { clerkClient } from "@clerk/express";
 
 // Returns true if this user should receive automatic admin + full access.
 // Two triggers:
@@ -71,4 +72,29 @@ export async function getOrSyncUser(clerkId: string, email?: string, name?: stri
 export async function getAdminCount() {
   const [result] = await db.select({ count: count() }).from(users).where(eq(users.role, "admin"));
   return Number(result.count);
+}
+
+/**
+ * Garante que qualquer usuário autenticado pelo Clerk tenha registro no DB.
+ * Busca email/name direto da API do Clerk e chama getOrSyncUser.
+ * Usado por /auth/me e /credits/balance para eliminar usuários fantasma.
+ */
+export async function getOrCreateUserFromClerk(clerkUserId: string) {
+  // Fast-path: usuário já existe — não chama API do Clerk
+  const [existing] = await db.select().from(users).where(eq(users.clerkId, clerkUserId));
+  if (existing) return existing;
+
+  // Não existe no DB — buscar dados no Clerk para criar
+  const clerkUser = await clerkClient.users.getUser(clerkUserId);
+
+  const email =
+    clerkUser.emailAddresses.find((e) => e.id === clerkUser.primaryEmailAddressId)
+      ?.emailAddress ?? clerkUser.emailAddresses[0]?.emailAddress;
+
+  const name =
+    [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || undefined;
+
+  if (!email) return null;
+
+  return getOrSyncUser(clerkUserId, email, name);
 }

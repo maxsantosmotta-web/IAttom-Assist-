@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, desc, sql } from "drizzle-orm";
 import { db, users, creditsTransactions } from "@workspace/db";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
+import { getOrCreateUserFromClerk } from "../lib/userSync";
 import {
   GetCreditsBalanceResponse,
   ListCreditTransactionsResponse,
@@ -22,11 +23,12 @@ const router: IRouter = Router();
 
 router.get("/credits/balance", requireAuth, async (req, res): Promise<void> => {
   const { clerkUserId } = req as AuthenticatedRequest;
-  const [user] = await db.select().from(users).where(eq(users.clerkId, clerkUserId));
+  let [user] = await db.select().from(users).where(eq(users.clerkId, clerkUserId));
 
   if (!user) {
-    res.status(404).json({ error: "User not found" });
-    return;
+    const created = await getOrCreateUserFromClerk(clerkUserId);
+    if (!created) { res.status(500).json({ error: "Failed to resolve user from Clerk" }); return; }
+    user = created;
   }
 
   const plan = user.plan as keyof typeof PLAN_CREDITS;
