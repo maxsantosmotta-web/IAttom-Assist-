@@ -194,12 +194,63 @@ function SignUpCallbackPage() {
   return (
     <Show when="signed-out">
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
-        <SignUp
-          routing="path"
-          path={`${basePath}/sign-up`}
-          fallbackRedirectUrl={`${basePath}/verify-email`}
-          appearance={clerkAppearance}
-        />
+        <div className="relative">
+          <button
+            onClick={() => {
+              window.location.replace(
+                `${window.location.origin}${basePath}/sign-in`
+              );
+            }}
+            title="Cancelar e voltar ao início"
+            style={{
+              position: "absolute",
+              top: "-12px",
+              right: "-12px",
+              zIndex: 9999,
+              width: "32px",
+              height: "32px",
+              borderRadius: "50%",
+              background: "#1a1a1a",
+              border: "1px solid rgba(255,255,255,0.12)",
+              color: "#71717a",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.5)",
+              transition: "color 0.15s, border-color 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = "#ffffff";
+              (e.currentTarget as HTMLButtonElement).style.borderColor =
+                "rgba(255,255,255,0.25)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = "#71717a";
+              (e.currentTarget as HTMLButtonElement).style.borderColor =
+                "rgba(255,255,255,0.12)";
+            }}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
+              <line x1="2" y1="2" x2="12" y2="12" />
+              <line x1="12" y1="2" x2="2" y2="12" />
+            </svg>
+          </button>
+          <SignUp
+            routing="path"
+            path={`${basePath}/sign-up`}
+            fallbackRedirectUrl={`${basePath}/verify-email`}
+            appearance={clerkAppearance}
+          />
+        </div>
       </div>
     </Show>
   );
