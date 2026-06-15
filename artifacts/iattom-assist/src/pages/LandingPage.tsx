@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { UserPlus, LogIn, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { SignIn, SignUp } from "@clerk/react";
 
 /* ─── motion presets ─────────────────────────────────────────────────── */
@@ -23,40 +23,46 @@ const drawerAppearance = {
 };
 
 /* ─── drawer shell ───────────────────────────────────────────────────── */
-function DrawerShell({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+// Sempre montado — visibilidade controlada via animate (sem unmount/remount).
+// Isso evita que os componentes Clerk reinicializem a cada abertura/fechamento,
+// reduzindo drasticamente as chamadas à API Clerk e eliminando o rate-limit 429.
+function DrawerShell({ onClose, children, isVisible }: { onClose: () => void; children: React.ReactNode; isVisible: boolean }) {
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex flex-col justify-end">
-        <motion.div
-          className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          transition={{ duration: 0.28 }}
-          onClick={onClose}
+    <div
+      className="fixed inset-0 z-50 flex flex-col justify-end"
+      style={{ pointerEvents: isVisible ? "auto" : "none" }}
+    >
+      <motion.div
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        initial={false}
+        animate={{ opacity: isVisible ? 1 : 0 }}
+        transition={{ duration: 0.28 }}
+        onClick={onClose}
+      />
+      <motion.div
+        className="relative z-10 w-full max-w-[480px] mx-auto rounded-t-3xl overflow-hidden"
+        style={{ background: "#0a0a0a", border: "1px solid rgba(201,160,48,0.10)", borderBottom: "none" }}
+        initial={false}
+        animate={{ y: isVisible ? 0 : "100%" }}
+        transition={{ type: "spring", damping: 32, stiffness: 280, mass: 0.9 }}
+      >
+        <div className="w-full h-[1.5px]"
+          style={{ background: "linear-gradient(90deg,transparent,#C9A030 40%,#F0D050 50%,#C9A030 60%,transparent)" }}
         />
-        <motion.div
-          className="relative z-10 w-full max-w-[480px] mx-auto rounded-t-3xl overflow-hidden"
-          style={{ background: "#0a0a0a", border: "1px solid rgba(201,160,48,0.10)", borderBottom: "none" }}
-          initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-          transition={{ type: "spring", damping: 32, stiffness: 280, mass: 0.9 }}
-        >
-          <div className="w-full h-[1.5px]"
-            style={{ background: "linear-gradient(90deg,transparent,#C9A030 40%,#F0D050 50%,#C9A030 60%,transparent)" }}
-          />
-          <div className="flex justify-center pt-3 pb-1">
-            <div className="w-10 h-1 rounded-full bg-white/15" />
-          </div>
-          <div className="px-6 pt-4 pb-10">
-            <button
-              onClick={onClose}
-              className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-white/[0.06] text-white/40 hover:text-white/80 hover:bg-white/[0.10] transition-all"
-            >
-              <X className="w-4 h-4" />
-            </button>
-            {children}
-          </div>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-white/15" />
+        </div>
+        <div className="px-6 pt-4 pb-10">
+          <button
+            onClick={onClose}
+            className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-white/[0.06] text-white/40 hover:text-white/80 hover:bg-white/[0.10] transition-all"
+          >
+            <X className="w-4 h-4" />
+          </button>
+          {children}
+        </div>
+      </motion.div>
+    </div>
   );
 }
 
@@ -64,9 +70,9 @@ function DrawerShell({ onClose, children }: { onClose: () => void; children: Rea
    SIGN-UP DRAWER
    Container visual preservado. Lógica de auth delegada ao Clerk oficial.
 ═══════════════════════════════════════════════════════════════════════ */
-function SignUpDrawer({ onClose }: { onClose: () => void; onOpenLogin: () => void }) {
+function SignUpDrawer({ onClose, isVisible }: { onClose: () => void; onOpenLogin: () => void; isVisible: boolean }) {
   return (
-    <DrawerShell onClose={onClose}>
+    <DrawerShell onClose={onClose} isVisible={isVisible}>
       <SignUp
         routing="hash"
         fallbackRedirectUrl="/onboarding"
@@ -80,9 +86,9 @@ function SignUpDrawer({ onClose }: { onClose: () => void; onOpenLogin: () => voi
    SIGN-IN DRAWER
    Container visual preservado. Lógica de auth delegada ao Clerk oficial.
 ═══════════════════════════════════════════════════════════════════════ */
-function SignInDrawer({ onClose }: { onClose: () => void; onOpenSignUp: () => void }) {
+function SignInDrawer({ onClose, isVisible }: { onClose: () => void; onOpenSignUp: () => void; isVisible: boolean }) {
   return (
-    <DrawerShell onClose={onClose}>
+    <DrawerShell onClose={onClose} isVisible={isVisible}>
       <SignIn
         routing="hash"
         fallbackRedirectUrl="/dashboard"
@@ -177,18 +183,16 @@ export function LandingPage() {
         </motion.div>
       </div>
 
-      {signUpOpen && (
-        <SignUpDrawer
-          onClose={() => setSignUpOpen(false)}
-          onOpenLogin={() => { setSignUpOpen(false); setSignInOpen(true); }}
-        />
-      )}
-      {signInOpen && (
-        <SignInDrawer
-          onClose={() => setSignInOpen(false)}
-          onOpenSignUp={() => { setSignInOpen(false); setSignUpOpen(true); }}
-        />
-      )}
+      <SignUpDrawer
+        isVisible={signUpOpen}
+        onClose={() => setSignUpOpen(false)}
+        onOpenLogin={() => { setSignUpOpen(false); setSignInOpen(true); }}
+      />
+      <SignInDrawer
+        isVisible={signInOpen}
+        onClose={() => setSignInOpen(false)}
+        onOpenSignUp={() => { setSignInOpen(false); setSignUpOpen(true); }}
+      />
     </>
   );
 }
