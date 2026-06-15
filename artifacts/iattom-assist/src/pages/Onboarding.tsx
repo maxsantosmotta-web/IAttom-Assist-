@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useUser, useAuth } from "@clerk/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -233,6 +234,7 @@ export function Onboarding() {
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [selecting, setSelecting] = useState<PlanKey | null>(null);
 
   const { data: me, isLoading: meLoading } = useGetMe({
@@ -281,6 +283,7 @@ export function Onboarding() {
           headers: { Authorization: `Bearer ${token}` },
         });
         localStorage.setItem(onboardingKey(user.id), "1");
+        await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
         navigate("/dashboard", { replace: true });
       } catch {
         setSelecting(null);
