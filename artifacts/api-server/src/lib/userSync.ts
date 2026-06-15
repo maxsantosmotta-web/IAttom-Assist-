@@ -42,7 +42,7 @@ export async function getOrSyncUser(clerkId: string, email?: string, name?: stri
       if (promote) {
         const [updated] = await db
           .update(users)
-          .set({ role: "admin", betaAccess: true, plan: "pro", credits: 500, updatedAt: new Date() })
+          .set({ role: "admin", betaAccess: true, plan: "pro", credits: 500, registrationConfirmed: true, updatedAt: new Date() })
           .where(eq(users.clerkId, clerkId))
           .returning();
         return updated;
@@ -62,7 +62,7 @@ export async function getOrSyncUser(clerkId: string, email?: string, name?: stri
       email,
       name: name ?? null,
       ...(promote
-        ? { role: "admin" as const, betaAccess: true, plan: "pro" as const, credits: 500 }
+        ? { role: "admin" as const, betaAccess: true, plan: "pro" as const, credits: 500, registrationConfirmed: true }
         : {}),
     })
     .returning();

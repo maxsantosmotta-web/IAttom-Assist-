@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useSendVerificationCode,
   useVerifyCode,
   useConfirmRegistration,
+  getGetMeQueryKey,
 } from "@workspace/api-client-react";
 
 export type VerificationStep =
@@ -45,6 +47,7 @@ export function useEmailVerification(): UseEmailVerificationReturn {
   const [error, setError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const queryClient = useQueryClient();
 
   const clearTimer = () => {
     if (timerRef.current) {
@@ -107,15 +110,16 @@ export function useEmailVerification(): UseEmailVerificationReturn {
       try {
         await verifyMutation.mutateAsync({ data: { code } });
         setStep("confirmed");
+        void queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
       } catch (err: unknown) {
-        const code = extractErrorCode(err);
-        if (code === "code_expired") {
+        const errCode = extractErrorCode(err);
+        if (errCode === "code_expired") {
           setStep("expired");
           setError("Código expirado. Solicite um novo código.");
-        } else if (code === "invalid_code") {
+        } else if (errCode === "invalid_code") {
           setStep("awaiting_code");
           setError("Código incorreto. Verifique e tente novamente.");
-        } else if (code === "no_pending_code") {
+        } else if (errCode === "no_pending_code") {
           setStep("expired");
           setError("Nenhum código ativo encontrado. Solicite um novo.");
         } else {
@@ -124,7 +128,7 @@ export function useEmailVerification(): UseEmailVerificationReturn {
         }
       }
     },
-    [verifyMutation],
+    [verifyMutation, queryClient],
   );
 
   const confirmDirect = useCallback(async () => {
@@ -132,11 +136,12 @@ export function useEmailVerification(): UseEmailVerificationReturn {
     try {
       await confirmMutation.mutateAsync();
       setStep("confirmed");
+      void queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
     } catch {
       setStep("error");
       setError("Falha ao confirmar registro. Tente novamente.");
     }
-  }, [confirmMutation]);
+  }, [confirmMutation, queryClient]);
 
   const reset = useCallback(() => {
     setStep("idle");
