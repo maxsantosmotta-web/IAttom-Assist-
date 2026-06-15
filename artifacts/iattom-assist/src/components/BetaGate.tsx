@@ -25,7 +25,7 @@ export function BetaGate({ children }: BetaGateProps) {
     me !== undefined &&
     me.role !== "admin" &&
     me.plan === "free" &&
-    !me.betaAccess;
+    !me.planSelected;
 
   useEffect(() => {
     if (!isLoaded || isLoading || me === undefined) return;

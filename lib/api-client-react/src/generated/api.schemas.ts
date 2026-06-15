@@ -117,6 +117,7 @@ export interface UserProfile {
   plan: UserProfilePlan;
   credits: number;
   betaAccess: boolean;
+  planSelected: boolean;
   createdAt: string;
 }
 

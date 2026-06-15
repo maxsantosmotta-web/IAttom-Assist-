@@ -95,6 +95,7 @@ async function handleSubscriptionChange(
         creativeCredits: newCreativeCredits,
         stripeSubscriptionId: subscription.id,
         stripeSubscriptionStatus: status,
+        planSelected: true,
         helpMessagesUsed: 0,
         helpUsedResetAt: new Date(),
         updatedAt: new Date(),

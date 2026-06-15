@@ -36,10 +36,10 @@ router.post("/user/select-plan", requireAuth, async (req, res): Promise<void> =>
   if (!user) { res.status(404).json({ error: "User not found" }); return; }
   const [updated] = await db
     .update(users)
-    .set({ betaAccess: true, updatedAt: new Date() })
+    .set({ planSelected: true, updatedAt: new Date() })
     .where(eq(users.clerkId, clerkUserId))
     .returning();
-  res.json({ ok: true, plan: updated.plan, betaAccess: updated.betaAccess });
+  res.json({ ok: true, plan: updated.plan, planSelected: updated.planSelected });
 });
 
 router.post("/admin/bootstrap", requireAuth, async (req, res): Promise<void> => {

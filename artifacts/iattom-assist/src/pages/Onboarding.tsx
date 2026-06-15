@@ -243,7 +243,7 @@ export function Onboarding() {
     if (!isLoaded || !user || meLoading || me === undefined) return;
     const isAdmin = me?.role === "admin";
     const hasPaidPlan = me?.plan !== undefined && me.plan !== "free";
-    const hasSelectedFree = me?.betaAccess === true;
+    const hasSelectedFree = me?.planSelected === true;
     if (isAdmin || hasPaidPlan || hasSelectedFree) {
       navigate("/dashboard", { replace: true });
     }
