@@ -176,32 +176,34 @@ const clerkAppearance = {
 };
 
 function SignInCallbackPage() {
+  // Sem wrapper <Show when="signed-out">: o componente Clerk processa o
+  // callback OAuth independente do estado de autenticação e executa
+  // fallbackRedirectUrl após concluir. Com o wrapper, o usuário ficava
+  // preso em /sign-in sem redirect porque o <Show> escondia o componente
+  // assim que a sessão era criada, antes do redirect ser disparado.
   return (
-    <Show when="signed-out">
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
-        <SignIn
-          routing="path"
-          path={`${basePath}/sign-in`}
-          fallbackRedirectUrl={`${basePath}/dashboard`}
-          appearance={clerkAppearance}
-        />
-      </div>
-    </Show>
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
+      <SignIn
+        routing="path"
+        path={`${basePath}/sign-in`}
+        fallbackRedirectUrl={`${basePath}/dashboard`}
+        appearance={clerkAppearance}
+      />
+    </div>
   );
 }
 
 function SignUpCallbackPage() {
+  // Mesmo motivo que SignInCallbackPage — sem wrapper <Show when="signed-out">.
   return (
-    <Show when="signed-out">
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
-        <SignUp
-          routing="path"
-          path={`${basePath}/sign-up`}
-          fallbackRedirectUrl={`${basePath}/onboarding`}
-          appearance={clerkAppearance}
-        />
-      </div>
-    </Show>
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
+      <SignUp
+        routing="path"
+        path={`${basePath}/sign-up`}
+        fallbackRedirectUrl={`${basePath}/onboarding`}
+        appearance={clerkAppearance}
+      />
+    </div>
   );
 }
 
