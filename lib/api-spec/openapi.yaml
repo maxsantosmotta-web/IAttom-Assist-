@@ -198,6 +198,75 @@ paths:
         "404":
           description: User not synced yet
 
+  /auth/send-verification-code:
+    post:
+      operationId: sendVerificationCode
+      tags: [auth]
+      summary: Send OTP verification code to user email
+      responses:
+        "200":
+          description: Code sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required:
+                  - ok
+        "429":
+          description: Too many requests
+
+  /auth/verify-code:
+    post:
+      operationId: verifyCode
+      tags: [auth]
+      summary: Verify OTP code and set registrationConfirmed=true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+              required:
+                - code
+      responses:
+        "200":
+          description: Code verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required:
+                  - ok
+        "400":
+          description: Invalid or expired code
+
+  /auth/confirm-registration:
+    post:
+      operationId: confirmRegistration
+      tags: [auth]
+      summary: Confirm registration for email/password users after Clerk verification
+      responses:
+        "200":
+          description: Registration confirmed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                required:
+                  - ok
+
   /credits/balance:
     get:
       operationId: getCreditsBalance
@@ -741,9 +810,13 @@ components:
           enum: [free, pro, business, agency]
         credits:
           type: integer
+        extraCredits:
+          type: integer
         betaAccess:
           type: boolean
         planSelected:
+          type: boolean
+        registrationConfirmed:
           type: boolean
         createdAt:
           type: string
@@ -757,6 +830,7 @@ components:
         - credits
         - betaAccess
         - planSelected
+        - registrationConfirmed
         - createdAt
 
     CreditsBalance:

@@ -1,10 +1,12 @@
 import { Router, type IRouter } from "express";
 import { getAuth } from "@clerk/express";
-import { eq } from "drizzle-orm";
-import { db, users } from "@workspace/db";
+import { eq, and, desc } from "drizzle-orm";
+import { createHash, randomInt } from "node:crypto";
+import { db, users, emailVerifications } from "@workspace/db";
 import { requireAuth, type AuthenticatedRequest } from "../middlewares/requireAuth";
 import { getOrSyncUser, getAdminCount, getOrCreateUserFromClerk } from "../lib/userSync";
 import { SyncUserBody, SyncUserResponse, GetMeResponse, BootstrapAdminResponse } from "@workspace/api-zod";
+import { sendOtpEmail } from "../lib/email";
 
 const router: IRouter = Router();
 
@@ -40,6 +42,108 @@ router.post("/user/select-plan", requireAuth, async (req, res): Promise<void> =>
     .where(eq(users.clerkId, clerkUserId))
     .returning();
   res.json({ ok: true, plan: updated.plan, planSelected: updated.planSelected });
+});
+
+/* ── POST /auth/send-verification-code ───────────────────────────────────── */
+router.post("/auth/send-verification-code", requireAuth, async (req, res): Promise<void> => {
+  const { clerkUserId } = req as AuthenticatedRequest;
+
+  const [user] = await db.select().from(users).where(eq(users.clerkId, clerkUserId));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+  // invalidate previous unused codes for this user
+  await db
+    .update(emailVerifications)
+    .set({ used: true })
+    .where(and(eq(emailVerifications.clerkUserId, clerkUserId), eq(emailVerifications.used, false)));
+
+  // generate 6-digit code
+  const code = String(randomInt(100000, 999999));
+  const codeHash = createHash("sha256").update(code).digest("hex");
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  await db.insert(emailVerifications).values({
+    clerkUserId,
+    email: user.email,
+    codeHash,
+    expiresAt,
+  });
+
+  await sendOtpEmail(user.email, code);
+
+  req.log.info({ clerkUserId, email: user.email }, "OTP code sent");
+  res.json({ ok: true });
+});
+
+/* ── POST /auth/verify-code ─────────────────────────────────────────────── */
+router.post("/auth/verify-code", requireAuth, async (req, res): Promise<void> => {
+  const { clerkUserId } = req as AuthenticatedRequest;
+  const { code } = req.body as { code?: string };
+
+  if (!code || typeof code !== "string") {
+    res.status(400).json({ error: "code_required" });
+    return;
+  }
+
+  const inputHash = createHash("sha256").update(code.trim()).digest("hex");
+
+  const [record] = await db
+    .select()
+    .from(emailVerifications)
+    .where(
+      and(
+        eq(emailVerifications.clerkUserId, clerkUserId),
+        eq(emailVerifications.used, false),
+      )
+    )
+    .orderBy(desc(emailVerifications.createdAt))
+    .limit(1);
+
+  if (!record) {
+    res.status(400).json({ error: "no_pending_code" });
+    return;
+  }
+
+  if (record.expiresAt < new Date()) {
+    res.status(400).json({ error: "code_expired" });
+    return;
+  }
+
+  if (record.codeHash !== inputHash) {
+    res.status(400).json({ error: "invalid_code" });
+    return;
+  }
+
+  // mark code as used
+  await db
+    .update(emailVerifications)
+    .set({ used: true })
+    .where(eq(emailVerifications.id, record.id));
+
+  // set registrationConfirmed = true
+  await db
+    .update(users)
+    .set({ registrationConfirmed: true, updatedAt: new Date() })
+    .where(eq(users.clerkId, clerkUserId));
+
+  req.log.info({ clerkUserId }, "OTP verified — registrationConfirmed=true");
+  res.json({ ok: true });
+});
+
+/* ── POST /auth/confirm-registration ────────────────────────────────────── */
+router.post("/auth/confirm-registration", requireAuth, async (req, res): Promise<void> => {
+  const { clerkUserId } = req as AuthenticatedRequest;
+
+  const [user] = await db.select().from(users).where(eq(users.clerkId, clerkUserId));
+  if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+  await db
+    .update(users)
+    .set({ registrationConfirmed: true, updatedAt: new Date() })
+    .where(eq(users.clerkId, clerkUserId));
+
+  req.log.info({ clerkUserId }, "Registration confirmed directly");
+  res.json({ ok: true });
 });
 
 router.post("/admin/bootstrap", requireAuth, async (req, res): Promise<void> => {

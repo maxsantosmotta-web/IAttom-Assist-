@@ -677,6 +677,7 @@ router.get("/admin/export/users", requireAdmin, async (_req, res): Promise<void>
       plan: users.plan,
       role: users.role,
       credits: users.credits,
+      extraCredits: users.extraCredits,
       createdAt: users.createdAt,
     })
     .from(users)
@@ -699,7 +700,7 @@ router.get("/admin/export/users", requireAdmin, async (_req, res): Promise<void>
         r.email,
         PLAN_PT[r.plan ?? ""] ?? r.plan,
         ROLE_PT[r.role ?? ""] ?? r.role,
-        r.credits,
+        (r.credits ?? 0) + (r.extraCredits ?? 0),
         r.createdAt?.toISOString() ?? "",
       ].map(esc).join(",")
     )
