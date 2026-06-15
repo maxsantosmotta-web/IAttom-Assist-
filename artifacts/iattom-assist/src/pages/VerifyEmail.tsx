@@ -7,11 +7,11 @@ import { LogoMark } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ShieldCheck, Mail } from "lucide-react";
+import { Loader2, ShieldCheck, Mail, X } from "lucide-react";
 
 export function VerifyEmail() {
   const { user, isLoaded: clerkLoaded } = useUser();
-  const { getToken } = useAuth();
+  const { getToken, signOut } = useAuth();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -29,6 +29,37 @@ export function VerifyEmail() {
   const isGoogleUser = (user?.externalAccounts ?? []).some(
     (a) => a.provider === "google"
   );
+
+  const handleExit = async () => {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (
+        key &&
+        (key.includes("onboarding") ||
+          key.includes("registration") ||
+          key.includes("verification") ||
+          key.includes("auth_flow") ||
+          key.includes("clerk"))
+      ) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+
+    sessionStorage.removeItem("onboarding");
+    sessionStorage.removeItem("registration");
+    sessionStorage.removeItem("verification");
+    sessionStorage.removeItem("auth_flow");
+
+    try {
+      await signOut();
+    } catch {
+      // ignore
+    }
+
+    navigate("/sign-up", { replace: true });
+  };
 
   const confirmRegistration = async () => {
     const token = await getToken();
@@ -132,9 +163,18 @@ export function VerifyEmail() {
           <div className="absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-primary/[0.04] to-transparent pointer-events-none" />
 
           <div className="p-8">
-            <div className="flex items-center gap-2.5 mb-1">
-              <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
-              <h1 className="text-xl font-bold text-white">Verificação de e-mail</h1>
+            <div className="flex items-start justify-between mb-1">
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                <h1 className="text-xl font-bold text-white">Verificação de e-mail</h1>
+              </div>
+              <button
+                onClick={handleExit}
+                title="Cancelar e voltar ao início"
+                className="p-1.5 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-white/[0.06] transition-colors -mr-1 -mt-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             {!codeSent ? (
