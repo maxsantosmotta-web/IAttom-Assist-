@@ -191,8 +191,10 @@ export const SyncUserResponse = zod.object({
   role: zod.enum(["user", "admin"]),
   plan: zod.enum(["free", "pro", "business", "agency"]),
   credits: zod.number(),
+  extraCredits: zod.number().optional(),
   betaAccess: zod.boolean(),
   planSelected: zod.boolean(),
+  registrationConfirmed: zod.boolean(),
   createdAt: zod.coerce.date(),
 });
 
@@ -207,9 +209,36 @@ export const GetMeResponse = zod.object({
   role: zod.enum(["user", "admin"]),
   plan: zod.enum(["free", "pro", "business", "agency"]),
   credits: zod.number(),
+  extraCredits: zod.number().optional(),
   betaAccess: zod.boolean(),
   planSelected: zod.boolean(),
+  registrationConfirmed: zod.boolean(),
   createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Send OTP verification code to user email
+ */
+export const SendVerificationCodeResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+/**
+ * @summary Verify OTP code and set registrationConfirmed=true
+ */
+export const VerifyCodeBody = zod.object({
+  code: zod.string(),
+});
+
+export const VerifyCodeResponse = zod.object({
+  ok: zod.boolean(),
+});
+
+/**
+ * @summary Confirm registration for email/password users after Clerk verification
+ */
+export const ConfirmRegistrationResponse = zod.object({
+  ok: zod.boolean(),
 });
 
 /**
@@ -547,8 +576,10 @@ export const BootstrapAdminResponse = zod.object({
   role: zod.enum(["user", "admin"]),
   plan: zod.enum(["free", "pro", "business", "agency"]),
   credits: zod.number(),
+  extraCredits: zod.number().optional(),
   betaAccess: zod.boolean(),
   planSelected: zod.boolean(),
+  registrationConfirmed: zod.boolean(),
   createdAt: zod.coerce.date(),
 });
 

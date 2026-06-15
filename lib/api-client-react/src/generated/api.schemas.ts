@@ -9,26 +9,24 @@ export interface HealthStatus {
   status: string;
 }
 
-export type ProjectType = typeof ProjectType[keyof typeof ProjectType];
-
+export type ProjectType = (typeof ProjectType)[keyof typeof ProjectType];
 
 export const ProjectType = {
-  product_discovery: 'product_discovery',
-  product_validation: 'product_validation',
-  campaign: 'campaign',
-  content: 'content',
-  creative: 'creative',
-  video_script: 'video_script',
-  marketing: 'marketing',
+  product_discovery: "product_discovery",
+  product_validation: "product_validation",
+  campaign: "campaign",
+  content: "content",
+  creative: "creative",
+  video_script: "video_script",
+  marketing: "marketing",
 } as const;
 
-export type ProjectStatus = typeof ProjectStatus[keyof typeof ProjectStatus];
-
+export type ProjectStatus = (typeof ProjectStatus)[keyof typeof ProjectStatus];
 
 export const ProjectStatus = {
-  draft: 'draft',
-  in_progress: 'in_progress',
-  completed: 'completed',
+  draft: "draft",
+  in_progress: "in_progress",
+  completed: "completed",
 } as const;
 
 export interface Project {
@@ -41,26 +39,26 @@ export interface Project {
   updatedAt: string;
 }
 
-export type CreateProjectBodyType = typeof CreateProjectBodyType[keyof typeof CreateProjectBodyType];
-
+export type CreateProjectBodyType =
+  (typeof CreateProjectBodyType)[keyof typeof CreateProjectBodyType];
 
 export const CreateProjectBodyType = {
-  product_discovery: 'product_discovery',
-  product_validation: 'product_validation',
-  campaign: 'campaign',
-  content: 'content',
-  creative: 'creative',
-  video_script: 'video_script',
-  marketing: 'marketing',
+  product_discovery: "product_discovery",
+  product_validation: "product_validation",
+  campaign: "campaign",
+  content: "content",
+  creative: "creative",
+  video_script: "video_script",
+  marketing: "marketing",
 } as const;
 
-export type CreateProjectBodyStatus = typeof CreateProjectBodyStatus[keyof typeof CreateProjectBodyStatus];
-
+export type CreateProjectBodyStatus =
+  (typeof CreateProjectBodyStatus)[keyof typeof CreateProjectBodyStatus];
 
 export const CreateProjectBodyStatus = {
-  draft: 'draft',
-  in_progress: 'in_progress',
-  completed: 'completed',
+  draft: "draft",
+  in_progress: "in_progress",
+  completed: "completed",
 } as const;
 
 export interface CreateProjectBody {
@@ -92,22 +90,22 @@ export interface SyncUserBody {
   email: string;
 }
 
-export type UserProfileRole = typeof UserProfileRole[keyof typeof UserProfileRole];
-
+export type UserProfileRole =
+  (typeof UserProfileRole)[keyof typeof UserProfileRole];
 
 export const UserProfileRole = {
-  user: 'user',
-  admin: 'admin',
+  user: "user",
+  admin: "admin",
 } as const;
 
-export type UserProfilePlan = typeof UserProfilePlan[keyof typeof UserProfilePlan];
-
+export type UserProfilePlan =
+  (typeof UserProfilePlan)[keyof typeof UserProfilePlan];
 
 export const UserProfilePlan = {
-  free: 'free',
-  pro: 'pro',
-  business: 'business',
-  agency: 'agency',
+  free: "free",
+  pro: "pro",
+  business: "business",
+  agency: "agency",
 } as const;
 
 export interface UserProfile {
@@ -125,17 +123,17 @@ export interface UserProfile {
   createdAt: string;
 }
 
-export type CreditsBalancePlan = typeof CreditsBalancePlan[keyof typeof CreditsBalancePlan];
-
+export type CreditsBalancePlan =
+  (typeof CreditsBalancePlan)[keyof typeof CreditsBalancePlan];
 
 export const CreditsBalancePlan = {
-  free: 'free',
-  pro: 'pro',
-  business: 'business',
-  agency: 'agency',
+  free: "free",
+  pro: "pro",
+  business: "business",
+  agency: "agency",
 } as const;
 
-export type CreditsBalanceFeatureCosts = {[key: string]: number};
+export type CreditsBalanceFeatureCosts = { [key: string]: number };
 
 export interface CreditsBalance {
   balance: number;
@@ -150,15 +148,15 @@ export interface CreditsBalance {
   featureCosts: CreditsBalanceFeatureCosts;
 }
 
-export type CreditTransactionType = typeof CreditTransactionType[keyof typeof CreditTransactionType];
-
+export type CreditTransactionType =
+  (typeof CreditTransactionType)[keyof typeof CreditTransactionType];
 
 export const CreditTransactionType = {
-  initial: 'initial',
-  credit: 'credit',
-  debit: 'debit',
-  adjustment: 'adjustment',
-  refund: 'refund',
+  initial: "initial",
+  credit: "credit",
+  debit: "debit",
+  adjustment: "adjustment",
+  refund: "refund",
 } as const;
 
 export interface CreditTransaction {
@@ -179,19 +177,19 @@ export interface CreditTransactionList {
   balance: number;
 }
 
-export type UseCreditsBodyFeature = typeof UseCreditsBodyFeature[keyof typeof UseCreditsBodyFeature];
-
+export type UseCreditsBodyFeature =
+  (typeof UseCreditsBodyFeature)[keyof typeof UseCreditsBodyFeature];
 
 export const UseCreditsBodyFeature = {
-  product_discovery: 'product_discovery',
-  product_validation: 'product_validation',
-  campaign: 'campaign',
-  content: 'content',
-  creativeImage1: 'creativeImage1',
-  creativeImage2: 'creativeImage2',
-  creativeImage3: 'creativeImage3',
-  video_script: 'video_script',
-  prompt_creation: 'prompt_creation',
+  product_discovery: "product_discovery",
+  product_validation: "product_validation",
+  campaign: "campaign",
+  content: "content",
+  creativeImage1: "creativeImage1",
+  creativeImage2: "creativeImage2",
+  creativeImage3: "creativeImage3",
+  video_script: "video_script",
+  prompt_creation: "prompt_creation",
 } as const;
 
 export interface UseCreditsBody {
@@ -215,22 +213,20 @@ export interface AdminAdjustCreditsBody {
   description: string;
 }
 
-export type AdminUserRole = typeof AdminUserRole[keyof typeof AdminUserRole];
-
+export type AdminUserRole = (typeof AdminUserRole)[keyof typeof AdminUserRole];
 
 export const AdminUserRole = {
-  user: 'user',
-  admin: 'admin',
+  user: "user",
+  admin: "admin",
 } as const;
 
-export type AdminUserPlan = typeof AdminUserPlan[keyof typeof AdminUserPlan];
-
+export type AdminUserPlan = (typeof AdminUserPlan)[keyof typeof AdminUserPlan];
 
 export const AdminUserPlan = {
-  free: 'free',
-  pro: 'pro',
-  business: 'business',
-  agency: 'agency',
+  free: "free",
+  pro: "pro",
+  business: "business",
+  agency: "agency",
 } as const;
 
 export interface AdminUser {
@@ -252,22 +248,22 @@ export interface AdminUserList {
   total: number;
 }
 
-export type UpdateAdminUserBodyRole = typeof UpdateAdminUserBodyRole[keyof typeof UpdateAdminUserBodyRole];
-
+export type UpdateAdminUserBodyRole =
+  (typeof UpdateAdminUserBodyRole)[keyof typeof UpdateAdminUserBodyRole];
 
 export const UpdateAdminUserBodyRole = {
-  user: 'user',
-  admin: 'admin',
+  user: "user",
+  admin: "admin",
 } as const;
 
-export type UpdateAdminUserBodyPlan = typeof UpdateAdminUserBodyPlan[keyof typeof UpdateAdminUserBodyPlan];
-
+export type UpdateAdminUserBodyPlan =
+  (typeof UpdateAdminUserBodyPlan)[keyof typeof UpdateAdminUserBodyPlan];
 
 export const UpdateAdminUserBodyPlan = {
-  free: 'free',
-  pro: 'pro',
-  business: 'business',
-  agency: 'agency',
+  free: "free",
+  pro: "pro",
+  business: "business",
+  agency: "agency",
 } as const;
 
 export interface UpdateAdminUserBody {
@@ -327,14 +323,14 @@ export interface AdminAnalytics {
   planRevenue: AdminAnalyticsPlanRevenueItem[];
 }
 
-export type StripePlanPlanKey = typeof StripePlanPlanKey[keyof typeof StripePlanPlanKey];
-
+export type StripePlanPlanKey =
+  (typeof StripePlanPlanKey)[keyof typeof StripePlanPlanKey];
 
 export const StripePlanPlanKey = {
-  free: 'free',
-  pro: 'pro',
-  business: 'business',
-  agency: 'agency',
+  free: "free",
+  pro: "pro",
+  business: "business",
+  agency: "agency",
 } as const;
 
 export interface StripePlan {
@@ -349,14 +345,14 @@ export interface StripePlan {
   features: string[];
 }
 
-export type StripeSubscriptionStatusPlanKey = typeof StripeSubscriptionStatusPlanKey[keyof typeof StripeSubscriptionStatusPlanKey];
-
+export type StripeSubscriptionStatusPlanKey =
+  (typeof StripeSubscriptionStatusPlanKey)[keyof typeof StripeSubscriptionStatusPlanKey];
 
 export const StripeSubscriptionStatusPlanKey = {
-  free: 'free',
-  pro: 'pro',
-  business: 'business',
-  agency: 'agency',
+  free: "free",
+  pro: "pro",
+  business: "business",
+  agency: "agency",
 } as const;
 
 export interface StripeSubscriptionStatus {
@@ -396,13 +392,13 @@ export interface AiValidateProductBody {
   pricePoint?: string;
 }
 
-export type AiCreateCampaignBodyProductType = typeof AiCreateCampaignBodyProductType[keyof typeof AiCreateCampaignBodyProductType];
-
+export type AiCreateCampaignBodyProductType =
+  (typeof AiCreateCampaignBodyProductType)[keyof typeof AiCreateCampaignBodyProductType];
 
 export const AiCreateCampaignBodyProductType = {
-  Digital: 'Digital',
-  Físico: 'Físico',
-  Serviço: 'Serviço',
+  Digital: "Digital",
+  Físico: "Físico",
+  Serviço: "Serviço",
 } as const;
 
 export interface AiCreateCampaignBody {
@@ -433,18 +429,18 @@ export interface AiCreateContentBody {
   additionalContext?: string;
 }
 
-export type AiCreativeIdeasBodyPlatform = typeof AiCreativeIdeasBodyPlatform[keyof typeof AiCreativeIdeasBodyPlatform];
-
+export type AiCreativeIdeasBodyPlatform =
+  (typeof AiCreativeIdeasBodyPlatform)[keyof typeof AiCreativeIdeasBodyPlatform];
 
 export const AiCreativeIdeasBodyPlatform = {
-  instagram: 'instagram',
-  facebook: 'facebook',
-  tiktok: 'tiktok',
-  mercado_livre: 'mercado_livre',
-  shopee: 'shopee',
-  hotmart: 'hotmart',
-  kiwify: 'kiwify',
-  perfil: 'perfil',
+  instagram: "instagram",
+  facebook: "facebook",
+  tiktok: "tiktok",
+  mercado_livre: "mercado_livre",
+  shopee: "shopee",
+  hotmart: "hotmart",
+  kiwify: "kiwify",
+  perfil: "perfil",
 } as const;
 
 export interface AiCreativeIdeasBody {
@@ -465,34 +461,34 @@ export interface AiVideoScriptBody {
   style?: string;
 }
 
-export type AiGenerateVideoBodyVideoEstilo = typeof AiGenerateVideoBodyVideoEstilo[keyof typeof AiGenerateVideoBodyVideoEstilo];
-
+export type AiGenerateVideoBodyVideoEstilo =
+  (typeof AiGenerateVideoBodyVideoEstilo)[keyof typeof AiGenerateVideoBodyVideoEstilo];
 
 export const AiGenerateVideoBodyVideoEstilo = {
-  executivo: 'executivo',
-  consultor: 'consultor',
-  criador: 'criador',
+  executivo: "executivo",
+  consultor: "consultor",
+  criador: "criador",
 } as const;
 
-export type AiGenerateVideoBodyVideoAvatar = typeof AiGenerateVideoBodyVideoAvatar[keyof typeof AiGenerateVideoBodyVideoAvatar];
-
+export type AiGenerateVideoBodyVideoAvatar =
+  (typeof AiGenerateVideoBodyVideoAvatar)[keyof typeof AiGenerateVideoBodyVideoAvatar];
 
 export const AiGenerateVideoBodyVideoAvatar = {
-  masculino: 'masculino',
-  feminino: 'feminino',
+  masculino: "masculino",
+  feminino: "feminino",
 } as const;
 
-export type AiGenerateVideoBodyVideoFormato = typeof AiGenerateVideoBodyVideoFormato[keyof typeof AiGenerateVideoBodyVideoFormato];
-
+export type AiGenerateVideoBodyVideoFormato =
+  (typeof AiGenerateVideoBodyVideoFormato)[keyof typeof AiGenerateVideoBodyVideoFormato];
 
 export const AiGenerateVideoBodyVideoFormato = {
-  '9:16': '9:16',
-  '1:1': '1:1',
-  '16:9': '16:9',
+  "9:16": "9:16",
+  "1:1": "1:1",
+  "16:9": "16:9",
 } as const;
 
-export type AiGenerateVideoBodyVideoDuration = typeof AiGenerateVideoBodyVideoDuration[keyof typeof AiGenerateVideoBodyVideoDuration];
-
+export type AiGenerateVideoBodyVideoDuration =
+  (typeof AiGenerateVideoBodyVideoDuration)[keyof typeof AiGenerateVideoBodyVideoDuration];
 
 export const AiGenerateVideoBodyVideoDuration = {
   NUMBER_30: 30,
@@ -508,7 +504,7 @@ export interface AiGenerateVideoBody {
 }
 
 export type ListHistoryParams = {
-limit?: number;
+  limit?: number;
 };
 
 export type SendVerificationCode200 = {
@@ -528,37 +524,36 @@ export type ConfirmRegistration200 = {
 };
 
 export type ListCreditTransactionsParams = {
-limit?: number;
-offset?: number;
+  limit?: number;
+  offset?: number;
 };
 
 export type ListAdminUsersParams = {
-search?: string;
-plan?: ListAdminUsersPlan;
-role?: ListAdminUsersRole;
-limit?: number;
-offset?: number;
+  search?: string;
+  plan?: ListAdminUsersPlan;
+  role?: ListAdminUsersRole;
+  limit?: number;
+  offset?: number;
 };
 
-export type ListAdminUsersPlan = typeof ListAdminUsersPlan[keyof typeof ListAdminUsersPlan];
-
+export type ListAdminUsersPlan =
+  (typeof ListAdminUsersPlan)[keyof typeof ListAdminUsersPlan];
 
 export const ListAdminUsersPlan = {
-  free: 'free',
-  pro: 'pro',
-  business: 'business',
-  agency: 'agency',
+  free: "free",
+  pro: "pro",
+  business: "business",
+  agency: "agency",
 } as const;
 
-export type ListAdminUsersRole = typeof ListAdminUsersRole[keyof typeof ListAdminUsersRole];
-
+export type ListAdminUsersRole =
+  (typeof ListAdminUsersRole)[keyof typeof ListAdminUsersRole];
 
 export const ListAdminUsersRole = {
-  user: 'user',
-  admin: 'admin',
+  user: "user",
+  admin: "admin",
 } as const;
 
 export type ListAdminActivityParams = {
-limit?: number;
+  limit?: number;
 };
-
