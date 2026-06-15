@@ -22,14 +22,14 @@ router.post("/auth/sync", requireAuth, async (req, res): Promise<void> => {
 
   req.log.info({ clerkUserId, dbUserId: user.id, role: user.role, plan: user.plan, credits: user.credits, email: user.email }, "[DEBUG] /auth/sync result");
 
-  res.json(SyncUserResponse.parse(user));
+  res.json(SyncUserResponse.parse({ ...user, name: user.name ?? undefined }));
 });
 
 router.get("/auth/me", requireAuth, async (req, res): Promise<void> => {
   const { clerkUserId } = req as AuthenticatedRequest;
   const user = await getOrCreateUserFromClerk(clerkUserId);
   if (!user) { res.status(500).json({ error: "Failed to resolve user from Clerk" }); return; }
-  res.json(GetMeResponse.parse(user));
+  res.json(GetMeResponse.parse({ ...user, name: user.name ?? undefined }));
 });
 
 router.post("/user/select-plan", requireAuth, async (req, res): Promise<void> => {
