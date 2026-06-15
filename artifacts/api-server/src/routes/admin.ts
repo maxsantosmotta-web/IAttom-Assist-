@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { clerkClient } from "@clerk/express";
-import { eq, ilike, count, desc, and, gte, or, isNull, ne, sql } from "drizzle-orm";
+import { eq, ilike, count, desc, and, gte, or, isNull, ne, sql, inArray } from "drizzle-orm";
 import { db, users, projectsTable, historyTable, creditsTransactions, waitlistTable, feedbackTable } from "@workspace/db";
 import { requireAdmin } from "../middlewares/requireAdmin";
 import {
@@ -828,10 +828,10 @@ router.post("/admin/cleanup-test-users", async (req, res): Promise<void> => {
   const deps: Record<string, number> = {};
 
   // Remove dependencies from all related tables
-  const depResult1 = await db.delete(feedbackTable).where(sql`${feedbackTable.clerkUserId} = ANY(${clerkIds})`).returning({ id: feedbackTable.id });
+  const depResult1 = await db.delete(feedbackTable).where(inArray(feedbackTable.clerkUserId, clerkIds)).returning({ id: feedbackTable.id });
   deps.feedback = depResult1.length;
 
-  const depResult2 = await db.delete(creditsTransactions).where(sql`${creditsTransactions.clerkUserId} = ANY(${clerkIds})`).returning({ id: creditsTransactions.id });
+  const depResult2 = await db.delete(creditsTransactions).where(inArray(creditsTransactions.clerkUserId, clerkIds)).returning({ id: creditsTransactions.id });
   deps.creditsTransactions = depResult2.length;
 
   // Delete the test users (Max is explicitly protected by email filter)
