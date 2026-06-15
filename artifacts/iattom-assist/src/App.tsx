@@ -222,7 +222,7 @@ function ProtectedOnboarding() {
   return (
     <>
       <Show when="signed-in">
-        <Onboarding />
+        <Redirect to="/dashboard/billing" />
       </Show>
       <Show when="signed-out">
         <Redirect to="/sign-up" />
@@ -419,7 +419,7 @@ function ClerkProviderWithRoutes() {
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
       signInFallbackRedirectUrl={`${window.location.origin}${basePath}/dashboard`}
-      signUpFallbackRedirectUrl={`${window.location.origin}${basePath}/onboarding`}
+      signUpFallbackRedirectUrl={`${window.location.origin}${basePath}/dashboard/billing`}
       localization={clerkLocalization}
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}

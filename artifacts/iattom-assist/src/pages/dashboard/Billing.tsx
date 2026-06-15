@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "@clerk/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
   Crown, Check, Zap, ExternalLink, AlertTriangle, RefreshCw,
@@ -264,6 +266,8 @@ function BillingToggle({ value, onChange }: { value: "monthly" | "annual"; onCha
 /* ─── main component ─────────────────────────────────────────────────── */
 export function Billing() {
   const { toast } = useToast();
+  const { getToken } = useAuth();
+  const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
   const [showComparison, setShowComparison] = useState(false);
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
@@ -327,6 +331,7 @@ export function Billing() {
   const PLAN_ORDER  = ["free", "pro", "business", "agency"];
   const sortedPlans = [...plans].sort((a, b) => PLAN_ORDER.indexOf(a.planKey) - PLAN_ORDER.indexOf(b.planKey));
 
+  const [freePending, setFreePending] = useState(false);
   const [creditsPending, setCreditsPending] = useState<string | null>(null);
   const [videoPending, setVideoPending] = useState<string | null>(null);
   const [imagePending, setImagePending] = useState<string | null>(null);
@@ -408,7 +413,25 @@ export function Billing() {
     }
   };
 
-  const handleUpgrade = (priceId: string | null | undefined, planKey: string) => {
+  const handleUpgrade = async (priceId: string | null | undefined, planKey: string) => {
+    if (planKey === "free") {
+      setFreePending(true);
+      try {
+        const token = await getToken();
+        const base = import.meta.env.BASE_URL ?? "/";
+        await fetch(`${base}api/user/select-plan`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        await queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        setLocation("/dashboard");
+      } catch {
+        toast({ title: "Erro ao selecionar plano", description: "Tente novamente em instantes.", variant: "destructive" });
+      } finally {
+        setFreePending(false);
+      }
+      return;
+    }
     checkout.mutate({ data: { priceId: priceId ?? "free", planKey } });
   };
 
@@ -809,9 +832,9 @@ export function Billing() {
                       size="sm"
                       className={`w-full text-xs font-semibold ${PLAN_BTN_STYLE[planKey] ?? ""}`}
                       onClick={() => handleUpgrade(plan.priceId, planKey)}
-                      disabled={checkout.isPending}
+                      disabled={planKey === "free" ? freePending : checkout.isPending}
                     >
-                      {checkout.isPending && (
+                      {(planKey === "free" ? freePending : checkout.isPending) && (
                         <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
                       )}
                       {planKey === "free"
