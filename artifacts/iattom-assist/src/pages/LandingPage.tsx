@@ -19,6 +19,11 @@ const drawerAppearance = {
     footer: "!bg-transparent !border-0 !shadow-none !rounded-none !p-0",
     logoBox: "hidden",
     logoImage: "hidden",
+    // Oculta "Já tem conta? Fazer Login" (no SignUpDrawer) e
+    // "Não tem conta? Registre-se" (no SignInDrawer) — links automáticos
+    // do Clerk que usam signInUrl/signUpUrl e tiram o usuário do fluxo
+    // oficial dos drawers para as páginas full-page /sign-in e /sign-up.
+    footerAction: "hidden",
   },
 };
 
