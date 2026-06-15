@@ -28,7 +28,6 @@ args = ["pnpm", "--filter", "@workspace/iattom-assist", "run", "build"]
 NODE_ENV = "production"
 PORT = "25638"
 BASE_PATH = "/"
-VITE_BETA_MODE = "true"
 
 [[services.production.rewrites]]
 from = "/*"
