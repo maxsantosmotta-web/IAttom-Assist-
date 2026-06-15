@@ -192,6 +192,7 @@ export const SyncUserResponse = zod.object({
   plan: zod.enum(["free", "pro", "business", "agency"]),
   credits: zod.number(),
   betaAccess: zod.boolean(),
+  registrationConfirmed: zod.boolean(),
   planSelected: zod.boolean(),
   createdAt: zod.coerce.date(),
 });
@@ -208,6 +209,7 @@ export const GetMeResponse = zod.object({
   plan: zod.enum(["free", "pro", "business", "agency"]),
   credits: zod.number(),
   betaAccess: zod.boolean(),
+  registrationConfirmed: zod.boolean(),
   planSelected: zod.boolean(),
   createdAt: zod.coerce.date(),
 });
@@ -548,6 +550,7 @@ export const BootstrapAdminResponse = zod.object({
   plan: zod.enum(["free", "pro", "business", "agency"]),
   credits: zod.number(),
   betaAccess: zod.boolean(),
+  registrationConfirmed: zod.boolean(),
   planSelected: zod.boolean(),
   createdAt: zod.coerce.date(),
 });

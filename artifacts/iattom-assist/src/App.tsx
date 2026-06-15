@@ -22,7 +22,7 @@ import { AboutPage } from "@/pages/AboutPage";
 import { HelpPage } from "@/pages/HelpPage";
 import { BetaGate } from "@/components/BetaGate";
 import { PlanGate } from "@/components/PlanGate";
-import { Onboarding } from "@/pages/Onboarding";
+import { RegistrationConfirm } from "@/pages/RegistrationConfirm";
 
 // Eager load lightweight pages
 import { DashboardHome } from "@/pages/dashboard/DashboardHome";
@@ -197,7 +197,7 @@ function SignUpCallbackPage() {
         <SignUp
           routing="path"
           path={`${basePath}/sign-up`}
-          fallbackRedirectUrl={`${basePath}/onboarding`}
+          fallbackRedirectUrl={`${basePath}/registration-confirm`}
           appearance={clerkAppearance}
         />
       </div>
@@ -218,11 +218,24 @@ function HomeRedirect() {
   );
 }
 
+function ProtectedRegistration() {
+  return (
+    <>
+      <Show when="signed-in">
+        <RegistrationConfirm />
+      </Show>
+      <Show when="signed-out">
+        <Redirect to="/sign-up" />
+      </Show>
+    </>
+  );
+}
+
 function ProtectedOnboarding() {
   return (
     <>
       <Show when="signed-in">
-        <Redirect to="/dashboard/billing" />
+        <Redirect to="/registration-confirm" />
       </Show>
       <Show when="signed-out">
         <Redirect to="/sign-up" />
@@ -419,7 +432,7 @@ function ClerkProviderWithRoutes() {
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
       signInFallbackRedirectUrl={`${window.location.origin}${basePath}/dashboard`}
-      signUpFallbackRedirectUrl={`${window.location.origin}${basePath}/dashboard/billing`}
+      signUpFallbackRedirectUrl={`${window.location.origin}${basePath}/registration-confirm`}
       localization={clerkLocalization}
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
@@ -433,6 +446,7 @@ function ClerkProviderWithRoutes() {
               <Route path="/" component={HomeRedirect} />
               <Route path="/sign-in/*?" component={SignInCallbackPage} />
               <Route path="/sign-up/*?" component={SignUpCallbackPage} />
+              <Route path="/registration-confirm" component={ProtectedRegistration} />
               <Route path="/onboarding/*?" component={ProtectedOnboarding} />
               <Route path="/dashboard/*?" component={ProtectedDashboard} />
               <Route path="/admin/*?" component={ProtectedAdmin} />
