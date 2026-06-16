@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useSignIn, useClerk } from "@clerk/react";
+import { useSignIn } from "@clerk/react/legacy";
 import { useLocation } from "wouter";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 
@@ -44,43 +44,46 @@ export function SignInPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const { signIn } = useSignIn();
-  const clerk = useClerk();
+  const { isLoaded, signIn, setActive } = useSignIn();
   const [, setLocation] = useLocation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!signIn || loading) return;
+    if (!isLoaded || !signIn || !setActive || loading) return;
     setLoading(true);
     setError("");
     try {
-      const result = await (signIn as any).create({ identifier: email, password });
+      const result = await signIn.create({ identifier: email, password });
       if (result.status === "complete" && result.createdSessionId) {
-        await (clerk as any).setActive({ session: result.createdSessionId });
+        await setActive({ session: result.createdSessionId });
         setLocation("/dashboard/billing");
       } else {
+        console.error("[SignIn] Unexpected status:", result.status);
         setError("Erro ao fazer login. Tente novamente.");
       }
     } catch (err: unknown) {
-      const e = err as { errors?: { code?: string; message?: string }[] };
+      const e = err as { errors?: { code?: string; message?: string; longMessage?: string }[] };
       const first = e?.errors?.[0];
-      setError(mapSignInError(first?.code, first?.message));
+      console.error("[SignIn] Clerk error:", JSON.stringify(e?.errors));
+      setError(mapSignInError(first?.code, first?.longMessage ?? first?.message));
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogle = async () => {
-    if (!signIn || loading) return;
+    if (!isLoaded || !signIn || loading) return;
     setLoading(true);
     setError("");
     try {
-      await (signIn as any).authenticateWithRedirect({
+      await signIn.authenticateWithRedirect({
         strategy: "oauth_google",
         redirectUrl: `${window.location.origin}${basePath}/sign-in/sso-callback`,
         redirectUrlComplete: `${window.location.origin}${basePath}/dashboard/billing`,
       });
-    } catch {
+    } catch (err: unknown) {
+      const e = err as { errors?: { code?: string; message?: string }[] };
+      console.error("[SignIn Google] Clerk error:", JSON.stringify(e?.errors));
       setError("Erro ao autenticar com Google. Tente novamente.");
       setLoading(false);
     }
@@ -113,7 +116,7 @@ export function SignInPage() {
             <button
               type="button"
               onClick={handleGoogle}
-              disabled={loading}
+              disabled={loading || !isLoaded}
               className="w-full h-[44px] flex items-center justify-center gap-2.5 rounded-lg border border-white/[0.10] text-white/80 text-[13px] font-medium transition-colors hover:bg-white/[0.05] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed mb-5"
               style={{ background: "rgba(255,255,255,0.025)" }}
             >
@@ -178,11 +181,11 @@ export function SignInPage() {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !isLoaded}
                 className="w-full h-[44px] rounded-lg font-bold text-[12.5px] tracking-[0.14em] uppercase text-black transition-all disabled:opacity-55 disabled:cursor-not-allowed mt-1"
-                style={{ background: loading ? "#8a6820" : "linear-gradient(135deg,#E8C84A 0%,#C9A030 38%,#A07820 68%,#C9A030 100%)" }}
+                style={{ background: (loading || !isLoaded) ? "#8a6820" : "linear-gradient(135deg,#E8C84A 0%,#C9A030 38%,#A07820 68%,#C9A030 100%)" }}
               >
-                {loading ? "Aguarde..." : "Entrar"}
+                {!isLoaded ? "Carregando..." : loading ? "Aguarde..." : "Entrar"}
               </button>
             </form>
 
