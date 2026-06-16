@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { Switch, Route, Redirect, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { ClerkProvider, Show, useClerk, SignIn, SignUp } from "@clerk/react";
+import { ClerkProvider, Show, useClerk, AuthenticateWithRedirectCallback } from "@clerk/react";
 import { ptBR } from "@clerk/localizations";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
@@ -16,6 +16,8 @@ import { SidebarLayout } from "@/components/layout/SidebarLayout";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AdminGuard } from "@/pages/admin/AdminGuard";
 import { LandingPage } from "@/pages/LandingPage";
+import { SignUpPage } from "@/pages/SignUpPage";
+import { SignInPage } from "@/pages/SignInPage";
 import { TermsPage } from "@/pages/TermsPage";
 import { PrivacyPage } from "@/pages/PrivacyPage";
 import { AboutPage } from "@/pages/AboutPage";
@@ -174,29 +176,19 @@ const clerkAppearance = {
 };
 
 function SignInCallbackPage() {
-  return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
-      <SignIn
-        routing="path"
-        path={`${basePath}/sign-in`}
-        fallbackRedirectUrl={`${basePath}/dashboard/billing`}
-        appearance={clerkAppearance}
-      />
-    </div>
-  );
+  const [location] = useLocation();
+  if (location.includes("/sso-callback")) {
+    return <AuthenticateWithRedirectCallback />;
+  }
+  return <SignInPage />;
 }
 
 function SignUpCallbackPage() {
-  return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
-      <SignUp
-        routing="path"
-        path={`${basePath}/sign-up`}
-        fallbackRedirectUrl={`${basePath}/dashboard/billing`}
-        appearance={clerkAppearance}
-      />
-    </div>
-  );
+  const [location] = useLocation();
+  if (location.includes("/sso-callback")) {
+    return <AuthenticateWithRedirectCallback />;
+  }
+  return <SignUpPage />;
 }
 
 function HomeRedirect() {
