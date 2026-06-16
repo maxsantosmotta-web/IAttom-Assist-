@@ -174,11 +174,15 @@ const clerkAppearance = {
 };
 
 function SignInCallbackPage() {
-  // Sem wrapper <Show when="signed-out">: o componente Clerk processa o
-  // callback OAuth independente do estado de autenticação e executa
-  // fallbackRedirectUrl após concluir. Com o wrapper, o usuário ficava
-  // preso em /sign-in sem redirect porque o <Show> escondia o componente
-  // assim que a sessão era criada, antes do redirect ser disparado.
+  const [location] = useLocation();
+
+  // Esta página existe APENAS para callbacks OAuth (ex: /sign-in/sso-callback do Google).
+  // Se o Clerk fizer routerPush para /sign-in raiz, o usuário volta para o home —
+  // o drawer é o único ponto de entrada para login.
+  if (location === "/sign-in") {
+    return <Redirect to="/" />;
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
       <SignIn

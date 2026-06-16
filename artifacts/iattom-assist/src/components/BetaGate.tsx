@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { useUser } from "@clerk/react";
 import { useLocation } from "wouter";
 import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
-import { EmailVerificationModal } from "@/components/EmailVerificationModal";
 
 interface BetaGateProps {
   children: React.ReactNode;
@@ -40,7 +39,7 @@ const ErrorScreen = ({ onRetry }: { onRetry: () => void }) => (
 );
 
 export function BetaGate({ children }: BetaGateProps) {
-  const { isLoaded, isSignedIn, user } = useUser();
+  const { isLoaded, isSignedIn } = useUser();
   const [location, navigate] = useLocation();
 
   const { data: me, isLoading, isError, refetch } = useGetMe({
@@ -48,11 +47,6 @@ export function BetaGate({ children }: BetaGateProps) {
   });
 
   const isBillingPage = location === PLAN_GATE_BYPASS;
-
-  const needsVerification =
-    me !== undefined &&
-    me.role !== "admin" &&
-    !me.registrationConfirmed;
 
   const needsOnboarding =
     !isBillingPage &&
@@ -63,8 +57,8 @@ export function BetaGate({ children }: BetaGateProps) {
 
   useEffect(() => {
     if (!isLoaded || isLoading || me === undefined) return;
-    if (needsOnboarding && !needsVerification) navigate(PLAN_GATE_BYPASS, { replace: true });
-  }, [isLoaded, isLoading, me, needsOnboarding, needsVerification, navigate]);
+    if (needsOnboarding) navigate(PLAN_GATE_BYPASS, { replace: true });
+  }, [isLoaded, isLoading, me, needsOnboarding, navigate]);
 
   // Aguarda Clerk carregar e a query executar
   if (!isLoaded || isLoading) return <Spinner />;
@@ -72,20 +66,6 @@ export function BetaGate({ children }: BetaGateProps) {
   // GET /auth/me falhou — exibe tela de erro com botão de retry.
   // Antes dessa guarda, me===undefined caia no spinner eterno acima.
   if (isError || me === undefined) return <ErrorScreen onRetry={() => void refetch()} />;
-
-  if (needsVerification) {
-    return (
-      <>
-        <Spinner />
-        <EmailVerificationModal
-          open={true}
-          email={user?.primaryEmailAddress?.emailAddress}
-          onClose={() => {}}
-          onSuccess={() => navigate(PLAN_GATE_BYPASS, { replace: true })}
-        />
-      </>
-    );
-  }
 
   if (needsOnboarding) return <Spinner />;
 
