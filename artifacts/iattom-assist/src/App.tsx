@@ -192,7 +192,16 @@ function SignInCallbackPage() {
 }
 
 function SignUpCallbackPage() {
-  // Mesmo motivo que SignInCallbackPage — sem wrapper <Show when="signed-out">.
+  const [location] = useLocation();
+
+  // Esta página existe APENAS para callbacks OAuth (ex: /sign-up/sso-callback do Google).
+  // Quando o Clerk faz routerPush para /sign-up raiz (ex: ao detectar e-mail existente
+  // no drawer hash-routed e tentar "transferir" o fluxo), o usuário volta para o home —
+  // o drawer é o único ponto de entrada para cadastro.
+  if (location === "/sign-up") {
+    return <Redirect to="/" />;
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
       <SignUp
