@@ -1,5 +1,28 @@
 import { eq, count } from "drizzle-orm";
-import { db, users } from "@workspace/db";
+import {
+  creditsTransactions,
+  db,
+  emailVerifications,
+  feedbackTable,
+  helpMessages,
+  historyTable,
+  mlProducts,
+  notificationsTable,
+  projectsTable,
+  referralsTable,
+  savedItemsTable,
+  savedPromptsTable,
+  trashItems,
+  userHotmartConnections,
+  userHotmartProductClaims,
+  userKiwifyConnections,
+  userMetaConnections,
+  userMlConnections,
+  userShopeeConnections,
+  userTiktokConnections,
+  users,
+  videoTransactions,
+} from "@workspace/db";
 import { clerkClient } from "@clerk/express";
 
 // Returns true if this user should receive automatic admin + full access.
@@ -15,6 +38,50 @@ async function shouldAutoPromote(email: string): Promise<boolean> {
   return Number(value) === 0;
 }
 
+async function claimUserAndReassignClerkOwnedRecords(params: {
+  email: string;
+  oldClerkId: string;
+  newClerkId: string;
+  name?: string | null;
+}) {
+  const { email, oldClerkId, newClerkId, name } = params;
+
+  if (oldClerkId === newClerkId) return;
+
+  return db.transaction(async (tx) => {
+    const [claimed] = await tx
+      .update(users)
+      .set({ clerkId: newClerkId, name, updatedAt: new Date() })
+      .where(eq(users.email, email))
+      .returning();
+
+    await Promise.all([
+      tx.update(projectsTable).set({ clerkUserId: newClerkId }).where(eq(projectsTable.clerkUserId, oldClerkId)),
+      tx.update(historyTable).set({ clerkUserId: newClerkId }).where(eq(historyTable.clerkUserId, oldClerkId)),
+      tx.update(creditsTransactions).set({ clerkUserId: newClerkId }).where(eq(creditsTransactions.clerkUserId, oldClerkId)),
+      tx.update(feedbackTable).set({ clerkUserId: newClerkId }).where(eq(feedbackTable.clerkUserId, oldClerkId)),
+      tx.update(notificationsTable).set({ clerkUserId: newClerkId }).where(eq(notificationsTable.clerkUserId, oldClerkId)),
+      tx.update(savedPromptsTable).set({ clerkUserId: newClerkId }).where(eq(savedPromptsTable.clerkUserId, oldClerkId)),
+      tx.update(referralsTable).set({ clerkUserId: newClerkId }).where(eq(referralsTable.clerkUserId, oldClerkId)),
+      tx.update(mlProducts).set({ clerkUserId: newClerkId }).where(eq(mlProducts.clerkUserId, oldClerkId)),
+      tx.update(trashItems).set({ clerkUserId: newClerkId }).where(eq(trashItems.clerkUserId, oldClerkId)),
+      tx.update(userMetaConnections).set({ clerkUserId: newClerkId }).where(eq(userMetaConnections.clerkUserId, oldClerkId)),
+      tx.update(userHotmartConnections).set({ clerkUserId: newClerkId }).where(eq(userHotmartConnections.clerkUserId, oldClerkId)),
+      tx.update(userHotmartProductClaims).set({ clerkUserId: newClerkId }).where(eq(userHotmartProductClaims.clerkUserId, oldClerkId)),
+      tx.update(userKiwifyConnections).set({ clerkUserId: newClerkId }).where(eq(userKiwifyConnections.clerkUserId, oldClerkId)),
+      tx.update(userShopeeConnections).set({ clerkUserId: newClerkId }).where(eq(userShopeeConnections.clerkUserId, oldClerkId)),
+      tx.update(userMlConnections).set({ clerkUserId: newClerkId }).where(eq(userMlConnections.clerkUserId, oldClerkId)),
+      tx.update(userTiktokConnections).set({ clerkUserId: newClerkId }).where(eq(userTiktokConnections.clerkUserId, oldClerkId)),
+      tx.update(savedItemsTable).set({ clerkUserId: newClerkId }).where(eq(savedItemsTable.clerkUserId, oldClerkId)),
+      tx.update(helpMessages).set({ clerkUserId: newClerkId }).where(eq(helpMessages.clerkUserId, oldClerkId)),
+      tx.update(videoTransactions).set({ clerkUserId: newClerkId }).where(eq(videoTransactions.clerkUserId, oldClerkId)),
+      tx.update(emailVerifications).set({ clerkUserId: newClerkId }).where(eq(emailVerifications.clerkUserId, oldClerkId)),
+    ]);
+
+    return claimed;
+  });
+}
+
 export async function getOrSyncUser(clerkId: string, email?: string, name?: string) {
   // If a stub record was pre-created by email (no Clerk ID yet), claim it now.
   if (email) {
@@ -24,12 +91,12 @@ export async function getOrSyncUser(clerkId: string, email?: string, name?: stri
       .where(eq(users.email, email));
     if (byEmail && byEmail.clerkId !== clerkId) {
       // Claim the pre-seeded stub and attach the real Clerk ID.
-      const [claimed] = await db
-        .update(users)
-        .set({ clerkId, name: name ?? byEmail.name, updatedAt: new Date() })
-        .where(eq(users.email, email))
-        .returning();
-      return claimed;
+      return claimUserAndReassignClerkOwnedRecords({
+        email,
+        oldClerkId: byEmail.clerkId,
+        newClerkId: clerkId,
+        name: name ?? byEmail.name,
+      });
     }
   }
 
