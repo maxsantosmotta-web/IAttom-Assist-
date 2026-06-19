@@ -163,4 +163,5 @@ export function SignInPage() {
       </div>
     </div>
   );
+}
 
