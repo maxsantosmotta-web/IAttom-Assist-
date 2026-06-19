@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { useSignUp } from "@clerk/react/legacy";
+import { SignUp as ClerkSignUp } from "@clerk/react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 const basePath = (import.meta.env.BASE_URL as string).replace(/\/$/, "");
+
 
 function GoogleIcon() {
   return (
@@ -57,16 +57,8 @@ function logClerkError(context: string, err: unknown) {
 }
 
 export function SignUpPage() {
-  const [step, setStep] = useState<"email" | "otp">("email");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [code, setCode] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const { isLoaded, signUp, setActive } = useSignUp();
   const [, setLocation] = useLocation();
+
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,6 +139,7 @@ export function SignUpPage() {
     }
   };
 
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center px-4 py-8">
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_45%_35%_at_50%_30%,rgba(180,128,18,0.055)_0%,transparent_70%)] pointer-events-none" />
@@ -166,182 +159,44 @@ export function SignUpPage() {
               />
             </div>
 
-            {step === "email" ? (
-              <>
-                <div className="text-center mb-7">
-                  <h1 className="text-[21px] font-bold text-white tracking-tight">Criar conta</h1>
-                  <p className="text-[12.5px] text-white/38 mt-1">Acesse o IAttom Assist</p>
-                </div>
+            <ClerkSignUp
+              routing="path"
+              path={`${basePath}/sign-up`}
+              signInUrl={`${basePath}/sign-in`}
+              fallbackRedirectUrl={`${basePath}/dashboard/billing`}
+              appearance={{
+                elements: {
+                  rootBox: "w-full",
+                  cardBox: "w-full shadow-none",
+                  card: "bg-transparent shadow-none border-0 p-0 w-full",
+                  headerTitle: "text-white text-[21px] font-bold tracking-tight text-center",
+                  headerSubtitle: "text-white/38 text-[12.5px] text-center",
+                  socialButtonsBlockButton: "bg-white/[0.025] border-white/[0.10] text-white/80 hover:bg-white/[0.05] hover:text-white",
+                  formButtonPrimary: "bg-[#C9A030] hover:bg-[#E8C84A] text-black font-bold uppercase tracking-[0.14em]",
+                  formFieldInput: "bg-[#080808] border-white/[0.09] text-white placeholder:text-white/22",
+                  formFieldLabel: "text-white/45",
+                  footerActionText: "text-white/25",
+                  footerActionLink: "text-[#C9A84C] hover:text-[#E8C96A]",
+                  dividerLine: "bg-white/[0.07]",
+                  dividerText: "text-white/25",
+                  formFieldErrorText: "text-red-300",
+                  formResendCodeLink: "text-[#C9A84C] hover:text-[#E8C96A]",
+                  identityPreviewText: "text-white/65",
+                  identityPreviewEditButton: "text-[#C9A84C] hover:text-[#E8C96A]",
+                },
+              }}
+            />
 
-                <button
-                  type="button"
-                  onClick={handleGoogle}
-                  disabled={loading || !isLoaded}
-                  className="w-full h-[44px] flex items-center justify-center gap-2.5 rounded-lg border border-white/[0.10] text-white/80 text-[13px] font-medium transition-colors hover:bg-white/[0.05] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed mb-5"
-                  style={{ background: "rgba(255,255,255,0.025)" }}
-                >
-                  <GoogleIcon />
-                  Continuar com Google
-                </button>
-
-                <div className="flex items-center gap-3 mb-5">
-                  <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.07)" }} />
-                  <span className="text-[10.5px] text-white/25 tracking-[0.16em]">OU</span>
-                  <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.07)" }} />
-                </div>
-
-                <form onSubmit={handleEmailSubmit} className="flex flex-col gap-3.5">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[11.5px] text-white/45 tracking-wide">E-mail</label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="seu@email.com"
-                      required
-                      autoComplete="email"
-                      className="w-full h-[43px] px-3.5 rounded-lg text-[13.5px] text-white placeholder:text-white/22 outline-none transition-colors"
-                      style={{ background: "#080808", border: "1px solid rgba(255,255,255,0.09)" }}
-                      onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(201,168,76,0.5)"; }}
-                      onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.09)"; }}
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[11.5px] text-white/45 tracking-wide">Senha</label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Mínimo 8 caracteres"
-                        required
-                        autoComplete="new-password"
-                        className="w-full h-[43px] px-3.5 pr-11 rounded-lg text-[13.5px] text-white placeholder:text-white/22 outline-none transition-colors"
-                        style={{ background: "#080808", border: "1px solid rgba(255,255,255,0.09)" }}
-                        onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(201,168,76,0.5)"; }}
-                        onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.09)"; }}
-                      />
-                      <button
-                        type="button"
-                        tabIndex={-1}
-                        onClick={() => setShowPassword((v) => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/28 hover:text-white/55 transition-colors"
-                      >
-                        {showPassword ? <EyeOff className="w-[15px] h-[15px]" /> : <Eye className="w-[15px] h-[15px]" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {error && (
-                    <div className="rounded-lg px-4 py-3 text-[12.5px] leading-snug" style={{ background: "rgba(127,29,29,0.25)", border: "1px solid rgba(239,68,68,0.18)", color: "#fca5a5" }}>
-                      {error}
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={loading || !isLoaded}
-                    className="w-full h-[44px] rounded-lg font-bold text-[12.5px] tracking-[0.14em] uppercase text-black transition-all disabled:opacity-55 disabled:cursor-not-allowed mt-1"
-                    style={{ background: (loading || !isLoaded) ? "#8a6820" : "linear-gradient(135deg,#E8C84A 0%,#C9A030 38%,#A07820 68%,#C9A030 100%)" }}
-                  >
-                    {!isLoaded ? "Carregando..." : loading ? "Aguarde..." : "Continuar"}
-                  </button>
-                </form>
-
-                <div className="mt-6 flex flex-col items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setLocation("/")}
-                    className="flex items-center gap-1.5 text-[12px] text-white/25 hover:text-white/55 transition-colors"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" />
-                    Voltar ao início
-                  </button>
-                  <p className="text-[12px] text-white/25">
-                    Já tem conta?{" "}
-                    <button
-                      type="button"
-                      onClick={() => setLocation("/sign-in")}
-                      className="transition-colors"
-                      style={{ color: "#C9A84C" }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color = "#E8C96A"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.color = "#C9A84C"; }}
-                    >
-                      Fazer Login
-                    </button>
-                  </p>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="text-center mb-7">
-                  <h1 className="text-[21px] font-bold text-white tracking-tight">Confirmar e-mail</h1>
-                  <p className="text-[12.5px] text-white/38 mt-1.5 leading-snug px-2">
-                    Código enviado para<br />
-                    <span className="text-white/65">{email}</span>
-                  </p>
-                </div>
-
-                <form onSubmit={handleOtpSubmit} className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[11.5px] text-white/45 tracking-wide text-center">Código de 6 dígitos</label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={code}
-                      onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                      placeholder="000000"
-                      required
-                      maxLength={6}
-                      autoComplete="one-time-code"
-                      className="w-full h-[58px] px-4 rounded-lg text-[26px] font-bold text-white text-center placeholder:text-white/18 placeholder:text-[22px] outline-none transition-colors"
-                      style={{ background: "#080808", border: "1px solid rgba(255,255,255,0.09)", letterSpacing: "0.5em" }}
-                      onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(201,168,76,0.5)"; }}
-                      onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.09)"; }}
-                    />
-                  </div>
-
-                  {error && (
-                    <div className="rounded-lg px-4 py-3 text-[12.5px] leading-snug" style={{ background: "rgba(127,29,29,0.25)", border: "1px solid rgba(239,68,68,0.18)", color: "#fca5a5" }}>
-                      {error}
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={loading || code.length < 6}
-                    className="w-full h-[44px] rounded-lg font-bold text-[12.5px] tracking-[0.14em] uppercase text-black transition-all disabled:opacity-55 disabled:cursor-not-allowed"
-                    style={{ background: (loading || code.length < 6) ? "#8a6820" : "linear-gradient(135deg,#E8C84A 0%,#C9A030 38%,#A07820 68%,#C9A030 100%)" }}
-                  >
-                    {loading ? "Verificando..." : "Confirmar código"}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleResend}
-                    disabled={loading}
-                    className="text-[12px] text-center transition-colors disabled:opacity-50"
-                    style={{ color: "#C9A84C" }}
-                    onMouseEnter={(e) => { if (!loading) e.currentTarget.style.color = "#E8C96A"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.color = "#C9A84C"; }}
-                  >
-                    Reenviar código
-                  </button>
-                </form>
-
-                <div className="mt-6 flex justify-center">
-                  <button
-                    type="button"
-                    onClick={() => { setStep("email"); setError(""); setCode(""); }}
-                    className="flex items-center gap-1.5 text-[12px] text-white/25 hover:text-white/55 transition-colors"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" />
-                    Voltar
-                  </button>
-                </div>
-              </>
-            )}
+            <div className="mt-6 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setLocation("/")}
+                className="flex items-center gap-1.5 text-[12px] text-white/25 hover:text-white/55 transition-colors"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Voltar ao início
+              </button>
+            </div>
           </div>
         </div>
       </div>
