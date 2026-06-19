@@ -16,24 +16,43 @@ function GoogleIcon() {
   );
 }
 
-function mapSignUpError(code?: string, msg?: string): string {
-  switch (code) {
-    case "form_identifier_exists":
-      return "E-mail já cadastrado. Utilize Fazer Login.";
-    case "form_param_format_invalid":
-      return "E-mail inválido.";
-    case "form_password_length_too_short":
-      return "Senha muito curta. Mínimo 8 caracteres.";
-    case "form_password_pwned":
-      return "Senha muito comum. Escolha outra senha.";
-    case "form_code_incorrect":
-      return "Código inválido. Verifique e tente novamente.";
-    case "form_code_expired":
-      return "Código expirado. Solicite um novo.";
-    case "too_many_requests":
-      return "Muitas tentativas. Aguarde alguns minutos.";
-    default:
-      return msg ?? "Erro ao processar. Tente novamente.";
+type ClerkErrorPayload = {
+  errors?: Array<{
+    code?: string;
+    message?: string;
+    longMessage?: string;
+    meta?: unknown;
+  }>;
+  message?: string;
+};
+
+function stringifyPayload(payload: unknown): string | undefined {
+  if (!payload) return undefined;
+  try {
+    const serialized = JSON.stringify(payload);
+    return serialized && serialized !== "{}" ? serialized : undefined;
+  } catch {
+    return String(payload);
+  }
+}
+
+function getClerkErrorMessage(err: unknown, fallback: string): string {
+  const payload = err as ClerkErrorPayload;
+  const first = payload?.errors?.[0];
+  return (
+    first?.longMessage ||
+    first?.message ||
+    payload?.message ||
+    stringifyPayload(first?.meta) ||
+    stringifyPayload(payload?.errors) ||
+    stringifyPayload(err) ||
+    fallback
+  );
+}
+
+function logClerkError(context: string, err: unknown) {
+  if (import.meta.env.DEV) {
+    console.error(context, err);
   }
 }
 
@@ -62,12 +81,13 @@ export function SignUpPage() {
       } else if (result.status === "complete" && result.createdSessionId) {
         await setActive({ session: result.createdSessionId });
         setLocation("/dashboard/billing");
+      } else {
+        logClerkError("[SignUp] Unexpected status:", result);
+        setError(`Status inesperado do Clerk: ${result.status}`);
       }
     } catch (err: unknown) {
-      const e = err as { errors?: { code?: string; message?: string; longMessage?: string }[] };
-      const first = e?.errors?.[0];
-      console.error("[SignUp] Clerk error:", JSON.stringify(e?.errors));
-      setError(mapSignUpError(first?.code, first?.longMessage ?? first?.message));
+      logClerkError("[SignUp] Clerk error:", err);
+      setError(getClerkErrorMessage(err, "Erro ao processar. Tente novamente."));
     } finally {
       setLoading(false);
     }
@@ -84,13 +104,12 @@ export function SignUpPage() {
         await setActive({ session: result.createdSessionId });
         setLocation("/dashboard/billing");
       } else {
-        setError("Verificação incompleta. Tente novamente.");
+        logClerkError("[SignUp OTP] Unexpected status:", result);
+        setError(`Status inesperado do Clerk: ${result.status}`);
       }
     } catch (err: unknown) {
-      const e = err as { errors?: { code?: string; message?: string; longMessage?: string }[] };
-      const first = e?.errors?.[0];
-      console.error("[SignUp OTP] Clerk error:", JSON.stringify(e?.errors));
-      setError(mapSignUpError(first?.code, first?.longMessage ?? first?.message));
+      logClerkError("[SignUp OTP] Clerk error:", err);
+      setError(getClerkErrorMessage(err, "Erro ao verificar código. Tente novamente."));
     } finally {
       setLoading(false);
     }
@@ -103,9 +122,8 @@ export function SignUpPage() {
     try {
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
     } catch (err: unknown) {
-      const e = err as { errors?: { code?: string; message?: string }[] };
-      console.error("[SignUp resend] Clerk error:", JSON.stringify(e?.errors));
-      setError("Erro ao reenviar. Tente novamente.");
+      logClerkError("[SignUp resend] Clerk error:", err);
+      setError(getClerkErrorMessage(err, "Erro ao reenviar. Tente novamente."));
     } finally {
       setLoading(false);
     }
@@ -122,9 +140,9 @@ export function SignUpPage() {
         redirectUrlComplete: `${window.location.origin}${basePath}/dashboard/billing`,
       });
     } catch (err: unknown) {
-      const e = err as { errors?: { code?: string; message?: string }[] };
-      console.error("[SignUp Google] Clerk error:", JSON.stringify(e?.errors));
-      setError("Erro ao autenticar com Google. Tente novamente.");
+      logClerkError("[SignUp Google] Clerk error:", err);
+      setError(getClerkErrorMessage(err, "Erro ao autenticar com Google. Tente novamente."));
+    } finally {
       setLoading(false);
     }
   };
