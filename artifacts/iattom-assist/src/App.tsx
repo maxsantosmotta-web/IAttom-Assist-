@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { Switch, Route, Redirect, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { ClerkProvider, Show, useClerk, AuthenticateWithRedirectCallback } from "@clerk/react";
+import { ClerkProvider, Show, useClerk } from "@clerk/react";
 import { ptBR } from "@clerk/localizations";
-import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { AnimatePresence } from "framer-motion";
 import { Toaster } from "@/components/ui/toaster";
@@ -108,12 +107,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
-  (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string)?.replace(/\.+$/, ""),
-);
-
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+const clerkPubKey = (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined)?.trim();
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 function stripBase(path: string): string {
@@ -125,6 +119,8 @@ function stripBase(path: string): string {
 if (!clerkPubKey) {
   throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
 }
+
+const requiredClerkPubKey: string = clerkPubKey;
 
 const clerkAppearance = {
   theme: shadcn,
@@ -174,22 +170,6 @@ const clerkAppearance = {
     main: "gap-4",
   },
 };
-
-function SignInCallbackPage() {
-  const [location] = useLocation();
-  if (location.includes("/sso-callback")) {
-    return <AuthenticateWithRedirectCallback />;
-  }
-  return <SignInPage />;
-}
-
-function SignUpCallbackPage() {
-  const [location] = useLocation();
-  if (location.includes("/sso-callback")) {
-    return <AuthenticateWithRedirectCallback />;
-  }
-  return <SignUpPage />;
-}
 
 function HomeRedirect() {
   return (
@@ -404,13 +384,12 @@ function ClerkProviderWithRoutes() {
 
   return (
     <ClerkProvider
-      publishableKey={clerkPubKey}
-      proxyUrl={clerkProxyUrl}
+      publishableKey={requiredClerkPubKey}
       appearance={clerkAppearance}
-      signInUrl={`${basePath}/sign-in`}
-      signUpUrl={`${basePath}/sign-up`}
-      signInFallbackRedirectUrl={`${window.location.origin}${basePath}/dashboard/billing`}
-      signUpFallbackRedirectUrl={`${window.location.origin}${basePath}/dashboard/billing`}
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+      signInFallbackRedirectUrl="/dashboard/billing"
+      signUpFallbackRedirectUrl="/dashboard/billing"
       localization={clerkLocalization}
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
@@ -422,8 +401,8 @@ function ClerkProviderWithRoutes() {
           <ErrorBoundary>
             <Switch>
               <Route path="/" component={HomeRedirect} />
-              <Route path="/sign-in/*?" component={SignInCallbackPage} />
-              <Route path="/sign-up/*?" component={SignUpCallbackPage} />
+              <Route path="/sign-in/*?" component={SignInPage} />
+              <Route path="/sign-up/*?" component={SignUpPage} />
               <Route path="/onboarding/*?" component={ProtectedOnboarding} />
               <Route path="/dashboard/*?" component={ProtectedDashboard} />
               <Route path="/admin/*?" component={ProtectedAdmin} />
