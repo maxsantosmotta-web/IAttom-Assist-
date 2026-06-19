@@ -16,24 +16,43 @@ function GoogleIcon() {
   );
 }
 
-function mapSignInError(code?: string, msg?: string): string {
-  switch (code) {
-    case "form_identifier_not_found":
-      return "Usuário não encontrado. Crie sua conta.";
-    case "form_password_incorrect":
-      return "E-mail ou senha inválidos.";
-    case "form_param_nil":
-      return "E-mail ou senha inválidos.";
-    case "form_param_format_invalid":
-      return "E-mail inválido.";
-    case "too_many_requests":
-      return "Muitas tentativas. Aguarde alguns minutos.";
-    case "not_allowed_access":
-    case "banned_user":
-    case "user_locked":
-      return "Acesso bloqueado. Entre em contato com o suporte.";
-    default:
-      return msg ?? "Erro ao fazer login. Tente novamente.";
+type ClerkErrorPayload = {
+  errors?: Array<{
+    code?: string;
+    message?: string;
+    longMessage?: string;
+    meta?: unknown;
+  }>;
+  message?: string;
+};
+
+function stringifyPayload(payload: unknown): string | undefined {
+  if (!payload) return undefined;
+  try {
+    const serialized = JSON.stringify(payload);
+    return serialized && serialized !== "{}" ? serialized : undefined;
+  } catch {
+    return String(payload);
+  }
+}
+
+function getClerkErrorMessage(err: unknown, fallback: string): string {
+  const payload = err as ClerkErrorPayload;
+  const first = payload?.errors?.[0];
+  return (
+    first?.longMessage ||
+    first?.message ||
+    payload?.message ||
+    stringifyPayload(first?.meta) ||
+    stringifyPayload(payload?.errors) ||
+    stringifyPayload(err) ||
+    fallback
+  );
+}
+
+function logClerkError(context: string, err: unknown) {
+  if (import.meta.env.DEV) {
+    console.error(context, err);
   }
 }
 
@@ -58,14 +77,12 @@ export function SignInPage() {
         await setActive({ session: result.createdSessionId });
         setLocation("/dashboard/billing");
       } else {
-        console.error("[SignIn] Unexpected status:", result.status);
-        setError("Erro ao fazer login. Tente novamente.");
+        logClerkError("[SignIn] Unexpected status:", result);
+        setError(`Status inesperado do Clerk: ${result.status}`);
       }
     } catch (err: unknown) {
-      const e = err as { errors?: { code?: string; message?: string; longMessage?: string }[] };
-      const first = e?.errors?.[0];
-      console.error("[SignIn] Clerk error:", JSON.stringify(e?.errors));
-      setError(mapSignInError(first?.code, first?.longMessage ?? first?.message));
+      logClerkError("[SignIn] Clerk error:", err);
+      setError(getClerkErrorMessage(err, "Erro ao fazer login. Tente novamente."));
     } finally {
       setLoading(false);
     }
@@ -82,9 +99,9 @@ export function SignInPage() {
         redirectUrlComplete: `${window.location.origin}${basePath}/dashboard/billing`,
       });
     } catch (err: unknown) {
-      const e = err as { errors?: { code?: string; message?: string }[] };
-      console.error("[SignIn Google] Clerk error:", JSON.stringify(e?.errors));
-      setError("Erro ao autenticar com Google. Tente novamente.");
+      logClerkError("[SignIn Google] Clerk error:", err);
+      setError(getClerkErrorMessage(err, "Erro ao autenticar com Google. Tente novamente."));
+    } finally {
       setLoading(false);
     }
   };
