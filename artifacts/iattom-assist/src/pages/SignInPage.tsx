@@ -124,6 +124,7 @@ export function SignInPage() {
               path={`${basePath}/sign-in`}
               signUpUrl={`${basePath}/sign-up`}
               fallbackRedirectUrl={`${basePath}/dashboard/billing`}
+              forceRedirectUrl={`${basePath}/dashboard/billing`}
               appearance={{
                 elements: {
                   rootBox: "w-full",
@@ -162,4 +163,4 @@ export function SignInPage() {
       </div>
     </div>
   );
-}
+
