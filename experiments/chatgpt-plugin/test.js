@@ -10,6 +10,11 @@ test("MCP exposes only the public catalog and blocks paid operations", async () 
   const port = server.address().port;
   const client = new Client({ name: "iattom-test", version: "0.1.0" });
   try {
+    const page = await fetch(`http://127.0.0.1:${port}/`);
+    assert.match(page.headers.get("content-type"), /text\/html/);
+    assert.match(await page.text(), /IAttom dentro do ChatGPT/);
+    const health = await fetch(`http://127.0.0.1:${port}/health`);
+    assert.equal((await health.json()).status, "ok");
     await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${port}/mcp`)));
     const { tools } = await client.listTools();
     assert.deepEqual(tools.map(t => t.name), ["conhecer_iattom"]);
