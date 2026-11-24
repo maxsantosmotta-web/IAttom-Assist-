@@ -1,33 +1,29 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { start } from "./server.js";
 
-test("MCP exposes only the public catalog and blocks paid operations", async () => {
+test("isolated MCP requires Clerk OAuth and advertises its resource", async () => {
+  process.env.MCP_RESOURCE_URL = "https://iattom-mcp-preview-test.up.railway.app/mcp";
+  process.env.CLERK_OAUTH_ISSUER = "https://ample-chimp-6231.clerk.accounts.dev";
   const server = start(0);
   await new Promise(resolve => server.once("listening", resolve));
-  const port = server.address().port;
-  const client = new Client({ name: "iattom-test", version: "0.1.0" });
+  const base = `http://127.0.0.1:${server.address().port}`;
   try {
-    const page = await fetch(`http://127.0.0.1:${port}/`);
-    assert.match(page.headers.get("content-type"), /text\/html/);
+    const page = await fetch(base);
+    assert.equal(page.status, 200);
     assert.match(await page.text(), /infraestrutura de integração em desenvolvimento/);
-    const health = await fetch(`http://127.0.0.1:${port}/health`);
-    assert.equal((await health.json()).status, "ok");
-    await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${port}/mcp`)));
-    const { tools } = await client.listTools();
-    assert.deepEqual(tools.map(t => t.name), ["conhecer_iattom"]);
-    const result = await client.callTool({ name: "conhecer_iattom", arguments: {} });
-    const catalog = JSON.parse(result.content[0].text);
-    assert.match(catalog.status, /nenhuma função/);
-    assert.equal("modules" in catalog, false);
-    const blocked = await client.callTool({ name: "criar_campanha", arguments: {} });
-    assert.equal(blocked.isError, true);
-    const response = await fetch(`http://127.0.0.1:${port}/api/ai/create-campaign`, { method: "POST" });
-    assert.equal(response.status, 404);
+    const metadata = await fetch(`${base}/.well-known/oauth-protected-resource/mcp`);
+    assert.equal(metadata.status, 200);
+    const details = await metadata.json();
+    assert.equal(details.resource, process.env.MCP_RESOURCE_URL);
+    assert.deepEqual(details.authorization_servers, [process.env.CLERK_OAUTH_ISSUER]);
+    const denied = await fetch(`${base}/mcp`, { method: "GET" });
+    assert.equal(denied.status, 401);
+    assert.match(denied.headers.get("www-authenticate"), /resource_metadata=.*scope="profile"/);
+    const invalid = await fetch(`${base}/mcp`, { method: "POST", headers: { authorization: "Bearer bogus", "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 1 }) });
+    assert.equal(invalid.status, 401);
+    assert.equal((await fetch(`${base}/api/ai/create-campaign`, { method: "POST" })).status, 404);
   } finally {
-    await client.close();
     await new Promise(resolve => server.close(resolve));
   }
 });
