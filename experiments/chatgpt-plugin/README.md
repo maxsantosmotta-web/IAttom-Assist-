@@ -11,7 +11,7 @@ npm test
 npm start
 ```
 
-Servidor local: `http://127.0.0.1:8787/mcp`. A única ferramenta, `conhecer_iattom`, mostra informações públicas. Não há operações pagas, acesso a usuários, autenticação simulada ou cobrança de créditos.
+Prévia para navegador: `http://127.0.0.1:8787/`. Saúde: `/health`. Endpoint de conexão: `/mcp`. A única ferramenta, `conhecer_iattom`, mostra informações públicas. Não há operações pagas, acesso a usuários, autenticação simulada ou cobrança de créditos.
 
 ## Para completar a integração
 
