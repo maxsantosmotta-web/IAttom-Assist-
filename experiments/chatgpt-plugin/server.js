@@ -39,6 +39,9 @@ export function start(port = Number(process.env.PORT ?? 8787), host = "127.0.0.1
     bearer_methods_supported: ["header"],
   }));
   app.all("/mcp", async (req, res, next) => {
+    // MCP clients need to discover the tool schema before starting OAuth.
+    // Only protocol setup and tool listing are public; tool execution is protected.
+    if (req.method === "POST" && ["initialize", "notifications/initialized", "tools/list", "ping"].includes(req.body?.method)) return next();
     const challenge = `Bearer resource_metadata="${metadataUrl}", scope="profile"`;
     const match = /^Bearer ([^\s]+)$/.exec(req.get("authorization") ?? "");
     if (!match) return res.set("WWW-Authenticate", challenge).status(401).end();
