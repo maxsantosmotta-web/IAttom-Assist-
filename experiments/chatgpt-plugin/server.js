@@ -1,7 +1,10 @@
 import { createServer } from "node:http";
+import { readFileSync } from "node:fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { publicCatalog } from "./catalog.js";
+
+const previewPage = readFileSync(new URL("./index.html", import.meta.url), "utf8");
 
 export function makeServer() {
   const server = new McpServer({ name: "iattom-assist-preview", version: "0.1.0" });
@@ -18,6 +21,11 @@ export function start(port = Number(process.env.PORT ?? 8787), host = "127.0.0.1
   const httpServer = createServer(async (req, res) => {
     const path = new URL(req.url ?? "/", "http://localhost").pathname;
     if (path === "/" && req.method === "GET") {
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'" });
+      res.end(previewPage);
+      return;
+    }
+    if (path === "/health" && req.method === "GET") {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify({ status: "ok", mode: "isolated-preview" }));
       return;
