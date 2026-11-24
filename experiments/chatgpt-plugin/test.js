@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { start } from "./server.js";
 
 test("isolated MCP requires Clerk OAuth and advertises its resource", async () => {
@@ -20,7 +22,15 @@ test("isolated MCP requires Clerk OAuth and advertises its resource", async () =
     const denied = await fetch(`${base}/mcp`, { method: "GET" });
     assert.equal(denied.status, 401);
     assert.match(denied.headers.get("www-authenticate"), /resource_metadata=.*scope="profile"/);
-    const invalid = await fetch(`${base}/mcp`, { method: "POST", headers: { authorization: "Bearer bogus", "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", method: "tools/list", id: 1 }) });
+    const client = new Client({ name: "sandbox-check", version: "1.0.0" });
+    await client.connect(new StreamableHTTPClientTransport(new URL(`${base}/mcp`)));
+    const { tools } = await client.listTools();
+    assert.deepEqual(tools.map(tool => tool.name), ["conhecer_iattom"]);
+    await assert.rejects(client.callTool({ name: "conhecer_iattom", arguments: {} }));
+    const protectedCall = await fetch(`${base}/mcp`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", method: "tools/call", params: { name: "conhecer_iattom", arguments: {} }, id: 2 }) });
+    assert.equal(protectedCall.status, 401);
+    await client.close();
+    const invalid = await fetch(`${base}/mcp`, { method: "POST", headers: { authorization: "Bearer bogus", "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", method: "tools/call", params: { name: "conhecer_iattom", arguments: {} }, id: 1 }) });
     assert.equal(invalid.status, 401);
     assert.equal((await fetch(`${base}/api/ai/create-campaign`, { method: "POST" })).status, 404);
   } finally {
