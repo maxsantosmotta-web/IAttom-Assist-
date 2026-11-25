@@ -1,0 +1,73 @@
+import express from "express";
+import cors from "cors";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import {
+  isClerkAuthInfo,
+  mcpAuth,
+  protectedResourceMetadataHandler,
+  streamableHttpHandler,
+} from "@clerk/mcp-tools/express";
+
+// A separate entry point keeps the connected development preview unchanged.
+// Both keys must belong to the existing IAttom Clerk production instance.
+export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "127.0.0.1") {
+  const resourceUrl = process.env.MCP_RESOURCE_URL;
+  const accountApiUrl = process.env.IATTOM_ACCOUNT_API_URL;
+  if (!resourceUrl || !accountApiUrl || !process.env.CLERK_SECRET_KEY || !process.env.CLERK_PUBLISHABLE_KEY) {
+    throw new Error("MCP_RESOURCE_URL, IATTOM_ACCOUNT_API_URL and the existing IAttom Clerk keys are required");
+  }
+  if (new URL(resourceUrl).protocol !== "https:" || new URL(accountApiUrl).protocol !== "https:") {
+    throw new Error("Hosted MCP and account API must use HTTPS");
+  }
+  const accountEndpoint = new URL("/api/chatgpt/account", accountApiUrl);
+  const authOptions = { resourceUrl, requiredScopes: ["profile"] };
+  const app = express();
+  app.disable("x-powered-by");
+  app.use(cors({ exposedHeaders: ["WWW-Authenticate", "Mcp-Session-Id"] }));
+  app.use(express.json());
+
+  function createServer() {
+    const server = new McpServer({ name: "iattom-assist", version: "1.0.0" });
+    server.registerTool("consultar_minha_conta", {
+      title: "Consultar minha conta IAttom",
+      description: "Consulta o plano e o saldo da conta IAttom conectada. Somente leitura; não consome créditos.",
+      inputSchema: {},
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    }, async (_args, { authInfo }) => {
+      if (!isClerkAuthInfo(authInfo)) {
+        return { content: [{ type: "text", text: "Conecte sua conta IAttom para consultar o plano." }], isError: true };
+      }
+      try {
+        const response = await fetch(accountEndpoint, {
+          headers: { authorization: `Bearer ${authInfo.token}` },
+          redirect: "error",
+          signal: AbortSignal.timeout(10000),
+        });
+        if (!response.ok) {
+          const message = response.status === 404 ? "Conta IAttom não encontrada." :
+            response.status === 401 || response.status === 403 ? "Autorização da conta inválida." :
+            "Não foi possível consultar a conta agora.";
+          return { content: [{ type: "text", text: message }], isError: true };
+        }
+        const account = await response.json();
+        return { content: [{ type: "text", text: JSON.stringify({
+          plan: account.plan,
+          balance: account.balance,
+          creativeBalance: account.creativeBalance,
+        }) }] };
+      } catch {
+        return { content: [{ type: "text", text: "Não foi possível consultar a conta agora." }], isError: true };
+      }
+    });
+    return server;
+  }
+
+  app.all("/mcp", mcpAuth(authOptions), streamableHttpHandler(createServer, StreamableHTTPServerTransport));
+  app.all("/.well-known/oauth-protected-resource/mcp", protectedResourceMetadataHandler(authOptions));
+  return app.listen(port, host);
+}
+
+if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+  startOfficial(Number(process.env.PORT ?? 8787), process.env.HOST ?? "127.0.0.1");
+}
