@@ -60,3 +60,20 @@ test("module preflight reads only enumerated features with no debit",async()=>{
   await assert.rejects(client("/api/chatgpt/operations/preflight/campaign",{method:"POST",body:{}}),/Operation not enabled/);
   assert.deepEqual(paths,["/api/chatgpt/operations/preflight/campaign"]);
 });
+
+test("only isolated execute route is writable with explicit opt-in",async()=>{
+ let calls=0;
+ const client=createIattomClient({baseUrl:"https://sandbox.example.invalid",token:"test-token",allowWrites:true,
+  fetchImpl:async(url,options)=>{
+   calls++; assert.equal(url.pathname,"/api/chatgpt/operations/execute");
+   assert.equal(options.method,"POST");
+   assert.equal(options.headers.authorization,"Bearer test-token");
+   assert.equal(JSON.parse(options.body).requestId,"fixed-safe-request-123456");
+   return new Response(JSON.stringify({status:"complete",charged:5}),{status:200});
+ }});
+ const response=await client("/api/chatgpt/operations/execute",{method:"POST",body:{feature:"product_discovery",input:{query:"test"},requestId:"fixed-safe-request-123456"}});
+ assert.equal((await response.json()).charged,5);
+ assert.equal(calls,1);
+ const disabled=createIattomClient({baseUrl:"https://sandbox.example.invalid",token:"test-token",fetchImpl:async()=>{throw Error("unexpected")}});
+ await assert.rejects(disabled("/api/chatgpt/operations/execute",{method:"POST",body:{}}),/Operation not enabled/);
+});
