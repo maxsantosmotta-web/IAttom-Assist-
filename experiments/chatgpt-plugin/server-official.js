@@ -159,6 +159,43 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
         return { content: [{ type: "text", text: "Não foi possível consultar a disponibilidade do módulo." }], isError: true };
       }
     });
+
+    // Operational tools are exposed only with an explicit isolated API.
+    // Read-only tools may continue using the existing account API.
+    if (process.env.CHATGPT_MCP_WRITES_ENABLED === "true" && process.env.IATTOM_OPERATION_API_URL) {
+      const operationsBase = new URL(process.env.IATTOM_OPERATION_API_URL);
+      const accountBase = new URL(accountApiUrl);
+      if (operationsBase.protocol !== "https:" || operationsBase.origin === accountBase.origin ||
+          operationsBase.pathname !== "/" || operationsBase.username || operationsBase.password ||
+          operationsBase.search || operationsBase.hash) {
+        throw new Error("A separate isolated HTTPS operation API origin is required");
+      }
+      server.registerTool("executar_modulo_iattom", {
+        title: "Executar módulo IAttom",
+        description: "Executa um módulo existente na conta IAttom conectada. Pode consumir créditos reais no ambiente autorizado e salva o resultado na biblioteca. Requer solicitação explícita de geração e chave de operação única.",
+        inputSchema: {
+          feature: z.enum(["product_discovery", "product_validation", "campaign", "content", "video_script"]),
+          input: z.record(z.unknown()),
+          requestId: z.string().regex(/^[A-Za-z0-9_-]{16,72}$/),
+        },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+      }, async ({ feature, input, requestId }, { authInfo }) => {
+        if (!isClerkAuthInfo(authInfo)) {
+          return { content: [{ type: "text", text: "Conecte sua conta IAttom para executar o módulo." }], isError: true };
+        }
+        try {
+          const response = await createIattomClient({ baseUrl: operationsBase.origin, token: authInfo.token, allowWrites: true })(
+            "/api/chatgpt/operations/execute", { method: "POST", body: { feature, input, requestId } });
+          const data = await response.json();
+          if (!response.ok) {
+            return { content: [{ type: "text", text: JSON.stringify({ error: data.error ?? "operation_failed", status: response.status }) }], isError: true };
+          }
+          return { content: [{ type: "text", text: JSON.stringify(data) }] };
+        } catch {
+          return { content: [{ type: "text", text: "Falha na comunicação com a API operacional isolada. Não repita automaticamente a mesma operação com outra chave." }], isError: true };
+        }
+      });
+    }
     return server;
   }
 
