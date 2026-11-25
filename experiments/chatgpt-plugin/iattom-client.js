@@ -7,13 +7,16 @@ export function createIattomClient({ baseUrl, token, fetchImpl = fetch, allowWri
   }
   if (typeof token !== "string" || !token) throw new Error("Missing authorization");
   const readPaths = new Set(["/api/chatgpt/account", "/api/chatgpt/projects", "/api/chatgpt/prompts", "/api/chatgpt/library"]);
+  const preflightFeatures = new Set(["product_discovery", "product_validation", "campaign", "content", "video_script", "creativeImage1", "creativeImage2", "creativeImage3"]);
+  const preflightPrefix = "/api/chatgpt/operations/preflight/";
+  const isAllowedRead = (path) => readPaths.has(path) || (path.startsWith(preflightPrefix) && preflightFeatures.has(path.slice(preflightPrefix.length)));
   // Intentionally empty until the external backend routes own plan checks,
   // atomic consumption, idempotency and persistence. Enabling the flag alone
   // never permits calls to /api/ai/* or /api/help/chat.
   const operationPaths = new Set();
   return async function request(path, { method = "GET", body } = {}) {
     if (typeof path !== "string" || !path.startsWith("/api/chatgpt/") ||
-        (method === "GET" ? !readPaths.has(path) || body !== undefined :
+        (method === "GET" ? !isAllowedRead(path) || body !== undefined :
          method !== "POST" || !allowWrites || !operationPaths.has(path))) {
       throw new Error("Operation not enabled");
     }
