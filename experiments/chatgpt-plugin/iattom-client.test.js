@@ -77,3 +77,18 @@ test("only isolated execute route is writable with explicit opt-in",async()=>{
  const disabled=createIattomClient({baseUrl:"https://sandbox.example.invalid",token:"test-token",fetchImpl:async()=>{throw Error("unexpected")}});
  await assert.rejects(disabled("/api/chatgpt/operations/execute",{method:"POST",body:{}}),/Operation not enabled/);
 });
+
+test("status recovery is read-only and preserves original idempotency key",async()=>{
+ let calls=0;
+ const id="fixed-status-key-123456789";
+ const client=createIattomClient({baseUrl:"https://sandbox.example.invalid",token:"test-token",fetchImpl:async(url,opts)=>{
+   calls++; assert.equal(url.pathname,`/api/chatgpt/operations/status/${id}`);
+   assert.equal(opts.method,"GET");
+   assert.equal(opts.headers.authorization,"Bearer test-token");
+   return new Response(JSON.stringify({status:"complete",projectId:"test"}),{status:200});
+ }});
+ assert.equal((await (await client(`/api/chatgpt/operations/status/${id}`)).json()).status,"complete");
+ await assert.rejects(client("/api/chatgpt/operations/status/bad"),/Operation not enabled/);
+ await assert.rejects(client(`/api/chatgpt/operations/status/${id}`,{method:"POST",body:{}}),/Operation not enabled/);
+ assert.equal(calls,1);
+});
