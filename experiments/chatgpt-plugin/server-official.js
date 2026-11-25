@@ -1,6 +1,7 @@
 import { createIattomClient } from "./iattom-client.js";
 import express from "express";
 import cors from "cors";
+import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
@@ -129,6 +130,33 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
         return { content: [{ type: "text", text: JSON.stringify({ items: data.items }) }] };
       } catch {
         return { content: [{ type: "text", text: "Não foi possível consultar a biblioteca agora." }], isError: true };
+      }
+    });
+
+    server.registerTool("consultar_disponibilidade_modulo", {
+      title: "Consultar disponibilidade de módulo IAttom",
+      description: "Verifica sem executar se plano e saldo permitem solicitar um módulo. É uma prévia, não reserva créditos nem garante geração.",
+      inputSchema: { feature: z.enum(["product_discovery", "product_validation", "campaign", "content", "video_script", "creativeImage1", "creativeImage2", "creativeImage3"]) },
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    }, async ({ feature }, { authInfo }) => {
+      if (!isClerkAuthInfo(authInfo)) {
+        return { content: [{ type: "text", text: "Conecte sua conta IAttom para verificar a disponibilidade." }], isError: true };
+      }
+      try {
+        const response = await createIattomClient({ baseUrl: accountApiUrl, token: authInfo.token })(`/api/chatgpt/operations/preflight/${feature}`);
+        if (!response.ok) {
+          return { content: [{ type: "text", text: response.status === 503
+            ? "Operações externas ainda não estão habilitadas no ambiente consultado."
+            : response.status === 401 || response.status === 403 ? "Autorização da conta inválida."
+            : "Não foi possível consultar a disponibilidade do módulo." }], isError: true };
+        }
+        const result = await response.json();
+        if (result.feature !== feature || result.executionEnabled !== false || result.reserved !== false) {
+          throw new Error("Invalid preflight response");
+        }
+        return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      } catch {
+        return { content: [{ type: "text", text: "Não foi possível consultar a disponibilidade do módulo." }], isError: true };
       }
     });
     return server;
