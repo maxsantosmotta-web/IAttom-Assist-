@@ -1,4 +1,5 @@
 import { createIattomClient } from "./iattom-client.js";
+import { publicCatalog } from "./catalog.js";
 import express from "express";
 import cors from "cors";
 import { z } from "zod";
@@ -22,7 +23,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
   if (new URL(resourceUrl).protocol !== "https:" || new URL(accountApiUrl).protocol !== "https:") {
     throw new Error("Hosted MCP and account API must use HTTPS");
   }
-  const authOptions = { resourceUrl, requiredScopes: ["profile"] };
+  const authOptions = { resourceUrl, requiredScopes: ["profile"], publicAccess: { tools: ["conhecer_iattom"] } };
   const app = express();
   app.disable("x-powered-by");
   app.use(cors({ exposedHeaders: ["WWW-Authenticate", "Mcp-Session-Id"] }));
@@ -30,6 +31,13 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
 
   function createServer() {
     const server = new McpServer({ name: "iattom-assist", version: "1.0.0" });
+    server.registerTool("conhecer_iattom", {
+      title: "Conhecer o IAttom Assist",
+      description: "Mostra informações públicas do IAttom Assist. Não acessa contas ou funções pagas.",
+      inputSchema: {},
+      annotations: { readOnlyHint: true, openWorldHint: false },
+      _meta: { securitySchemes: [{ type: "noauth" }] },
+    }, async () => ({ content: [{ type: "text", text: JSON.stringify(publicCatalog) }] }));
     server.registerTool("consultar_minha_conta", {
       title: "Consultar minha conta IAttom",
       description: "Consulta o plano e o saldo da conta IAttom conectada. Somente leitura; não consome créditos.",
