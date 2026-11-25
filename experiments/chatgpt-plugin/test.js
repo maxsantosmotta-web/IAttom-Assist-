@@ -3,6 +3,14 @@ import assert from "node:assert/strict";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { start } from "./server.js";
+import { moduleInput } from "./server-official.js";
+
+test("operational inputs preserve video script fields that overlap campaigns", () => {
+  const input = { product: "Exemplo", format: "vertical", duration: "30s", hook: "Abertura", style: "direto" };
+  assert.deepEqual(moduleInput.parse(input), input);
+  assert.equal(moduleInput.safeParse({ product: "" }).success, false);
+  assert.equal(moduleInput.safeParse({ selectedFormats: ["feed"] }).success, false);
+});
 
 test("isolated MCP requires Clerk OAuth and advertises its resource", async () => {
   process.env.MCP_RESOURCE_URL = "https://iattom-mcp-preview-test.up.railway.app/mcp";
