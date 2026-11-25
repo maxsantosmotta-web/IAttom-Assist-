@@ -6,7 +6,7 @@ export function createIattomClient({ baseUrl, token, fetchImpl = fetch, allowWri
     throw new Error("Invalid API origin");
   }
   if (typeof token !== "string" || !token) throw new Error("Missing authorization");
-  const readPaths = new Set(["/api/chatgpt/account", "/api/chatgpt/projects", "/api/chatgpt/prompts"]);
+  const readPaths = new Set(["/api/chatgpt/account", "/api/chatgpt/projects", "/api/chatgpt/prompts", "/api/chatgpt/library"]);
   // Intentionally empty until the external backend routes own plan checks,
   // atomic consumption, idempotency and persistence. Enabling the flag alone
   // never permits calls to /api/ai/* or /api/help/chat.
