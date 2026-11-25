@@ -192,6 +192,27 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
         throw new Error("A separate isolated HTTPS operation API origin is required");
       }
 
+      server.registerTool("perguntar_ao_iattom_help", {
+        title: "Perguntar ao IAttom Help",
+        description: "Consulta o assistente de suporte interno original do IAttom. Desconta o custo real em créditos gerais apenas quando a resposta é concluída e salva na biblioteca do ambiente isolado.",
+        inputSchema: {
+          message: z.string().min(1).max(4000),
+          requestId: z.string().regex(/^[A-Za-z0-9_-]{16,72}$/),
+        },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+      }, async ({ message, requestId }, { authInfo }) => {
+        if (!isClerkAuthInfo(authInfo)) {
+          return { content: [{ type: "text", text: "Conecte sua conta IAttom." }], isError: true };
+        }
+        try {
+          const response = await createIattomClient({ baseUrl: operationsBase.origin, token: authInfo.token, allowWrites: true })(
+            "/api/chatgpt/help/execute", { method: "POST", body: { message, requestId } });
+          const data = await response.json();
+          return { content: [{ type: "text", text: JSON.stringify(data) }], isError: !response.ok };
+        } catch {
+          return { content: [{ type: "text", text: "Não foi possível confirmar a resposta do Help. Consulte o registro original antes de repetir." }], isError: true };
+        }
+      });
       server.registerTool("iniciar_efeito_video_iattom", {
         title: "Gerar Vídeo com Efeito",
         description: "Inicia a animação de uma imagem já salva na biblioteca IAttom. Utiliza o saldo independente de vídeos, sem débito até a entrega final. Somente ambiente isolado.",
