@@ -172,7 +172,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
         return { content: [{ type: "text", text: "Conecte sua conta IAttom para verificar a disponibilidade." }], isError: true };
       }
       try {
-        const response = await createIattomClient({ baseUrl: accountApiUrl, token: authInfo.token })(`/api/chatgpt/operations/preflight/${feature}`);
+        const response = await createIattomClient({ baseUrl: process.env.IATTOM_OPERATION_API_URL || accountApiUrl, token: authInfo.token })(`/api/chatgpt/operations/preflight/${feature}`);
         if (!response.ok) {
           return { content: [{ type: "text", text: response.status === 503
             ? "Operações externas ainda não estão habilitadas no ambiente consultado."
