@@ -192,6 +192,24 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
         throw new Error("A separate isolated HTTPS operation API origin is required");
       }
 
+      server.registerTool("consultar_status_iattom_help", {
+        title: "Consultar resposta anterior do IAttom Help",
+        description: "Recupera a resposta de uma solicitação anterior do IAttom Help sem gerar novamente nem cobrar créditos.",
+        inputSchema: { requestId: z.string().regex(/^[A-Za-z0-9_-]{16,72}$/) },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      }, async ({ requestId }, { authInfo }) => {
+        if (!isClerkAuthInfo(authInfo)) {
+          return { content: [{ type: "text", text: "Conecte sua conta IAttom." }], isError: true };
+        }
+        try {
+          const response = await createIattomClient({ baseUrl: operationsBase.origin, token: authInfo.token })(
+            `/api/chatgpt/help/status/${requestId}`);
+          const data = await response.json();
+          return { content: [{ type: "text", text: JSON.stringify(data) }], isError: !response.ok };
+        } catch {
+          return { content: [{ type: "text", text: "Não foi possível recuperar a resposta do Help." }], isError: true };
+        }
+      });
       server.registerTool("perguntar_ao_iattom_help", {
         title: "Perguntar ao IAttom Help",
         description: "Consulta o assistente de suporte interno original do IAttom. Desconta o custo real em créditos gerais apenas quando a resposta é concluída e salva na biblioteca do ambiente isolado.",
