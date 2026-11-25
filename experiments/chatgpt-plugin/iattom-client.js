@@ -9,7 +9,9 @@ export function createIattomClient({ baseUrl, token, fetchImpl = fetch, allowWri
   const readPaths = new Set(["/api/chatgpt/account", "/api/chatgpt/projects", "/api/chatgpt/prompts", "/api/chatgpt/library"]);
   const preflightFeatures = new Set(["product_discovery", "product_validation", "campaign", "content", "video_script", "creativeImage1", "creativeImage2", "creativeImage3"]);
   const preflightPrefix = "/api/chatgpt/operations/preflight/";
-  const isAllowedRead = (path) => readPaths.has(path) || (path.startsWith(preflightPrefix) && preflightFeatures.has(path.slice(preflightPrefix.length)));
+  const statusPrefix = "/api/chatgpt/operations/status/";
+  const isAllowedRead = (path) => readPaths.has(path) || (path.startsWith(preflightPrefix) && preflightFeatures.has(path.slice(preflightPrefix.length))) ||
+    (path.startsWith(statusPrefix) && /^[A-Za-z0-9_-]{16,72}$/.test(path.slice(statusPrefix.length)));
   // Intentionally empty until the external backend routes own plan checks,
   // atomic consumption, idempotency and persistence. Enabling the flag alone
   // never permits calls to /api/ai/* or /api/help/chat.
