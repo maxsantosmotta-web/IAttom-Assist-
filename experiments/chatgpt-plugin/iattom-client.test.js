@@ -43,3 +43,20 @@ test("saved library is read-only and keeps the OAuth identity",async()=>{
  await assert.rejects(client("/api/chatgpt/library",{method:"POST",body:{}}),/Operation not enabled/);
  assert.equal(calls,1);
 });
+
+test("module preflight reads only enumerated features with no debit",async()=>{
+  const paths=[];
+  const client=createIattomClient({baseUrl:"https://example.invalid",token:"test-token",fetchImpl:async(url,opts)=>{
+    assert.equal(opts.method,"GET");
+    assert.equal(opts.headers.authorization,"Bearer test-token");
+    paths.push(url.pathname);
+    return new Response(JSON.stringify({feature:"campaign",executionEnabled:false,reserved:false}),{status:200});
+  }});
+  const r=await client("/api/chatgpt/operations/preflight/campaign");
+  assert.equal((await r.json()).executionEnabled,false);
+  for(const path of ["/api/chatgpt/operations/preflight/prompt_creation","/api/chatgpt/operations/preflight/campaign/extra","/api/chatgpt/operations/preflight/campaign?x=1","/api/chatgpt/operations/readiness"]) {
+    await assert.rejects(client(path),/Operation not enabled/);
+  }
+  await assert.rejects(client("/api/chatgpt/operations/preflight/campaign",{method:"POST",body:{}}),/Operation not enabled/);
+  assert.deepEqual(paths,["/api/chatgpt/operations/preflight/campaign"]);
+});
