@@ -316,7 +316,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
         title: "Executar módulo IAttom",
         description: "Executa um módulo de texto ou geração de imagens já existente no IAttom. Exige ambiente operacional isolado autorizado, debita os créditos correspondentes e salva na biblioteca. Requer pedido explícito de execução e chave única.",
         inputSchema: {
-          feature: z.enum(["product_discovery", "product_validation", "campaign", "content", "video_script", "creativeImage1", "creativeImage2", "creativeImage3"]),
+          feature: z.enum(["product_discovery", "product_validation", "campaign", "content", "video_script", "prompt_creation", "creativeImage1", "creativeImage2", "creativeImage3"]),
           input: z.record(z.unknown()),
           requestId: z.string().regex(/^[A-Za-z0-9_-]{16,72}$/),
         },
