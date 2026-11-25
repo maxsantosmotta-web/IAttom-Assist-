@@ -4,5 +4,5 @@ export const publicCatalog = Object.freeze({
   product: "IAttom Assist",
   description: "Plataforma de marketing digital.",
   website: "https://iattomassist.com.br",
-  status: "Conexão técnica em desenvolvimento; nenhuma função do IAttom está ativa neste serviço.",
+  status: "Consultas e operações disponíveis conforme autenticação, plano, saldo e configuração do ambiente.",
 });
