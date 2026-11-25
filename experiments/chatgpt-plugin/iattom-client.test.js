@@ -124,3 +124,21 @@ test("video polling permits only owned-shaped opaque request keys",async()=>{
  }
  assert.equal(polls,1);
 });
+
+test("Help execute is isolated and status retry cannot debit",async()=>{
+ const requestId="help-test-id-1234567890";
+ const calls=[];
+ const client=createIattomClient({baseUrl:"https://sandbox.example.invalid",token:"test-token",allowWrites:true,
+   fetchImpl:async(url,options)=>{
+     calls.push({path:url.pathname,method:options.method});
+     return new Response(JSON.stringify({status:"complete",result:{answer:"teste"}}),{status:200});
+   }});
+ const executed=await client("/api/chatgpt/help/execute",{method:"POST",body:{message:"Como usar a plataforma?",requestId}});
+ assert.equal((await executed.json()).status,"complete");
+ const retrieved=await client(`/api/chatgpt/help/status/${requestId}`);
+ assert.equal((await retrieved.json()).result.answer,"teste");
+ assert.deepEqual(calls.map(c=>c.method),["POST","GET"]);
+ const disabled=createIattomClient({baseUrl:"https://sandbox.example.invalid",token:"test-token",fetchImpl:async()=>{throw Error("unexpected")}});
+ await assert.rejects(disabled("/api/chatgpt/help/execute",{method:"POST",body:{message:"x",requestId}}),/Operation not enabled/);
+ await assert.rejects(disabled("/api/chatgpt/help/status/bad"),/Operation not enabled/);
+});
