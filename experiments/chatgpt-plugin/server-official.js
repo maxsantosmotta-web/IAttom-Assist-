@@ -1,3 +1,4 @@
+import { createIattomClient } from "./iattom-client.js";
 import express from "express";
 import cors from "cors";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -20,9 +21,6 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
   if (new URL(resourceUrl).protocol !== "https:" || new URL(accountApiUrl).protocol !== "https:") {
     throw new Error("Hosted MCP and account API must use HTTPS");
   }
-  const accountEndpoint = new URL("/api/chatgpt/account", accountApiUrl);
-  const projectsEndpoint = new URL("/api/chatgpt/projects", accountApiUrl);
-  const promptsEndpoint = new URL("/api/chatgpt/prompts", accountApiUrl);
   const authOptions = { resourceUrl, requiredScopes: ["profile"] };
   const app = express();
   app.disable("x-powered-by");
@@ -41,11 +39,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
         return { content: [{ type: "text", text: "Conecte sua conta IAttom para consultar o plano." }], isError: true };
       }
       try {
-        const response = await fetch(accountEndpoint, {
-          headers: { authorization: `Bearer ${authInfo.token}` },
-          redirect: "error",
-          signal: AbortSignal.timeout(10000),
-        });
+        const response = await createIattomClient({ baseUrl: accountApiUrl, token: authInfo.token })("/api/chatgpt/account");
         if (!response.ok) {
           const message = response.status === 404 ? "Conta IAttom não encontrada." :
             response.status === 401 || response.status === 403 ? "Autorização da conta inválida." :
@@ -75,11 +69,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
         return { content: [{ type: "text", text: "Conecte sua conta IAttom para consultar os projetos." }], isError: true };
       }
       try {
-        const response = await fetch(projectsEndpoint, {
-          headers: { authorization: `Bearer ${authInfo.token}` },
-          redirect: "error",
-          signal: AbortSignal.timeout(10000),
-        });
+        const response = await createIattomClient({ baseUrl: accountApiUrl, token: authInfo.token })("/api/chatgpt/projects");
         if (!response.ok) {
           const message = response.status === 401 || response.status === 403
             ? "Autorização da conta inválida."
@@ -103,11 +93,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
         return { content: [{ type: "text", text: "Conecte sua conta IAttom para consultar os prompts." }], isError: true };
       }
       try {
-        const response = await fetch(promptsEndpoint, {
-          headers: { authorization: `Bearer ${authInfo.token}` },
-          redirect: "error",
-          signal: AbortSignal.timeout(10000),
-        });
+        const response = await createIattomClient({ baseUrl: accountApiUrl, token: authInfo.token })("/api/chatgpt/prompts");
         if (!response.ok) {
           const message = response.status === 403 ? "Plano necessário para acessar Criar Prompt." :
             response.status === 401 ? "Autorização da conta inválida." :
