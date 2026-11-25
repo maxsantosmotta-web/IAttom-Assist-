@@ -53,8 +53,11 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
           return { content: [{ type: "text", text: message }], isError: true };
         }
         const account = await response.json();
+        const planNames = { free: "FREE", pro: "START", business: "PREMIUM", agency: "PRO" };
+        const planName = planNames[account.plan];
+        if (!planName) throw new Error("Unknown plan code");
         return { content: [{ type: "text", text: JSON.stringify({
-          plan: account.plan,
+          plan: planName,
           balance: account.balance,
           creativeBalance: account.creativeBalance,
         }) }] };
