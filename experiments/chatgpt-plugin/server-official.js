@@ -136,7 +136,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
     server.registerTool("consultar_disponibilidade_modulo", {
       title: "Consultar disponibilidade de módulo IAttom",
       description: "Verifica sem executar se plano e saldo permitem solicitar um módulo. É uma prévia, não reserva créditos nem garante geração.",
-      inputSchema: { feature: z.enum(["product_discovery", "product_validation", "campaign", "content", "video_script", "creativeImage1", "creativeImage2", "creativeImage3"]) },
+      inputSchema: { feature: z.enum(["product_discovery", "product_validation", "campaign", "content", "video_script", "prompt_creation", "creativeImage1", "creativeImage2", "creativeImage3"]) },
       annotations: { readOnlyHint: true, openWorldHint: false },
     }, async ({ feature }, { authInfo }) => {
       if (!isClerkAuthInfo(authInfo)) {
