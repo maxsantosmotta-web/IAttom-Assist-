@@ -21,4 +21,5 @@ jobs:
           cache-dependency-path: experiments/chatgpt-plugin/package-lock.json
       - run: npm ci
       - run: node --test iattom-client.test.js
+      - run: node --test operational-contract.test.js
       - run: node --check server-official.js
