@@ -54,7 +54,7 @@ test("module preflight reads only enumerated features with no debit",async()=>{
   }});
   const r=await client("/api/chatgpt/operations/preflight/campaign");
   assert.equal((await r.json()).executionEnabled,false);
-  for(const path of ["/api/chatgpt/operations/preflight/prompt_creation","/api/chatgpt/operations/preflight/campaign/extra","/api/chatgpt/operations/preflight/campaign?x=1","/api/chatgpt/operations/readiness"]) {
+  for(const path of ["/api/chatgpt/operations/preflight/unknown_feature","/api/chatgpt/operations/preflight/campaign/extra","/api/chatgpt/operations/preflight/campaign?x=1","/api/chatgpt/operations/readiness"]) {
     await assert.rejects(client(path),/Operation not enabled/);
   }
   await assert.rejects(client("/api/chatgpt/operations/preflight/campaign",{method:"POST",body:{}}),/Operation not enabled/);
