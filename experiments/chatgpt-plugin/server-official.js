@@ -192,6 +192,66 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
         throw new Error("A separate isolated HTTPS operation API origin is required");
       }
 
+      server.registerTool("iniciar_efeito_video_iattom", {
+        title: "Gerar Vídeo com Efeito",
+        description: "Inicia a animação de uma imagem já salva na biblioteca IAttom. Utiliza o saldo independente de vídeos, sem débito até a entrega final. Somente ambiente isolado.",
+        inputSchema: {
+          requestId: z.string().regex(/^[A-Za-z0-9_-]{16,72}$/),
+          sourceProjectId: z.string().min(1),
+          conceptIndex: z.number().int().nonnegative(),
+          prompt: z.string().min(1).max(1200),
+          format: z.enum(["vertical", "horizontal", "automatic"]),
+        },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+      }, async (args, { authInfo }) => {
+        if (!isClerkAuthInfo(authInfo)) {
+          return { content: [{ type: "text", text: "Conecte sua conta IAttom." }], isError: true };
+        }
+        try {
+          const response = await createIattomClient({ baseUrl: operationsBase.origin, token: authInfo.token, allowWrites: true })(
+            "/api/chatgpt/video/submit", { method: "POST", body: args });
+          const data = await response.json();
+          return { content: [{ type: "text", text: JSON.stringify(data) }], isError: !response.ok };
+        } catch {
+          return { content: [{ type: "text", text: "Não foi possível confirmar o envio. Consulte o status pela mesma chave antes de tentar novamente." }], isError: true };
+        }
+      });
+      server.registerTool("consultar_status_efeito_video_iattom", {
+        title: "Consultar processamento de Vídeo com Efeito",
+        description: "Consulta a geração pela chave original sem criar novo vídeo ou consumir créditos.",
+        inputSchema: { requestId: z.string().regex(/^[A-Za-z0-9_-]{16,72}$/) },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      }, async ({ requestId }, { authInfo }) => {
+        if (!isClerkAuthInfo(authInfo)) {
+          return { content: [{ type: "text", text: "Conecte sua conta IAttom." }], isError: true };
+        }
+        try {
+          const response = await createIattomClient({ baseUrl: operationsBase.origin, token: authInfo.token })(
+            `/api/chatgpt/video/status/${requestId}`);
+          const data = await response.json();
+          return { content: [{ type: "text", text: JSON.stringify(data) }], isError: !response.ok };
+        } catch {
+          return { content: [{ type: "text", text: "Não foi possível consultar o processamento." }], isError: true };
+        }
+      });
+      server.registerTool("receber_efeito_video_iattom", {
+        title: "Receber Vídeo com Efeito finalizado",
+        description: "Entrega o vídeo pronto, com desconto único do saldo de vídeos e salvamento na biblioteca. Apenas para solicitações já iniciadas no ambiente isolado.",
+        inputSchema: { requestId: z.string().regex(/^[A-Za-z0-9_-]{16,72}$/) },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+      }, async ({ requestId }, { authInfo }) => {
+        if (!isClerkAuthInfo(authInfo)) {
+          return { content: [{ type: "text", text: "Conecte sua conta IAttom." }], isError: true };
+        }
+        try {
+          const response = await createIattomClient({ baseUrl: operationsBase.origin, token: authInfo.token, allowWrites: true })(
+            "/api/chatgpt/video/collect", { method: "POST", body: { requestId } });
+          const data = await response.json();
+          return { content: [{ type: "text", text: JSON.stringify(data) }], isError: !response.ok };
+        } catch {
+          return { content: [{ type: "text", text: "A entrega não pôde ser confirmada. Consulte a mesma chave antes de repetir." }], isError: true };
+        }
+      });
       server.registerTool("consultar_status_operacao_iattom", {
         title: "Consultar status de operação IAttom",
         description: "Recupera o resultado de uma solicitação de geração pela mesma chave, sem regenerar nem descontar créditos adicionais.",
