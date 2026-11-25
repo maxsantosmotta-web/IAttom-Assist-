@@ -110,6 +110,27 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
       }
     });
 
+    server.registerTool("consultar_uso_iattom_help", {
+      title: "Consultar uso do IAttom Help",
+      description: "Consulta elegibilidade e custo em créditos gerais do IAttom Help sem enviar mensagens ou consumir créditos.",
+      inputSchema: {},
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    }, async (_args, { authInfo }) => {
+      if (!isClerkAuthInfo(authInfo)) {
+        return { content: [{ type: "text", text: "Conecte sua conta IAttom." }], isError: true };
+      }
+      try {
+        const response = await createIattomClient({ baseUrl: accountApiUrl, token: authInfo.token })("/api/chatgpt/help/usage");
+        if (!response.ok) return { content: [{ type: "text", text: "Consulta do IAttom Help indisponível." }], isError: true };
+        const data = await response.json();
+        if (typeof data.canUse !== "boolean" || typeof data.creditCost !== "number") {
+          throw new Error("Invalid IAttom Help usage response");
+        }
+        return { content: [{ type: "text", text: JSON.stringify(data) }] };
+      } catch {
+        return { content: [{ type: "text", text: "Consulta do IAttom Help indisponível." }], isError: true };
+      }
+    });
     server.registerTool("listar_minha_biblioteca", {
       title: "Consultar minha biblioteca IAttom",
       description: "Lista até 20 materiais salvos na biblioteca da conta conectada. Somente leitura, sem consumo de créditos.",
