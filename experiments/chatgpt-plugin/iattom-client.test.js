@@ -29,3 +29,17 @@ test("read requests reject body, redirects and origins with paths",async()=>{
  await assert.rejects(client("//other.invalid/api/chatgpt/account"),/Operation not enabled/);
  assert.throws(()=>createIattomClient({baseUrl:"https://example.invalid/hidden",token:"x"}),/Invalid API origin/);
 });
+
+test("saved library is read-only and keeps the OAuth identity",async()=>{
+ let calls=0;
+ const client=createIattomClient({baseUrl:"https://example.invalid",token:"test-token",fetchImpl:async(url,opts)=>{
+   calls++; assert.equal(url.pathname,"/api/chatgpt/library");
+   assert.equal(opts.method,"GET");
+   assert.equal(opts.headers.authorization,"Bearer test-token");
+   return new Response(JSON.stringify({items:[]}),{status:200});
+ }});
+ const result=await client("/api/chatgpt/library");
+ assert.deepEqual(await result.json(),{items:[]});
+ await assert.rejects(client("/api/chatgpt/library",{method:"POST",body:{}}),/Operation not enabled/);
+ assert.equal(calls,1);
+});
