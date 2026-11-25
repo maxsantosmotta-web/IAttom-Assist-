@@ -29,10 +29,12 @@ import savedItemsRouter from "./savedItems.js";
 import kiwifyOAuthExperimentRouter from "./kiwifyOAuthExperiment.js";
 import helpRouter from "./help.js";
 import videosRouter from "./videos.js";
+import chatgptRouter from "./chatgpt.js";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(chatgptRouter);
 router.use(projectsRouter);
 router.use(historyRouter);
 router.use(dashboardRouter);
