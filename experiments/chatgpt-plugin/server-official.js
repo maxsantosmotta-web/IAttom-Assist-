@@ -21,6 +21,8 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
     throw new Error("Hosted MCP and account API must use HTTPS");
   }
   const accountEndpoint = new URL("/api/chatgpt/account", accountApiUrl);
+  const projectsEndpoint = new URL("/api/chatgpt/projects", accountApiUrl);
+  const promptsEndpoint = new URL("/api/chatgpt/prompts", accountApiUrl);
   const authOptions = { resourceUrl, requiredScopes: ["profile"] };
   const app = express();
   app.disable("x-powered-by");
@@ -51,13 +53,72 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
           return { content: [{ type: "text", text: message }], isError: true };
         }
         const account = await response.json();
+        const planNames = { free: "FREE", pro: "START", business: "PREMIUM", agency: "PRO" };
+        const planName = planNames[account.plan];
+        if (!planName) throw new Error("Unknown plan code");
         return { content: [{ type: "text", text: JSON.stringify({
-          plan: account.plan,
+          plan: planName,
           balance: account.balance,
           creativeBalance: account.creativeBalance,
         }) }] };
       } catch {
         return { content: [{ type: "text", text: "Não foi possível consultar a conta agora." }], isError: true };
+      }
+    });
+    server.registerTool("listar_meus_projetos", {
+      title: "Listar meus projetos IAttom",
+      description: "Lista até 20 projetos recentes da conta IAttom conectada. Somente leitura; não consome créditos.",
+      inputSchema: {},
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    }, async (_args, { authInfo }) => {
+      if (!isClerkAuthInfo(authInfo)) {
+        return { content: [{ type: "text", text: "Conecte sua conta IAttom para consultar os projetos." }], isError: true };
+      }
+      try {
+        const response = await fetch(projectsEndpoint, {
+          headers: { authorization: `Bearer ${authInfo.token}` },
+          redirect: "error",
+          signal: AbortSignal.timeout(10000),
+        });
+        if (!response.ok) {
+          const message = response.status === 401 || response.status === 403
+            ? "Autorização da conta inválida."
+            : "Não foi possível consultar os projetos agora.";
+          return { content: [{ type: "text", text: message }], isError: true };
+        }
+        const data = await response.json();
+        if (!Array.isArray(data.projects)) throw new Error("Invalid projects response");
+        return { content: [{ type: "text", text: JSON.stringify({ projects: data.projects }) }] };
+      } catch {
+        return { content: [{ type: "text", text: "Não foi possível consultar os projetos agora." }], isError: true };
+      }
+    });
+    server.registerTool("listar_meus_prompts", {
+      title: "Listar meus prompts salvos IAttom",
+      description: "Lista até 20 prompts salvos da conta conectada. Exige acesso ao módulo Criar Prompt. Somente leitura; não consome créditos.",
+      inputSchema: {},
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    }, async (_args, { authInfo }) => {
+      if (!isClerkAuthInfo(authInfo)) {
+        return { content: [{ type: "text", text: "Conecte sua conta IAttom para consultar os prompts." }], isError: true };
+      }
+      try {
+        const response = await fetch(promptsEndpoint, {
+          headers: { authorization: `Bearer ${authInfo.token}` },
+          redirect: "error",
+          signal: AbortSignal.timeout(10000),
+        });
+        if (!response.ok) {
+          const message = response.status === 403 ? "Plano necessário para acessar Criar Prompt." :
+            response.status === 401 ? "Autorização da conta inválida." :
+            "Não foi possível consultar os prompts agora.";
+          return { content: [{ type: "text", text: message }], isError: true };
+        }
+        const data = await response.json();
+        if (!Array.isArray(data.prompts)) throw new Error("Invalid prompts response");
+        return { content: [{ type: "text", text: JSON.stringify({ prompts: data.prompts }) }] };
+      } catch {
+        return { content: [{ type: "text", text: "Não foi possível consultar os prompts agora." }], isError: true };
       }
     });
     return server;
