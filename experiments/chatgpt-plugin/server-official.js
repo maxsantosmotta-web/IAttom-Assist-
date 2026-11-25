@@ -108,6 +108,29 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
         return { content: [{ type: "text", text: "Não foi possível consultar os prompts agora." }], isError: true };
       }
     });
+
+    server.registerTool("listar_minha_biblioteca", {
+      title: "Consultar minha biblioteca IAttom",
+      description: "Lista até 20 materiais salvos na biblioteca da conta conectada. Somente leitura, sem consumo de créditos.",
+      inputSchema: {},
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    }, async (_args, { authInfo }) => {
+      if (!isClerkAuthInfo(authInfo)) {
+        return { content: [{ type: "text", text: "Conecte sua conta IAttom para consultar a biblioteca." }], isError: true };
+      }
+      try {
+        const response = await createIattomClient({ baseUrl: accountApiUrl, token: authInfo.token })("/api/chatgpt/library");
+        if (!response.ok) {
+          return { content: [{ type: "text", text: response.status === 401 || response.status === 403
+            ? "Autorização da conta inválida." : "Não foi possível consultar a biblioteca agora." }], isError: true };
+        }
+        const data = await response.json();
+        if (!Array.isArray(data.items)) throw new Error("Invalid library response");
+        return { content: [{ type: "text", text: JSON.stringify({ items: data.items }) }] };
+      } catch {
+        return { content: [{ type: "text", text: "Não foi possível consultar a biblioteca agora." }], isError: true };
+      }
+    });
     return server;
   }
 
