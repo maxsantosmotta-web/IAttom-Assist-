@@ -170,6 +170,28 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
           operationsBase.search || operationsBase.hash) {
         throw new Error("A separate isolated HTTPS operation API origin is required");
       }
+
+      server.registerTool("consultar_status_operacao_iattom", {
+        title: "Consultar status de operação IAttom",
+        description: "Recupera o resultado de uma solicitação de geração pela mesma chave, sem regenerar nem descontar créditos adicionais.",
+        inputSchema: { requestId: z.string().regex(/^[A-Za-z0-9_-]{16,72}$/) },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+      }, async ({ requestId }, { authInfo }) => {
+        if (!isClerkAuthInfo(authInfo)) {
+          return { content: [{ type: "text", text: "Conecte sua conta IAttom para consultar a operação." }], isError: true };
+        }
+        try {
+          const response = await createIattomClient({ baseUrl: operationsBase.origin, token: authInfo.token })(
+            `/api/chatgpt/operations/status/${requestId}`);
+          const data = await response.json();
+          if (!response.ok) {
+            return { content: [{ type: "text", text: JSON.stringify({ error: data.error ?? "status_unavailable", status: response.status }) }], isError: true };
+          }
+          return { content: [{ type: "text", text: JSON.stringify(data) }] };
+        } catch {
+          return { content: [{ type: "text", text: "Não foi possível recuperar o status agora." }], isError: true };
+        }
+      });
       server.registerTool("executar_modulo_iattom", {
         title: "Executar módulo IAttom",
         description: "Executa um módulo de texto ou geração de imagens já existente no IAttom. Exige ambiente operacional isolado autorizado, debita os créditos correspondentes e salva na biblioteca. Requer pedido explícito de execução e chave única.",
