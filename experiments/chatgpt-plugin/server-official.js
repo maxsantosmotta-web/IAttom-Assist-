@@ -175,10 +175,11 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
         // Preflight must use the same configured environment as operational execution.
         const response = await createIattomClient({ baseUrl: process.env.IATTOM_OPERATION_API_URL || accountApiUrl, token: authInfo.token })(`/api/chatgpt/operations/preflight/${feature}`);
         if (!response.ok) {
-          return { content: [{ type: "text", text: response.status === 503
-            ? "Operações externas ainda não estão habilitadas no ambiente consultado."
-            : response.status === 401 || response.status === 403 ? "Autorização da conta inválida."
-            : "Não foi possível consultar a disponibilidade do módulo." }], isError: true };
+          // Expose only documented error codes, never arbitrary upstream data.
+          const body = await response.json().catch(() => ({}));
+          const allowed = new Set(["user_not_found", "unsupported_external_feature", "external_operations_disabled", "OAuth token required", "Invalid OAuth token", "Profile scope required"]);
+          const error = typeof body.error === "string" && allowed.has(body.error) ? body.error : "preflight_unavailable";
+          return { content: [{ type: "text", text: JSON.stringify({ status: response.status, error }) }], isError: true };
         }
         const result = await response.json();
         if (result.feature !== feature || typeof result.executionEnabled !== "boolean" || result.reserved !== false) {
