@@ -55,6 +55,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
           balance: account.balance,
           creativeBalance: account.creativeBalance,
           videoBalance: account.videoBalance,
+          helpUsage: account.helpUsage,
         }) }] };
       } catch {
         return { content: [{ type: "text", text: "Não foi possível consultar a conta agora." }], isError: true };
