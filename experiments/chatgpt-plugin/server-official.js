@@ -151,7 +151,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
             : "Não foi possível consultar a disponibilidade do módulo." }], isError: true };
         }
         const result = await response.json();
-        if (result.feature !== feature || result.executionEnabled !== false || result.reserved !== false) {
+        if (result.feature !== feature || typeof result.executionEnabled !== "boolean" || result.reserved !== false) {
           throw new Error("Invalid preflight response");
         }
         return { content: [{ type: "text", text: JSON.stringify(result) }] };
