@@ -172,6 +172,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
         return { content: [{ type: "text", text: "Conecte sua conta IAttom para verificar a disponibilidade." }], isError: true };
       }
       try {
+        // Preflight must use the same configured environment as operational execution.
         const response = await createIattomClient({ baseUrl: process.env.IATTOM_OPERATION_API_URL || accountApiUrl, token: authInfo.token })(`/api/chatgpt/operations/preflight/${feature}`);
         if (!response.ok) {
           return { content: [{ type: "text", text: response.status === 503
