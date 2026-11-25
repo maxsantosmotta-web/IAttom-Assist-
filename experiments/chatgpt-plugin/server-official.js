@@ -227,7 +227,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
           const response = await createIattomClient({ baseUrl: operationsBase.origin, token: authInfo.token })(
             `/api/chatgpt/help/status/${requestId}`);
           const data = await response.json();
-          return { content: [{ type: "text", text: JSON.stringify(data) }], isError: !response.ok };
+          return { content: [{ type: "text", text: JSON.stringify(data) }], ...(response.ok ? { structuredContent: data } : { isError: true }) };
         } catch {
           return { content: [{ type: "text", text: "Não foi possível recuperar a resposta do Help." }], isError: true };
         }
@@ -248,7 +248,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
           const response = await createIattomClient({ baseUrl: operationsBase.origin, token: authInfo.token, allowWrites: true })(
             "/api/chatgpt/help/execute", { method: "POST", body: { message, requestId } });
           const data = await response.json();
-          return { content: [{ type: "text", text: JSON.stringify(data) }], isError: !response.ok };
+          return { content: [{ type: "text", text: JSON.stringify(data) }], ...(response.ok ? { structuredContent: data } : { isError: true }) };
         } catch {
           return { content: [{ type: "text", text: "Não foi possível confirmar a resposta do Help. Consulte o registro original antes de repetir." }], isError: true };
         }
@@ -272,7 +272,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
           const response = await createIattomClient({ baseUrl: operationsBase.origin, token: authInfo.token, allowWrites: true })(
             "/api/chatgpt/video/submit", { method: "POST", body: args });
           const data = await response.json();
-          return { content: [{ type: "text", text: JSON.stringify(data) }], isError: !response.ok };
+          return { content: [{ type: "text", text: JSON.stringify(data) }], ...(response.ok ? { structuredContent: data } : { isError: true }) };
         } catch {
           return { content: [{ type: "text", text: "Não foi possível confirmar o envio. Consulte o status pela mesma chave antes de tentar novamente." }], isError: true };
         }
@@ -290,7 +290,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
           const response = await createIattomClient({ baseUrl: operationsBase.origin, token: authInfo.token })(
             `/api/chatgpt/video/status/${requestId}`);
           const data = await response.json();
-          return { content: [{ type: "text", text: JSON.stringify(data) }], isError: !response.ok };
+          return { content: [{ type: "text", text: JSON.stringify(data) }], ...(response.ok ? { structuredContent: data } : { isError: true }) };
         } catch {
           return { content: [{ type: "text", text: "Não foi possível consultar o processamento." }], isError: true };
         }
@@ -308,7 +308,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
           const response = await createIattomClient({ baseUrl: operationsBase.origin, token: authInfo.token, allowWrites: true })(
             "/api/chatgpt/video/collect", { method: "POST", body: { requestId } });
           const data = await response.json();
-          return { content: [{ type: "text", text: JSON.stringify(data) }], isError: !response.ok };
+          return { content: [{ type: "text", text: JSON.stringify(data) }], ...(response.ok ? { structuredContent: data } : { isError: true }) };
         } catch {
           return { content: [{ type: "text", text: "A entrega não pôde ser confirmada. Consulte a mesma chave antes de repetir." }], isError: true };
         }
@@ -329,7 +329,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
           if (!response.ok) {
             return { content: [{ type: "text", text: JSON.stringify({ error: data.error ?? "status_unavailable", status: response.status }) }], isError: true };
           }
-          return { content: [{ type: "text", text: JSON.stringify(data) }] };
+          return { content: [{ type: "text", text: JSON.stringify(data) }], structuredContent: data };
         } catch {
           return { content: [{ type: "text", text: "Não foi possível recuperar o status agora." }], isError: true };
         }
@@ -354,7 +354,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
           if (!response.ok) {
             return { content: [{ type: "text", text: JSON.stringify({ error: data.error ?? "operation_failed", status: response.status }) }], isError: true };
           }
-          return { content: [{ type: "text", text: JSON.stringify(data) }] };
+          return { content: [{ type: "text", text: JSON.stringify(data) }], structuredContent: data };
         } catch {
           return { content: [{ type: "text", text: "Falha na comunicação com a API operacional isolada. Não repita automaticamente a mesma operação com outra chave." }], isError: true };
         }
