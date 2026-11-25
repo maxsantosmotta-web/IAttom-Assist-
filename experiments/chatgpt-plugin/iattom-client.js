@@ -7,7 +7,7 @@ export function createIattomClient({ baseUrl, token, fetchImpl = fetch, allowWri
   }
   if (typeof token !== "string" || !token) throw new Error("Missing authorization");
   const readPaths = new Set(["/api/chatgpt/account", "/api/chatgpt/projects", "/api/chatgpt/prompts", "/api/chatgpt/library"]);
-  const preflightFeatures = new Set(["product_discovery", "product_validation", "campaign", "content", "video_script", "creativeImage1", "creativeImage2", "creativeImage3"]);
+  const preflightFeatures = new Set(["product_discovery", "product_validation", "campaign", "content", "video_script", "prompt_creation", "creativeImage1", "creativeImage2", "creativeImage3"]);
   const preflightPrefix = "/api/chatgpt/operations/preflight/";
   const statusPrefix = "/api/chatgpt/operations/status/";
   const isAllowedRead = (path) => readPaths.has(path) || (path.startsWith(preflightPrefix) && preflightFeatures.has(path.slice(preflightPrefix.length))) ||
