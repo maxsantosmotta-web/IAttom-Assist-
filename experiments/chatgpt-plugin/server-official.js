@@ -199,7 +199,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
           requestId: z.string().regex(/^[A-Za-z0-9_-]{16,72}$/),
           sourceProjectId: z.string().min(1),
           conceptIndex: z.number().int().nonnegative(),
-          prompt: z.string().min(1).max(1200),
+          prompt: z.string().min(1).max(2000),
           format: z.enum(["vertical", "horizontal", "automatic"]),
         },
         annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
