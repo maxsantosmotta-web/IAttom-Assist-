@@ -92,3 +92,35 @@ test("status recovery is read-only and preserves original idempotency key",async
  await assert.rejects(client(`/api/chatgpt/operations/status/${id}`,{method:"POST",body:{}}),/Operation not enabled/);
  assert.equal(calls,1);
 });
+
+test("video submit and collect require explicit isolated write access",async()=>{
+ const requests=[];
+ const client=createIattomClient({baseUrl:"https://sandbox.example.invalid",token:"test-token",
+   allowWrites:true,fetchImpl:async(url,options)=>{
+     requests.push({url:url.pathname,method:options.method,body:JSON.parse(options.body)});
+     return new Response(JSON.stringify({status:"processing"}),{status:202});
+   }});
+ const key="video-test-unique-123456";
+ await client("/api/chatgpt/video/submit",{method:"POST",body:{requestId:key,sourceProjectId:"saved",conceptIndex:0,prompt:"movimento suave",format:"vertical"}});
+ await client("/api/chatgpt/video/collect",{method:"POST",body:{requestId:key}});
+ assert.deepEqual(requests.map(v=>v.url),["/api/chatgpt/video/submit","/api/chatgpt/video/collect"]);
+ assert.ok(requests.every(v=>v.method==="POST"));
+ const off=createIattomClient({baseUrl:"https://sandbox.example.invalid",token:"test-token",
+   fetchImpl:async()=>{throw new Error("Unexpected call")}});
+ await assert.rejects(off("/api/chatgpt/video/submit",{method:"POST",body:{}}),/Operation not enabled/);
+ await assert.rejects(off("/api/chatgpt/video/collect",{method:"POST",body:{}}),/Operation not enabled/);
+});
+test("video polling permits only owned-shaped opaque request keys",async()=>{
+ let polls=0;
+ const client=createIattomClient({baseUrl:"https://sandbox.example.invalid",token:"test-token",fetchImpl:async(url,options)=>{
+   polls++; assert.equal(options.method,"GET");
+   assert.equal(options.headers.authorization,"Bearer test-token");
+   return new Response(JSON.stringify({status:"IN_PROGRESS"}),{status:200});
+ }});
+ assert.equal((await (await client("/api/chatgpt/video/status/video-key-123456789")).json()).status,"IN_PROGRESS");
+ for (const path of ["/api/chatgpt/video/status/bad","/api/chatgpt/video/status/video-key-123456789/extra",
+  "/api/chatgpt/video/status/video-key-123456789?other=1"]) {
+   await assert.rejects(client(path),/Operation not enabled/);
+ }
+ assert.equal(polls,1);
+});
