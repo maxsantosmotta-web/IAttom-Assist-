@@ -12,7 +12,7 @@ export function createIattomClient({ baseUrl, token, fetchImpl = fetch, allowWri
   const statusPrefix = "/api/chatgpt/operations/status/";
   const videoStatusPrefix = "/api/chatgpt/video/status/";
   const helpStatusPrefix = "/api/chatgpt/help/status/";
-  const isAllowedRead = (path) => readPaths.has(path) || (path.startsWith(preflightPrefix) && preflightFeatures.has(path.slice(preflightPrefix.length))) ||
+  const isAllowedRead = (path) => /^\/api\/chatgpt\/operations\/assets\/chatgpt-[a-f0-9]{64}$/.test(path) || readPaths.has(path) || (path.startsWith(preflightPrefix) && preflightFeatures.has(path.slice(preflightPrefix.length))) ||
     (path.startsWith(statusPrefix) && /^[A-Za-z0-9_-]{16,72}$/.test(path.slice(statusPrefix.length))) ||
     (path.startsWith(videoStatusPrefix) && /^[A-Za-z0-9_-]{16,72}$/.test(path.slice(videoStatusPrefix.length))) ||
     (path.startsWith(helpStatusPrefix) && /^[A-Za-z0-9_-]{16,72}$/.test(path.slice(helpStatusPrefix.length)));
