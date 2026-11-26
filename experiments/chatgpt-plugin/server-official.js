@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { createIattomClient } from "./iattom-client.js";
 import { publicCatalog } from "./catalog.js";
 import express from "express";
@@ -33,6 +34,21 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
   app.use(cors({ exposedHeaders: ["WWW-Authenticate", "Mcp-Session-Id"] }));
   app.use(express.json());
 
+  // Short-lived, unguessable download capabilities, issued only after authenticated owner retrieval.
+  const downloads = new Map();
+  const downloadTTL = 5 * 60 * 1000;
+  function pruneDownloads() {
+    for (const [key, value] of downloads) if (value.expires <= Date.now()) downloads.delete(key);
+  }
+  app.get("/downloads/:ticket", (req, res) => {
+    pruneDownloads();
+    const ticket = String(req.params.ticket);
+    const entry = /^[a-f0-9]{64}$/.test(ticket) ? downloads.get(ticket) : undefined;
+    res.set({"Cache-Control":"private, no-store","Referrer-Policy":"no-referrer","X-Content-Type-Options":"nosniff"});
+    if (!entry) {res.status(404).send("Arquivo indisponível ou link expirado."); return;}
+    res.set({"Content-Type":entry.mimeType,"Content-Disposition":`attachment; filename="${entry.filename}"`});
+    res.send(entry.bytes);
+  });
   function createServer() {
     const server = new McpServer({ name: "iattom-assist", version: "1.0.0" });
     server.registerTool("conhecer_iattom", {
@@ -312,8 +328,22 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
         const response = await createIattomClient({baseUrl:operationsBase.origin,token})(`/api/chatgpt/operations/assets/${id}`);
         if (!response.ok) return {content:[...content,{type:"text",text:"Arquivo visual indisponível. Não gere novamente; consulte o material salvo."}],isError:true};
         const payload = await response.json();
-        for (const asset of payload.assets) content.push({type:"image",data:asset.base64,mimeType:asset.mimeType});
-        return {content,structuredContent:data};
+        const links = [];
+        pruneDownloads();
+        for (const [index, asset] of payload.assets.entries()) {
+          content.push({type:"image",data:asset.base64,mimeType:asset.mimeType});
+          const ext = {"image/png":"png","image/jpeg":"jpg","image/webp":"webp"}[asset.mimeType];
+          if (!ext) continue;
+          const bytes = Buffer.from(asset.base64,"base64");
+          if (bytes.length > 15000000) continue;
+          while (downloads.size >= 12) downloads.delete(downloads.keys().next().value);
+          const ticket = randomBytes(32).toString("hex");
+          const filename = `iattom-${id.slice(8,20)}-${index+1}.${ext}`;
+          downloads.set(ticket,{bytes,mimeType:asset.mimeType,filename,expires:Date.now()+downloadTTL});
+          links.push({filename,url:new URL("/downloads/"+ticket,resourceUrl).href,expiresInSeconds:300});
+        }
+        if (links.length) content.push({type:"text",text:JSON.stringify({downloads:links,instruction:"Apresente os links de download ao usuário. Expiram em cinco minutos; não compartilhe com terceiros."})});
+        return {content,structuredContent:{...data,downloads:links}};
       }
       server.registerTool("recuperar_imagens_iattom", {
         title:"Recuperar imagens IAttom",
