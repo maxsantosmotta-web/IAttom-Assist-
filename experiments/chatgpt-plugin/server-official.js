@@ -305,6 +305,26 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
           return { content: [{ type: "text", text: "A entrega não pôde ser confirmada. Consulte a mesma chave antes de repetir." }], isError: true };
         }
       });
+      async function deliverOperationAssets(data, token, explicitId) {
+        const id = explicitId || data.operationId || data.projectId;
+        const content = [{ type: "text", text: JSON.stringify(data) }];
+        if (!id || (!explicitId && !data.hasImages && !data.imageCount && !data.result?.concepts)) return {content, structuredContent:data};
+        const response = await createIattomClient({baseUrl:operationsBase.origin,token})(`/api/chatgpt/operations/assets/${id}`);
+        if (!response.ok) return {content:[...content,{type:"text",text:"Arquivo visual indisponível. Não gere novamente; consulte o material salvo."}],isError:true};
+        const payload = await response.json();
+        for (const asset of payload.assets) content.push({type:"image",data:asset.base64,mimeType:asset.mimeType});
+        return {content,structuredContent:data};
+      }
+      server.registerTool("recuperar_imagens_iattom", {
+        title:"Recuperar imagens IAttom",
+        description:"Recupera imagens de um material existente pelo ID da biblioteca, sem gerar ou cobrar novamente.",
+        inputSchema:{id:z.string().regex(/^chatgpt-[a-f0-9]{64}$/)},
+        annotations:{readOnlyHint:true,openWorldHint:false},
+      }, async ({id},{authInfo}) => {
+        if (!isClerkAuthInfo(authInfo)) return {content:[{type:"text",text:"Conecte sua conta IAttom."}],isError:true};
+        try {return await deliverOperationAssets({projectId:id},authInfo.token,id);}
+        catch {return {content:[{type:"text",text:"Não foi possível recuperar as imagens."}],isError:true};}
+      });
       server.registerTool("consultar_status_operacao_iattom", {
         title: "Consultar status de operação IAttom",
         description: "Recupera o resultado de uma solicitação de geração pela mesma chave, sem regenerar nem descontar créditos adicionais.",
@@ -321,7 +341,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
           if (!response.ok) {
             return { content: [{ type: "text", text: JSON.stringify({ error: data.error ?? "status_unavailable", status: response.status }) }], isError: true };
           }
-          return { content: [{ type: "text", text: JSON.stringify(data) }], structuredContent: data };
+          return await deliverOperationAssets(data, authInfo.token);
         } catch {
           return { content: [{ type: "text", text: "Não foi possível recuperar o status agora." }], isError: true };
         }
@@ -361,7 +381,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
           if (!response.ok) {
             return { content: [{ type: "text", text: JSON.stringify({ error: data.error ?? "operation_failed", status: response.status }) }], isError: true };
           }
-          return { content: [{ type: "text", text: JSON.stringify(data) }], structuredContent: data };
+          return await deliverOperationAssets(data, authInfo.token);
         } catch {
           return { content: [{ type: "text", text: "Falha na comunicação com a API operacional isolada. Não repita automaticamente a mesma operação com outra chave." }], isError: true };
         }
