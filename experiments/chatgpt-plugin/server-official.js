@@ -425,7 +425,32 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
 
   app.all("/mcp", mcpAuth(authOptions), streamableHttpHandler(createServer, StreamableHTTPServerTransport));
   app.all("/.well-known/oauth-protected-resource/mcp", protectedResourceMetadataHandler(authOptions));
-  return app.listen(port, host);
+  const server = app.listen(port, host);
+  if (new URL(resourceUrl).hostname === "iattom-mcp-preview-test.up.railway.app") {
+    server.once("listening", async () => {
+      const tickets = [];
+      try {
+        const base = "http://127.0.0.1:" + server.address().port + "/downloads/";
+        const fixture = Buffer.from("sandbox-download-check");
+        const issue = (expires) => {
+          const ticket = randomBytes(32).toString("hex");
+          tickets.push(ticket);
+          downloads.set(ticket, {bytes:fixture,mimeType:"image/png",filename:"sandbox-check.png",expires});
+          return ticket;
+        };
+        const valid = issue(Date.now()+downloadTTL);
+        const first = await fetch(base+valid);
+        if (first.status !== 200 || !Buffer.from(await first.arrayBuffer()).equals(fixture) || first.headers.get("cache-control") !== "private, no-store") throw Error("first_download");
+        if ((await fetch(base+valid)).status !== 404) throw Error("replay");
+        const expired = issue(Date.now()-1);
+        if ((await fetch(base+expired)).status !== 404) throw Error("expiry");
+        if ((await fetch(base+randomBytes(32).toString("hex"))).status !== 404) throw Error("unknown_ticket");
+        console.log("STAGE10_DOWNLOAD_PASS first_download replay expiry unknown_ticket");
+      } catch (err) { console.error("STAGE10_DOWNLOAD_FAIL", err.message); }
+      finally { for (const ticket of tickets) downloads.delete(ticket); }
+    });
+  }
+  return server;
 }
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
