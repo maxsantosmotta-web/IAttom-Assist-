@@ -37,6 +37,8 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
   // Short-lived, unguessable download capabilities, issued only after authenticated owner retrieval.
   const downloads = new Map();
   const downloadTTL = 5 * 60 * 1000;
+  const downloadCleanup = setInterval(pruneDownloads, 30000);
+  downloadCleanup.unref();
   function pruneDownloads() {
     for (const [key, value] of downloads) if (value.expires <= Date.now()) downloads.delete(key);
   }
@@ -47,6 +49,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
     res.set({"Cache-Control":"private, no-store","Referrer-Policy":"no-referrer","X-Content-Type-Options":"nosniff"});
     if (!entry) {res.status(404).send("Arquivo indisponível ou link expirado."); return;}
     res.set({"Content-Type":entry.mimeType,"Content-Disposition":`attachment; filename="${entry.filename}"`});
+    downloads.delete(ticket);
     res.send(entry.bytes);
   });
   function createServer() {
@@ -342,7 +345,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
           downloads.set(ticket,{bytes,mimeType:asset.mimeType,filename,expires:Date.now()+downloadTTL});
           links.push({filename,url:new URL("/downloads/"+ticket,resourceUrl).href,expiresInSeconds:300});
         }
-        if (links.length) content.push({type:"text",text:JSON.stringify({downloads:links,instruction:"Apresente os links de download ao usuário. Expiram em cinco minutos; não compartilhe com terceiros."})});
+        if (links.length) content.push({type:"text",text:JSON.stringify({downloads:links,instruction:"Apresente os links de download ao usuário. São de uso único, expiram em cinco minutos; não compartilhe com terceiros."})});
         return {content,structuredContent:{...data,downloads:links}};
       }
       server.registerTool("recuperar_imagens_iattom", {
