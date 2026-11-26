@@ -91,7 +91,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
         return { content: [{ type: "text", text: "Conecte sua conta IAttom para consultar os projetos." }], isError: true };
       }
       try {
-        const response = await createIattomClient({ baseUrl: accountApiUrl, token: authInfo.token })("/api/chatgpt/projects");
+        const response = await createIattomClient({ baseUrl: process.env.IATTOM_OPERATION_API_URL || accountApiUrl, token: authInfo.token })("/api/chatgpt/projects");
         if (!response.ok) {
           const message = response.status === 401 || response.status === 403
             ? "Autorização da conta inválida."
@@ -115,7 +115,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
         return { content: [{ type: "text", text: "Conecte sua conta IAttom para consultar os prompts." }], isError: true };
       }
       try {
-        const response = await createIattomClient({ baseUrl: accountApiUrl, token: authInfo.token })("/api/chatgpt/prompts");
+        const response = await createIattomClient({ baseUrl: process.env.IATTOM_OPERATION_API_URL || accountApiUrl, token: authInfo.token })("/api/chatgpt/prompts");
         if (!response.ok) {
           const message = response.status === 403 ? "Plano necessário para acessar Criar Prompt." :
             response.status === 401 ? "Autorização da conta inválida." :
@@ -161,7 +161,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
         return { content: [{ type: "text", text: "Conecte sua conta IAttom para consultar a biblioteca." }], isError: true };
       }
       try {
-        const response = await createIattomClient({ baseUrl: accountApiUrl, token: authInfo.token })("/api/chatgpt/library");
+        const response = await createIattomClient({ baseUrl: process.env.IATTOM_OPERATION_API_URL || accountApiUrl, token: authInfo.token })("/api/chatgpt/library");
         if (!response.ok) {
           return { content: [{ type: "text", text: response.status === 401 || response.status === 403
             ? "Autorização da conta inválida." : "Não foi possível consultar a biblioteca agora." }], isError: true };
