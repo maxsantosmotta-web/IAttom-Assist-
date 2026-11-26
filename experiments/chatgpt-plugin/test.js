@@ -4,12 +4,30 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { start } from "./server.js";
 import { moduleInput } from "./server-official.js";
+import { createIattomClient } from "./iattom-client.js";
 
 test("operational inputs preserve video script fields that overlap campaigns", () => {
   const input = { product: "Exemplo", format: "vertical", duration: "30s", hook: "Abertura", style: "direto" };
   assert.deepEqual(moduleInput.parse(input), input);
   assert.equal(moduleInput.safeParse({ product: "" }).success, false);
   assert.equal(moduleInput.safeParse({ selectedFormats: ["feed"] }).success, false);
+});
+
+test("operational transport preserves canonical fields and never retries or redirects writes", async () => {
+  const input = { prompt: "x".repeat(2200), platform: "instagram", selectedFormats: ["feed"], additionalCanonicalField: { value: 1 } };
+  assert.deepEqual(moduleInput.parse(input), input);
+  const calls = [];
+  const client = createIattomClient({ baseUrl: "https://sandbox.example.com", token: "test-token", allowWrites: true, fetchImpl: async (url, options) => {
+    calls.push({ url: String(url), options });
+    return new Response(JSON.stringify({ status: "completed" }), { status: 200 });
+  } });
+  const body = { feature: "creativeImage1", input, requestId: "test-request-0001" };
+  await client("/api/chatgpt/operations/execute", { method: "POST", body });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].options.redirect, "error");
+  assert.deepEqual(JSON.parse(calls[0].options.body), body);
+  await assert.rejects(client("/api/ai/creative-ideas", { method: "POST", body }));
+  assert.equal(calls.length, 1);
 });
 
 test("isolated MCP requires Clerk OAuth and advertises its resource", async () => {
