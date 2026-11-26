@@ -140,7 +140,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
         return { content: [{ type: "text", text: "Conecte sua conta IAttom." }], isError: true };
       }
       try {
-        const response = await createIattomClient({ baseUrl: accountApiUrl, token: authInfo.token })("/api/chatgpt/help/usage");
+        const response = await createIattomClient({ baseUrl: process.env.IATTOM_OPERATION_API_URL || accountApiUrl, token: authInfo.token })("/api/chatgpt/help/usage");
         if (!response.ok) return { content: [{ type: "text", text: "Consulta do IAttom Help indisponível." }], isError: true };
         const data = await response.json();
         if (typeof data.canUse !== "boolean" || typeof data.creditCost !== "number") {
