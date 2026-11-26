@@ -326,9 +326,24 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
           return { content: [{ type: "text", text: "Não foi possível recuperar o status agora." }], isError: true };
         }
       });
+      server.registerTool("salvar_material_iattom", {
+        title: "Salvar material no IAttom",
+        description: "Salva um resultado já gerado somente após solicitação explícita do usuário. Use a mesma requestId da geração. Não gera novamente nem cobra créditos.",
+        inputSchema: { requestId: z.string().regex(/^[A-Za-z0-9_-]{16,72}$/) },
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      }, async ({ requestId }, { authInfo }) => {
+        if (!isClerkAuthInfo(authInfo)) return { content: [{ type: "text", text: "Conecte sua conta IAttom." }], isError: true };
+        try {
+          const response = await createIattomClient({ baseUrl: operationsBase.origin, token: authInfo.token, allowWrites: true })("/api/chatgpt/operations/save", { method: "POST", body: { requestId } });
+          const data = await response.json();
+          return { content: [{ type: "text", text: JSON.stringify(data) }], ...(response.ok ? { structuredContent: data } : { isError: true }) };
+        } catch {
+          return { content: [{ type: "text", text: "Não foi possível confirmar o salvamento. Use a mesma chave para consultar ou repetir o salvamento." }], isError: true };
+        }
+      });
       server.registerTool("executar_modulo_iattom", {
         title: "Executar módulo IAttom",
-        description: "Executa um módulo existente no IAttom com pedido explícito e chave única. input por feature: product_discovery {query,niche?,priceRange?,targetMarket?}; product_validation {productName,description?,targetMarket?,pricePoint?}; campaign {product,audience?,goal?,mode?,platforms?,budget?,productType?}; content {topic,tone?,contentTypes?,additionalContext?}; video_script {product,format?,duration?,hook?,style?}; prompt_creation {tipo,subject}; creativeImage1/2/3 {prompt,platform,selectedFormats}, com respectivamente 1/2/3 formatos distintos compatíveis com a plataforma. A API original valida os dados, permissões e créditos. Nesta versão de teste, o resultado ainda é salvo automaticamente; a separação do salvamento será implementada na próxima etapa.",
+        description: "Executa um módulo existente no IAttom com pedido explícito e chave única. input por feature: product_discovery {query,niche?,priceRange?,targetMarket?}; product_validation {productName,description?,targetMarket?,pricePoint?}; campaign {product,audience?,goal?,mode?,platforms?,budget?,productType?}; content {topic,tone?,contentTypes?,additionalContext?}; video_script {product,format?,duration?,hook?,style?}; prompt_creation {tipo,subject}; creativeImage1/2/3 {prompt,platform,selectedFormats}, com respectivamente 1/2/3 formatos distintos compatíveis com a plataforma. A API original valida os dados, permissões e créditos. Entregue o resultado ao usuário; não salve sem solicitação explícita.",
         inputSchema: {
           feature: z.enum(["product_discovery", "product_validation", "campaign", "content", "video_script", "prompt_creation", "creativeImage1", "creativeImage2", "creativeImage3"]),
           input: moduleInput,
