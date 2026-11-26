@@ -19,7 +19,7 @@ export function createIattomClient({ baseUrl, token, fetchImpl = fetch, allowWri
   // Intentionally empty until the external backend routes own plan checks,
   // atomic consumption, idempotency and persistence. Enabling the flag alone
   // never permits calls to /api/ai/* or /api/help/chat.
-  const operationPaths = new Set(["/api/chatgpt/operations/execute", "/api/chatgpt/video/submit", "/api/chatgpt/video/collect", "/api/chatgpt/help/execute"]);
+  const operationPaths = new Set(["/api/chatgpt/operations/save", "/api/chatgpt/operations/execute", "/api/chatgpt/video/submit", "/api/chatgpt/video/collect", "/api/chatgpt/help/execute"]);
   return async function request(path, { method = "GET", body } = {}) {
     if (typeof path !== "string" || !path.startsWith("/api/chatgpt/") ||
         (method === "GET" ? !isAllowedRead(path) || body !== undefined :
