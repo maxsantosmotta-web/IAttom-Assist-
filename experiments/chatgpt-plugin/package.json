@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node server.js",
     "start:official": "node server-official.js",
-    "test": "node --test test.js"
+    "test": "node --test test.js",
+    "prestart:official": "npm test"
   },
   "dependencies": {
     "@clerk/express": "^2.1.98",
