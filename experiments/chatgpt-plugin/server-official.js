@@ -12,17 +12,9 @@ import {
   streamableHttpHandler,
 } from "@clerk/mcp-tools/express";
 
-// Mirror the existing API request bodies so the model sees required inputs.
-// The operational API remains the authoritative validator for each feature.
-export const moduleInput = z.union([
-  z.object({ query: z.string().min(1), niche: z.string().optional(), priceRange: z.string().optional(), targetMarket: z.string().optional() }),
-  z.object({ productName: z.string().min(1), description: z.string().optional(), targetMarket: z.string().optional(), pricePoint: z.string().optional() }),
-  z.object({ product: z.string().min(1), audience: z.string().optional(), goal: z.string().optional(), mode: z.string().optional(), platforms: z.array(z.string()).optional(), budget: z.string().optional(), productType: z.enum(["Digital", "Físico", "Serviço"]).optional() }).passthrough(),
-  z.object({ topic: z.string().min(1), tone: z.string().optional(), contentTypes: z.array(z.string()).optional(), additionalContext: z.string().optional() }),
-  z.object({ product: z.string().min(1), format: z.string().optional(), duration: z.string().optional(), hook: z.string().optional(), style: z.string().optional() }).passthrough(),
-  z.object({ tipo: z.string().min(1).max(50), subject: z.string().min(1).max(3000) }),
-  z.object({ prompt: z.string().min(1).max(1800), platform: z.enum(["instagram", "facebook", "tiktok", "mercado_livre", "shopee", "hotmart", "kiwify", "perfil"]), selectedFormats: z.array(z.string()).min(1).max(3) }),
-]);
+// Preserve the supplied input without stripping fields or duplicating module validation.
+// The operational API is the authoritative validator.
+export const moduleInput = z.object({}).passthrough().refine(input => Object.keys(input).length > 0 && Object.values(input).some(value => typeof value === "string" && value.trim().length > 0), { message: "Informe os dados do módulo" });
 
 // A separate entry point keeps the connected development preview unchanged.
 // Both keys must belong to the existing IAttom Clerk production instance.
@@ -336,7 +328,7 @@ export function startOfficial(port = Number(process.env.PORT ?? 8787), host = "1
       });
       server.registerTool("executar_modulo_iattom", {
         title: "Executar módulo IAttom",
-        description: "Executa um módulo existente no IAttom com pedido explícito e chave única. input por feature: product_discovery {query,niche?,priceRange?,targetMarket?}; product_validation {productName,description?,targetMarket?,pricePoint?}; campaign {product,audience?,goal?,mode?,platforms?,budget?,productType?}; content {topic,tone?,contentTypes?,additionalContext?}; video_script {product,format?,duration?,hook?,style?}; prompt_creation {tipo,subject}; creativeImage1/2/3 {prompt,platform,selectedFormats}, com respectivamente 1/2/3 formatos distintos compatíveis com a plataforma. A API valida novamente antes de cobrar e salvar na biblioteca isolada.",
+        description: "Executa um módulo existente no IAttom com pedido explícito e chave única. input por feature: product_discovery {query,niche?,priceRange?,targetMarket?}; product_validation {productName,description?,targetMarket?,pricePoint?}; campaign {product,audience?,goal?,mode?,platforms?,budget?,productType?}; content {topic,tone?,contentTypes?,additionalContext?}; video_script {product,format?,duration?,hook?,style?}; prompt_creation {tipo,subject}; creativeImage1/2/3 {prompt,platform,selectedFormats}, com respectivamente 1/2/3 formatos distintos compatíveis com a plataforma. A API original valida os dados, permissões e créditos. Nesta versão de teste, o resultado ainda é salvo automaticamente; a separação do salvamento será implementada na próxima etapa.",
         inputSchema: {
           feature: z.enum(["product_discovery", "product_validation", "campaign", "content", "video_script", "prompt_creation", "creativeImage1", "creativeImage2", "creativeImage3"]),
           input: moduleInput,
